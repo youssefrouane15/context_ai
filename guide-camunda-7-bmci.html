@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camunda 7 — Guide complet · Microservices Spring Boot & Angular (BMCI)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<style>
+:root{
+  --bg:#0B1220;            /* bleu nuit profond */
+  --surface:#111A2C;       /* panneaux */
+  --surface2:#0D1526;      /* blocs de code */
+  --line:#1E2A44;          /* bordures */
+  --txt:#E6ECF5;
+  --muted:#8A97AD;
+  --green:#00A76F;         /* accent BMCI */
+  --green-soft:rgba(0,167,111,.12);
+  --amber:#F5B841;
+  --amber-soft:rgba(245,184,65,.10);
+  --red:#F0616D;
+  --red-soft:rgba(240,97,109,.10);
+  --blue:#5AA9FF;
+  --blue-soft:rgba(90,169,255,.10);
+  --mono:ui-monospace,'Cascadia Code','JetBrains Mono',Consolas,monospace;
+  --sans:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:16px;line-height:1.7}
+::selection{background:var(--green);color:#04120C}
+
+/* ---------- Layout ---------- */
+.wrap{display:flex;min-height:100vh}
+aside{width:300px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 0 40px}
+main{flex:1;min-width:0;padding:0 clamp(20px,5vw,72px) 120px}
+.content{max-width:880px;margin:0 auto}
+
+/* ---------- Sidebar : le sommaire est lui-même un processus BPMN ---------- */
+.brand{padding:0 24px 20px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.brand .logo{font-family:var(--mono);font-size:13px;letter-spacing:.18em;color:var(--green);text-transform:uppercase}
+.brand h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin-top:6px}
+.brand p{font-size:12.5px;color:var(--muted);margin-top:4px}
+.flownav{position:relative;padding:6px 24px 0 34px}
+.flownav::before{content:"";position:absolute;left:43px;top:14px;bottom:26px;width:2px;
+  background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 11px)}
+.flownav a{display:flex;align-items:center;gap:12px;padding:7px 8px 7px 0;color:var(--muted);
+  text-decoration:none;font-size:13.5px;position:relative;border-radius:8px;transition:color .15s}
+.flownav a:hover{color:var(--txt)}
+.flownav a.active{color:var(--txt);font-weight:600}
+.node{width:20px;height:20px;flex-shrink:0;border:2px solid var(--line);background:var(--surface);
+  border-radius:6px;position:relative;z-index:1;transition:border-color .15s}
+.flownav a:hover .node,.flownav a.active .node{border-color:var(--green)}
+.flownav a.active .node{background:var(--green-soft)}
+.node.start,.node.end{border-radius:50%}
+.node.end{border-width:4px}
+.node.gate{transform:rotate(45deg);border-radius:4px;width:17px;height:17px;margin:0 1.5px}
+.flownav .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flownav .num{font-family:var(--mono);font-size:10.5px;color:var(--muted);opacity:.7}
+
+/* ---------- Typo & structure de chapitre ---------- */
+.chapter{padding-top:64px;border-top:1px solid var(--line);margin-top:64px}
+.chapter:first-of-type{border-top:none;margin-top:0}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--green);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.eyebrow::after{content:"";height:1px;flex:1;background:var(--line)}
+h2{font-size:clamp(26px,3.4vw,34px);font-weight:800;letter-spacing:-.025em;line-height:1.2;margin-bottom:14px}
+h3{font-size:21px;font-weight:700;letter-spacing:-.015em;margin:42px 0 12px;padding-top:6px}
+h4{font-size:16.5px;font-weight:700;margin:28px 0 8px}
+p{margin:0 0 14px;color:#C9D3E3}
+p strong,li strong{color:var(--txt)}
+.lead{font-size:18px;color:var(--txt);line-height:1.65}
+ul,ol{margin:0 0 16px 22px;color:#C9D3E3}
+li{margin-bottom:7px}
+a{color:var(--blue)}
+hr{border:none;border-top:1px solid var(--line);margin:32px 0}
+
+/* ---------- Composants ---------- */
+code:not(pre code){font-family:var(--mono);font-size:.86em;background:var(--surface2);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:#9FE8C8}
+pre{background:var(--surface2)!important;border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;overflow-x:auto;margin:0 0 18px;font-size:13.5px;line-height:1.6}
+pre code{font-family:var(--mono);background:transparent!important;padding:0}
+.filetag{display:inline-block;font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  background:var(--surface);border:1px solid var(--line);border-bottom:none;
+  border-radius:8px 8px 0 0;padding:5px 12px;margin-bottom:-1px;position:relative}
+.filetag+pre{border-top-left-radius:0}
+
+.callout{border:1px solid var(--line);border-left:3px solid var(--green);background:var(--green-soft);
+  border-radius:10px;padding:14px 18px;margin:0 0 18px;font-size:15px}
+.callout .t{font-weight:700;font-family:var(--mono);font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--green);display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+.callout.warn{border-left-color:var(--amber);background:var(--amber-soft)}
+.callout.warn .t{color:var(--amber)}
+.callout.danger{border-left-color:var(--red);background:var(--red-soft)}
+.callout.danger .t{color:var(--red)}
+.callout.info{border-left-color:var(--blue);background:var(--blue-soft)}
+.callout.info .t{color:var(--blue)}
+
+table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:14.5px}
+th{text-align:left;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--line)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:#C9D3E3}
+tr:hover td{background:rgba(255,255,255,.015)}
+td .sym{display:inline-flex;align-items:center;justify-content:center;width:52px;height:44px}
+
+.mermaid{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:20px;margin:0 0 20px;display:flex;justify-content:center;overflow-x:auto}
+.figcap{font-size:13px;color:var(--muted);text-align:center;margin:-10px 0 24px;font-style:italic}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.card h5{font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card p{font-size:14px;margin-bottom:0}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:99px;
+  border:1px solid var(--line);color:var(--muted);margin-right:6px}
+.pill.g{color:var(--green);border-color:rgba(0,167,111,.4)}
+.pill.a{color:var(--amber);border-color:rgba(245,184,65,.4)}
+.pill.r{color:var(--red);border-color:rgba(240,97,109,.4)}
+.pill.b{color:var(--blue);border-color:rgba(90,169,255,.4)}
+
+/* Hero */
+.hero{padding:88px 0 20px}
+.hero .k{font-family:var(--mono);color:var(--green);font-size:13px;letter-spacing:.2em;text-transform:uppercase}
+.hero h2{font-size:clamp(34px,5vw,52px);border:none;margin:14px 0 18px;padding:0}
+.hero h2 .thin{color:var(--muted);font-weight:300}
+.hero .sub{font-size:18px;color:#C9D3E3;max-width:640px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+details{border:1px solid var(--line);border-radius:10px;margin-bottom:12px;background:var(--surface)}
+summary{cursor:pointer;padding:13px 18px;font-weight:600;font-size:15px;list-style:none;display:flex;align-items:center;gap:10px}
+summary::before{content:"+";font-family:var(--mono);color:var(--green);font-size:16px;width:16px}
+details[open] summary::before{content:"–"}
+details .body{padding:0 18px 16px;font-size:14.5px}
+details .body p:last-child{margin-bottom:0}
+
+kbd{font-family:var(--mono);font-size:.85em;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:5px;padding:1px 6px;background:var(--surface2)}
+
+@media(max-width:960px){
+  aside{display:none}
+  main{padding:0 18px 80px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<aside>
+  <div class="brand">
+    <div class="logo">◈ Guide interne</div>
+    <h1>Camunda 7<br>de zéro à la prod</h1>
+    <p>BPMN · Spring Boot · Angular · Microservices — contexte BMCI</p>
+  </div>
+  <nav class="flownav" id="flownav">
+    <a href="#ch0"><span class="node start"></span><span class="lbl">Commencer ici</span></a>
+    <a href="#ch1"><span class="node"></span><span class="lbl"><span class="num">01</span> Pourquoi un moteur de workflow ?</span></a>
+    <a href="#ch2"><span class="node"></span><span class="lbl"><span class="num">02</span> BPMN 2.0 — le langage</span></a>
+    <a href="#ch3"><span class="node"></span><span class="lbl"><span class="num">03</span> Architecture de Camunda 7</span></a>
+    <a href="#ch4"><span class="node"></span><span class="lbl"><span class="num">04</span> Premier projet Spring Boot</span></a>
+    <a href="#ch5"><span class="node"></span><span class="lbl"><span class="num">05</span> Variables, formulaires, User Tasks</span></a>
+    <a href="#ch6"><span class="node gate"></span><span class="lbl"><span class="num">06</span> Gateways, timers, messages</span></a>
+    <a href="#ch7"><span class="node"></span><span class="lbl"><span class="num">07</span> External Tasks & microservices</span></a>
+    <a href="#ch8"><span class="node"></span><span class="lbl"><span class="num">08</span> L'API REST de Camunda</span></a>
+    <a href="#ch9"><span class="node"></span><span class="lbl"><span class="num">09</span> Angular & micro-frontends</span></a>
+    <a href="#ch10"><span class="node gate"></span><span class="lbl"><span class="num">10</span> Erreurs, Saga & compensation</span></a>
+    <a href="#ch11"><span class="node"></span><span class="lbl"><span class="num">11</span> DMN — les règles métier</span></a>
+    <a href="#ch12"><span class="node"></span><span class="lbl"><span class="num">12</span> Tests & qualité</span></a>
+    <a href="#ch13"><span class="node"></span><span class="lbl"><span class="num">13</span> Prod, versioning, bonnes pratiques</span></a>
+    <a href="#ch14"><span class="node end"></span><span class="lbl"><span class="num">14</span> Fil rouge complet & roadmap</span></a>
+  </nav>
+</aside>
+
+<main><div class="content">
+<!-- ============ HERO + CH0 ============ -->
+<section class="hero" id="ch0">
+  <div class="k">Formation accélérée · Édition BMCI</div>
+  <h2>Camunda 7 <span class="thin">expliqué depuis zéro,</span><br>jusqu'à l'orchestration de vos microservices.</h2>
+  <p class="sub">Ce guide part du principe que vous ne connaissez <strong>ni BPMN, ni Camunda</strong>. Chaque concept est expliqué simplement, puis appliqué à un cas concret : un processus de <strong>demande de crédit à la consommation</strong> dans une architecture microservices Java Spring Boot + Angular en micro-frontends — exactement le contexte de la refonte BMCI.</p>
+  <div class="meta">
+    <span class="pill g">Camunda 7.21</span>
+    <span class="pill b">Spring Boot 3.x · Java 17/21</span>
+    <span class="pill b">Angular · Module Federation</span>
+    <span class="pill a">Fil rouge : crédit conso</span>
+    <span class="pill">~2h de lecture</span>
+  </div>
+
+  <h3>Comment lire ce guide</h3>
+  <p>Les chapitres se suivent comme un processus : les chapitres <strong>01 à 03</strong> posent les concepts (aucun code), <strong>04 à 08</strong> sont les mains dans le cambouis côté Java, <strong>09</strong> couvre votre front Angular, et <strong>10 à 14</strong> vous amènent au niveau « prod bancaire ». Un fil rouge unique — <em>la demande de crédit conso</em> — évolue de chapitre en chapitre.</p>
+
+  <div class="callout warn">
+    <span class="t">⚠ À savoir avant de commencer — Camunda 7 vs Camunda 8</span>
+    <p>Camunda 7 et Camunda 8 sont <strong>deux produits très différents</strong> (moteur embarqué + base SQL pour le 7, moteur distribué « Zeebe » pour le 8). L'édition communautaire de Camunda 7 n'est plus maintenue depuis octobre 2025, mais l'édition <strong>Enterprise reste supportée jusqu'en 2030</strong> — c'est celle qu'utilisent la plupart des banques. Beaucoup de grands groupes (dont l'écosystème BNP Paribas) sont encore massivement sur Camunda 7 : le maîtriser reste un investissement rentable, et les concepts BPMN sont 100&nbsp;% transférables vers Camunda 8 le jour venu.</p>
+  </div>
+</section>
+
+<!-- ============ CH1 ============ -->
+<section class="chapter" id="ch1">
+  <div class="eyebrow">Chapitre 01 · Concepts</div>
+  <h2>Pourquoi un moteur de workflow ?</h2>
+
+  <p class="lead">Avant de parler de Camunda, comprenons le problème qu'il résout. Sans lui, vous l'avez probablement déjà résolu... mal, et sans le savoir.</p>
+
+  <h3>Le problème : les processus « invisibles » dans le code</h3>
+  <p>Prenons un cas BMCI classique : <strong>une demande de crédit à la consommation</strong>. Dans la vraie vie, ce processus ressemble à ça :</p>
+  <ol>
+    <li>Le client soumet sa demande (via l'app ou en agence)</li>
+    <li>Le système vérifie automatiquement son éligibilité (scoring, KYC, centrale des risques)</li>
+    <li>Si le montant dépasse un seuil, un <strong>analyste crédit humain</strong> doit valider</li>
+    <li>Si l'analyste ne répond pas sous 48h, on relance ou on escalade</li>
+    <li>Une fois approuvé : création du contrat, déblocage des fonds, notification du client</li>
+    <li>Si le déblocage échoue après la signature... il faut <strong>annuler proprement</strong> ce qui a déjà été fait</li>
+  </ol>
+  <p>Sans moteur de workflow, ce processus finit éparpillé : un peu dans un service Java, un peu dans des statuts en base (<code>status = 'PENDING_VALIDATION'</code>), un peu dans des jobs cron pour les relances, un peu dans des files Kafka. Résultat :</p>
+  <ul>
+    <li><strong>Personne ne peut voir le processus.</strong> Le métier demande « où en est le dossier 4521 ? » → il faut un développeur et des requêtes SQL.</li>
+    <li><strong>L'état est fragile.</strong> Un redémarrage de pod au mauvais moment, et un dossier reste bloqué dans les limbes.</li>
+    <li><strong>Le temps est géré à la main.</strong> Relances, délais réglementaires, escalades = une armée de crons.</li>
+    <li><strong>Changer le processus = redéployer du code</strong> et prier pour n'avoir rien cassé.</li>
+  </ul>
+
+  <h3>La solution : externaliser le « qui fait quoi, quand »</h3>
+  <p>Un <strong>moteur de workflow</strong> (ou moteur d'orchestration) est un composant dont le seul métier est d'exécuter des processus. Vous lui donnez :</p>
+  <ul>
+    <li>Un <strong>schéma du processus</strong> (dessiné en BPMN — on y vient au chapitre 02),</li>
+    <li>Le <strong>code de chaque étape</strong> (vos services Java existants).</li>
+  </ul>
+  <p>Et lui s'occupe de tout le reste : <strong>persister l'état</strong> de chaque dossier, <strong>router</strong> vers la bonne étape suivante, <strong>attendre</strong> (un humain, un délai, un message) sans consommer de ressources, <strong>réessayer</strong> en cas d'échec, et <strong>tracer</strong> tout l'historique.</p>
+
+  <div class="callout">
+    <span class="t">💡 L'idée clé à retenir</span>
+    <p>Camunda sépare <strong>l'orchestration</strong> (l'ordre des étapes, les décisions, les attentes) de <strong>l'exécution</strong> (votre code métier). Votre code Java devient une collection de « briques » sans état, et le diagramme BPMN décrit comment elles s'enchaînent. Le diagramme n'est pas une documentation : <strong>c'est le programme lui-même</strong>, exécuté tel quel par le moteur.</p>
+  </div>
+
+  <h3>Où Camunda se place dans l'architecture BMCI</h3>
+  <p>Voici la vue d'ensemble vers laquelle ce guide vous amène — gardez-la en tête, chaque chapitre en éclaire une partie :</p>
+
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    subgraph FRONT["🖥️ Front — Shell Angular (Module Federation)"]
+        MF1["MF Espace Client"]
+        MF2["MF Tasklist Crédit<br/>(corbeille des analystes)"]
+        MF3["MF Back-office"]
+    end
+    GW["API Gateway<br/>(Spring Cloud Gateway + OAuth2)"]
+    subgraph MS["☕ Microservices Spring Boot"]
+        ORCH["<b>credit-orchestrator</b><br/>Spring Boot + moteur Camunda 7<br/>(embarqué)"]
+        S1["scoring-service"]
+        S2["kyc-service"]
+        S3["contrat-service"]
+        S4["notification-service"]
+    end
+    DB[("PostgreSQL<br/>schéma Camunda + historique")]
+    MF1 --> GW
+    MF2 --> GW
+    MF3 --> GW
+    GW --> ORCH
+    ORCH -->|"External Tasks<br/>(chap. 07)"| S1
+    ORCH -->|External Tasks| S2
+    ORCH -->|External Tasks| S3
+    ORCH -->|External Tasks| S4
+    ORCH --- DB
+    style ORCH fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style DB fill:#111A2C,stroke:#5AA9FF,color:#E6ECF5
+  </script></div>
+  <p class="figcap">Fig. 1 — Architecture cible : un microservice « orchestrateur » héberge le moteur Camunda ; les autres microservices restent de simples exécutants sans état de processus.</p>
+
+  <h3>Orchestration vs chorégraphie — le débat microservices</h3>
+  <p>En architecture microservices, deux écoles s'affrontent pour coordonner un processus qui traverse plusieurs services :</p>
+  <div class="grid2">
+    <div class="card">
+      <h5>🕺 Chorégraphie (événementielle)</h5>
+      <p>Chaque service réagit aux événements des autres (Kafka). Personne ne « dirige ». <strong>Avantage :</strong> couplage très faible. <strong>Inconvénient :</strong> le processus global n'existe nulle part — impossible de répondre à « où en est le dossier ? », très dur de gérer délais, escalades et annulations.</p>
+    </div>
+    <div class="card">
+      <h5>🎼 Orchestration (Camunda)</h5>
+      <p>Un chef d'orchestre connaît la partition (le BPMN) et sollicite chaque service au bon moment. <strong>Avantage :</strong> visibilité totale, gestion native du temps, des erreurs, des humains. <strong>Inconvénient :</strong> il faut éviter d'en faire un monolithe déguisé (on verra comment au chap. 07).</p>
+    </div>
+  </div>
+  <p>En pratique bancaire, les processus <strong>longs, réglementés, avec intervention humaine</strong> (crédit, ouverture de compte, réclamation, LCB-FT) sont presque toujours orchestrés. Les flux purement techniques et rapides restent souvent en chorégraphie. Les deux coexistent très bien : Camunda peut publier et consommer des messages Kafka.</p>
+</section>
+<!-- ============ CH2 ============ -->
+<section class="chapter" id="ch2">
+  <div class="eyebrow">Chapitre 02 · Concepts</div>
+  <h2>BPMN 2.0 — le langage des processus</h2>
+
+  <p class="lead">BPMN (<em>Business Process Model and Notation</em>) est une notation graphique <strong>normalisée</strong> (ISO) pour dessiner des processus. Sa force : le même diagramme est compris par le métier <em>et</em> exécuté par la machine. Vous n'avez besoin que d'une douzaine de symboles pour couvrir 95&nbsp;% des cas réels.</p>
+
+  <h3>2.1 — Le concept fondamental : le jeton (token)</h3>
+  <p>Imaginez le diagramme comme un circuit de train, et chaque <strong>dossier en cours</strong> (chaque demande de crédit) comme un <strong>jeton</strong> qui circule sur ce circuit. Quand un client soumet une demande, un jeton naît au point de départ. Il avance de case en case. S'il arrive sur une étape humaine, il <strong>s'arrête et attend</strong> — des jours s'il le faut. S'il croise un embranchement parallèle, il se <strong>duplique</strong>. Quand il atteint la fin, l'instance est terminée.</p>
+  <div class="callout">
+    <span class="t">💡 Vocabulaire essentiel</span>
+    <p><strong>Définition de processus</strong> (process definition) = le plan du circuit, le fichier <code>.bpmn</code> déployé. <strong>Instance de processus</strong> (process instance) = un jeton en circulation = un dossier concret (la demande n°4521 de M. Alami). Une définition → des milliers d'instances simultanées, chacune avec son état et ses données propres.</p>
+  </div>
+
+  <h3>2.2 — Les 3 familles de symboles</h3>
+  <p>Tout BPMN se résume à trois familles : les <strong>événements</strong> (cercles — quelque chose <em>arrive</em>), les <strong>tâches</strong> (rectangles arrondis — quelque chose <em>est fait</em>), et les <strong>passerelles</strong> ou gateways (losanges — une <em>décision de routage</em>). Des flèches (« sequence flows ») les relient.</p>
+
+  <h4>Les événements — cercles ⭕</h4>
+  <table>
+    <tr><th style="width:70px">Symbole</th><th style="width:190px">Nom</th><th>Rôle · Exemple BMCI</th></tr>
+    <tr>
+      <td><span class="sym"><svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="none" stroke="#00A76F" stroke-width="2"/></svg></span></td>
+      <td><strong>Start Event</strong><br><span class="pill g">trait fin</span></td>
+      <td>Le point de naissance du jeton. <em>« Demande de crédit reçue ».</em> Peut être déclenché par un appel API, un message, un timer (« tous les lundis à 8h »).</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="none" stroke="#F0616D" stroke-width="5"/></svg></span></td>
+      <td><strong>End Event</strong><br><span class="pill r">trait épais</span></td>
+      <td>Le jeton meurt ici. Un processus peut avoir plusieurs fins : <em>« Crédit accordé »</em>, <em>« Demande rejetée »</em>, <em>« Abandonnée par le client »</em>. Nommez-les : c'est de l'or pour les statistiques métier.</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="none" stroke="#F5B841" stroke-width="1.5"/><circle cx="20" cy="20" r="11.5" fill="none" stroke="#F5B841" stroke-width="1.5"/><text x="20" y="25" text-anchor="middle" font-size="13" fill="#F5B841">⏱</text></svg></span></td>
+      <td><strong>Timer Event</strong><br><span class="pill a">double trait</span></td>
+      <td>Le jeton attend une durée ou une date. <em>« Attendre 48h la réponse de l'analyste »</em>. Le moteur gère le réveil, même après redémarrage. Fini les crons !</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="none" stroke="#5AA9FF" stroke-width="1.5"/><circle cx="20" cy="20" r="11.5" fill="none" stroke="#5AA9FF" stroke-width="1.5"/><text x="20" y="24" text-anchor="middle" font-size="11" fill="#5AA9FF">✉</text></svg></span></td>
+      <td><strong>Message Event</strong><br><span class="pill b">enveloppe</span></td>
+      <td>Le jeton attend un message externe. <em>« Attendre la signature électronique du client »</em> : quand votre API reçoit le webhook du prestataire de signature, elle « corrèle » le message et le jeton repart.</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="none" stroke="#F0616D" stroke-width="1.5"/><circle cx="20" cy="20" r="11.5" fill="none" stroke="#F0616D" stroke-width="1.5"/><path d="M14 26 L20 14 L23 21 L26 15" fill="none" stroke="#F0616D" stroke-width="1.5"/></svg></span></td>
+      <td><strong>Error Event</strong><br><span class="pill r">éclair</span></td>
+      <td>Capture une erreur <em>métier</em> et déroute le jeton vers un chemin de secours. <em>« Client fiché à la centrale des risques → rejet automatique »</em>. Détails au chapitre 10.</td>
+    </tr>
+  </table>
+
+  <h4>Les tâches — rectangles arrondis ▢</h4>
+  <table>
+    <tr><th style="width:70px">Icône</th><th style="width:210px">Type</th><th>Qui l'exécute · Exemple BMCI</th></tr>
+    <tr>
+      <td><span class="sym"><svg width="46" height="36"><rect x="3" y="3" width="40" height="30" rx="7" fill="none" stroke="#00A76F" stroke-width="2"/><text x="10" y="16" font-size="10" fill="#00A76F">⚙</text></svg></span></td>
+      <td><strong>Service Task</strong><br><span class="pill g">engrenages</span></td>
+      <td><strong>Du code, automatiquement.</strong> C'est LA tâche que vous utiliserez le plus. <em>« Calculer le score », « Créer le contrat »</em>. Deux façons de la brancher au code : classe Java (chap. 04) ou External Task (chap. 07).</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="46" height="36"><rect x="3" y="3" width="40" height="30" rx="7" fill="none" stroke="#5AA9FF" stroke-width="2"/><text x="9" y="16" font-size="10" fill="#5AA9FF">👤</text></svg></span></td>
+      <td><strong>User Task</strong><br><span class="pill b">personne</span></td>
+      <td><strong>Un humain, via une interface.</strong> Le jeton s'arrête, une « tâche » apparaît dans la corbeille de l'analyste crédit (votre micro-frontend Angular, chap. 09). Il la traite, le jeton repart.</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="46" height="36"><rect x="3" y="3" width="40" height="30" rx="7" fill="none" stroke="#C9D3E3" stroke-width="2"/><text x="9" y="17" font-size="11" fill="#C9D3E3">✉→</text></svg></span></td>
+      <td><strong>Send / Receive Task</strong></td>
+      <td>Envoyer ou attendre un message (ex. publier sur Kafka, attendre un retour partenaire). Souvent remplaçable par Service Task + Message Event.</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="46" height="36"><rect x="3" y="3" width="40" height="30" rx="7" fill="none" stroke="#F5B841" stroke-width="2"/><text x="9" y="17" font-size="11" fill="#F5B841">▦</text></svg></span></td>
+      <td><strong>Business Rule Task</strong></td>
+      <td>Évalue une <strong>table de décision DMN</strong> : <em>« Déterminer le niveau de validation requis selon montant et segment client »</em>. Chapitre 11.</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="46" height="36"><rect x="3" y="3" width="40" height="30" rx="7" fill="none" stroke="#8A97AD" stroke-width="2"/><rect x="18" y="24" width="10" height="7" fill="none" stroke="#8A97AD" stroke-width="1.5"/><text x="20" y="31" font-size="8" fill="#8A97AD">+</text></svg></span></td>
+      <td><strong>Call Activity</strong><br><span class="pill">sous-processus</span></td>
+      <td>Appelle un <em>autre</em> processus BPMN réutilisable. <em>« Vérification KYC »</em> est un processus à part entière, appelé par le crédit conso, le crédit auto, l'ouverture de compte…</td>
+    </tr>
+  </table>
+
+  <h4>Les gateways — losanges ◇</h4>
+  <table>
+    <tr><th style="width:70px">Symbole</th><th style="width:210px">Type</th><th>Comportement</th></tr>
+    <tr>
+      <td><span class="sym"><svg width="44" height="44"><rect x="12" y="12" width="20" height="20" fill="none" stroke="#00A76F" stroke-width="2" transform="rotate(45 22 22)"/><text x="22" y="27" text-anchor="middle" font-size="14" fill="#00A76F">✕</text></svg></span></td>
+      <td><strong>Exclusif (XOR)</strong><br><span class="pill g">✕</span></td>
+      <td><strong>Un seul chemin</strong> est pris, selon des conditions sur les données. <em>« Montant ≤ 50 000 DH ? → oui / non »</em>. Le « if/else » du BPMN. À la réunion (jonction), les jetons passent sans attendre.</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="44" height="44"><rect x="12" y="12" width="20" height="20" fill="none" stroke="#5AA9FF" stroke-width="2" transform="rotate(45 22 22)"/><text x="22" y="28" text-anchor="middle" font-size="16" fill="#5AA9FF">+</text></svg></span></td>
+      <td><strong>Parallèle (AND)</strong><br><span class="pill b">+</span></td>
+      <td><strong>Tous les chemins</strong> partent en même temps (le jeton se duplique). <em>« Lancer scoring ET vérification KYC en parallèle »</em>. À la jonction, on <strong>attend que toutes les branches arrivent</strong> avant de continuer.</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="44" height="44"><rect x="12" y="12" width="20" height="20" fill="none" stroke="#F5B841" stroke-width="2" transform="rotate(45 22 22)"/><circle cx="22" cy="22" r="6" fill="none" stroke="#F5B841" stroke-width="1.8"/></svg></span></td>
+      <td><strong>Inclusif (OR)</strong><br><span class="pill a">◯</span></td>
+      <td><strong>Un ou plusieurs chemins</strong> selon les conditions. <em>« Notifier par SMS et/ou email et/ou courrier selon les préférences »</em>. Puissant mais plus rare — préférez XOR/AND quand c'est possible.</td>
+    </tr>
+    <tr>
+      <td><span class="sym"><svg width="44" height="44"><rect x="12" y="12" width="20" height="20" fill="none" stroke="#F0616D" stroke-width="2" transform="rotate(45 22 22)"/><circle cx="22" cy="22" r="7" fill="none" stroke="#F0616D" stroke-width="1.5"/><path d="M22 16 L23.5 20.5 L28 20.5 L24.5 23.5 L26 28 L22 25 L18 28 L19.5 23.5 L16 20.5 L20.5 20.5 Z" fill="#F0616D" transform="scale(0.75) translate(7.3 7.3)"/></svg></span></td>
+      <td><strong>Event-based</strong><br><span class="pill r">⬠</span></td>
+      <td>Le premier <strong>événement</strong> qui survient gagne. <em>« Soit le client signe (message), soit 7 jours passent (timer) → annulation »</em>. C'est la « course » entre événements.</td>
+    </tr>
+  </table>
+
+  <div class="callout warn">
+    <span class="t">⚠ Erreur de débutant n°1</span>
+    <p>Le gateway <strong>ne décide rien</strong> : il ne fait que <em>lire</em> des variables déjà présentes dans l'instance (ex. <code>${score >= 600}</code>). La décision elle-même (calculer le score) doit avoir été faite <em>avant</em>, dans une Service Task ou une Business Rule Task. Un gateway = un panneau indicateur, pas un cerveau.</p>
+  </div>
+
+  <h3>2.3 — Pools & lanes : qui est responsable ?</h3>
+  <p>Un <strong>pool</strong> (piscine) représente un participant global (la banque, le client, un partenaire externe). Des <strong>lanes</strong> (couloirs) le subdivisent par rôle : <em>Client · Système · Analyste crédit · Responsable d'agence</em>. C'est surtout de la documentation visuelle — techniquement, l'assignation des User Tasks se fait par des groupes/rôles (chap. 05) — mais c'est le langage commun avec le métier lors des ateliers de conception.</p>
+
+  <h3>2.4 — Notre fil rouge, en BPMN</h3>
+  <p>Voici le processus « Demande de crédit conso » que nous allons construire tout au long du guide (représenté ici en logique simplifiée — les vrais losanges et cercles BPMN seront dessinés dans le Camunda Modeler) :</p>
+
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    START(("● Demande<br/>reçue")) --> T1["⚙ Contrôles<br/>automatiques<br/>(KYC + scoring)"]
+    T1 --> G1{"✕ Éligible ?"}
+    G1 -- non --> REJ1(("⭘ Rejeté<br/>auto"))
+    G1 -- oui --> G2{"✕ Montant ><br/>50 000 DH ?"}
+    G2 -- non --> T4["⚙ Génération<br/>du contrat"]
+    G2 -- oui --> T3["👤 Validation<br/>analyste crédit"]
+    T3 --> G3{"✕ Décision ?"}
+    G3 -- refus --> REJ2(("⭘ Rejeté par<br/>analyste"))
+    G3 -- accord --> T4
+    T4 --> T5["✉ Attente signature<br/>électronique client"]
+    T5 --> T6["⚙ Déblocage<br/>des fonds"]
+    T6 --> T7["⚙ Notification<br/>client"]
+    T7 --> OK(("◉ Crédit<br/>accordé"))
+    style START fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style OK fill:#00A76F22,stroke:#00A76F,stroke-width:3px,color:#E6ECF5
+    style REJ1 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style REJ2 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style T3 fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+    style T5 fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+  </script></div>
+  <p class="figcap">Fig. 2 — Le fil rouge. ⚙ = Service Task (code), 👤 = User Task (humain), ✕ = gateway exclusif, ✉ = attente de message.</p>
+
+  <h3>2.5 — L'outil : Camunda Modeler</h3>
+  <p>Les diagrammes se dessinent dans le <strong>Camunda Modeler</strong>, une application desktop gratuite (Windows/Mac/Linux). Vous glissez-déposez les symboles, et surtout vous remplissez le <strong>panneau de propriétés</strong> à droite : c'est là qu'on relie chaque tâche au code (« quelle classe Java ? », « quel topic ? », « quelle condition ? »). Le fichier produit est un simple XML avec l'extension <code>.bpmn</code>, versionnable dans Git comme n'importe quel fichier source.</p>
+  <div class="callout info">
+    <span class="t">ℹ Réflexe d'équipe</span>
+    <p>Le <code>.bpmn</code> vit dans le repo Git du microservice orchestrateur, dans <code>src/main/resources/</code>. Il passe en revue de code (le XML se diff bien pour les petits changements, et le Modeler sait comparer visuellement deux versions). Le diagramme EST le code : traitez-le comme tel.</p>
+  </div>
+</section>
+<!-- ============ CH3 ============ -->
+<section class="chapter" id="ch3">
+  <div class="eyebrow">Chapitre 03 · Concepts</div>
+  <h2>Architecture de Camunda 7</h2>
+
+  <p class="lead">Camunda 7 n'est pas un « serveur » mystérieux : c'est avant tout <strong>une bibliothèque Java</strong> (un JAR) qui s'exécute dans votre application Spring Boot et stocke tout son état dans <strong>une base de données relationnelle</strong>. Comprendre ça démystifie 80&nbsp;% de l'outil.</p>
+
+  <h3>3.1 — Les composants</h3>
+  <table>
+    <tr><th style="width:200px">Composant</th><th>Rôle</th></tr>
+    <tr><td><strong>Process Engine</strong></td><td>Le cœur. Une bibliothèque Java qui lit les <code>.bpmn</code>, fait avancer les jetons, persiste l'état en base à chaque étape. S'embarque dans Spring Boot via un starter.</td></tr>
+    <tr><td><strong>Base de données</strong></td><td>PostgreSQL, Oracle, SQL Server, H2 (dev)… ~40 tables préfixées <code>ACT_</code>. C'est là que vivent les instances, tâches, variables, timers, historique. <strong>Pas de Zookeeper, pas de cluster exotique : juste du SQL.</strong></td></tr>
+    <tr><td><strong>Cockpit</strong></td><td>Webapp d'exploitation : voir chaque instance <em>sur le diagramme</em> (le jeton est littéralement affiché sur la tâche en cours), inspecter les variables, rejouer les jobs en échec. Votre meilleur ami en incident de prod.</td></tr>
+    <tr><td><strong>Tasklist</strong></td><td>Webapp générique de gestion des User Tasks. Utile pour démarrer et pour les tests — en pratique BMCI, vous la remplacerez par votre micro-frontend Angular (chap. 09).</td></tr>
+    <tr><td><strong>Admin</strong></td><td>Gestion des utilisateurs, groupes et autorisations des webapps. Se branche sur le LDAP/AD de la banque.</td></tr>
+    <tr><td><strong>REST API</strong></td><td>Expose tout le moteur en HTTP (<code>/engine-rest</code>) : démarrer un processus, lister les tâches, poster des variables… C'est par là que passera Angular. Chapitre 08.</td></tr>
+    <tr><td><strong>Job Executor</strong></td><td>Le pool de threads interne qui exécute le travail asynchrone : timers, retries, étapes marquées « async ». Section 3.4 — concept crucial.</td></tr>
+  </table>
+
+  <h3>3.2 — Embarqué ou distant ? Le choix d'architecture n°1</h3>
+  <div class="grid2">
+    <div class="card">
+      <h5><span class="pill g">Recommandé BMCI</span> Moteur embarqué dans un microservice dédié</h5>
+      <p>Un microservice <code>credit-orchestrator</code> embarque le moteur (starter Spring Boot) + les fichiers <code>.bpmn</code> + sa base PostgreSQL. Les autres microservices ne connaissent pas Camunda : ils exposent leur métier via External Tasks ou REST. Le moteur se scale en ajoutant des replicas du pod (tous pointent la même base — le moteur est prévu pour ça, avec du verrouillage optimiste).</p>
+    </div>
+    <div class="card">
+      <h5>Moteur mutualisé (« Remote engine »)</h5>
+      <p>Un Camunda standalone (distribution Tomcat/Run) partagé par plusieurs équipes, piloté uniquement en REST. Avantage : une seule plateforme à exploiter. Inconvénients : couplage entre équipes, gouvernance lourde, pas de code Java co-localisé. À réserver aux organisations très centralisées.</p>
+    </div>
+  </div>
+  <div class="callout">
+    <span class="t">💡 Règle d'or microservices</span>
+    <p><strong>Un moteur par domaine métier, pas un moteur central pour toute la banque.</strong> Le service « crédit » a son orchestrateur et ses processus ; le service « réclamations » aura le sien. Le moteur Camunda est un détail d'implémentation <em>interne</em> au domaine — exactement comme sa base de données.</p>
+  </div>
+
+  <h3>3.3 — Comment le moteur « attend » sans rien consommer</h3>
+  <p>Question fréquente : si un dossier attend 48h la validation d'un analyste, y a-t-il un thread bloqué 48h ? <strong>Non.</strong> Quand le jeton atteint un « état d'attente » (User Task, timer, message, External Task), le moteur écrit l'état complet de l'instance en base... et <strong>oublie tout</strong>. Aucun thread, aucune mémoire. Quand l'événement attendu survient (l'analyste complète la tâche, le timer expire), le moteur recharge l'instance depuis la base et la fait avancer. C'est pour ça qu'un pod peut redémarrer sans perdre un seul dossier.</p>
+
+  <h3>3.4 — Transactions & « async » : LE concept qui évite les incidents</h3>
+  <p>Par défaut, le moteur avance le jeton <strong>le plus loin possible dans une seule transaction</strong> : du start jusqu'au prochain état d'attente. Conséquence surprenante : si vous démarrez un processus par un appel REST et que la 3ᵉ Service Task lève une exception, <strong>tout est rollback</strong> — y compris le démarrage — et votre appelant reçoit une erreur 500. Comme si le processus n'avait jamais existé.</p>
+  <p>Pour découper, on coche <strong>« Async before »</strong> sur une activité dans le Modeler. Cela crée un <strong>point de sauvegarde</strong> : la transaction se termine là (état persisté), et le Job Executor reprend la suite dans une nouvelle transaction, en arrière-plan, avec <strong>3 retries automatiques</strong> en cas d'échec.</p>
+
+  <div class="mermaid"><script type="text/x-mermaid">
+sequenceDiagram
+    autonumber
+    participant A as Angular / API
+    participant E as Moteur Camunda
+    participant J as Job Executor
+    participant S as scoring-service
+    A->>E: POST /process-definition/.../start
+    Note over E: TX 1 — synchrone<br/>Start → jusqu'au flag "async before"
+    E-->>A: 200 OK (instance créée, id retourné)
+    Note over J: TX 2 — arrière-plan
+    J->>S: exécute "Contrôles automatiques"
+    S--xJ: 💥 exception (timeout scoring)
+    Note over J: rollback TX 2 uniquement.<br/>Retry auto ×3, puis "incident"<br/>visible dans Cockpit
+    J->>S: retry n°2
+    S-->>J: ✓ OK, le jeton continue
+  </script></div>
+  <p class="figcap">Fig. 3 — Avec « async before » sur la première Service Task, l'échec du scoring ne fait pas échouer la création du dossier : il devient un job réessayé automatiquement.</p>
+
+  <div class="callout warn">
+    <span class="t">⚠ Réflexe à adopter dès le premier processus</span>
+    <p>Mettez <strong>« async before » sur la première activité après le start</strong> (réponse API rapide + dossier jamais perdu) et sur toute Service Task qui appelle un système externe faillible. Chaque flag async = une frontière de transaction + un point de retry. C'est le levier n°1 de robustesse dans Camunda 7.</p>
+  </div>
+
+  <h3>3.5 — L'historique</h3>
+  <p>En parallèle des tables « runtime » (l'état courant), le moteur alimente des tables d'<strong>historique</strong> : chaque activité traversée, chaque valeur de variable, chaque décision, horodatées. Le niveau se règle (<code>none / activity / audit / full</code>). En contexte bancaire, l'historique <code>full</code> est un allié pour l'auditabilité réglementaire — prévoyez juste une purge (TTL) car ces tables grossissent vite.</p>
+</section>
+
+<!-- ============ CH4 ============ -->
+<section class="chapter" id="ch4">
+  <div class="eyebrow">Chapitre 04 · Pratique</div>
+  <h2>Premier projet Spring Boot + Camunda</h2>
+
+  <p class="lead">Objectif : en 20 minutes, un microservice Spring Boot qui embarque le moteur, déploie notre processus de crédit, et l'exécute. Prérequis : Java 17+, Maven, votre IDE habituel.</p>
+
+  <h3>4.1 — Dépendances Maven</h3>
+  <div class="filetag">pom.xml</div>
+  <pre><code class="language-xml">&lt;properties&gt;
+    &lt;java.version&gt;17&lt;/java.version&gt;
+    &lt;camunda.version&gt;7.21.0&lt;/camunda.version&gt;
+&lt;/properties&gt;
+
+&lt;dependencies&gt;
+    &lt;!-- Moteur + webapps (Cockpit, Tasklist, Admin) --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.camunda.bpm.springboot&lt;/groupId&gt;
+        &lt;artifactId&gt;camunda-bpm-spring-boot-starter-webapp&lt;/artifactId&gt;
+        &lt;version&gt;${camunda.version}&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;!-- API REST du moteur (/engine-rest) --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.camunda.bpm.springboot&lt;/groupId&gt;
+        &lt;artifactId&gt;camunda-bpm-spring-boot-starter-rest&lt;/artifactId&gt;
+        &lt;version&gt;${camunda.version}&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-jdbc&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;!-- H2 pour le poste de dev — PostgreSQL en environnement --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;com.h2database&lt;/groupId&gt;
+        &lt;artifactId&gt;h2&lt;/artifactId&gt;
+        &lt;scope&gt;runtime&lt;/scope&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;</code></pre>
+  <div class="callout info">
+    <span class="t">ℹ Compatibilité Spring Boot</span>
+    <p>Camunda 7.21/7.22 fonctionne avec <strong>Spring Boot 3.2/3.3 et Java 17–21</strong>. Vérifiez toujours la matrice de compatibilité officielle (« Camunda 7 supported environments ») avant de fixer les versions — c'est une source classique de démarrages qui échouent.</p>
+  </div>
+
+  <h3>4.2 — Configuration</h3>
+  <div class="filetag">src/main/resources/application.yml</div>
+  <pre><code class="language-yaml">spring:
+  datasource:
+    url: jdbc:h2:file:./data/camunda-db;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: sa
+
+camunda:
+  bpm:
+    admin-user:            # utilisateur créé au 1er démarrage
+      id: admin
+      password: admin
+      firstName: Admin
+    filter:
+      create: Toutes les tâches   # filtre par défaut dans Tasklist
+    history-level: full
+    job-execution:
+      enabled: true         # le Job Executor (async, timers)
+    database:
+      schema-update: true   # crée les tables ACT_* au démarrage (dev)</code></pre>
+  <div class="callout warn">
+    <span class="t">⚠ En environnement bancaire</span>
+    <p><code>schema-update: true</code> c'est pour le poste de dev. En DEV/UAT/PROD BMCI, les DBA appliqueront les <strong>scripts SQL officiels</strong> fournis par Camunda (création + migration de version), et vous mettrez <code>schema-update: false</code>. Idem pour l'admin-user : à remplacer par le branchement LDAP/SSO.</p>
+  </div>
+
+  <h3>4.3 — Le processus, déployé automatiquement</h3>
+  <p>Dessinez le fil rouge dans le Camunda Modeler et enregistrez-le sous <code>src/main/resources/credit-conso.bpmn</code>. Au démarrage, le starter <strong>scanne le classpath et déploie automatiquement</strong> tout <code>.bpmn</code>/<code>.dmn</code> trouvé (uniquement si le contenu a changé — sinon la version existante est réutilisée). Points clés à renseigner dans le Modeler :</p>
+  <ul>
+    <li>Sur le processus lui-même : <strong>Id</strong> = <code>credit-conso</code> (c'est la « clé » utilisée partout), cochez <strong>Executable</strong>.</li>
+    <li>Sur la Service Task « Contrôles automatiques » : Implementation = <strong>Delegate expression</strong>, valeur <code>${controlesAutomatiquesDelegate}</code>.</li>
+    <li>Sur le gateway « Éligible ? » : condition de la branche oui = <code>${eligible}</code>, branche non = <code>${!eligible}</code>.</li>
+  </ul>
+
+  <h3>4.4 — Brancher le code : le JavaDelegate</h3>
+  <p>Un <strong>JavaDelegate</strong> est une classe avec une seule méthode <code>execute()</code>, appelée quand le jeton traverse la Service Task. Grâce à la <em>delegate expression</em> <code>${controlesAutomatiquesDelegate}</code>, le moteur va chercher le <strong>bean Spring</strong> de ce nom — donc injection de dépendances, config, tout votre écosystème Spring fonctionne.</p>
+  <div class="filetag">ControlesAutomatiquesDelegate.java</div>
+  <pre><code class="language-java">@Component("controlesAutomatiquesDelegate")
+@RequiredArgsConstructor
+public class ControlesAutomatiquesDelegate implements JavaDelegate {
+
+    private final ScoringClient scoringClient;   // Feign/RestClient vers scoring-service
+    private final KycClient kycClient;
+
+    @Override
+    public void execute(DelegateExecution execution) {
+        // 1. LIRE les variables de l'instance (le "sac à dos" du jeton)
+        String clientId  = (String)  execution.getVariable("clientId");
+        Long   montantDh = (Long)    execution.getVariable("montantDh");
+
+        // 2. Faire le travail métier
+        int score      = scoringClient.calculerScore(clientId);
+        boolean kycOk  = kycClient.verifier(clientId);
+
+        // 3. ÉCRIRE le résultat — le gateway s'en servira juste après
+        execution.setVariable("score", score);
+        execution.setVariable("eligible", kycOk && score >= 600);
+    }
+}</code></pre>
+
+  <h3>4.5 — Démarrer une instance et dérouler</h3>
+  <div class="filetag">DemandeCreditService.java</div>
+  <pre><code class="language-java">@Service
+@RequiredArgsConstructor
+public class DemandeCreditService {
+
+    private final RuntimeService runtimeService;   // injecté par le starter
+
+    public String soumettre(DemandeCreditDto dto) {
+        ProcessInstance instance = runtimeService.startProcessInstanceByKey(
+            "credit-conso",                       // l'Id du processus BPMN
+            dto.numeroDossier(),                  // business key = votre référence métier
+            Map.of(
+                "clientId",  dto.clientId(),
+                "montantDh", dto.montantDh(),
+                "dureeMois", dto.dureeMois()
+            )
+        );
+        return instance.getId();
+    }
+}</code></pre>
+  <div class="callout">
+    <span class="t">💡 La business key — adoptez-la dès le jour 1</span>
+    <p>Le 2ᵉ paramètre, la <strong>business key</strong>, est votre identifiant métier (n° de dossier, n° de demande). Elle apparaît partout — Cockpit, API, historique — et permet de retrouver instantanément « le dossier CR-2026-04521 » sans jointure avec vos tables. C'est le pont entre le monde Camunda et le monde métier.</p>
+  </div>
+
+  <h3>4.6 — Vérifier dans Cockpit</h3>
+  <p>Lancez l'application, ouvrez <code>http://localhost:8080/camunda</code> (admin/admin) :</p>
+  <ul>
+    <li><strong>Cockpit</strong> → Processes → <em>credit-conso</em> : votre diagramme s'affiche avec un badge sur l'activité où se trouvent les jetons. Cliquez sur une instance : ses variables, son historique, son parcours surligné.</li>
+    <li><strong>Tasklist</strong> : si un jeton attend sur la User Task « Validation analyste », la tâche y apparaît — vous pouvez la réclamer et la compléter à la main. Parfait pour tester avant d'avoir le front Angular.</li>
+  </ul>
+  <p>Prenez 15 minutes pour « jouer » : démarrez 3 instances avec des montants différents et observez les jetons prendre des chemins différents au gateway. Cette boucle visuelle est le meilleur accélérateur d'apprentissage de Camunda.</p>
+</section>
+<!-- ============ CH5 ============ -->
+<section class="chapter" id="ch5">
+  <div class="eyebrow">Chapitre 05 · Pratique</div>
+  <h2>Variables, formulaires & User Tasks</h2>
+
+  <p class="lead">Les <strong>variables de processus</strong> sont le « sac à dos » que le jeton transporte : les données du dossier. Les <strong>User Tasks</strong> sont les moments où un humain ouvre ce sac, le lit, et prend une décision.</p>
+
+  <h3>5.1 — Les variables : le sac à dos du jeton</h3>
+  <p>Chaque instance possède sa propre map de variables clé → valeur, persistée en base. Types supportés : primitifs (String, Long, Double, Boolean, Date), JSON, XML, et objets Java sérialisés.</p>
+  <div class="callout danger">
+    <span class="t">⛔ Règle d'or : des variables MINCES</span>
+    <p>Ne stockez <strong>jamais</strong> le dossier client complet dans les variables. Stockez des <strong>identifiants et des données de routage</strong> : <code>clientId</code>, <code>numeroDossier</code>, <code>montantDh</code>, <code>score</code>, <code>eligible</code>, <code>decision</code>. Le détail (pièces justificatives, historique de compte…) reste dans les bases de vos microservices, retrouvé par ID. Pourquoi ? Performance (les variables sont chargées/versionnées en base), auditabilité (l'historique trace chaque changement), et surtout : le processus ne doit dépendre que de ce qui influence son <em>routage</em>.</p>
+  </div>
+  <p>Trois portées existent — retenez surtout la première :</p>
+  <ul>
+    <li><strong>Process instance</strong> (défaut) : visible partout dans l'instance. 95&nbsp;% des cas.</li>
+    <li><strong>Local à une tâche</strong> : utile pour ne pas polluer l'instance (ex. commentaire technique d'un formulaire).</li>
+    <li><strong>Local à un sous-processus / à une branche parallèle</strong> : chaque branche a sa copie.</li>
+  </ul>
+
+  <h3>5.2 — La User Task en détail</h3>
+  <p>Quand le jeton atteint « Validation analyste crédit », le moteur crée une entrée dans la table des tâches avec :</p>
+  <table>
+    <tr><th style="width:190px">Attribut</th><th>Rôle · valeur BMCI type</th></tr>
+    <tr><td><code>assignee</code></td><td>LA personne assignée. En général vide au départ : la tâche est « à réclamer ».</td></tr>
+    <tr><td><code>candidateGroups</code></td><td>Les groupes qui <em>peuvent</em> la traiter : <code>analystes-credit</code>, <code>resp-agence</code>. Mappés sur vos groupes LDAP/rôles Keycloak. C'est la corbeille d'équipe.</td></tr>
+    <tr><td><code>due date</code></td><td>Échéance (SLA). Ex. <code>${dateEcheance}</code> ou une expression relative.</td></tr>
+    <tr><td><code>form key / form ref</code></td><td>Quel formulaire afficher. Pour un front Angular custom, on y met un identifiant logique, ex. <code>validation-analyste</code>, que votre front mappe vers le bon composant.</td></tr>
+  </table>
+  <p>Le cycle de vie côté utilisateur : la tâche apparaît dans la corbeille du groupe → l'analyste la <strong>réclame</strong> (claim, elle disparaît pour les collègues) → il instruit → il <strong>complète</strong> en postant ses variables de sortie (ex. <code>decision = "ACCORD"</code>, <code>commentaireAnalyste</code>) → le jeton repart.</p>
+  <div class="filetag">Côté Java — l'équivalent programmatique (utile pour les tests)</div>
+  <pre><code class="language-java">// Trouver les tâches du groupe
+List&lt;Task&gt; corbeille = taskService.createTaskQuery()
+    .taskCandidateGroup("analystes-credit")
+    .processDefinitionKey("credit-conso")
+    .orderByTaskCreateTime().asc()
+    .list();
+
+// Réclamer puis compléter
+taskService.claim(taskId, "y.benali");
+taskService.complete(taskId, Map.of(
+    "decision", "ACCORD",
+    "commentaireAnalyste", "Dossier solide, taux d'endettement 28%"
+));</code></pre>
+
+  <h3>5.3 — Les formulaires : 3 stratégies</h3>
+  <div class="grid2">
+    <div class="card">
+      <h5><span class="pill">Option A</span> Camunda Forms (intégrés)</h5>
+      <p>Formulaires JSON dessinés dans le Modeler, rendus par la Tasklist standard. Rapide pour un POC ou un outil interne simple, mais limité en UX et hors de votre design system Angular.</p>
+    </div>
+    <div class="card">
+      <h5><span class="pill g">Option B — votre cas</span> Formulaires « externes » Angular</h5>
+      <p>La User Task porte juste une <code>formKey</code> logique. Votre micro-frontend Angular lit la tâche via l'API REST, affiche <em>son propre</em> composant de formulaire (réutilisant votre design system BMCI), et complète la tâche en REST. Contrôle total de l'UX. Détails au chap. 09.</p>
+    </div>
+  </div>
+  <p>L'option C (formulaires HTML embarqués dans la Tasklist) est héritée et à éviter pour du neuf.</p>
+
+  <h3>5.4 — Expressions : la glue légère</h3>
+  <p>Partout dans le Modeler, vous pouvez écrire des <strong>expressions JUEL</strong> <code>${...}</code> qui accèdent aux variables et aux beans Spring :</p>
+  <pre><code class="language-java">${montantDh > 50000}                        // condition de gateway
+${eligible && score >= 700}                  // condition composée
+${controlesAutomatiquesDelegate}             // delegate expression → bean Spring
+${dossierService.calculerEcheance(execution)} // appeler une méthode de bean</code></pre>
+  <div class="callout warn">
+    <span class="t">⚠ Gardez la logique dans Java, pas dans le XML</span>
+    <p>Les expressions doivent rester <strong>triviales</strong> (comparaisons simples). Dès qu'il y a de la vraie logique, mettez-la dans un delegate ou une table DMN : c'est testable unitairement, versionné, debuggable. Une expression complexe dans un fichier BPMN est invisible aux tests et aux IDE.</p>
+  </div>
+</section>
+
+<!-- ============ CH6 ============ -->
+<section class="chapter" id="ch6">
+  <div class="eyebrow">Chapitre 06 · Pratique</div>
+  <h2>Gateways, timers, messages — piloter le temps et les événements</h2>
+
+  <p class="lead">C'est ici que Camunda écrase le « code maison » : gérer <strong>le temps qui passe</strong> et <strong>les événements externes</strong> devient déclaratif. Trois patterns couvrent la quasi-totalité des besoins bancaires.</p>
+
+  <h3>6.1 — Les timers : la syntaxe ISO 8601</h3>
+  <table>
+    <tr><th style="width:180px">Besoin</th><th style="width:200px">Type de timer</th><th>Expression</th></tr>
+    <tr><td>Attendre 48 heures</td><td>Duration</td><td><code>PT48H</code> &nbsp;(P = period, T = time → <code>P3D</code>, <code>PT30M</code>, <code>P1DT12H</code>)</td></tr>
+    <tr><td>À une date précise</td><td>Date</td><td><code>2026-09-01T09:00:00+01:00</code> ou <code>${dateLimite}</code> (variable)</td></tr>
+    <tr><td>Relancer 3 fois toutes les 24h</td><td>Cycle</td><td><code>R3/PT24H</code></td></tr>
+    <tr><td>Batch quotidien à 6h</td><td>Cycle (cron)</td><td><code>0 0 6 * * ?</code> sur un timer start event</td></tr>
+  </table>
+
+  <h3>6.2 — Pattern n°1 : l'escalade sur SLA (boundary timer)</h3>
+  <p>Un <strong>boundary event</strong> est un événement <em>collé sur le bord</em> d'une tâche : il la surveille pendant qu'elle est active. Collez un timer sur la User Task « Validation analyste » :</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    A["👤 Validation<br/>analyste crédit"] -->|terminée à temps| B{"✕ Décision ?"}
+    A -. "⏱ boundary timer PT48H<br/>(non-interrupting)" .-> C["⚙ Notifier le<br/>responsable d'agence"]
+    C -.-> A2([la tâche reste active])
+    A -. "⏱ boundary timer P5D<br/>(interrupting)" .-> D["⚙ Rejet automatique<br/>pour dépassement de délai"]
+    D --> E(("⭘ Rejeté<br/>hors délai"))
+    style A fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+    style E fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+  </script></div>
+  <p class="figcap">Fig. 4 — Deux timers sur la même tâche : à 48h on <em>notifie</em> sans interrompre (non-interrupting, bord pointillé) ; à 5 jours on <em>interrompt</em> et on rejette (interrupting, bord plein).</p>
+  <ul>
+    <li><strong>Interrupting</strong> (bord plein) : annule la tâche et déroute le jeton. « Si pas signé sous 7 jours → abandon ».</li>
+    <li><strong>Non-interrupting</strong> (bord pointillé) : lance une branche <em>en plus</em>, la tâche continue. « À 48h, relancer par email ».</li>
+  </ul>
+
+  <h3>6.3 — Pattern n°2 : attendre un événement externe (message)</h3>
+  <p>Notre fil rouge attend la <strong>signature électronique</strong> du client. Côté BPMN : un <em>message intermediate catch event</em> nommé <code>Message_SignatureRecue</code>. Le jeton s'y endort. Côté Java, quand le webhook du prestataire de signature arrive sur votre contrôleur :</p>
+  <div class="filetag">SignatureWebhookController.java</div>
+  <pre><code class="language-java">@PostMapping("/webhooks/signature")
+public void onSignature(@RequestBody SignatureEvent evt) {
+    runtimeService.createMessageCorrelation("Message_SignatureRecue")
+        .processInstanceBusinessKey(evt.numeroDossier())   // QUEL dossier réveiller
+        .setVariable("dateSignature", evt.date())
+        .correlate();
+}</code></pre>
+  <div class="callout">
+    <span class="t">💡 La corrélation, expliquée simplement</span>
+    <p>Des centaines de dossiers attendent le même type de message. La <strong>corrélation</strong> = dire au moteur <em>lequel</em> réveiller, ici via la business key. Si aucun jeton n'attend ce message pour ce dossier, le moteur lève une exception (<code>MismatchingMessageCorrelationException</code>) — à gérer, car les webhooks arrivent parfois avant que le jeton soit prêt (pensez retry côté consommateur, ou <code>correlateAll()</code> selon le cas). Ce contrôleur peut aussi être un listener Kafka : Camunda s'intègre naturellement à vos topics.</p>
+  </div>
+
+  <h3>6.4 — Pattern n°3 : la course entre événements (event-based gateway)</h3>
+  <p>Après l'envoi du contrat : <em>soit</em> le client signe, <em>soit</em> 7 jours passent. Le premier arrivé gagne, l'autre chemin est automatiquement annulé :</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    A["⚙ Envoyer le contrat<br/>pour signature"] --> G{"⬠ event-based<br/>gateway"}
+    G --> M["✉ Signature reçue"]
+    G --> T["⏱ 7 jours écoulés"]
+    M --> OK["⚙ Déblocage des fonds"]
+    T --> KO["⚙ Annuler l'offre +<br/>notifier le client"]
+    KO --> END(("⭘ Offre<br/>expirée"))
+    style G fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+    style END fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+  </script></div>
+  <p class="figcap">Fig. 5 — L'event-based gateway : le standard pour « attendre X, avec délai de garde ».</p>
+
+  <h3>6.5 — Multi-instance : boucler sur une collection</h3>
+  <p>Besoin de valider <em>chaque</em> co-emprunteur, ou d'appeler un service pour <em>chaque</em> garantie ? Cochez <strong>multi-instance</strong> sur la tâche (séquentiel ou parallèle), avec <code>collection = ${coEmprunteurs}</code> et <code>elementVariable = coEmprunteur</code>. Le moteur crée une exécution par élément et attend que toutes finissent — l'équivalent BPMN d'un <code>forEach</code>, avec persistance et reprise sur erreur incluses.</p>
+</section>
+<!-- ============ CH7 ============ -->
+<section class="chapter" id="ch7">
+  <div class="eyebrow">Chapitre 07 · Microservices</div>
+  <h2>External Tasks — le pattern clé pour vos microservices</h2>
+
+  <p class="lead">Le JavaDelegate (chap. 04) exécute le code <em>dans</em> le processus de l'orchestrateur. Mais dans une architecture microservices BMCI, le scoring vit dans <code>scoring-service</code>, le contrat dans <code>contrat-service</code>… Le pattern <strong>External Task</strong> inverse la relation : le moteur ne <em>pousse</em> plus le travail, les services <em>viennent le chercher</em>.</p>
+
+  <h3>7.1 — Le principe : un tableau d'offres de travail</h3>
+  <p>Une Service Task configurée en <strong>Type = External</strong> avec un <strong>Topic</strong> (ex. <code>scoring-client</code>) ne s'exécute pas : le moteur publie une « unité de travail » sur ce topic et le jeton attend. N'importe quel worker — un autre microservice, dans n'importe quel langage — vient interroger le moteur : <em>« as-tu du travail sur le topic scoring-client ? »</em> (long polling), le verrouille, l'exécute, et renvoie le résultat.</p>
+
+  <div class="mermaid"><script type="text/x-mermaid">
+sequenceDiagram
+    autonumber
+    participant M as credit-orchestrator<br/>(moteur Camunda)
+    participant W as scoring-service<br/>(worker)
+    Note over M: le jeton atteint la Service Task<br/>topic = "scoring-client" → il attend
+    W->>M: fetchAndLock(topic="scoring-client", lock=30s)
+    M-->>W: [ {taskId, variables: {clientId, montantDh}} ]
+    Note over W: calcule le score<br/>(son métier, sa base, ses libs)
+    alt succès
+        W->>M: complete(taskId, {score: 720})
+        Note over M: le jeton repart ✓
+    else échec technique (timeout partenaire)
+        W->>M: handleFailure(taskId, retries=2, retryTimeout=60s)
+        Note over M: nouvel essai dans 60s.<br/>À 0 retries → incident dans Cockpit
+    else erreur MÉTIER (client interdit bancaire)
+        W->>M: handleBpmnError(taskId, "CLIENT_INTERDIT")
+        Note over M: le jeton part sur le chemin<br/>d'erreur du diagramme (chap. 10)
+    end
+  </script></div>
+  <p class="figcap">Fig. 6 — Le cycle de vie complet d'une External Task : fetch & lock → travail → complete / failure / bpmnError.</p>
+
+  <h3>7.2 — Pourquoi c'est LE bon pattern en microservices</h3>
+  <ul>
+    <li><strong>Découplage total</strong> : l'orchestrateur ne connaît pas l'adresse des workers, ne les appelle jamais. Un worker down = le travail s'accumule tranquillement, il sera traité au retour. Pas de circuit breaker à gérer côté moteur.</li>
+    <li><strong>Le sens du réseau est inversé</strong> : ce sont les workers qui sortent vers l'orchestrateur — pratique avec les règles de flux réseau strictes d'une banque.</li>
+    <li><strong>Scalabilité indépendante</strong> : 10 replicas de <code>scoring-service</code> consomment le même topic sans configuration (le lock garantit qu'une tâche n'est traitée qu'une fois).</li>
+    <li><strong>Polyglotte</strong> : un worker peut être en Java, Node, Python, .NET — c'est juste du REST.</li>
+  </ul>
+
+  <h3>7.3 — Écrire un worker Spring Boot (dans scoring-service)</h3>
+  <p>Camunda fournit un starter dédié — le worker n'embarque <strong>pas</strong> le moteur, juste un petit client REST :</p>
+  <div class="filetag">scoring-service/pom.xml</div>
+  <pre><code class="language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;org.camunda.bpm.springboot&lt;/groupId&gt;
+    &lt;artifactId&gt;camunda-bpm-spring-boot-starter-external-task-client&lt;/artifactId&gt;
+    &lt;version&gt;7.21.0&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+  <div class="filetag">scoring-service/application.yml</div>
+  <pre><code class="language-yaml">camunda.bpm.client:
+  base-url: http://credit-orchestrator:8080/engine-rest
+  worker-id: scoring-service-${HOSTNAME:local}
+  async-response-timeout: 20000   # long polling : réponse dès qu'un job arrive
+  lock-duration: 30000            # 30s pour traiter avant que le lock expire</code></pre>
+  <div class="filetag">ScoringWorker.java</div>
+  <pre><code class="language-java">@Component
+@ExternalTaskSubscription(topicName = "scoring-client")
+@RequiredArgsConstructor
+public class ScoringWorker implements ExternalTaskHandler {
+
+    private final ScoringEngine scoringEngine;
+
+    @Override
+    public void execute(ExternalTask task, ExternalTaskService taskService) {
+        String clientId = task.getVariable("clientId");
+        Long montant    = task.getVariable("montantDh");
+        try {
+            ScoreResult r = scoringEngine.evaluer(clientId, montant);
+
+            if (r.interditBancaire()) {
+                // Erreur MÉTIER → chemin d'erreur du BPMN
+                taskService.handleBpmnError(task, "CLIENT_INTERDIT",
+                    "Client fiché à la centrale des risques");
+                return;
+            }
+            taskService.complete(task, Map.of(
+                "score", r.score(),
+                "eligible", r.score() >= 600
+            ), null);
+
+        } catch (Exception e) {
+            // Erreur TECHNIQUE → retry décrémenté, puis incident
+            int retries = task.getRetries() == null ? 3 : task.getRetries() - 1;
+            taskService.handleFailure(task, e.getMessage(),
+                ExceptionUtils.getStackTrace(e), retries, 60_000L);
+        }
+    }
+}</code></pre>
+
+  <div class="callout warn">
+    <span class="t">⚠ Le piège du lock & l'idempotence</span>
+    <p>Si votre worker met plus de <code>lock-duration</code> à traiter, le moteur considère le job libre et <strong>un autre replica peut le reprendre</strong> → double exécution. Deux parades : dimensionner le lock (ou l'étendre via <code>extendLock</code>) pour les traitements longs, et surtout rendre vos workers <strong>idempotents</strong> (ex. le déblocage de fonds vérifie d'abord si le virement pour ce dossier existe déjà). L'idempotence est de toute façon obligatoire : le retry automatique rejouera la tâche entière après un crash à mi-chemin.</p>
+  </div>
+
+  <h3>7.4 — Delegate ou External Task : comment choisir ?</h3>
+  <table>
+    <tr><th></th><th>JavaDelegate</th><th>External Task</th></tr>
+    <tr><td><strong>Où vit le code</strong></td><td>Dans l'orchestrateur</td><td>Dans n'importe quel service</td></tr>
+    <tr><td><strong>Couplage</strong></td><td>Fort (même JVM, même déploiement)</td><td>Faible (REST, async)</td></tr>
+    <tr><td><strong>Transaction</strong></td><td>Dans la TX du moteur (rollback commun)</td><td>Transaction séparée, retry natif</td></tr>
+    <tr><td><strong>Idéal pour</strong></td><td>Logique légère du domaine de l'orchestrateur : préparer des variables, mapper, décider</td><td>Tout appel à un autre microservice ou système externe (scoring, KYC, core banking, GED, notifications)</td></tr>
+  </table>
+  <p><strong>Règle BMCI pragmatique :</strong> External Task par défaut pour tout ce qui franchit la frontière du microservice orchestrateur ; JavaDelegate pour la « colle » interne. C'est aussi le pattern qui prépare une éventuelle migration Camunda 8 (où <em>tout</em> fonctionne sur ce modèle, appelé « job workers »).</p>
+</section>
+
+<!-- ============ CH8 ============ -->
+<section class="chapter" id="ch8">
+  <div class="eyebrow">Chapitre 08 · Intégration</div>
+  <h2>L'API REST de Camunda</h2>
+
+  <p class="lead">Tout ce que le moteur sait faire est exposé en REST sous <code>/engine-rest</code>. C'est l'interface qu'utiliseront vos fronts Angular et tout système externe. Voici le sous-ensemble qui couvre 90&nbsp;% des besoins.</p>
+
+  <h3>8.1 — Les endpoints essentiels</h3>
+  <table>
+    <tr><th style="width:70px">Verbe</th><th style="width:420px">Endpoint</th><th>Usage</th></tr>
+    <tr><td><span class="pill g">POST</span></td><td><code>/process-definition/key/credit-conso/start</code></td><td>Démarrer une instance</td></tr>
+    <tr><td><span class="pill b">GET</span></td><td><code>/task?candidateGroup=analystes-credit</code></td><td>La corbeille d'équipe</td></tr>
+    <tr><td><span class="pill b">GET</span></td><td><code>/task?assignee=y.benali</code></td><td>« Mes tâches »</td></tr>
+    <tr><td><span class="pill g">POST</span></td><td><code>/task/{id}/claim</code> · <code>/unclaim</code></td><td>Réclamer / relâcher</td></tr>
+    <tr><td><span class="pill g">POST</span></td><td><code>/task/{id}/complete</code></td><td>Compléter avec variables</td></tr>
+    <tr><td><span class="pill b">GET</span></td><td><code>/task/{id}/variables</code></td><td>Variables pour préremplir le formulaire</td></tr>
+    <tr><td><span class="pill g">POST</span></td><td><code>/message</code></td><td>Corréler un message (réveiller un jeton)</td></tr>
+    <tr><td><span class="pill b">GET</span></td><td><code>/process-instance?businessKey=CR-2026-04521</code></td><td>Retrouver un dossier</td></tr>
+    <tr><td><span class="pill b">GET</span></td><td><code>/history/activity-instance?processInstanceId=...</code></td><td>Timeline du dossier (suivi client)</td></tr>
+    <tr><td><span class="pill b">GET</span></td><td><code>/incident</code> · <code>/job?withException=true</code></td><td>Supervision / monitoring</td></tr>
+  </table>
+
+  <h3>8.2 — Le format des variables : la particularité à connaître</h3>
+  <p>L'API REST type chaque variable explicitement. Démarrage du fil rouge :</p>
+  <div class="filetag">POST /engine-rest/process-definition/key/credit-conso/start</div>
+  <pre><code class="language-json">{
+  "businessKey": "CR-2026-04521",
+  "variables": {
+    "clientId":  { "value": "C-889231", "type": "String" },
+    "montantDh": { "value": 85000,      "type": "Long"   },
+    "dureeMois": { "value": 48,         "type": "Integer"}
+  }
+}</code></pre>
+  <p>Réponse : <code>{ "id": "5f3a...", "businessKey": "CR-2026-04521", ... }</code>. Complétion d'une User Task :</p>
+  <div class="filetag">POST /engine-rest/task/{taskId}/complete</div>
+  <pre><code class="language-json">{
+  "variables": {
+    "decision":            { "value": "ACCORD", "type": "String" },
+    "commentaireAnalyste": { "value": "OK, taux d'endettement 28%", "type": "String" }
+  }
+}</code></pre>
+
+  <h3>8.3 — Exposer l'API proprement : le pattern « façade »</h3>
+  <div class="callout danger">
+    <span class="t">⛔ N'exposez jamais /engine-rest directement à Internet ou au front</span>
+    <p>L'API du moteur est <strong>puissante et générique</strong> (elle permet de supprimer des instances, modifier des variables, migrer des définitions…). En banque, le front ne doit voir qu'une <strong>API métier de façade</strong> dans votre orchestrateur : <code>POST /api/demandes-credit</code>, <code>GET /api/corbeille</code>, <code>POST /api/taches/{id}/decision</code>. La façade valide, applique les droits (le JWT Keycloak → les candidate groups), enrichit avec vos données métier, et appelle les services Java du moteur en interne (<code>runtimeService</code>, <code>taskService</code>) — même pas besoin de HTTP.</p>
+  </div>
+  <div class="filetag">CorbeilleController.java — la façade côté orchestrateur</div>
+  <pre><code class="language-java">@RestController
+@RequestMapping("/api/corbeille")
+@RequiredArgsConstructor
+public class CorbeilleController {
+
+    private final TaskService taskService;
+    private final DossierEnricher enricher;   // joint les données métier
+
+    @GetMapping
+    public List&lt;TacheDto&gt; corbeille(@AuthenticationPrincipal Jwt jwt) {
+        List&lt;String&gt; groupes = jwt.getClaimAsStringList("groups");
+        return taskService.createTaskQuery()
+                .taskCandidateGroupIn(groupes)
+                .initializeFormKeys()
+                .list().stream()
+                .map(enricher::toDto)          // + nom client, montant, SLA...
+                .toList();
+    }
+
+    @PostMapping("/{taskId}/decision")
+    public void decider(@PathVariable String taskId,
+                        @RequestBody DecisionDto dto,
+                        @AuthenticationPrincipal Jwt jwt) {
+        taskService.claim(taskId, jwt.getSubject());
+        taskService.complete(taskId, Map.of(
+            "decision", dto.decision(),
+            "commentaireAnalyste", dto.commentaire()));
+    }
+}</code></pre>
+  <p>Gardez néanmoins <code>/engine-rest</code> activé <em>en interne</em> (réseau privé du cluster) : c'est lui qu'utilisent les External Task workers, et il sert aux scripts d'exploitation.</p>
+</section>
+<!-- ============ CH9 ============ -->
+<section class="chapter" id="ch9">
+  <div class="eyebrow">Chapitre 09 · Front-end</div>
+  <h2>Angular & micro-frontends : votre Tasklist maison</h2>
+
+  <p class="lead">Le livrable front typique d'un projet Camunda en banque : une <strong>« corbeille » de tâches</strong> pour les analystes, avec des formulaires métier riches. Dans une architecture micro-frontends (Module Federation), cette corbeille devient naturellement un <strong>remote autonome</strong>, propriété de l'équipe crédit.</p>
+
+  <h3>9.1 — Découpage micro-frontend</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    subgraph SHELL["Shell / Host Angular"]
+        R["Router + layout + auth<br/>(Keycloak, token partagé)"]
+    end
+    subgraph REM1["Remote : mf-tasklist-credit"]
+        C1["Corbeille (liste + filtres)"]
+        C2["Détail dossier + timeline"]
+        C3["Formulaires par formKey<br/>(validation-analyste, ...)"]
+    end
+    subgraph REM2["Remote : mf-espace-client"]
+        C4["Suivi de ma demande<br/>(lecture seule, historique)"]
+    end
+    R -- "loadRemoteModule<br/>route /credit/corbeille" --> REM1
+    R -- "route /mes-demandes" --> REM2
+    REM1 -- "REST /api/corbeille<br/>(façade, JWT)" --> API["credit-orchestrator"]
+    REM2 -- "REST /api/demandes/{bk}/timeline" --> API
+    style REM1 fill:#00A76F11,stroke:#00A76F,color:#E6ECF5
+    style API fill:#111A2C,stroke:#5AA9FF,color:#E6ECF5
+  </script></div>
+  <p class="figcap">Fig. 7 — La corbeille crédit est un remote Module Federation ; le shell fournit routing et authentification, le remote parle à la façade REST du chap. 08.</p>
+  <div class="filetag">Exposition du remote (federation.config.js — même logique en MF natif ou @angular-architects/module-federation)</div>
+  <pre><code class="language-javascript">// mf-tasklist-credit
+module.exports = {
+  name: 'mfTasklistCredit',
+  exposes: {
+    './routes': './src/app/tasklist/tasklist.routes.ts',
+  },
+  shared: ['@angular/core', '@angular/common', '@angular/router'],
+};</code></pre>
+
+  <h3>9.2 — Le service Angular</h3>
+  <div class="filetag">corbeille.service.ts</div>
+  <pre><code class="language-typescript">export interface Tache {
+  id: string;
+  name: string;            // "Validation analyste crédit"
+  created: string;
+  due: string | null;      // SLA — à colorer en rouge si dépassé
+  assignee: string | null;
+  formKey: string;         // → quel composant de formulaire afficher
+  businessKey: string;     // "CR-2026-04521"
+  dossier: {               // enrichi par la façade
+    nomClient: string;
+    montantDh: number;
+    score: number;
+  };
+}
+
+@Injectable({ providedIn: 'root' })
+export class CorbeilleService {
+  private http = inject(HttpClient);
+  private base = '/api/corbeille';   // via l'API Gateway
+
+  corbeille(): Observable&lt;Tache[]&gt; {
+    return this.http.get&lt;Tache[]&gt;(this.base);
+  }
+  reclamer(taskId: string) {
+    return this.http.post&lt;void&gt;(`${this.base}/${taskId}/claim`, {});
+  }
+  decider(taskId: string, decision: 'ACCORD' | 'REFUS', commentaire: string) {
+    return this.http.post&lt;void&gt;(`${this.base}/${taskId}/decision`,
+      { decision, commentaire });
+  }
+}</code></pre>
+
+  <h3>9.3 — Le routage dynamique des formulaires par formKey</h3>
+  <p>Souvenez-vous (chap. 05) : chaque User Task porte une <code>formKey</code> logique. Côté Angular, un simple registre mappe la clé vers le bon composant standalone :</p>
+  <div class="filetag">form-registry.ts</div>
+  <pre><code class="language-typescript">export const FORM_REGISTRY: Record&lt;string, Type&lt;unknown&gt;&gt; = {
+  'validation-analyste':  ValidationAnalysteFormComponent,
+  'complement-dossier':   ComplementDossierFormComponent,
+  'validation-resp':      ValidationResponsableFormComponent,
+};
+
+// Dans le composant détail :
+@Component({
+  selector: 'app-tache-detail',
+  template: `&lt;ng-container *ngComponentOutlet="formComponent(); inputs: { tache: tache() }"/&gt;`,
+})
+export class TacheDetailComponent {
+  tache = input.required&lt;Tache&gt;();
+  formComponent = computed(() =>
+    FORM_REGISTRY[this.tache().formKey] ?? FormInconnuComponent);
+}</code></pre>
+  <div class="callout">
+    <span class="t">💡 Pourquoi ce pattern est important</span>
+    <p>Ajouter une étape humaine au processus = ajouter une User Task dans le BPMN + un composant dans le registre. <strong>Aucune modification du shell ni des autres remotes.</strong> Le BPMN et le front évoluent en parallèle, dans le même domaine, par la même équipe — l'esprit micro-frontends est respecté.</p>
+  </div>
+
+  <h3>9.4 — La timeline de suivi client</h3>
+  <p>Pour « l'espace client », l'API d'<strong>historique</strong> transforme le parcours du jeton en timeline : la façade appelle <code>historyService.createHistoricActivityInstanceQuery().processInstanceBusinessKey(bk).orderByHistoricActivityInstanceStartTime().asc()</code>, filtre les activités « présentables » (User Tasks, jalons), traduit leurs noms, et le front affiche : <em>Demande reçue ✓ → Contrôles effectués ✓ → En cours d'analyse ⏳</em>. Effet « suivi de colis » très apprécié du métier, pour zéro logique supplémentaire.</p>
+
+  <h3>9.5 — Temps réel & UX de corbeille</h3>
+  <ul>
+    <li><strong>Rafraîchissement</strong> : commencez simple (polling 30s de la corbeille). SSE/WebSocket depuis la façade si besoin ensuite (un TaskListener Camunda peut publier un événement à chaque création de tâche).</li>
+    <li><strong>Concurrence</strong> : deux analystes ouvrent la même tâche → le second <code>claim</code> échoue en 409. Gérez ce cas avec un message clair (« Dossier pris par K. Idrissi il y a 2 min »).</li>
+    <li><strong>SLA visuel</strong> : la <code>due date</code> de la tâche pilote un badge vert/orange/rouge. C'est gratuit côté back, très visible côté métier.</li>
+  </ul>
+</section>
+
+<!-- ============ CH10 ============ -->
+<section class="chapter" id="ch10">
+  <div class="eyebrow">Chapitre 10 · Robustesse</div>
+  <h2>Erreurs, Saga & compensation</h2>
+
+  <p class="lead">En microservices, pas de transaction distribuée : si le déblocage des fonds échoue <em>après</em> la création du contrat, il faut <strong>défaire</strong> ce qui a été fait. Camunda transforme ce cauchemar en diagramme.</p>
+
+  <h3>10.1 — D'abord, bien séparer deux natures d'erreurs</h3>
+  <div class="grid2">
+    <div class="card">
+      <h5><span class="pill r">Technique</span> « Ça devrait marcher, réessayons »</h5>
+      <p>Timeout, service down, deadlock. → <strong>Retry automatique</strong> (async/External Task), puis <strong>incident</strong> visible dans Cockpit qu'un exploitant relance après correction. Le processus n'a <em>pas</em> à modéliser ces cas : le moteur les gère.</p>
+    </div>
+    <div class="card">
+      <h5><span class="pill a">Métier</span> « C'est une réponse valide, mais négative »</h5>
+      <p>Client interdit bancaire, plafond dépassé, pièce manquante. → <strong>BPMN Error</strong> (<code>throw new BpmnError("CLIENT_INTERDIT")</code> ou <code>handleBpmnError</code>), capturée par un <strong>error boundary event</strong> qui déroute le jeton vers un chemin prévu au diagramme. Ces cas-là, le métier veut les voir dessinés.</p>
+    </div>
+  </div>
+  <div class="callout danger">
+    <span class="t">⛔ Anti-pattern classique</span>
+    <p>Ne convertissez pas les erreurs techniques en BpmnError « pour que ça passe » : vous perdez le retry, l'incident, et vous polluez le diagramme de cas d'infrastructure. Inversement, ne laissez pas une règle métier finir en incident technique : l'exploitant ne peut rien en faire. <strong>Technique → retry/incident. Métier → BpmnError → diagramme.</strong></p>
+  </div>
+
+  <h3>10.2 — Le pattern Saga par compensation</h3>
+  <p>Chaque étape « qui engage » se voit associer une <strong>action de compensation</strong> (son inverse métier), attachée par un <em>compensation boundary event</em>. Si le processus échoue plus loin, un <em>compensation throw event</em> déclenche les annulations <strong>en ordre inverse, uniquement pour les étapes réellement effectuées</strong> — le moteur tient la comptabilité pour vous.</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    A["⚙ Créer le contrat"] --> B["⚙ Débloquer les fonds"]
+    B --> C["⚙ Activer les prélèvements"]
+    C --> OK(("◉ Crédit actif"))
+    A -. compensation .-> CA["↩ Annuler le contrat"]
+    B -. compensation .-> CB["↩ Contre-passer<br/>le virement"]
+    B -- "💥 échec définitif" --> X["⚡ Throw<br/>compensation"]
+    C -- "💥 échec définitif" --> X
+    X --> KO(("⭘ Dossier annulé<br/>proprement"))
+    style X fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style CA fill:#F5B84111,stroke:#F5B841,color:#E6ECF5
+    style CB fill:#F5B84111,stroke:#F5B841,color:#E6ECF5
+    style KO fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style OK fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+  </script></div>
+  <p class="figcap">Fig. 8 — Saga : si « Activer les prélèvements » échoue définitivement, le moteur exécute « Contre-passer le virement » puis « Annuler le contrat » — jamais l'inverse, jamais une compensation d'étape non effectuée.</p>
+  <p>Côté code, une compensation est une Service Task normale (delegate ou External Task) : <code>AnnulerContratDelegate</code>, worker <code>contrepasser-virement</code>… La sophistication est dans le diagramme, pas dans le code.</p>
+
+  <h3>10.3 — Incidents : la boucle d'exploitation</h3>
+  <p>Quand les retries sont épuisés, le moteur crée un <strong>incident</strong> : le jeton est figé sur place, rien n'est perdu. Dans Cockpit, l'exploitant voit l'activité en rouge, la stack trace, les variables. Après correction (ex. le core banking est revenu), il <strong>ré-arme les retries</strong> et le dossier repart exactement où il était. Branchez la supervision BMCI (Grafana/alerting) sur <code>GET /engine-rest/incident/count</code> — c'est votre métrique de santé n°1.</p>
+</section>
+
+<!-- ============ CH11 ============ -->
+<section class="chapter" id="ch11">
+  <div class="eyebrow">Chapitre 11 · Règles métier</div>
+  <h2>DMN — externaliser les règles de décision</h2>
+
+  <p class="lead">Les règles du type « qui doit valider quoi selon le montant et le segment » changent souvent et appartiennent au métier. <strong>DMN</strong> (Decision Model and Notation) les sort du code Java : une <strong>table de décision</strong>, dessinée dans le même Modeler, versionnée et exécutée par le même moteur.</p>
+
+  <h3>11.1 — Une table de décision, concrètement</h3>
+  <p>Décision <code>niveau-validation</code> — appelée par une <strong>Business Rule Task</strong> placée avant le gateway du fil rouge :</p>
+  <table>
+    <tr><th></th><th colspan="2" style="color:#5AA9FF">Entrées (conditions)</th><th colspan="2" style="color:#00A76F">Sorties (résultat)</th></tr>
+    <tr><th>#</th><th>montantDh</th><th>segment</th><th>niveauValidation</th><th>groupeValideur</th></tr>
+    <tr><td>1</td><td><code>&lt;= 50000</code></td><td><code>-</code> (peu importe)</td><td><code>"AUTO"</code></td><td><code>-</code></td></tr>
+    <tr><td>2</td><td><code>]50000..300000]</code></td><td><code>"STANDARD"</code></td><td><code>"ANALYSTE"</code></td><td><code>"analystes-credit"</code></td></tr>
+    <tr><td>3</td><td><code>]50000..300000]</code></td><td><code>"PREMIUM"</code></td><td><code>"AUTO"</code></td><td><code>-</code></td></tr>
+    <tr><td>4</td><td><code>&gt; 300000</code></td><td><code>-</code></td><td><code>"COMITE"</code></td><td><code>"comite-credit"</code></td></tr>
+  </table>
+  <p>La première colonne technique de la table est la <strong>hit policy</strong> : <code>U</code> (Unique — une seule règle peut matcher, la plus sûre en banque), <code>F</code> (First — la première qui matche gagne), <code>C</code> (Collect — toutes les règles qui matchent, ex. pour cumuler des documents requis).</p>
+
+  <h3>11.2 — Brancher la décision au processus</h3>
+  <p>Dans le Modeler, la Business Rule Task référence la décision : Implementation = <strong>DMN</strong>, Decision Ref = <code>niveau-validation</code>, Result Variable = <code>decisionValidation</code> (map variables = <code>singleResult</code>). Le fichier <code>.dmn</code> se dépose dans <code>src/main/resources</code>, auto-déployé comme le BPMN. Ensuite, le gateway route sur <code>${decisionValidation.niveauValidation == 'AUTO'}</code>, et la User Task utilise <code>${decisionValidation.groupeValideur}</code> comme candidate group : <strong>la politique de délégation devient une donnée, plus du code</strong>.</p>
+  <div class="callout">
+    <span class="t">💡 Le vrai gain en banque</span>
+    <p>Quand le comité risques change le seuil de 50 000 à 80 000 DH, c'est <strong>une cellule modifiée dans une table</strong> — relue par le métier lui-même, testée unitairement (le moteur DMN s'instancie en un test JUnit pur), déployée en nouvelle version sans toucher une ligne de Java. L'historique Camunda trace en plus <em>quelle règle</em> a matché pour <em>quel dossier</em> : de l'or pour un audit Bank Al-Maghrib.</p>
+  </div>
+</section>
+<!-- ============ CH12 ============ -->
+<section class="chapter" id="ch12">
+  <div class="eyebrow">Chapitre 12 · Qualité</div>
+  <h2>Tester les processus</h2>
+
+  <p class="lead">Un processus se teste comme du code — parce que c'en est. Trois niveaux : unitaire (delegates/workers), processus (le BPMN lui-même, moteur en mémoire), intégration (Spring Boot complet).</p>
+
+  <h3>12.1 — Niveau 1 : les delegates et workers, en pur JUnit</h3>
+  <p>Un JavaDelegate est une classe banale : mockez <code>DelegateExecution</code> et vos clients, vérifiez les <code>setVariable</code>. Idem pour un ExternalTaskHandler avec <code>ExternalTask</code>/<code>ExternalTaskService</code> mockés. Rien de spécifique à apprendre.</p>
+
+  <h3>12.2 — Niveau 2 : tester le diagramme (le plus précieux)</h3>
+  <p>La question à tester : <em>« avec ces données, le jeton prend-il le bon chemin ? »</em>. Dépendances : <code>camunda-bpm-junit5</code> + <code>camunda-bpm-assert</code> (+ H2). Le moteur démarre en mémoire en ~1 seconde :</p>
+  <div class="filetag">CreditConsoProcessTest.java</div>
+  <pre><code class="language-java">@ExtendWith(ProcessEngineCoverageExtension.class)
+@Deployment(resources = "credit-conso.bpmn")
+class CreditConsoProcessTest {
+
+    @BeforeEach
+    void mockDelegates() {
+        // On remplace les vrais delegates par des mocks nommés
+        Mocks.register("controlesAutomatiquesDelegate", (JavaDelegate) exec -> {
+            exec.setVariable("score", 720);
+            exec.setVariable("eligible", true);
+        });
+        Mocks.register("generationContratDelegate", (JavaDelegate) exec -> {});
+    }
+
+    @Test
+    void gros_montant_eligible_passe_par_l_analyste() {
+        ProcessInstance pi = runtimeService().startProcessInstanceByKey(
+            "credit-conso", "CR-TEST-01",
+            Map.of("clientId", "C-1", "montantDh", 85_000L));
+
+        // Le jeton doit attendre sur la User Task
+        assertThat(pi).isWaitingAt("Task_ValidationAnalyste");
+
+        // L'analyste accorde
+        complete(task(), withVariables("decision", "ACCORD"));
+
+        assertThat(pi).hasPassed("Task_GenerationContrat")
+                      .isWaitingAt("Event_AttenteSignature");
+    }
+
+    @Test
+    void petit_montant_court_circuite_l_analyste() {
+        ProcessInstance pi = runtimeService().startProcessInstanceByKey(
+            "credit-conso", "CR-TEST-02",
+            Map.of("clientId", "C-2", "montantDh", 20_000L));
+
+        assertThat(pi).hasNotPassed("Task_ValidationAnalyste")
+                      .isWaitingAt("Event_AttenteSignature");
+    }
+
+    @Test
+    void client_non_eligible_est_rejete() {
+        Mocks.register("controlesAutomatiquesDelegate", (JavaDelegate) exec ->
+            exec.setVariable("eligible", false));
+
+        ProcessInstance pi = runtimeService().startProcessInstanceByKey(
+            "credit-conso", "CR-TEST-03",
+            Map.of("clientId", "C-3", "montantDh", 20_000L));
+
+        assertThat(pi).isEnded().hasPassed("End_RejetAuto");
+    }
+}</code></pre>
+  <p>Pour les timers, pas besoin d'attendre 48h : <code>execute(job())</code> déclenche le job du timer immédiatement, et <code>ClockUtil.setCurrentTime(...)</code> voyage dans le temps. Pour les messages : <code>runtimeService().correlateMessage(...)</code> directement dans le test.</p>
+  <div class="callout">
+    <span class="t">💡 La couverture visuelle</span>
+    <p>L'extension <code>camunda-process-test-coverage</code> génère après les tests un <strong>HTML montrant le diagramme avec les chemins couverts en vert</strong>. Mettez-le en artefact GitLab CI : la revue de « couverture de processus » devient visuelle, et le métier peut même y participer.</p>
+  </div>
+
+  <h3>12.3 — Niveau 3 : intégration Spring Boot</h3>
+  <p>Un <code>@SpringBootTest</code> classique démarre l'application complète (moteur + delegates réels + H2), avec WireMock/Testcontainers pour les services externes. Testez ici la config réelle : delegate expressions qui résolvent, auto-déploiement, sécurité de la façade. Peu de tests, mais ceux-là attrapent les erreurs de câblage que le niveau 2 ne voit pas.</p>
+</section>
+
+<!-- ============ CH13 ============ -->
+<section class="chapter" id="ch13">
+  <div class="eyebrow">Chapitre 13 · Production</div>
+  <h2>Prod, versioning & bonnes pratiques bancaires</h2>
+
+  <h3>13.1 — Le versioning des processus : comprendre une bonne fois</h3>
+  <p>À chaque déploiement d'un <code>.bpmn</code> modifié, le moteur crée une <strong>nouvelle version</strong> de la définition (v1, v2, v3…). Règle par défaut, à graver dans le marbre :</p>
+  <div class="callout">
+    <span class="t">💡 Les instances en cours restent sur LEUR version</span>
+    <p>Un crédit démarré sous la v3 <strong>terminera sa vie sous la v3</strong>, même si la v7 est déployée entre-temps. Les nouvelles instances démarrent sur la dernière version. C'est ce qui rend les déploiements sûrs pour des processus qui durent des semaines. Corollaire : vos delegates/workers doivent rester compatibles avec les versions encore vivantes — supprimez un bean référencé par une v3 active et vous créez des incidents.</p>
+  </div>
+  <p>Si vous devez <em>vraiment</em> faire basculer des instances en cours (correctif sur un processus long), Camunda fournit la <strong>process instance migration</strong> (API + assistant Cockpit Enterprise) qui mappe les activités de l'ancienne version vers la nouvelle. Puissant, mais à tester sérieusement en UAT — c'est une opération chirurgicale.</p>
+
+  <h3>13.2 — Checklist de mise en production</h3>
+  <table>
+    <tr><th style="width:220px">Sujet</th><th>À faire</th></tr>
+    <tr><td><strong>Base de données</strong></td><td>PostgreSQL dédié au moteur ; scripts SQL officiels appliqués par les DBA ; <code>schema-update: false</code> ; sauvegardes = celles d'une base transactionnelle critique.</td></tr>
+    <tr><td><strong>Haute dispo</strong></td><td>2+ replicas du pod orchestrateur sur la même base : le moteur gère nativement la concurrence (optimistic locking). Le Job Executor de chaque nœud consomme les jobs — pensez à homogénéiser les horloges.</td></tr>
+    <tr><td><strong>Historique</strong></td><td><code>history-level: full</code> pour l'audit + <strong>history TTL</strong> sur chaque processus (ex. <code>P3650D</code> selon la politique de rétention) + job de <em>history cleanup</em> planifié la nuit. Sans ça, les tables <code>ACT_HI_*</code> deviennent votre plus gros problème à 18 mois.</td></tr>
+    <tr><td><strong>Sécurité</strong></td><td>Webapps derrière SSO (plugin container-based auth + Keycloak/LDAP) ; <code>/engine-rest</code> jamais exposé hors du réseau interne ; façade métier authentifiée JWT ; autorisations Camunda activées si Cockpit est ouvert au-delà de l'équipe.</td></tr>
+    <tr><td><strong>Monitoring</strong></td><td>Métriques Actuator/Micrometer + alertes sur : nombre d'incidents, jobs en échec, profondeur des topics External Task (jobs « acquis vs dus »), durée des instances vs SLA.</td></tr>
+    <tr><td><strong>Performance</strong></td><td>Variables minces (chap. 05) ; async aux bons endroits (pas partout : chaque flag = un job en base) ; index sur business key si requêtes massives ; pool de connexions dimensionné pour Job Executor + API.</td></tr>
+  </table>
+
+  <h3>13.3 — Conventions d'équipe qui sauvent des projets</h3>
+  <ul>
+    <li><strong>Nommez les IDs BPMN</strong> (<code>Task_ValidationAnalyste</code>, <code>Gateway_Eligible</code>, <code>End_RejetAuto</code>) au lieu des <code>Activity_0x7k2p</code> générés : vos tests, logs et incidents deviennent lisibles.</li>
+    <li><strong>Un glossaire de variables</strong> par processus (nom, type, qui l'écrit, qui la lit), en markdown à côté du <code>.bpmn</code>.</li>
+    <li><strong>Le diagramme se lit de gauche à droite</strong>, chemin nominal en ligne droite, exceptions vers le bas. Le métier doit pouvoir le lire sans formation.</li>
+    <li><strong>Topics External Task en kebab-case préfixés domaine</strong> : <code>credit.scoring-client</code>, <code>credit.deblocage-fonds</code>.</li>
+    <li><strong>Ne modélisez pas tout</strong> : BPMN pour ce qui a de la valeur à être visible (états, attentes, décisions métier, SLA). Les détails techniques (mapper, logger, retry HTTP) restent dans le code.</li>
+  </ul>
+</section>
+
+<!-- ============ CH14 ============ -->
+<section class="chapter" id="ch14">
+  <div class="eyebrow">Chapitre 14 · Synthèse</div>
+  <h2>Le fil rouge complet & votre roadmap</h2>
+
+  <h3>14.1 — Le processus final, tout assemblé</h3>
+  <p>Voici le fil rouge enrichi de tout ce que vous avez appris — chaque annotation renvoie au chapitre concerné :</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    START(("● Demande reçue<br/><i>API façade, ch.08</i>")) --> A1["⚙ Contrôles auto<br/><i>External Tasks ∥ KYC + scoring, ch.07</i><br/><i>async before, ch.03</i>"]
+    A1 -- "⚡ CLIENT_INTERDIT (ch.10)" --> R0(("⭘ Rejet<br/>conformité"))
+    A1 --> D1["▦ DMN niveau-validation<br/><i>ch.11</i>"]
+    D1 --> G1{"✕ niveau ?"}
+    G1 -- AUTO --> A4
+    G1 -- "ANALYSTE / COMITE" --> U1["👤 Validation<br/><i>candidate group issu du DMN, ch.05</i><br/><i>⏱ 48h relance · 5j rejet, ch.06</i>"]
+    U1 --> G2{"✕ décision ?"}
+    G2 -- REFUS --> R1(("⭘ Rejeté"))
+    G2 -- ACCORD --> A4["⚙ Générer contrat<br/><i>↩ compensation : annuler, ch.10</i>"]
+    A4 --> EV{"⬠ signature ou délai ?<br/><i>ch.06</i>"}
+    EV -- "✉ signature (webhook corrélé)" --> A5["⚙ Débloquer fonds<br/><i>↩ compensation : contre-passer</i><br/><i>worker idempotent, ch.07</i>"]
+    EV -- "⏱ 7 jours" --> R2(("⭘ Offre<br/>expirée"))
+    A5 --> A6["⚙ Notifier client"]
+    A6 --> OK(("◉ Crédit accordé<br/><i>timeline client, ch.09</i>"))
+    style START fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style OK fill:#00A76F22,stroke:#00A76F,stroke-width:3px,color:#E6ECF5
+    style R0 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style R1 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style R2 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style U1 fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+    style D1 fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+  </script></div>
+  <p class="figcap">Fig. 9 — Le processus de crédit conso « production-ready », condensé de tous les patterns du guide.</p>
+
+  <h3>14.2 — Votre plan d'apprentissage sur 2 semaines</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+timeline
+    title De zéro à opérationnel
+    Jours 1–2 : Lire ch. 01–03 : Installer le Modeler : Dessiner le fil rouge simple
+    Jours 3–4 : Projet Spring Boot (ch. 04) : Delegates + Cockpit : Jouer avec 10 instances
+    Jours 5–6 : User Tasks + variables (ch. 05) : Timers, messages (ch. 06) : Ajouter SLA & signature
+    Jours 7–9 : External Tasks (ch. 07) : Créer un 2ᵉ microservice worker : Façade REST (ch. 08)
+    Jours 10–11 : Corbeille Angular (ch. 09) : formKey registry : Timeline client
+    Jours 12–14 : BpmnError + Saga (ch. 10) : DMN (ch. 11) : Tests + coverage (ch. 12)
+  </script></div>
+
+  <h3>14.3 — Auto-évaluation : les questions qu'on vous posera</h3>
+  <details><summary>Que se passe-t-il si le pod orchestrateur crash pendant qu'un dossier attend une validation ?</summary><div class="body"><p>Rien de grave : l'état est en base, aucun thread n'attendait (ch. 3.3). Au redémarrage — ou sur l'autre replica — la tâche est toujours là. Seuls les jobs en cours d'exécution au moment du crash seront relancés par le Job Executor après expiration de leur lock, d'où l'importance de l'idempotence (ch. 7).</p></div></details>
+  <details><summary>Pourquoi mettre « async before » sur la première tâche du processus ?</summary><div class="body"><p>Pour couper la transaction : l'appel API de démarrage revient immédiatement une fois l'instance persistée, et un échec dans les tâches suivantes devient un job réessayé (puis un incident) au lieu d'un rollback total + erreur 500 renvoyée au client (ch. 3.4).</p></div></details>
+  <details><summary>External Task vs appel REST direct depuis un delegate : pourquoi préférer le premier ?</summary><div class="body"><p>Inversion du sens de communication (le worker tire), découplage de disponibilité (worker down = travail en file, pas d'échec), scalabilité par simple ajout de replicas, retries natifs avec backoff, et distinction propre erreur technique/métier via handleFailure/handleBpmnError (ch. 7).</p></div></details>
+  <details><summary>Comment gérer un changement de processus alors que 3 000 dossiers sont en cours ?</summary><div class="body"><p>Par défaut, les 3 000 instances terminent sur leur version, les nouvelles prennent la nouvelle (ch. 13.1). Il faut garder le code compatible avec les versions vivantes. Si le correctif doit s'appliquer aux instances en cours : process instance migration, testée en UAT, avec un plan de mapping activité → activité.</p></div></details>
+  <details><summary>Où mettez-vous la règle « au-delà de quel montant faut-il un comité » ?</summary><div class="body"><p>Ni dans le code, ni en dur dans un gateway : dans une table DMN (ch. 11), évaluée par une Business Rule Task. Le gateway ne fait que router sur le résultat. La règle devient lisible, modifiable et auditable par le métier.</p></div></details>
+  <details><summary>Comment le front Angular sait-il quel formulaire afficher pour une tâche ?</summary><div class="body"><p>Chaque User Task porte une formKey logique définie dans le Modeler. La façade la renvoie avec la tâche, et un registre côté Angular mappe formKey → composant standalone, chargé dynamiquement via ngComponentOutlet (ch. 9.3). Ajouter une étape humaine ne touche ni le shell ni les autres remotes.</p></div></details>
+
+  <h3>14.4 — Ressources pour aller plus loin</h3>
+  <ul>
+    <li><strong>Docs officielles Camunda 7</strong> — <code>docs.camunda.org/manual/7.21</code> : référence complète (User Guide → Process Engine est la section qui compte).</li>
+    <li><strong>Camunda BPMN examples</strong> (GitHub <code>camunda/camunda-bpm-examples</code>) : un mini-projet par fonctionnalité.</li>
+    <li><strong>« Real-Life BPMN »</strong> (Freund & Rücker, les fondateurs de Camunda) : LE livre pour bien modéliser.</li>
+    <li><strong>« Practical Process Automation »</strong> (Bernd Rücker, O'Reilly) : orchestration vs chorégraphie en microservices — exactement votre sujet de refonte.</li>
+    <li><strong>Forum Camunda</strong> (<code>forum.camunda.io</code>) : quasi toutes vos futures erreurs y ont déjà leur réponse.</li>
+  </ul>
+
+  <div class="callout" style="margin-top:28px">
+    <span class="t">✓ Vous êtes prêt</span>
+    <p>Si vous savez expliquer les 6 réponses de l'auto-évaluation avec vos propres mots, vous avez le niveau pour concevoir et défendre l'architecture d'orchestration de la refonte. Le reste — la maîtrise fine — viendra en construisant le premier vrai processus. Commencez petit : un processus, trois Service Tasks, une User Task, en production. Puis itérez.</p>
+  </div>
+</section>
+
+</div></main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+hljs.highlightAll();
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  securityLevel: 'loose',
+  themeVariables: {
+    darkMode: true,
+    background: '#111A2C',
+    primaryColor: '#16233B',
+    primaryTextColor: '#E6ECF5',
+    primaryBorderColor: '#2A3B5E',
+    lineColor: '#5A6B8C',
+    secondaryColor: '#0D1526',
+    tertiaryColor: '#111A2C',
+    fontFamily: 'inherit',
+    fontSize: '14px'
+  },
+  flowchart: { curve: 'basis', htmlLabels: true },
+  sequence: { actorFontWeight: 700, noteAlign: 'left' }
+});
+
+// Sommaire actif au scroll
+const links = [...document.querySelectorAll('.flownav a')];
+const sections = links.map(a => document.querySelector(a.getAttribute('href')));
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const i = sections.indexOf(e.target);
+      links.forEach(l => l.classList.remove('active'));
+      if (i >= 0) links[i].classList.add('active');
+    }
+  });
+}, { rootMargin: '-15% 0px -70% 0px' });
+sections.forEach(s => s && obs.observe(s));
+
+// Rendu manuel des diagrammes : la source est lue depuis des blocs script bruts,
+// jamais interprétés par le parseur HTML (fiable sur tous les navigateurs).
+(async () => {
+  const holders = document.querySelectorAll('.mermaid');
+  let i = 0;
+  for (const holder of holders) {
+    const srcEl = holder.querySelector('script[type="text/x-mermaid"]');
+    if (!srcEl) continue;
+    const src = srcEl.textContent.trim();
+    try {
+      const { svg } = await mermaid.render('mmd-' + (++i), src);
+      holder.innerHTML = svg;
+    } catch (e) {
+      holder.innerHTML = '<pre style="color:#F0616D;white-space:pre-wrap">Diagramme non rendu : '
+        + String(e && e.message || e) + '</pre>';
+      console.error('Mermaid #' + i, e);
+    }
+  }
+})();
+</script>
+</body>
+</html>

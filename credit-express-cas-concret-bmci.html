@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crédit Express — Cas concret : Camunda 7, microservices, micro-frontends & CI/CD GitHub</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<style>
+:root{
+  --bg:#0B1220;            /* bleu nuit profond */
+  --surface:#111A2C;       /* panneaux */
+  --surface2:#0D1526;      /* blocs de code */
+  --line:#1E2A44;          /* bordures */
+  --txt:#E6ECF5;
+  --muted:#8A97AD;
+  --green:#00A76F;         /* accent BMCI */
+  --green-soft:rgba(0,167,111,.12);
+  --amber:#F5B841;
+  --amber-soft:rgba(245,184,65,.10);
+  --red:#F0616D;
+  --red-soft:rgba(240,97,109,.10);
+  --blue:#5AA9FF;
+  --blue-soft:rgba(90,169,255,.10);
+  --mono:ui-monospace,'Cascadia Code','JetBrains Mono',Consolas,monospace;
+  --sans:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:16px;line-height:1.7}
+::selection{background:var(--green);color:#04120C}
+
+/* ---------- Layout ---------- */
+.wrap{display:flex;min-height:100vh}
+aside{width:300px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 0 40px}
+main{flex:1;min-width:0;padding:0 clamp(20px,5vw,72px) 120px}
+.content{max-width:880px;margin:0 auto}
+
+/* ---------- Sidebar : le sommaire est lui-même un processus BPMN ---------- */
+.brand{padding:0 24px 20px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.brand .logo{font-family:var(--mono);font-size:13px;letter-spacing:.18em;color:var(--green);text-transform:uppercase}
+.brand h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin-top:6px}
+.brand p{font-size:12.5px;color:var(--muted);margin-top:4px}
+.flownav{position:relative;padding:6px 24px 0 34px}
+.flownav::before{content:"";position:absolute;left:43px;top:14px;bottom:26px;width:2px;
+  background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 11px)}
+.flownav a{display:flex;align-items:center;gap:12px;padding:7px 8px 7px 0;color:var(--muted);
+  text-decoration:none;font-size:13.5px;position:relative;border-radius:8px;transition:color .15s}
+.flownav a:hover{color:var(--txt)}
+.flownav a.active{color:var(--txt);font-weight:600}
+.node{width:20px;height:20px;flex-shrink:0;border:2px solid var(--line);background:var(--surface);
+  border-radius:6px;position:relative;z-index:1;transition:border-color .15s}
+.flownav a:hover .node,.flownav a.active .node{border-color:var(--green)}
+.flownav a.active .node{background:var(--green-soft)}
+.node.start,.node.end{border-radius:50%}
+.node.end{border-width:4px}
+.node.gate{transform:rotate(45deg);border-radius:4px;width:17px;height:17px;margin:0 1.5px}
+.flownav .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flownav .num{font-family:var(--mono);font-size:10.5px;color:var(--muted);opacity:.7}
+
+/* ---------- Typo & structure de chapitre ---------- */
+.chapter{padding-top:64px;border-top:1px solid var(--line);margin-top:64px}
+.chapter:first-of-type{border-top:none;margin-top:0}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--green);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.eyebrow::after{content:"";height:1px;flex:1;background:var(--line)}
+h2{font-size:clamp(26px,3.4vw,34px);font-weight:800;letter-spacing:-.025em;line-height:1.2;margin-bottom:14px}
+h3{font-size:21px;font-weight:700;letter-spacing:-.015em;margin:42px 0 12px;padding-top:6px}
+h4{font-size:16.5px;font-weight:700;margin:28px 0 8px}
+p{margin:0 0 14px;color:#C9D3E3}
+p strong,li strong{color:var(--txt)}
+.lead{font-size:18px;color:var(--txt);line-height:1.65}
+ul,ol{margin:0 0 16px 22px;color:#C9D3E3}
+li{margin-bottom:7px}
+a{color:var(--blue)}
+hr{border:none;border-top:1px solid var(--line);margin:32px 0}
+
+/* ---------- Composants ---------- */
+code:not(pre code){font-family:var(--mono);font-size:.86em;background:var(--surface2);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:#9FE8C8}
+pre{background:var(--surface2)!important;border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;overflow-x:auto;margin:0 0 18px;font-size:13.5px;line-height:1.6}
+pre code{font-family:var(--mono);background:transparent!important;padding:0}
+.filetag{display:inline-block;font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  background:var(--surface);border:1px solid var(--line);border-bottom:none;
+  border-radius:8px 8px 0 0;padding:5px 12px;margin-bottom:-1px;position:relative}
+.filetag+pre{border-top-left-radius:0}
+
+.callout{border:1px solid var(--line);border-left:3px solid var(--green);background:var(--green-soft);
+  border-radius:10px;padding:14px 18px;margin:0 0 18px;font-size:15px}
+.callout .t{font-weight:700;font-family:var(--mono);font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--green);display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+.callout.warn{border-left-color:var(--amber);background:var(--amber-soft)}
+.callout.warn .t{color:var(--amber)}
+.callout.danger{border-left-color:var(--red);background:var(--red-soft)}
+.callout.danger .t{color:var(--red)}
+.callout.info{border-left-color:var(--blue);background:var(--blue-soft)}
+.callout.info .t{color:var(--blue)}
+
+table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:14.5px}
+th{text-align:left;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--line)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:#C9D3E3}
+tr:hover td{background:rgba(255,255,255,.015)}
+td .sym{display:inline-flex;align-items:center;justify-content:center;width:52px;height:44px}
+
+.mermaid{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:20px;margin:0 0 20px;display:flex;justify-content:center;overflow-x:auto}
+.figcap{font-size:13px;color:var(--muted);text-align:center;margin:-10px 0 24px;font-style:italic}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.card h5{font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card p{font-size:14px;margin-bottom:0}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:99px;
+  border:1px solid var(--line);color:var(--muted);margin-right:6px}
+.pill.g{color:var(--green);border-color:rgba(0,167,111,.4)}
+.pill.a{color:var(--amber);border-color:rgba(245,184,65,.4)}
+.pill.r{color:var(--red);border-color:rgba(240,97,109,.4)}
+.pill.b{color:var(--blue);border-color:rgba(90,169,255,.4)}
+
+/* Hero */
+.hero{padding:88px 0 20px}
+.hero .k{font-family:var(--mono);color:var(--green);font-size:13px;letter-spacing:.2em;text-transform:uppercase}
+.hero h2{font-size:clamp(34px,5vw,52px);border:none;margin:14px 0 18px;padding:0}
+.hero h2 .thin{color:var(--muted);font-weight:300}
+.hero .sub{font-size:18px;color:#C9D3E3;max-width:640px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+details{border:1px solid var(--line);border-radius:10px;margin-bottom:12px;background:var(--surface)}
+summary{cursor:pointer;padding:13px 18px;font-weight:600;font-size:15px;list-style:none;display:flex;align-items:center;gap:10px}
+summary::before{content:"+";font-family:var(--mono);color:var(--green);font-size:16px;width:16px}
+details[open] summary::before{content:"–"}
+details .body{padding:0 18px 16px;font-size:14.5px}
+details .body p:last-child{margin-bottom:0}
+
+kbd{font-family:var(--mono);font-size:.85em;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:5px;padding:1px 6px;background:var(--surface2)}
+
+@media(max-width:960px){
+  aside{display:none}
+  main{padding:0 18px 80px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<aside>
+  <div class="brand">
+    <div class="logo">◈ Dossier pratique</div>
+    <h1>« Crédit Express »<br>de A à Z</h1>
+    <p>Un cas bancaire complet : archi, code, infra & CI/CD GitHub — compagnon du guide Camunda 7</p>
+  </div>
+  <nav class="flownav" id="flownav">
+    <a href="#ch0"><span class="node start"></span><span class="lbl">Le scénario</span></a>
+    <a href="#ch1"><span class="node"></span><span class="lbl"><span class="num">01</span> L'architecture & les dépôts GitHub</span></a>
+    <a href="#ch2"><span class="node"></span><span class="lbl"><span class="num">02</span> Le front : shell & micro-frontends</span></a>
+    <a href="#ch3"><span class="node"></span><span class="lbl"><span class="num">03</span> Le back : orchestrateur & workers</span></a>
+    <a href="#ch4"><span class="node gate"></span><span class="lbl"><span class="num">04</span> On suit le dossier de Salma</span></a>
+    <a href="#ch5"><span class="node"></span><span class="lbl"><span class="num">05</span> L'infra : Docker & Kubernetes</span></a>
+    <a href="#ch6"><span class="node"></span><span class="lbl"><span class="num">06</span> CI/CD avec GitHub Actions</span></a>
+    <a href="#ch7"><span class="node"></span><span class="lbl"><span class="num">07</span> GitOps : dev → UAT → prod</span></a>
+    <a href="#ch8"><span class="node gate"></span><span class="lbl"><span class="num">08</span> Supervision & l'incident du vendredi</span></a>
+    <a href="#ch9"><span class="node end"></span><span class="lbl"><span class="num">09</span> Récap & glossaire</span></a>
+  </nav>
+</aside>
+
+<main><div class="content">
+<!-- ============ CH0 : SCENARIO ============ -->
+<section class="hero" id="ch0">
+  <div class="k">Cas pratique de bout en bout</div>
+  <h2>« Crédit Express » <span class="thin">— une vraie application bancaire,</span><br>du clic du client au pipeline GitHub.</h2>
+  <p class="sub">Ce document raconte <strong>une seule histoire</strong> : celle d'un parcours de crédit conso digital, construit avec Camunda 7, des microservices Spring Boot, un front Angular en micro-frontends, et déployé sur Kubernetes via <strong>GitHub Actions</strong>. Tout est fictif mais réaliste : les noms, les repos, les YAML, les incidents. L'objectif : que vous puissiez vous projeter dans <em>chaque</em> couche.</p>
+  <div class="meta">
+    <span class="pill g">Camunda 7.21</span>
+    <span class="pill b">4 microservices + 1 orchestrateur</span>
+    <span class="pill b">Shell + 2 remotes Angular</span>
+    <span class="pill a">GitHub Actions + GitOps</span>
+    <span class="pill">Kubernetes</span>
+  </div>
+
+  <h3>Le scénario</h3>
+  <p><strong>Salma</strong>, cliente de la banque depuis 6 ans, veut financer des travaux : <strong>60 000 DH sur 36 mois</strong>. Elle fait sa demande un mardi à 14h12 depuis son espace client web. Voici les personnages qui vont toucher son dossier :</p>
+  <div class="grid2">
+    <div class="card"><h5>👩🏽 Salma — la cliente</h5><p>Elle remplit un formulaire, signe électroniquement, et suit son dossier comme un colis. Elle ne sait pas ce qu'est Camunda, et c'est très bien comme ça.</p></div>
+    <div class="card"><h5>👨🏻‍💼 Karim — l'analyste crédit</h5><p>Il travaille dans sa « corbeille » : une liste de dossiers à instruire, avec des délais. Il accorde, refuse, ou demande un complément. Son outil : le micro-frontend <code>mf-corbeille</code>.</p></div>
+    <div class="card"><h5>👩🏻‍💻 Vous — l'équipe « Parcours Crédit »</h5><p>Une squad : 3 devs back, 2 devs front, 1 PO, 1 ops. Elle possède <em>tout</em> le parcours : le BPMN, les services, les deux remotes front, et ses pipelines. C'est le principe « you build it, you run it ».</p></div>
+    <div class="card"><h5>🖥️ La prod — un cluster Kubernetes</h5><p>Trois environnements (<code>dev</code>, <code>uat</code>, <code>prod</code>), un registre d'images, et des déploiements déclenchés par Git. Personne ne fait de <code>kubectl apply</code> à la main sur la prod.</p></div>
+  </div>
+
+  <div class="callout info">
+    <span class="t">ℹ Comment lire ce dossier</span>
+    <p>Les chapitres 01–03 posent la carte (architecture, front, back). Le chapitre <strong>04 est le cœur</strong> : on suit le dossier de Salma minute par minute à travers chaque composant. Les chapitres 05–08 montrent comment tout ça vit : conteneurs, pipelines GitHub, promotion entre environnements, supervision. Les concepts Camunda (jeton, External Task, User Task…) sont supposés connus — ils sont expliqués dans le guide compagnon « Camunda 7 de zéro à la prod ».</p>
+  </div>
+</section>
+
+<!-- ============ CH1 ============ -->
+<section class="chapter" id="ch1">
+  <div class="eyebrow">Chapitre 01 · La carte</div>
+  <h2>L'architecture & les dépôts GitHub</h2>
+
+  <p class="lead">Règle d'organisation : <strong>un composant déployable = un dépôt GitHub = un pipeline</strong>. La squad possède 8 dépôts, tous dans l'organisation GitHub de la banque, préfixés par le domaine <code>credit-</code>.</p>
+
+  <h3>1.1 — La vue d'ensemble</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    subgraph NAV["🌐 Navigateur de Salma / de Karim"]
+        SHELL["shell-banque (host Angular)<br/>login, menu, routing"]
+        R1["mf-espace-client<br/>(remote) demande + suivi"]
+        R2["mf-corbeille<br/>(remote) outil de Karim"]
+    end
+    ING["Ingress + API Gateway<br/>(routage, TLS, JWT Keycloak)"]
+    subgraph K8S["☸️ Cluster Kubernetes — namespace credit-prod"]
+        ORCH["<b>credit-orchestrator</b><br/>Spring Boot + Camunda 7<br/>+ façade REST /api/**"]
+        W1["credit-scoring-svc<br/>worker topic scoring"]
+        W2["credit-kyc-svc<br/>worker topic kyc"]
+        W3["credit-contrat-svc<br/>worker topics contrat + fonds"]
+        W4["credit-notif-svc<br/>worker topic notification"]
+        KC["Keycloak<br/>(mutualisé banque)"]
+    end
+    PG[("PostgreSQL managé<br/>base camunda_credit")]
+    CBS["🏦 Core banking + centrale<br/>des risques (existant)"]
+    SIGN["✍️ Prestataire de signature<br/>électronique (externe)"]
+    SHELL --> ING
+    R1 --> ING
+    R2 --> ING
+    ING --> ORCH
+    ING --> KC
+    W1 -- "long polling<br/>/engine-rest (interne)" --> ORCH
+    W2 -- long polling --> ORCH
+    W3 -- long polling --> ORCH
+    W4 -- long polling --> ORCH
+    ORCH --- PG
+    W1 --> CBS
+    W3 --> CBS
+    ORCH -- "webhook signature" --- SIGN
+    style ORCH fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style PG fill:#111A2C,stroke:#5AA9FF,color:#E6ECF5
+    style CBS fill:#111A2C,stroke:#F5B841,color:#E6ECF5
+    style SIGN fill:#111A2C,stroke:#F5B841,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 1 — La carte complète. Notez le sens des flèches des workers : c'est eux qui viennent chercher le travail (long polling), jamais l'inverse.</p>
+
+  <h3>1.2 — Les 8 dépôts GitHub de la squad</h3>
+  <table>
+    <tr><th style="width:260px">Dépôt</th><th>Contenu</th><th style="width:170px">Livrable</th></tr>
+    <tr><td><code>credit-orchestrator</code></td><td>Moteur Camunda embarqué, fichiers <code>.bpmn</code>/<code>.dmn</code>, delegates légers, façade REST <code>/api/**</code>, tests de processus</td><td>Image Docker</td></tr>
+    <tr><td><code>credit-scoring-svc</code></td><td>Worker External Task « scoring » + appels centrale des risques</td><td>Image Docker</td></tr>
+    <tr><td><code>credit-kyc-svc</code></td><td>Worker « kyc » : vérifs identité, sanctions, LCB-FT</td><td>Image Docker</td></tr>
+    <tr><td><code>credit-contrat-svc</code></td><td>Workers « generation-contrat » et « deblocage-fonds » (core banking)</td><td>Image Docker</td></tr>
+    <tr><td><code>credit-notif-svc</code></td><td>Worker « notification » : SMS, email, push</td><td>Image Docker</td></tr>
+    <tr><td><code>mf-espace-client</code></td><td>Remote Angular : formulaire de demande + suivi « type colis »</td><td>Image Docker (nginx)</td></tr>
+    <tr><td><code>mf-corbeille</code></td><td>Remote Angular : corbeille de Karim, formulaires de décision</td><td>Image Docker (nginx)</td></tr>
+    <tr><td><code>credit-platform-config</code></td><td><strong>Le dépôt GitOps</strong> : manifestes Kubernetes des 3 environnements. Aucune ligne de code applicatif — que du YAML. C'est lui qui décrit « ce qui tourne où » (chap. 07)</td><td>—</td></tr>
+  </table>
+  <div class="callout">
+    <span class="t">💡 Pourquoi pas un monorepo ?</span>
+    <p>Les deux marchent. Ici, le multi-repo colle au principe « un déployable = un cycle de vie » : le worker notification peut être livré 4 fois par jour sans toucher l'orchestrateur. Le point important n'est pas le nombre de repos, c'est que <strong>la squad possède l'ensemble</strong> — y compris le BPMN et le dépôt GitOps. Si votre organisation préfère un monorepo avec des pipelines par dossier, tout ce document reste valable.</p>
+  </div>
+
+  <h3>1.3 — Qui parle à qui — et qui ne parle JAMAIS à qui</h3>
+  <ul>
+    <li>Le <strong>front</strong> ne connaît qu'une URL : la gateway. Il ne sait pas que Camunda existe (il appelle <code>/api/demandes</code>, <code>/api/corbeille</code> — la façade).</li>
+    <li>Les <strong>workers</strong> ne se connaissent pas entre eux et ne sont appelés par personne : ils tirent leur travail depuis <code>/engine-rest</code> (réseau interne du cluster uniquement).</li>
+    <li>Seuls <code>credit-scoring-svc</code> et <code>credit-contrat-svc</code> parlent au <strong>core banking</strong> — l'orchestrateur, lui, n'a aucun accès aux systèmes centraux. Chacun son périmètre réseau, les flux à ouvrir restent courts à documenter pour la sécurité.</li>
+    <li><strong>Personne</strong> ne touche la base <code>camunda_credit</code> à part l'orchestrateur. Les workers n'y ont même pas de compte.</li>
+  </ul>
+</section>
+
+<!-- ============ CH2 ============ -->
+<section class="chapter" id="ch2">
+  <div class="eyebrow">Chapitre 02 · Front</div>
+  <h2>Le front : un shell, deux remotes</h2>
+
+  <p class="lead">Le principe micro-frontend en une phrase simple : <strong>le site de la banque est un puzzle</strong>. Le « shell » est le cadre du puzzle (menu, login, routing) ; chaque équipe fournit ses pièces (« remotes »), développées et déployées indépendamment, assemblées dans le navigateur au moment du chargement.</p>
+
+  <h3>2.1 — Le contrat entre le shell et les remotes</h3>
+  <p>Le shell (possédé par l'équipe « socle digital ») publie un contrat minimal : chaque remote expose ses routes via Module Federation, et reçoit du shell le <strong>token Keycloak</strong> et le thème. Côté squad crédit, la configuration :</p>
+  <div class="filetag">mf-corbeille/federation.config.js</div>
+  <pre><code class="language-javascript">module.exports = {
+  name: 'mfCorbeille',
+  exposes: { './routes': './src/app/corbeille.routes.ts' },
+  shared: ['@angular/core', '@angular/common', '@angular/router'],
+};</code></pre>
+  <div class="filetag">shell-banque — déclaration de la pièce de puzzle</div>
+  <pre><code class="language-typescript">{
+  path: 'credit/corbeille',
+  canActivate: [authGuard, roleGuard(['analystes-credit', 'comite-credit'])],
+  loadChildren: () => loadRemoteModule({
+    remoteEntry: environment.remotes.mfCorbeille,   // URL injectée par env
+    exposedModule: './routes',
+  }).then(m => m.routes),
+}</code></pre>
+  <div class="callout">
+    <span class="t">💡 Le point clé pour la suite (CI/CD)</span>
+    <p>L'URL <code>remoteEntry</code> n'est <strong>pas codée en dur</strong> : elle vient d'une config par environnement. En <code>uat</code>, le shell charge <code>https://uat.banque.ma/mf/corbeille/remoteEntry.js</code> ; en prod, la version prod. Résultat : <strong>déployer une nouvelle version de la corbeille ne nécessite AUCUN redéploiement du shell</strong> — on remplace juste l'image nginx du remote. C'est ça, l'autonomie micro-frontend, et c'est ce que le pipeline du chap. 06 exploite.</p>
+  </div>
+
+  <h3>2.2 — Ce que voit Salma vs ce que voit Karim</h3>
+  <div class="grid2">
+    <div class="card">
+      <h5>mf-espace-client (Salma)</h5>
+      <p><strong>Écran 1</strong> : formulaire de demande (montant, durée, revenus) → <code>POST /api/demandes</code>.<br><strong>Écran 2</strong> : suivi « type colis » : <em>Reçue ✓ → Analysée ✓ → En attente de votre signature ⏳</em>, alimenté par <code>GET /api/demandes/CR-2026-08812/timeline</code> (l'historique Camunda, traduit en langage client).</p>
+    </div>
+    <div class="card">
+      <h5>mf-corbeille (Karim)</h5>
+      <p><strong>Écran 1</strong> : la corbeille — tableau des tâches de ses groupes, tri par échéance SLA, badge rouge si dépassée → <code>GET /api/corbeille</code>.<br><strong>Écran 2</strong> : le dossier — variables du processus + données métier enrichies + formulaire de décision, choisi dynamiquement par la <code>formKey</code> de la tâche.</p>
+    </div>
+  </div>
+  <p>Les deux remotes ne partagent <strong>aucun code métier</strong> entre eux — seulement le design system de la banque (une librairie npm interne versionnée, ex. <code>@banque/ds-angular</code>).</p>
+</section>
+
+<!-- ============ CH3 ============ -->
+<section class="chapter" id="ch3">
+  <div class="eyebrow">Chapitre 03 · Back</div>
+  <h2>Le back : l'orchestrateur et ses workers</h2>
+
+  <h3>3.1 — L'orchestrateur : le chef de gare</h3>
+  <p><code>credit-orchestrator</code> est un Spring Boot classique qui contient <strong>trois choses et rien d'autre</strong> :</p>
+  <ul>
+    <li><strong>Le moteur Camunda + les processus</strong> : <code>credit-express.bpmn</code> et <code>niveau-validation.dmn</code> dans <code>src/main/resources/processes/</code>, auto-déployés au démarrage.</li>
+    <li><strong>La façade REST</strong> <code>/api/**</code> : la seule porte d'entrée du front. Elle traduit « métier » ↔ « moteur » : <code>POST /api/demandes</code> → <code>startProcessInstanceByKey</code>, <code>GET /api/corbeille</code> → <code>TaskQuery</code> filtrée par les groupes du JWT, etc.</li>
+    <li><strong>Quelques delegates légers</strong> : préparation de variables, mapping — jamais d'appel au core banking (ça, c'est le rôle des workers).</li>
+  </ul>
+  <div class="filetag">Arborescence de credit-orchestrator</div>
+  <pre><code class="language-text">credit-orchestrator/
+├── .github/workflows/ci-cd.yml        ← le pipeline (chap. 06)
+├── Dockerfile
+├── pom.xml
+└── src/
+    ├── main/
+    │   ├── java/ma/banque/credit/
+    │   │   ├── api/            CorbeilleController, DemandeController, TimelineController
+    │   │   ├── delegates/      PreparerDossierDelegate...
+    │   │   ├── security/       mapping JWT Keycloak → groupes Camunda
+    │   │   └── webhooks/       SignatureWebhookController (corrélation message)
+    │   └── resources/
+    │       ├── processes/      credit-express.bpmn · niveau-validation.dmn
+    │       └── application.yml (+ application-dev/uat/prod.yml)
+    └── test/java/              CreditExpressProcessTest (le BPMN est testé !)</code></pre>
+
+  <h3>3.2 — Les workers : des artisans spécialisés</h3>
+  <p>Chaque worker est un mini Spring Boot <strong>sans moteur Camunda</strong> — juste le client External Task (~2 Mo) et son métier. Exemple type, le déblocage de fonds :</p>
+  <div class="filetag">credit-contrat-svc/DeblocageFondsWorker.java</div>
+  <pre><code class="language-java">@Component
+@ExternalTaskSubscription(topicName = "credit.deblocage-fonds")
+@RequiredArgsConstructor
+public class DeblocageFondsWorker implements ExternalTaskHandler {
+
+    private final CoreBankingClient coreBanking;
+    private final VirementDejaEmisRepository dejaEmis;   // garde-fou idempotence
+
+    @Override
+    public void execute(ExternalTask task, ExternalTaskService svc) {
+        String dossier = task.getBusinessKey();          // "CR-2026-08812"
+        Long montant   = task.getVariable("montantDh");
+        try {
+            // Idempotence : si un retry rejoue la tâche, on ne vire pas 2 fois
+            if (!dejaEmis.existsByDossier(dossier)) {
+                String refVirement = coreBanking.emettreVirement(dossier, montant);
+                dejaEmis.save(new VirementEmis(dossier, refVirement));
+            }
+            svc.complete(task);
+        } catch (CompteClotureException e) {
+            svc.handleBpmnError(task, "COMPTE_CLOTURE", e.getMessage()); // chemin métier
+        } catch (Exception e) {
+            int retries = task.getRetries() == null ? 3 : task.getRetries() - 1;
+            svc.handleFailure(task, e.getMessage(), "", retries, 120_000L); // technique
+        }
+    }
+}</code></pre>
+  <div class="callout warn">
+    <span class="t">⚠ La règle des workers, à afficher au mur</span>
+    <p>Un worker fait <strong>une chose</strong>, de façon <strong>idempotente</strong>, et classe chaque échec en <strong>technique</strong> (handleFailure → retry) ou <strong>métier</strong> (handleBpmnError → chemin du diagramme). Il ne connaît ni le processus global, ni les autres workers. C'est ce qui rend l'ensemble simple à raisonner : la complexité de l'enchaînement vit dans UN endroit — le BPMN.</p>
+  </div>
+
+  <h3>3.3 — Le processus credit-express, version définitive</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    START(("● Demande reçue")) --> P1["⚙ Préparer le dossier<br/>(delegate, async before)"]
+    P1 --> PAR{"+ parallèle"}
+    PAR --> S1["⚙ topic credit.scoring"]
+    PAR --> S2["⚙ topic credit.kyc"]
+    S1 --> JOIN{"+ jonction"}
+    S2 --> JOIN
+    S2 -- "⚡ SANCTION_HIT" --> R0(("⭘ Rejet<br/>conformité"))
+    JOIN --> DMN["▦ DMN niveau-validation"]
+    DMN --> G1{"✕ niveau ?"}
+    G1 -- AUTO --> CTR
+    G1 -- ANALYSTE --> U1["👤 Instruction analyste<br/>⏱ 48h relance / 5j escalade"]
+    U1 --> G2{"✕ décision ?"}
+    G2 -- REFUS --> R1(("⭘ Refusé"))
+    G2 -- COMPLEMENT --> U2["👤 Complément client<br/>(retour espace client)"]
+    U2 --> U1
+    G2 -- ACCORD --> CTR["⚙ topic credit.generation-contrat<br/>↩ compensation : annuler contrat"]
+    CTR --> EV{"⬠ signature<br/>ou délai ?"}
+    EV -- "✉ SignatureRecue" --> FND["⚙ topic credit.deblocage-fonds<br/>↩ compensation : contre-passer"]
+    EV -- "⏱ P7D" --> R2(("⭘ Offre expirée"))
+    FND --> NOT["⚙ topic credit.notification"]
+    NOT --> OK(("◉ Crédit accordé"))
+    style START fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style OK fill:#00A76F22,stroke:#00A76F,stroke-width:3px,color:#E6ECF5
+    style R0 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style R1 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style R2 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style U1 fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+    style U2 fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+    style DMN fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 2 — credit-express.bpmn : scoring et KYC en parallèle, boucle « complément client », course signature/délai, compensations sur les étapes engageantes.</p>
+</section>
+<!-- ============ CH4 ============ -->
+<section class="chapter" id="ch4">
+  <div class="eyebrow">Chapitre 04 · Le cœur du dossier</div>
+  <h2>On suit le dossier de Salma, minute par minute</h2>
+
+  <p class="lead">Mardi, 14h12. Salma clique sur « Envoyer ma demande ». Voici <strong>exactement</strong> ce qui se passe dans chaque composant, avec les vrais appels. Si vous ne lisez qu'un chapitre, c'est celui-là.</p>
+
+  <h3>14h12:04 — La demande naît</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+sequenceDiagram
+    autonumber
+    participant S as mf-espace-client
+    participant G as Gateway
+    participant O as credit-orchestrator
+    participant DB as PostgreSQL
+    S->>G: POST /api/demandes {montant 60000, duree 36} + JWT
+    G->>O: (vérifie le JWT, route)
+    Note over O: la façade valide le DTO,<br/>génère la business key CR-2026-08812
+    O->>DB: startProcessInstanceByKey("credit-express")<br/>TX courte (async before sur "Préparer")
+    DB-->>O: instance persistée
+    O-->>S: 201 {numeroDossier "CR-2026-08812", statut "RECUE"}
+    Note over S: Salma voit "Demande reçue ✓"<br/>Durée totale ressentie : 180 ms
+</script></div>
+  <p class="figcap">Fig. 3 — Grâce au « async before », la réponse HTTP ne dépend pas du scoring ni du KYC : le dossier est en sécurité en base, la suite se fera en tâche de fond.</p>
+
+  <h3>14h12:05 → 14h12:11 — Les machines travaillent</h3>
+  <p>Le Job Executor de l'orchestrateur exécute « Préparer le dossier », puis le jeton se <strong>duplique</strong> au gateway parallèle : deux External Tasks sont publiées, topics <code>credit.scoring</code> et <code>credit.kyc</code>.</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+sequenceDiagram
+    autonumber
+    participant O as credit-orchestrator
+    participant SC as credit-scoring-svc
+    participant KY as credit-kyc-svc
+    participant CR as Centrale des risques
+    par branche scoring
+        SC->>O: fetchAndLock("credit.scoring")
+        O-->>SC: {CR-2026-08812, clientId, montantDh 60000}
+        SC->>CR: consulter l'historique de Salma
+        CR-->>SC: aucun impayé
+        SC->>O: complete(score 712, tauxEndettement 0.31)
+    and branche KYC
+        KY->>O: fetchAndLock("credit.kyc")
+        O-->>KY: {CR-2026-08812, clientId}
+        Note over KY: pièce d'identité valide,<br/>aucune liste de sanctions
+        KY->>O: complete(kycOk true)
+    end
+    Note over O: la jonction parallèle voit les 2 branches terminées.<br/>DMN : 60 000 DH + segment STANDARD → niveau "ANALYSTE"<br/>→ création de la User Task, candidateGroup "analystes-credit",<br/>due date = maintenant + 48h
+</script></div>
+  <p class="figcap">Fig. 4 — Six secondes plus tard, le dossier attend dans la corbeille des analystes. Aucun humain n'a rien fait, aucun thread n'attend : l'état dort en base.</p>
+
+  <h3>16h47 — Karim ouvre sa corbeille</h3>
+  <p>Le remote <code>mf-corbeille</code> appelle <code>GET /api/corbeille</code>. La façade lit les groupes du JWT de Karim (<code>analystes-credit</code>), interroge le moteur, <strong>enrichit</strong> chaque tâche avec les données métier, et renvoie :</p>
+  <div class="filetag">Réponse de GET /api/corbeille (extrait)</div>
+  <pre><code class="language-json">[{
+  "taskId": "8842a1...",
+  "formKey": "instruction-analyste",
+  "businessKey": "CR-2026-08812",
+  "due": "2026-07-09T14:12:11Z",
+  "slaStatut": "OK",
+  "dossier": { "client": "Salma B.", "anciennete": "6 ans",
+               "montantDh": 60000, "dureeMois": 36,
+               "score": 712, "tauxEndettement": 0.31 }
+}]</code></pre>
+  <p>Karim clique. Le registre de formulaires du remote mappe <code>instruction-analyste</code> → le composant Angular du même nom. Il examine, puis choisit <strong>« Demander un complément »</strong> : il veut le justificatif des revenus locatifs. → <code>POST /api/corbeille/8842a1/decision {decision:"COMPLEMENT", message:"..."}</code>. Le jeton repart : gateway « décision ? » → branche COMPLEMENT → nouvelle User Task, mais cette fois <code>candidateGroup = clients</code> avec <code>formKey = complement-client</code> : <strong>elle apparaît chez Salma</strong>, dans son espace client, avec une notification (le worker notif est appelé au passage par un listener).</p>
+
+  <h3>Mercredi 09h30 — Salma répond, la boucle se referme</h3>
+  <p>Salma téléverse son justificatif (stocké dans la GED via la façade — <strong>pas</strong> dans les variables Camunda, on n'y met que l'ID du document). Sa tâche est complétée, le jeton reboucle sur « Instruction analyste ». Karim revoit le dossier à 10h05 : <strong>ACCORD</strong>. Le jeton file vers la génération du contrat (worker <code>credit-contrat-svc</code>), puis s'endort sur l'event-based gateway : <em>signature ou 7 jours</em>.</p>
+
+  <h3>Mercredi 10h11 — La signature réveille le dossier</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+sequenceDiagram
+    autonumber
+    participant SG as Prestataire signature
+    participant O as credit-orchestrator
+    participant CT as credit-contrat-svc
+    participant NO as credit-notif-svc
+    SG->>O: POST /webhooks/signature {dossier CR-2026-08812, signé ✓}
+    Note over O: correlateMessage("SignatureRecue")<br/>.processInstanceBusinessKey("CR-2026-08812")<br/>→ le jeton se réveille, le timer 7j est annulé
+    CT->>O: fetchAndLock("credit.deblocage-fonds")
+    O-->>CT: {CR-2026-08812, montantDh 60000}
+    CT->>CT: virement core banking (idempotent)
+    CT->>O: complete()
+    NO->>O: fetchAndLock("credit.notification")
+    O-->>NO: {CR-2026-08812, canal "push+email"}
+    NO->>O: complete()
+    Note over O: End event "Crédit accordé" —<br/>l'instance passe dans l'historique
+</script></div>
+  <p class="figcap">Fig. 5 — Fin du parcours : 20 heures de vie, 2 humains, 4 microservices, zéro cron, zéro colonne de statut maison. À 10h12, le téléphone de Salma vibre.</p>
+
+  <div class="callout">
+    <span class="t">💡 Le test à se poser sur votre propre refonte</span>
+    <p>Reprenez ce chapitre et demandez-vous, pour un parcours BMCI réel : « où serait stocké l'état ? qui gérerait le délai de 48h ? comment le métier verrait-il où en est le dossier ? que se passerait-il si le pod redémarre à 14h12:06 ? ». Si les réponses sont « une colonne statut, un cron, un export SQL, on perd le fil » — c'est exactement le périmètre où Camunda apporte le plus.</p>
+  </div>
+</section>
+
+<!-- ============ CH5 ============ -->
+<section class="chapter" id="ch5">
+  <div class="eyebrow">Chapitre 05 · Infra</div>
+  <h2>L'infra : Docker & Kubernetes, expliqués simplement</h2>
+
+  <p class="lead">Vocabulaire minimal : une <strong>image Docker</strong> = une boîte contenant l'appli et tout ce qu'il lui faut pour tourner. <strong>Kubernetes</strong> = le gestionnaire qui fait tourner ces boîtes (« pods »), les redémarre si elles tombent, et les multiplie si la charge monte. Un <strong>namespace</strong> = un étage du bâtiment (un par environnement).</p>
+
+  <h3>5.1 — Conteneuriser un service Java</h3>
+  <div class="filetag">credit-orchestrator/Dockerfile — build en 2 étages</div>
+  <pre><code class="language-dockerfile"># Étage 1 : compiler (l'outillage lourd reste ici)
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline -q        # cache des dépendances
+COPY src ./src
+RUN mvn package -DskipTests -q
+
+# Étage 2 : exécuter (image finale minimale)
+FROM eclipse-temurin:17-jre-alpine
+RUN addgroup -S app && adduser -S app -G app
+USER app                                 # jamais root en banque
+COPY --from=build /app/target/*.jar /app.jar
+EXPOSE 8080
+ENTRYPOINT ["java","-XX:MaxRAMPercentage=75.0","-jar","/app.jar"]</code></pre>
+  <p>Même modèle pour les 4 workers. Pour les remotes Angular : étage 1 <code>node:20</code> qui fait <code>npm ci && npm run build</code>, étage 2 <code>nginx:alpine</code> qui sert les fichiers statiques (dont le fameux <code>remoteEntry.js</code>).</p>
+
+  <h3>5.2 — La topologie Kubernetes</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    subgraph NS["namespace credit-prod"]
+        direction TB
+        D1["Deployment credit-orchestrator<br/>replicas: 2 — probes /actuator/health"]
+        D2["Deployment credit-scoring-svc — replicas: 2"]
+        D3["Deployment credit-contrat-svc — replicas: 2"]
+        D4["Deployments kyc / notif — replicas: 1"]
+        D5["Deployments mf-espace-client / mf-corbeille<br/>(nginx) — replicas: 2"]
+        SEC["Secrets : DB_PASSWORD, KEYCLOAK_SECRET<br/>(via Vault / sealed-secrets)"]
+        CM["ConfigMaps : application-prod.yml,<br/>URLs des remotes pour le shell"]
+    end
+    ING2["Ingress<br/>banque.ma/credit/**"] --> D1
+    ING2 --> D5
+    D1 --- PG2[("PostgreSQL managé<br/>hors cluster, sauvegardé")]
+    style D1 fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style PG2 fill:#111A2C,stroke:#5AA9FF,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 6 — Un namespace par environnement. Les 2 replicas de l'orchestrateur partagent la même base : Camunda 7 est conçu pour ça.</p>
+
+  <h3>5.3 — Les 3 points d'attention spécifiques à Camunda</h3>
+  <ul>
+    <li><strong>La base n'est PAS jetable.</strong> Elle contient les dossiers en cours de dizaines de clients. PostgreSQL managé (ou géré par les DBA), sauvegardes testées, et les <strong>scripts SQL de migration Camunda</strong> appliqués lors des montées de version du moteur (jamais <code>schema-update: true</code> hors du poste de dev).</li>
+    <li><strong>Le rolling update est naturellement sûr</strong> : pendant un déploiement, ancienne et nouvelle version de l'orchestrateur coexistent quelques secondes sur la même base — c'est supporté. Les instances en cours continuent sur <em>leur</em> version du BPMN (le versioning du chap. 13 du guide).</li>
+    <li><strong>Un seul deployer de BPMN</strong> : les processus sont déployés par l'application au démarrage. Ne déployez jamais un BPMN « à la main » via l'API REST en prod — sinon Git ne reflète plus ce qui tourne.</li>
+  </ul>
+
+  <h3>5.4 — Le poste de dev : tout en local en une commande</h3>
+  <div class="filetag">docker-compose.yml (extrait) — à la racine de credit-orchestrator</div>
+  <pre><code class="language-yaml">services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: camunda_credit, POSTGRES_PASSWORD: dev }
+    ports: ["5432:5432"]
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev --import-realm
+    volumes: ["./dev/realm-banque.json:/opt/keycloak/data/import/realm.json"]
+    ports: ["8081:8080"]
+  orchestrator:
+    build: .
+    environment: { SPRING_PROFILES_ACTIVE: dev }
+    ports: ["8080:8080"]
+    depends_on: [postgres, keycloak]</code></pre>
+  <p><code>docker compose up</code> + <code>ng serve</code> sur le remote en cours de dev : la boucle locale complète, Cockpit inclus sur <code>localhost:8080/camunda</code>.</p>
+</section>
+<!-- ============ CH6 ============ -->
+<section class="chapter" id="ch6">
+  <div class="eyebrow">Chapitre 06 · CI/CD</div>
+  <h2>CI/CD avec GitHub Actions</h2>
+
+  <p class="lead">Vocabulaire minimal : un <strong>workflow</strong> GitHub Actions = un fichier YAML dans <code>.github/workflows/</code> qui décrit « quand il se passe X sur le repo, exécute ces étapes ». Un <strong>runner</strong> = la machine qui exécute (hébergée par GitHub, ou <em>self-hosted</em> dans le réseau de la banque — quasi obligatoire pour toucher le cluster). Un <strong>secret</strong> = une valeur chiffrée injectée au pipeline sans jamais apparaître dans le code.</p>
+
+  <h3>6.1 — La philosophie : chaque commit prouve qu'il est sain</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    A["Pull Request<br/>ouverte"] --> B["Build + tests unitaires"]
+    B --> C["Tests de PROCESSUS<br/>(le BPMN est testé,<br/>couverture visuelle en artefact)"]
+    C --> D["Revue de code<br/>(dont le diff du .bpmn)"]
+    D --> E["Merge sur main"]
+    E --> F["Build image Docker<br/>tag = sha du commit"]
+    F --> G["Scan sécurité<br/>(Trivy) + push GHCR"]
+    G --> H["MàJ du dépôt GitOps<br/>→ déploiement DEV auto"]
+    H --> I["Promotion UAT puis PROD<br/>avec approbations (ch. 07)"]
+    style C fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style G fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 7 — Le chemin d'un commit. La particularité Camunda : les tests de processus sont dans le pipeline — un gateway mal câblé bloque la PR, comme n'importe quel bug.</p>
+
+  <h3>6.2 — Le workflow complet de l'orchestrateur</h3>
+  <div class="filetag">credit-orchestrator/.github/workflows/ci-cd.yml</div>
+  <pre><code class="language-yaml">name: CI/CD credit-orchestrator
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  IMAGE: ghcr.io/banque/credit-orchestrator
+
+jobs:
+  # ---------- 1. Construire et prouver ----------
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: maven }
+
+      - name: Tests (unitaires + processus BPMN)
+        run: mvn -B verify
+
+      - name: Publier la couverture de processus (HTML visuel)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: process-coverage
+          path: target/process-test-coverage/
+
+  # ---------- 2. Image Docker (uniquement sur main) ----------
+  package:
+    needs: build-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push (tag = sha)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Scan de vulnérabilités
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: '1'        # image vulnérable = pipeline rouge
+
+  # ---------- 3. Déclencher le déploiement DEV (GitOps) ----------
+  deploy-dev:
+    needs: package
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mettre à jour le dépôt credit-platform-config
+        uses: actions/checkout@v4
+        with:
+          repository: banque/credit-platform-config
+          token: ${{ secrets.PLATFORM_CONFIG_PAT }}
+      - run: |
+          cd envs/dev/credit-orchestrator
+          yq -i '.spec.template.spec.containers[0].image =
+                 "${{ env.IMAGE }}:${{ github.sha }}"' deployment.yaml
+          git config user.name "ci-bot"
+          git config user.email "ci@banque.ma"
+          git commit -am "deploy(dev): credit-orchestrator ${{ github.sha }}"
+          git push</code></pre>
+
+  <p>Trois choses à bien voir dans ce YAML :</p>
+  <ul>
+    <li><strong><code>mvn verify</code> exécute les tests de processus</strong> : le moteur H2 en mémoire déroule le BPMN. Si quelqu'un casse une condition de gateway, la PR est rouge <em>avant</em> la revue humaine.</li>
+    <li><strong>Le tag de l'image est le SHA du commit</strong> : traçabilité absolue. « Quelle version tourne en prod ? » → un SHA → un commit → un diff. Jamais de tag <code>latest</code> en banque.</li>
+    <li><strong>Le job de déploiement ne parle pas au cluster</strong> : il modifie un fichier YAML dans le dépôt GitOps. Le déploiement réel, c'est le chapitre suivant.</li>
+  </ul>
+
+  <h3>6.3 — Le workflow d'un micro-frontend</h3>
+  <p>Même squelette, adapté : <code>npm ci</code> → lint + tests (Jest/Karma) → <code>ng build</code> du remote → image nginx → GHCR → MàJ GitOps. Une étape spécifique MF mérite d'exister :</p>
+  <div class="filetag">mf-corbeille/.github/workflows/ci-cd.yml (l'étape qui évite les mauvaises surprises)</div>
+  <pre><code class="language-yaml">      - name: Vérifier le contrat Module Federation
+        run: |
+          # le build doit produire remoteEntry.js et exposer './routes'
+          test -f dist/mf-corbeille/remoteEntry.js
+          node scripts/check-exposed-modules.js   # compare aux attentes du shell
+</code></pre>
+  <div class="callout">
+    <span class="t">💡 L'autonomie MF, concrétisée par le pipeline</span>
+    <p>Karim signale un libellé trompeur dans la corbeille à 11h. Fix, PR, revue, merge : à 11h40 la nouvelle image nginx de <code>mf-corbeille</code> est en dev, en UAT à 14h, en prod le soir même. <strong>Le shell, l'orchestrateur, les workers : rien d'autre n'a bougé, personne d'autre n'a été sollicité.</strong> C'est tout l'intérêt de l'architecture : le rayon d'impact d'un changement = le repo qui change.</p>
+  </div>
+
+  <h3>6.4 — Et le BPMN dans tout ça ?</h3>
+  <p>Le <code>.bpmn</code> suit exactement le même chemin qu'une classe Java : PR → tests de processus → revue (le Camunda Modeler sait afficher le diff visuel entre deux versions du fichier) → merge → image → déploiement. Au démarrage du nouveau pod, le moteur détecte que le fichier a changé et crée la <strong>version N+1</strong> de la définition. Les dossiers en cours terminent sur la version N ; les nouveaux démarrent sur la N+1. <strong>Un changement de processus métier est donc livré comme n'importe quel changement de code</strong> — même rigueur, même traçabilité, même rollback (redéployer l'image précédente).</p>
+</section>
+
+<!-- ============ CH7 ============ -->
+<section class="chapter" id="ch7">
+  <div class="eyebrow">Chapitre 07 · GitOps</div>
+  <h2>GitOps : la promotion dev → UAT → prod</h2>
+
+  <p class="lead">L'idée GitOps en une phrase : <strong>le cluster copie Git, jamais l'inverse</strong>. Le dépôt <code>credit-platform-config</code> décrit l'état voulu de chaque environnement ; un agent dans le cluster (Argo CD) compare en continu « voulu vs réel » et applique les écarts. Personne n'a besoin des droits <code>kubectl</code> sur la prod — il suffit de savoir faire une PR.</p>
+
+  <h3>7.1 — Le dépôt GitOps</h3>
+  <div class="filetag">credit-platform-config/</div>
+  <pre><code class="language-text">envs/
+├── dev/
+│   ├── credit-orchestrator/deployment.yaml   image: ...:a1b2c3d  ← mis à jour par la CI
+│   ├── credit-scoring-svc/...
+│   └── mf-corbeille/...
+├── uat/
+│   └── (mêmes fichiers, SHAs plus anciens = versions validées)
+└── prod/
+    └── (mêmes fichiers, SHAs encore plus stables)</code></pre>
+
+  <h3>7.2 — La promotion = une Pull Request</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    CI["CI du repo applicatif<br/>pousse le SHA en envs/dev"] --> DEV["Argo CD synchronise DEV<br/>(automatique)"]
+    DEV --> QA["Tests d'intégration + recette<br/>sur DEV/UAT"]
+    QA --> PR1["PR : copier le SHA<br/>de dev → uat"]
+    PR1 -- "review : tech lead" --> UAT["Argo CD synchronise UAT"]
+    UAT --> PR2["PR : copier le SHA<br/>de uat → prod"]
+    PR2 -- "review : lead + ops<br/>(environnement GitHub protégé)" --> PROD["Argo CD synchronise PROD"]
+    style PROD fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 8 — Promouvoir = copier un SHA d'un dossier à l'autre, via PR. L'historique Git devient le registre d'audit des mises en production — précieux face à un auditeur.</p>
+
+  <p>Les garde-fous, tous natifs GitHub :</p>
+  <ul>
+    <li><strong>Branch protection</strong> sur <code>main</code> du dépôt GitOps : pas de push direct, revues obligatoires, CODEOWNERS (<code>envs/prod/** @squad-credit-leads @ops-team</code>).</li>
+    <li><strong>GitHub Environments</strong> (<code>uat</code>, <code>prod</code>) avec <em>required reviewers</em> : le job de déploiement prod attend une approbation humaine dans l'interface GitHub — horodatée, nominative, auditable.</li>
+    <li><strong>Rollback</strong> = <code>git revert</code> de la PR de promotion. Argo CD redéploie l'ancienne image en ~1 minute. (Rappel Camunda : les instances démarrées sur la version N+1 du BPMN doivent rester exécutables — gardez les delegates compatibles, ou traitez ces instances via Cockpit.)</li>
+  </ul>
+
+  <div class="callout warn">
+    <span class="t">⚠ La config sensible ne passe JAMAIS par Git</span>
+    <p>Le dépôt GitOps contient la <em>structure</em> (deployments, replicas, versions, ConfigMaps non sensibles). Les mots de passe base, secrets Keycloak, clés du prestataire de signature vivent dans <strong>Vault</strong> (ou en Sealed Secrets chiffrés). Un secret en clair dans un repo — même privé — est un incident de sécurité en banque, pas une négligence.</p>
+  </div>
+</section>
+
+<!-- ============ CH8 ============ -->
+<section class="chapter" id="ch8">
+  <div class="eyebrow">Chapitre 08 · Run</div>
+  <h2>Supervision & l'incident du vendredi soir</h2>
+
+  <h3>8.1 — Les 4 chiffres à afficher sur le dashboard Grafana</h3>
+  <table>
+    <tr><th style="width:290px">Métrique</th><th>Pourquoi elle compte · seuil d'alerte type</th></tr>
+    <tr><td><strong>Incidents Camunda ouverts</strong></td><td>Des dossiers clients sont figés sur une erreur technique. <span class="pill r">alerte si > 0 pendant 15 min</span></td></tr>
+    <tr><td><strong>Jobs en attente par topic External Task</strong></td><td>Un topic qui gonfle = un worker mort ou trop lent. <span class="pill a">alerte si backlog > 100 ou âge > 5 min</span></td></tr>
+    <tr><td><strong>User Tasks hors SLA</strong></td><td>La métrique du métier : combien de dossiers dépassent leur due date. Alimente aussi le management de Karim.</td></tr>
+    <tr><td><strong>Durée de bout en bout (P50/P95)</strong></td><td>Temps « demande → accord », depuis l'historique Camunda. C'est LA promesse du produit Crédit Express.</td></tr>
+  </table>
+  <p>Côté technique classique : métriques JVM/HTTP via Actuator + Prometheus, logs centralisés avec la <strong>business key dans le MDC</strong> (chaque ligne de log de chaque service porte <code>CR-2026-08812</code> — le fil d'Ariane inter-services), traces OpenTelemetry si le socle en fournit.</p>
+
+  <h3>8.2 — Vendredi, 18h04 : le core banking tombe</h3>
+  <p>Scénario réel de la vie d'une squad. Maintenance imprévue du core banking : tous les virements échouent.</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    A["18h04 — le worker deblocage-fonds<br/>reçoit des timeouts"] --> B["handleFailure : retries 3 → 2 → 1<br/>espacés de 2 min (backoff)"]
+    B --> C["18h12 — retries épuisés sur 7 dossiers<br/>→ 7 INCIDENTS Camunda"]
+    C --> D["18h13 — alerte Grafana → astreinte"]
+    D --> E["L'ops ouvre Cockpit : les 7 jetons sont<br/>figés sur 'Déblocage des fonds',<br/>stack trace + variables visibles"]
+    E --> F["19h30 — core banking rétabli"]
+    F --> G["Cockpit : sélection des 7 incidents<br/>→ 'Increment retries'"]
+    G --> H["19h31 — les 7 virements partent<br/>(l'idempotence protège des doublons),<br/>les 7 dossiers terminent normalement"]
+    style C fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style H fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 9 — Le point clé : pendant tout l'incident, <strong>aucun dossier n'est perdu ni dans un état incohérent</strong>. Ils sont juste en pause, au bon endroit, visibles. Le « replay » est un clic, pas un script SQL de rattrapage écrit à 20h un vendredi.</p>
+
+  <div class="callout">
+    <span class="t">💡 Comparez avec le monde d'avant</span>
+    <p>Sans orchestrateur, ce même incident donne : des demandes à moitié traitées éparpillées dans des tables, un dev d'astreinte qui écrit des UPDATE à la main, des clients notifiés d'un crédit dont les fonds ne sont jamais partis, et un lundi de réconciliation. La valeur de Camunda ne se voit jamais aussi bien qu'un vendredi soir.</p>
+  </div>
+</section>
+
+<!-- ============ CH9 ============ -->
+<section class="chapter" id="ch9">
+  <div class="eyebrow">Chapitre 09 · Synthèse</div>
+  <h2>Récap & glossaire</h2>
+
+  <h3>9.1 — Ce qu'il faut retenir, en 6 lignes</h3>
+  <ol>
+    <li><strong>Un domaine, une squad, huit repos</strong> : le BPMN, les services, les remotes ET le GitOps appartiennent à la même équipe.</li>
+    <li><strong>Le front ne connaît que la façade métier</strong> ; Camunda est un détail d'implémentation invisible depuis le navigateur.</li>
+    <li><strong>Les workers tirent le travail</strong> (External Tasks) : découplage, retries, idempotence — la panne d'un service met le travail en file, pas le système à genoux.</li>
+    <li><strong>Le BPMN est du code</strong> : testé dans la PR, versionné, livré par le même pipeline, rollbackable.</li>
+    <li><strong>GitHub Actions construit et prouve ; Git déploie</strong> (GitOps) : la prod = le contenu du dossier <code>envs/prod</code>, approuvé par PR.</li>
+    <li><strong>En incident, l'état est roi</strong> : Cockpit montre chaque dossier figé, le replay est un clic, l'idempotence évite les doublons.</li>
+  </ol>
+
+  <h3>9.2 — Glossaire minute</h3>
+  <details><summary>Orchestrateur</summary><div class="body"><p>Le microservice qui embarque le moteur Camunda et « connaît la partition » : l'ordre des étapes du parcours. Il ne fait aucun travail métier lourd lui-même.</p></div></details>
+  <details><summary>External Task / topic / worker</summary><div class="body"><p>Une étape du processus publiée sur un « tableau d'offres » (le topic). Un worker est un service qui vient chercher ces offres, fait le travail, et rend le résultat. C'est le pont entre Camunda et vos microservices.</p></div></details>
+  <details><summary>Business key</summary><div class="body"><p>Votre référence métier (CR-2026-08812) attachée à l'instance. Elle relie tout : le front, les logs de tous les services, Cockpit, l'historique.</p></div></details>
+  <details><summary>Micro-frontend / remote / shell</summary><div class="body"><p>Le shell est le cadre du puzzle (menu, login) ; un remote est une pièce (la corbeille), construite et déployée par sa propre équipe, chargée dynamiquement par le shell via Module Federation.</p></div></details>
+  <details><summary>GitOps / Argo CD</summary><div class="body"><p>Pratique où un dépôt Git décrit ce qui doit tourner sur le cluster, et un agent applique en continu. Déployer = merger une PR ; auditer = lire l'historique Git ; rollback = revert.</p></div></details>
+  <details><summary>Runner self-hosted</summary><div class="body"><p>Une machine du réseau de la banque qui exécute les jobs GitHub Actions ayant besoin d'accéder aux ressources internes (registre privé, cluster) — les runners publics de GitHub n'y ont pas accès.</p></div></details>
+  <details><summary>Incident (au sens Camunda)</summary><div class="body"><p>Un dossier figé après épuisement des retries d'une étape technique. Visible dans Cockpit avec sa cause ; relançable en un clic une fois le problème réparé. Rien n'est perdu.</p></div></details>
+
+  <h3>9.3 — Par où commencer sur la refonte BMCI ?</h3>
+  <p>Le chemin le moins risqué, éprouvé dans ce type d'organisation : choisir <strong>un</strong> parcours à forte douleur (statuts éparpillés, relances manuelles, « où en est le dossier ? » quotidien), le modéliser en atelier avec le métier, monter le squelette technique de ce document (orchestrateur + 1 worker + 1 remote + pipeline), et livrer une première version <strong>fine mais complète</strong> — de la PR jusqu'à Cockpit en prod. La deuxième équipe qui voudra son parcours copiera vos repos comme templates : c'est comme ça qu'une plateforme naît.</p>
+
+  <div class="callout" style="margin-top:26px">
+    <span class="t">✓ Boucle bouclée</span>
+    <p>Vous avez maintenant les deux documents : le guide conceptuel (« Camunda 7 de zéro à la prod ») pour le <em>pourquoi</em> et le <em>comment</em> de chaque brique, et ce dossier pratique pour le <em>tout assemblé</em> — de Salma qui clique jusqu'au SHA qui part en prod via une PR approuvée. Bonne construction 🚀</p>
+  </div>
+</section>
+
+</div></main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+hljs.highlightAll();
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  securityLevel: 'loose',
+  themeVariables: {
+    darkMode: true,
+    background: '#111A2C',
+    primaryColor: '#16233B',
+    primaryTextColor: '#E6ECF5',
+    primaryBorderColor: '#2A3B5E',
+    lineColor: '#5A6B8C',
+    secondaryColor: '#0D1526',
+    tertiaryColor: '#111A2C',
+    fontFamily: 'inherit',
+    fontSize: '14px'
+  },
+  flowchart: { curve: 'basis', htmlLabels: true },
+  sequence: { actorFontWeight: 700, noteAlign: 'left' }
+});
+
+// Sommaire actif au scroll
+const links = [...document.querySelectorAll('.flownav a')];
+const sections = links.map(a => document.querySelector(a.getAttribute('href')));
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const i = sections.indexOf(e.target);
+      links.forEach(l => l.classList.remove('active'));
+      if (i >= 0) links[i].classList.add('active');
+    }
+  });
+}, { rootMargin: '-15% 0px -70% 0px' });
+sections.forEach(s => s && obs.observe(s));
+
+// Rendu manuel des diagrammes : la source est lue depuis des blocs script bruts,
+// jamais interprétés par le parseur HTML (fiable sur tous les navigateurs).
+(async () => {
+  const holders = document.querySelectorAll('.mermaid');
+  let i = 0;
+  for (const holder of holders) {
+    const srcEl = holder.querySelector('script[type="text/x-mermaid"]');
+    if (!srcEl) continue;
+    const src = srcEl.textContent.trim();
+    try {
+      const { svg } = await mermaid.render('mmd-' + (++i), src);
+      holder.innerHTML = svg;
+    } catch (e) {
+      holder.innerHTML = '<pre style="color:#F0616D;white-space:pre-wrap">Diagramme non rendu : '
+        + String(e && e.message || e) + '</pre>';
+      console.error('Mermaid #' + i, e);
+    }
+  }
+})();
+</script>
+</body>
+</html>

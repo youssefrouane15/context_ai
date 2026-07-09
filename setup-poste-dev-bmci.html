@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setup du poste de dev — Environnement local complet (BMCI)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<style>
+:root{
+  --bg:#0B1220;            /* bleu nuit profond */
+  --surface:#111A2C;       /* panneaux */
+  --surface2:#0D1526;      /* blocs de code */
+  --line:#1E2A44;          /* bordures */
+  --txt:#E6ECF5;
+  --muted:#8A97AD;
+  --green:#00A76F;         /* accent BMCI */
+  --green-soft:rgba(0,167,111,.12);
+  --amber:#F5B841;
+  --amber-soft:rgba(245,184,65,.10);
+  --red:#F0616D;
+  --red-soft:rgba(240,97,109,.10);
+  --blue:#5AA9FF;
+  --blue-soft:rgba(90,169,255,.10);
+  --mono:ui-monospace,'Cascadia Code','JetBrains Mono',Consolas,monospace;
+  --sans:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:16px;line-height:1.7}
+::selection{background:var(--green);color:#04120C}
+
+/* ---------- Layout ---------- */
+.wrap{display:flex;min-height:100vh}
+aside{width:300px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 0 40px}
+main{flex:1;min-width:0;padding:0 clamp(20px,5vw,72px) 120px}
+.content{max-width:880px;margin:0 auto}
+
+/* ---------- Sidebar : le sommaire est lui-même un processus BPMN ---------- */
+.brand{padding:0 24px 20px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.brand .logo{font-family:var(--mono);font-size:13px;letter-spacing:.18em;color:var(--green);text-transform:uppercase}
+.brand h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin-top:6px}
+.brand p{font-size:12.5px;color:var(--muted);margin-top:4px}
+.flownav{position:relative;padding:6px 24px 0 34px}
+.flownav::before{content:"";position:absolute;left:43px;top:14px;bottom:26px;width:2px;
+  background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 11px)}
+.flownav a{display:flex;align-items:center;gap:12px;padding:7px 8px 7px 0;color:var(--muted);
+  text-decoration:none;font-size:13.5px;position:relative;border-radius:8px;transition:color .15s}
+.flownav a:hover{color:var(--txt)}
+.flownav a.active{color:var(--txt);font-weight:600}
+.node{width:20px;height:20px;flex-shrink:0;border:2px solid var(--line);background:var(--surface);
+  border-radius:6px;position:relative;z-index:1;transition:border-color .15s}
+.flownav a:hover .node,.flownav a.active .node{border-color:var(--green)}
+.flownav a.active .node{background:var(--green-soft)}
+.node.start,.node.end{border-radius:50%}
+.node.end{border-width:4px}
+.node.gate{transform:rotate(45deg);border-radius:4px;width:17px;height:17px;margin:0 1.5px}
+.flownav .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flownav .num{font-family:var(--mono);font-size:10.5px;color:var(--muted);opacity:.7}
+
+/* ---------- Typo & structure de chapitre ---------- */
+.chapter{padding-top:64px;border-top:1px solid var(--line);margin-top:64px}
+.chapter:first-of-type{border-top:none;margin-top:0}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--green);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.eyebrow::after{content:"";height:1px;flex:1;background:var(--line)}
+h2{font-size:clamp(26px,3.4vw,34px);font-weight:800;letter-spacing:-.025em;line-height:1.2;margin-bottom:14px}
+h3{font-size:21px;font-weight:700;letter-spacing:-.015em;margin:42px 0 12px;padding-top:6px}
+h4{font-size:16.5px;font-weight:700;margin:28px 0 8px}
+p{margin:0 0 14px;color:#C9D3E3}
+p strong,li strong{color:var(--txt)}
+.lead{font-size:18px;color:var(--txt);line-height:1.65}
+ul,ol{margin:0 0 16px 22px;color:#C9D3E3}
+li{margin-bottom:7px}
+a{color:var(--blue)}
+hr{border:none;border-top:1px solid var(--line);margin:32px 0}
+
+/* ---------- Composants ---------- */
+code:not(pre code){font-family:var(--mono);font-size:.86em;background:var(--surface2);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:#9FE8C8}
+pre{background:var(--surface2)!important;border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;overflow-x:auto;margin:0 0 18px;font-size:13.5px;line-height:1.6}
+pre code{font-family:var(--mono);background:transparent!important;padding:0}
+.filetag{display:inline-block;font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  background:var(--surface);border:1px solid var(--line);border-bottom:none;
+  border-radius:8px 8px 0 0;padding:5px 12px;margin-bottom:-1px;position:relative}
+.filetag+pre{border-top-left-radius:0}
+
+.callout{border:1px solid var(--line);border-left:3px solid var(--green);background:var(--green-soft);
+  border-radius:10px;padding:14px 18px;margin:0 0 18px;font-size:15px}
+.callout .t{font-weight:700;font-family:var(--mono);font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--green);display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+.callout.warn{border-left-color:var(--amber);background:var(--amber-soft)}
+.callout.warn .t{color:var(--amber)}
+.callout.danger{border-left-color:var(--red);background:var(--red-soft)}
+.callout.danger .t{color:var(--red)}
+.callout.info{border-left-color:var(--blue);background:var(--blue-soft)}
+.callout.info .t{color:var(--blue)}
+
+table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:14.5px}
+th{text-align:left;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--line)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:#C9D3E3}
+tr:hover td{background:rgba(255,255,255,.015)}
+td .sym{display:inline-flex;align-items:center;justify-content:center;width:52px;height:44px}
+
+.mermaid{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:20px;margin:0 0 20px;display:flex;justify-content:center;overflow-x:auto}
+.figcap{font-size:13px;color:var(--muted);text-align:center;margin:-10px 0 24px;font-style:italic}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.card h5{font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card p{font-size:14px;margin-bottom:0}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:99px;
+  border:1px solid var(--line);color:var(--muted);margin-right:6px}
+.pill.g{color:var(--green);border-color:rgba(0,167,111,.4)}
+.pill.a{color:var(--amber);border-color:rgba(245,184,65,.4)}
+.pill.r{color:var(--red);border-color:rgba(240,97,109,.4)}
+.pill.b{color:var(--blue);border-color:rgba(90,169,255,.4)}
+
+/* Hero */
+.hero{padding:88px 0 20px}
+.hero .k{font-family:var(--mono);color:var(--green);font-size:13px;letter-spacing:.2em;text-transform:uppercase}
+.hero h2{font-size:clamp(34px,5vw,52px);border:none;margin:14px 0 18px;padding:0}
+.hero h2 .thin{color:var(--muted);font-weight:300}
+.hero .sub{font-size:18px;color:#C9D3E3;max-width:640px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+details{border:1px solid var(--line);border-radius:10px;margin-bottom:12px;background:var(--surface)}
+summary{cursor:pointer;padding:13px 18px;font-weight:600;font-size:15px;list-style:none;display:flex;align-items:center;gap:10px}
+summary::before{content:"+";font-family:var(--mono);color:var(--green);font-size:16px;width:16px}
+details[open] summary::before{content:"–"}
+details .body{padding:0 18px 16px;font-size:14.5px}
+details .body p:last-child{margin-bottom:0}
+
+kbd{font-family:var(--mono);font-size:.85em;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:5px;padding:1px 6px;background:var(--surface2)}
+
+@media(max-width:960px){
+  aside{display:none}
+  main{padding:0 18px 80px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<aside>
+  <div class="brand">
+    <div class="logo">◈ Onboarding</div>
+    <h1>Le poste de dev<br>opérationnel</h1>
+    <p>Installation, proxy, certificats, repos, run local — checklist jour 1 → jour 3</p>
+  </div>
+  <nav class="flownav" id="flownav">
+    <a href="#ch0"><span class="node start"></span><span class="lbl">Jour 1 : les accès à demander</span></a>
+    <a href="#ch1"><span class="node"></span><span class="lbl"><span class="num">01</span> Installer les outils de base</span></a>
+    <a href="#ch2"><span class="node gate"></span><span class="lbl"><span class="num">02</span> Proxy & certificats SSL</span></a>
+    <a href="#ch3"><span class="node"></span><span class="lbl"><span class="num">03</span> Git & clonage des dépôts</span></a>
+    <a href="#ch4"><span class="node"></span><span class="lbl"><span class="num">04</span> Maven, Nexus & npm interne</span></a>
+    <a href="#ch5"><span class="node"></span><span class="lbl"><span class="num">05</span> IntelliJ IDEA, aux petits oignons</span></a>
+    <a href="#ch6"><span class="node"></span><span class="lbl"><span class="num">06</span> Lancer le back en local</span></a>
+    <a href="#ch7"><span class="node"></span><span class="lbl"><span class="num">07</span> Lancer le front (shell + remotes)</span></a>
+    <a href="#ch8"><span class="node gate"></span><span class="lbl"><span class="num">08</span> Le smoke test de bout en bout</span></a>
+    <a href="#ch9"><span class="node"></span><span class="lbl"><span class="num">09</span> Dépannage : les 12 erreurs classiques</span></a>
+    <a href="#ch10"><span class="node end"></span><span class="lbl"><span class="num">10</span> Ma fiche d'environnement</span></a>
+  </nav>
+</aside>
+
+<main><div class="content">
+<!-- ============ CH0 ============ -->
+<section class="hero" id="ch0">
+  <div class="k">Guide d'installation · Poste de travail</div>
+  <h2>Du laptop vierge <span class="thin">au parcours crédit</span><br>qui tourne en local.</h2>
+  <p class="sub">Ce document est votre <strong>checklist d'onboarding technique</strong> : chaque outil, chaque configuration, chaque piège d'un environnement bancaire (proxy, certificats interceptés, dépôts internes), dans l'ordre où les traiter. Objectif : à la fin, vous déroulez un dossier de crédit complet sur votre machine — front, back, Camunda, Cockpit.</p>
+  <div class="meta">
+    <span class="pill g">Windows 10/11 (poste banque)</span>
+    <span class="pill b">Java 17 · Node 20 · Angular</span>
+    <span class="pill b">Docker · IntelliJ</span>
+    <span class="pill a">≈ 1 à 3 jours selon les accès</span>
+  </div>
+
+  <div class="callout warn">
+    <span class="t">⚠ Comment lire les valeurs ⟨À CONFIRMER BMCI⟩</span>
+    <p>Chaque environnement bancaire a ses URLs internes, son proxy, ses noms de dépôts. Tout ce qui est écrit <code>⟨À CONFIRMER BMCI⟩</code> est un <strong>emplacement à remplir</strong> avec la vraie valeur, à demander au tech lead ou à lire dans le wiki d'équipe. Le reste (commandes, mécanismes, ordre des étapes) est universel et directement applicable. Remplissez la fiche du chapitre 10 au fur et à mesure : elle deviendra VOTRE référence.</p>
+  </div>
+
+  <h3>Jour 1, heure 1 : la liste des accès à demander</h3>
+  <p>Les accès prennent souvent <strong>24 à 72h</strong> à être provisionnés (tickets, validations). Demandez-les <em>tous</em> dès le premier jour, avant même d'installer quoi que ce soit — c'est le vrai chemin critique de votre onboarding :</p>
+  <table>
+    <tr><th style="width:250px">Accès</th><th>Pourquoi</th><th style="width:150px">À qui demander</th></tr>
+    <tr><td>Compte AD / SSO + VPN</td><td>Tout le reste en dépend (proxy authentifié, intranet, outils)</td><td>IT / manager</td></tr>
+    <tr><td>Organisation GitHub (ou GitHub Enterprise) + équipe <code>squad-credit</code></td><td>Cloner les dépôts, ouvrir des PR</td><td>Tech lead</td></tr>
+    <tr><td>Nexus / Artifactory (lecture)</td><td>Dépendances Maven & npm passent par le miroir interne</td><td>Tech lead / DevOps</td></tr>
+    <tr><td>Registre d'images (GHCR ou registre interne)</td><td><code>docker pull</code> des images de base et des services</td><td>DevOps</td></tr>
+    <tr><td>Keycloak (realm de dev) : un compte de test par rôle</td><td>Se connecter au front local avec un profil « analyste » et un profil « client »</td><td>Tech lead</td></tr>
+    <tr><td>Jira / Confluence (ou équivalent)</td><td>Tickets + wiki d'équipe (où vivent les vraies valeurs ⟨BMCI⟩)</td><td>Manager</td></tr>
+    <tr><td>Droits d'installation locale (ou logithèque)</td><td>Installer JDK, Docker, IntelliJ sans ticket à chaque fois</td><td>IT</td></tr>
+    <tr><td>Certificat racine de l'entreprise (fichier <code>.crt</code>/<code>.pem</code>)</td><td>LE prérequis du chapitre 02 — demandez-le explicitement</td><td>IT / sécurité</td></tr>
+  </table>
+  <div class="callout info">
+    <span class="t">ℹ Pendant que les tickets avancent…</span>
+    <p>Les chapitres 01 (installations) et 05 (IntelliJ) sont faisables sans aucun accès. Le chapitre 02 (proxy/certificats) nécessite juste d'être connecté au réseau de la banque. Gardez 03–08 pour quand les accès Git/Nexus arrivent.</p>
+  </div>
+</section>
+
+<!-- ============ CH1 ============ -->
+<section class="chapter" id="ch1">
+  <div class="eyebrow">Étape 01 · Outillage</div>
+  <h2>Installer les outils de base</h2>
+
+  <p class="lead">L'ordre a peu d'importance ici — l'important est la <strong>bonne version</strong> de chaque outil et de savoir vérifier qu'il est bien installé. Sur un poste banque, passez par la logithèque interne si elle existe ; sinon, les liens officiels ci-dessous.</p>
+
+  <table>
+    <tr><th style="width:190px">Outil</th><th style="width:170px">Version cible</th><th>Notes & vérification</th></tr>
+    <tr><td><strong>JDK Temurin</strong></td><td>17 LTS (ou 21 si les projets y sont)</td><td>Adoptium / Eclipse Temurin, pas le JDK Oracle (licence). Cochez « Set JAVA_HOME » à l'installation. Vérif : <code>java -version</code></td></tr>
+    <tr><td><strong>Maven</strong></td><td>3.9.x</td><td>Décompresser + ajouter <code>bin</code> au PATH (ou utiliser le wrapper <code>mvnw</code> des projets). Vérif : <code>mvn -v</code></td></tr>
+    <tr><td><strong>Git</strong></td><td>dernière</td><td>Git for Windows. À l'installation : éditeur = VS Code/Notepad++, line endings = « Checkout as-is, commit Unix-style ». Vérif : <code>git --version</code></td></tr>
+    <tr><td><strong>Node.js</strong></td><td>20 LTS <em>via nvm-windows</em></td><td>Installez <strong>nvm-windows</strong> puis <code>nvm install 20</code> — les projets front changent de version de Node plus souvent qu'on croit. Vérif : <code>node -v && npm -v</code></td></tr>
+    <tr><td><strong>Angular CLI</strong></td><td>alignée sur les projets</td><td><code>npm i -g @angular/cli@17</code> ⟨version À CONFIRMER BMCI⟩. Vérif : <code>ng version</code></td></tr>
+    <tr><td><strong>Docker</strong></td><td>Docker Desktop <em>ou</em> Rancher Desktop</td><td>⚠ Docker Desktop est <strong>payant en entreprise</strong> : vérifiez ce que la banque a licencié — beaucoup basculent sur Rancher Desktop (gratuit, compatible). Backend WSL2 requis : <code>wsl --install</code> d'abord. Vérif : <code>docker run hello-world</code> (après le chap. 02 si proxy)</td></tr>
+    <tr><td><strong>IntelliJ IDEA</strong></td><td>Ultimate (licence banque)</td><td>Via JetBrains Toolbox si autorisé (gère les mises à jour). Ultimate = support Spring natif ; Community fonctionne aussi, en moins confortable.</td></tr>
+    <tr><td><strong>Camunda Modeler</strong></td><td>5.x</td><td>Simple zip à décompresser — aucune installation, aucun droit admin requis. C'est l'éditeur des <code>.bpmn</code>/<code>.dmn</code>.</td></tr>
+    <tr><td><strong>Utilitaires</strong></td><td>—</td><td>VS Code (front + fichiers YAML), Postman ou Bruno (tester la façade REST), un terminal correct (Windows Terminal), DBeaver (regarder la base Camunda).</td></tr>
+  </table>
+
+  <div class="callout">
+    <span class="t">💡 WSL2 : votre meilleur allié sur un poste Windows</span>
+    <p>Activez WSL2 (<code>wsl --install</code>, redémarrage). Docker s'appuie dessus, et vous aurez un vrai shell Linux pour les scripts. Convention efficace : le code vit côté Windows (<code>C:\dev\...</code>) pour qu'IntelliJ soit fluide, Docker tourne via WSL2, et les commandes du quotidien passent par Windows Terminal (PowerShell ou bash au choix — ce guide donne les deux quand ça diffère).</p>
+  </div>
+</section>
+
+<!-- ============ CH2 ============ -->
+<section class="chapter" id="ch2">
+  <div class="eyebrow">Étape 02 · Le passage obligé</div>
+  <h2>Proxy d'entreprise & certificats SSL</h2>
+
+  <p class="lead">C'est LE chapitre qui fait perdre des journées aux nouveaux arrivants. Deux mécanismes distincts, presque toujours présents en banque, et qui cassent <em>tous</em> vos outils tant qu'ils ne sont pas configurés : le <strong>proxy sortant</strong> et <strong>l'interception TLS</strong>.</p>
+
+  <h3>2.1 — Comprendre en 60 secondes</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    T["Vos outils :<br/>git · mvn · npm · docker · java"] --> P["Proxy d'entreprise<br/>proxy.bmci.local:8080 ⟨à confirmer⟩<br/>(filtre + authentifie les sorties)"]
+    P --> I["Interception TLS :<br/>le proxy ouvre le HTTPS et le re-signe<br/>avec le CERTIFICAT DE LA BANQUE"]
+    I --> W["Internet :<br/>github.com · registry.npmjs.org<br/>repo.maven.org · ghcr.io"]
+    T -. "sans config :<br/>timeouts, 407, erreurs SSL" .-x W
+    style P fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+    style I fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 1 — Chaque outil doit savoir deux choses : « passe par le proxy » ET « fais confiance au certificat de la banque ». Un outil configuré à moitié donne les erreurs les plus déroutantes du chap. 09.</p>
+  <p>Conséquence pratique : quand le proxy re-signe le trafic, vos outils voient un certificat inconnu et refusent (<code>self-signed certificate in chain</code>, <code>PKIX path building failed</code>, <code>x509: certificate signed by unknown authority</code>). La solution propre est toujours la même : <strong>ajouter le certificat racine de la banque au magasin de confiance de chaque outil</strong> — jamais désactiver la vérification SSL.</p>
+
+  <h3>2.2 — Récupérer les infos (2 valeurs + 1 fichier)</h3>
+  <ul>
+    <li><strong>L'URL du proxy</strong> : <code>http://⟨proxy.bmci.local⟩:⟨8080⟩</code> — souvent visible dans Windows : <em>Paramètres → Réseau → Proxy</em>, ou fournie par un script PAC. Demandez aussi la <strong>liste no-proxy</strong> (les domaines internes qui ne passent PAS par le proxy : <code>*.bmci.local, localhost, nexus interne…</code>).</li>
+    <li><strong>Le certificat racine</strong> : un fichier <code>bmci-root-ca.crt</code> fourni par l'IT. Sinon, exportez-le vous-même : Chrome → cadenas sur n'importe quel site HTTPS → certificat → chaîne → exporter la <strong>racine</strong> en Base64 (.CER). Posez-le dans <code>C:\dev\certs\bmci-root-ca.crt</code>.</li>
+  </ul>
+
+  <h3>2.3 — Configurer le socle : les variables d'environnement</h3>
+  <div class="filetag">PowerShell (persistant, niveau utilisateur)</div>
+  <pre><code class="language-powershell">[Environment]::SetEnvironmentVariable("HTTP_PROXY",  "http://proxy.bmci.local:8080", "User")
+[Environment]::SetEnvironmentVariable("HTTPS_PROXY", "http://proxy.bmci.local:8080", "User")
+[Environment]::SetEnvironmentVariable("NO_PROXY",
+  "localhost,127.0.0.1,.bmci.local,nexus.bmci.local,keycloak.dev.bmci.local", "User")
+# Node/npm : faire confiance au certificat de la banque
+[Environment]::SetEnvironmentVariable("NODE_EXTRA_CA_CERTS", "C:\dev\certs\bmci-root-ca.crt", "User")
+# → fermer/rouvrir le terminal pour prise en compte</code></pre>
+  <div class="callout warn">
+    <span class="t">⚠ Proxy authentifié (login/mot de passe AD) ?</span>
+    <p>Si le proxy exige votre compte AD (erreurs <code>407 Proxy Authentication Required</code>), <strong>ne mettez jamais votre mot de passe dans une variable d'environnement ou un fichier de config</strong>. Deux options propres : ① l'entreprise fournit souvent un proxy local non authentifié type <strong>Px / Cntlm</strong> qui relaie avec votre session Windows — demandez la pratique en vigueur ⟨À CONFIRMER BMCI⟩ ; ② certains proxys authentifient par machine/IP et le 407 n'apparaît jamais. Notez la réponse dans la fiche du chap. 10.</p>
+  </div>
+
+  <h3>2.4 — Java : importer le certificat dans le truststore</h3>
+  <p>Maven, l'orchestrateur, les workers — tout ce qui est Java lit le magasin <code>cacerts</code> du JDK :</p>
+  <div class="filetag">PowerShell (admin) — à refaire à chaque nouveau JDK installé</div>
+  <pre><code class="language-powershell">keytool -importcert -trustcacerts -cacerts `
+  -alias bmci-root-ca `
+  -file C:\dev\certs\bmci-root-ca.crt -noprompt
+# mot de passe par défaut du magasin : changeit
+# Vérifier :
+keytool -list -cacerts -alias bmci-root-ca</code></pre>
+
+  <h3>2.5 — Git, npm, Docker : le tour des outils</h3>
+  <div class="filetag">Git — ~/.gitconfig</div>
+  <pre><code class="language-ini">[http]
+    proxy = http://proxy.bmci.local:8080
+    sslCAInfo = C:/dev/certs/bmci-root-ca.crt
+# Si les dépôts Git sont INTERNES (GitHub Enterprise en .bmci.local),
+# le proxy est inutile pour eux :
+[http "https://github.bmci.local"]
+    proxy = ""</code></pre>
+  <div class="filetag">npm — exécuter une fois</div>
+  <pre><code class="language-bash">npm config set proxy       http://proxy.bmci.local:8080
+npm config set https-proxy http://proxy.bmci.local:8080
+# Le certificat est déjà géré par NODE_EXTRA_CA_CERTS (2.3).
+# JAMAIS ceci en revanche :  npm config set strict-ssl false   ← interdit</code></pre>
+  <div class="filetag">Docker Desktop / Rancher Desktop</div>
+  <pre><code class="language-text">1) Proxy : Settings → Resources → Proxies → renseigner HTTP/HTTPS/No-proxy
+2) Certificat (pour docker pull) : Settings → Docker Engine, ou copier le .crt dans
+   /etc/docker/certs.d/ du backend WSL — la logithèque interne a souvent
+   une procédure toute faite ⟨À CONFIRMER BMCI⟩
+3) Vérif : docker pull eclipse-temurin:17-jre-alpine</code></pre>
+
+  <h3>2.6 — Le test de validation du chapitre</h3>
+  <div class="filetag">4 commandes — toutes doivent réussir avant de continuer</div>
+  <pre><code class="language-bash">git ls-remote https://github.com/camunda/camunda-bpm-platform.git HEAD   # Git OK
+mvn -q org.apache.maven.plugins:maven-help-plugin:3.4.0:evaluate \
+    -Dexpression=maven.version -DforceStdout                              # Maven OK
+npm ping                                                                  # npm OK
+docker pull hello-world && docker run --rm hello-world                    # Docker OK</code></pre>
+</section>
+<!-- ============ CH3 ============ -->
+<section class="chapter" id="ch3">
+  <div class="eyebrow">Étape 03 · Code source</div>
+  <h2>Git & clonage des dépôts</h2>
+
+  <h3>3.1 — Identité et authentification</h3>
+  <div class="filetag">Configuration d'identité (une fois)</div>
+  <pre><code class="language-bash">git config --global user.name  "Youssef ⟨Nom⟩"
+git config --global user.email "y.⟨nom⟩@bmci.ma"    # l'email du compte GitHub d'entreprise
+git config --global init.defaultBranch main
+git config --global pull.rebase true                # évite les merge commits parasites</code></pre>
+  <p>Pour l'authentification vers GitHub : en entreprise derrière proxy, <strong>HTTPS + PAT</strong> (Personal Access Token) est le chemin le plus fiable — le port SSH (22) est souvent bloqué. GitHub → Settings → Developer settings → <em>Fine-grained token</em>, portée limitée à l'organisation, expiration 90 j. Windows le mémorise via le <em>Git Credential Manager</em> (installé avec Git for Windows) : le token n'est saisi qu'une fois.</p>
+  <div class="callout info">
+    <span class="t">ℹ Si l'entreprise impose SSH quand même</span>
+    <p>GitHub accepte SSH sur le port 443 : dans <code>~/.ssh/config</code>, ciblez <code>Host github.com → HostName ssh.github.com, Port 443</code> (+ ProxyCommand type <code>connect.exe</code> si le proxy l'exige). Mais validez d'abord la pratique de l'équipe ⟨À CONFIRMER BMCI⟩ — ne vous battez pas seul contre le réseau.</p>
+  </div>
+
+  <h3>3.2 — Cloner tout le domaine en une commande</h3>
+  <div class="filetag">C:\dev\credit\clone-all.ps1</div>
+  <pre><code class="language-powershell">$org   = "⟨banque⟩"          # organisation GitHub À CONFIRMER
+$repos = @(
+  "credit-orchestrator", "credit-scoring-svc", "credit-kyc-svc",
+  "credit-contrat-svc", "credit-notif-svc",
+  "shell-banque", "mf-espace-client", "mf-corbeille",
+  "credit-platform-config"
+)
+foreach ($r in $repos) {
+  if (-not (Test-Path $r)) { git clone "https://github.com/$org/$r.git" }
+  else { Write-Host "$r déjà présent, skip" }
+}</code></pre>
+  <p>Convention de rangement : tout sous <code>C:\dev\credit\</code>, un dossier par repo, jamais dans OneDrive/Documents (la synchro cloud + <code>node_modules</code> = poste à genoux, et c'est souvent interdit par la politique interne de toute façon).</p>
+
+  <h3>3.3 — Le premier réflexe dans chaque repo</h3>
+  <p>Ouvrez le <code>README.md</code> et cherchez trois choses : la version Java/Node attendue, le fichier d'exemple d'environnement (<code>.env.example</code>, <code>application-local.yml.example</code>…) à copier-renommer, et la commande « ça tourne » de l'équipe. <strong>Si un de ces trois éléments manque, c'est votre première contribution toute trouvée</strong> — un README amélioré par le regard neuf d'un arrivant vaut de l'or.</p>
+</section>
+
+<!-- ============ CH4 ============ -->
+<section class="chapter" id="ch4">
+  <div class="eyebrow">Étape 04 · Dépendances</div>
+  <h2>Maven, Nexus & npm interne</h2>
+
+  <p class="lead">En banque, les dépendances ne viennent presque jamais d'Internet en direct : elles passent par un <strong>miroir interne</strong> (Nexus ou Artifactory) qui cache, scanne et filtre. Deux fichiers à configurer, et tout le reste suit.</p>
+
+  <h3>4.1 — Maven : le settings.xml</h3>
+  <div class="filetag">C:\Users\⟨vous⟩\.m2\settings.xml</div>
+  <pre><code class="language-xml">&lt;settings&gt;
+  &lt;!-- ① Tout Maven passe par le miroir interne --&gt;
+  &lt;mirrors&gt;
+    &lt;mirror&gt;
+      &lt;id&gt;nexus-bmci&lt;/id&gt;
+      &lt;mirrorOf&gt;*&lt;/mirrorOf&gt;
+      &lt;url&gt;https://nexus.bmci.local/repository/maven-public/&lt;/url&gt;  &lt;!-- ⟨À CONFIRMER⟩ --&gt;
+    &lt;/mirror&gt;
+  &lt;/mirrors&gt;
+
+  &lt;!-- ② Identifiants du miroir (souvent le compte AD ou un token Nexus) --&gt;
+  &lt;servers&gt;
+    &lt;server&gt;
+      &lt;id&gt;nexus-bmci&lt;/id&gt;
+      &lt;username&gt;⟨login⟩&lt;/username&gt;
+      &lt;password&gt;⟨token — voir encadré ci-dessous⟩&lt;/password&gt;
+    &lt;/server&gt;
+  &lt;/servers&gt;
+
+  &lt;!-- ③ Proxy : UNIQUEMENT si Nexus est lui-même derrière le proxy.
+       Si Nexus est interne (cas normal), pas de section proxy,
+       ou avec nonProxyHosts couvrant *.bmci.local --&gt;
+&lt;/settings&gt;</code></pre>
+  <div class="callout warn">
+    <span class="t">⚠ Jamais de mot de passe AD en clair dans settings.xml</span>
+    <p>Utilisez soit un <strong>token utilisateur Nexus</strong> (Nexus → votre profil → User Token), soit le <strong>chiffrement Maven</strong> : <code>mvn --encrypt-master-password</code> puis <code>mvn --encrypt-password</code> et collez la valeur <code>{chiffrée}</code>. Le settings.xml se retrouve vite dans des sauvegardes, des captures d'écran, des tickets…</p>
+  </div>
+  <p><strong>Vérification</strong> : dans <code>credit-orchestrator</code>, lancez <code>mvn dependency:resolve</code>. Le téléchargement doit défiler avec des URLs en <code>nexus.bmci.local</code> — si vous voyez <code>repo.maven.apache.org</code>, le miroir n'est pas pris en compte.</p>
+
+  <h3>4.2 — npm : le registre interne</h3>
+  <div class="filetag">Fichier .npmrc — deux niveaux</div>
+  <pre><code class="language-ini"># ~/.npmrc (global, votre poste)
+registry=https://nexus.bmci.local/repository/npm-public/        # ⟨À CONFIRMER⟩
+# auth vers Nexus, générée par :  npm login --registry=...
+//nexus.bmci.local/repository/npm-public/:_authToken=⟨token⟩
+
+# Dans les repos front, un .npmrc DE PROJET (commité) référence souvent
+# le scope interne du design system :
+@banque:registry=https://nexus.bmci.local/repository/npm-interne/</code></pre>
+  <p><strong>Vérification</strong> : dans <code>mf-corbeille</code>, <code>npm ci</code> doit passer, y compris le paquet interne <code>@banque/ds-angular</code> — c'est lui qui prouve que le registre à scope fonctionne.</p>
+</section>
+
+<!-- ============ CH5 ============ -->
+<section class="chapter" id="ch5">
+  <div class="eyebrow">Étape 05 · IDE</div>
+  <h2>IntelliJ IDEA, aux petits oignons</h2>
+
+  <h3>5.1 — Les réglages qui comptent, dans l'ordre</h3>
+  <ol>
+    <li><strong>Proxy de l'IDE</strong> : Settings → Appearance & Behavior → System Settings → <em>HTTP Proxy</em> → Manual, avec l'exception <code>*.bmci.local</code>. (Sert aux plugins, à la doc, aux SDK — pas à Maven.)</li>
+    <li><strong>Certificat</strong> : Settings → Tools → <em>Server Certificates</em> → ajouter <code>bmci-root-ca.crt</code> (« Accept non-trusted certificates » doit rester décoché).</li>
+    <li><strong>JDK</strong> : File → Project Structure → SDKs → ajouter le Temurin 17 installé. Project SDK = 17, language level = 17.</li>
+    <li><strong>Maven</strong> : Settings → Build Tools → Maven → vérifier que <em>User settings file</em> pointe bien votre <code>settings.xml</code> du chap. 04 (piège classique : IntelliJ utilise son Maven embarqué avec un settings vide).</li>
+    <li><strong>Lombok</strong> : plugin installé (bundled sur les versions récentes) + Settings → Build → Compiler → Annotation Processors → <strong>Enable annotation processing</strong>. Sans ça, tout le code <code>@RequiredArgsConstructor</code> est rouge.</li>
+    <li><strong>Plugins utiles</strong> : SonarLint (les mêmes règles que la CI, en local), CheckStyle-IDEA si l'équipe en a un, <em>.ignore</em>. Le style de code partagé de l'équipe s'importe via Settings → Editor → Code Style → ⚙ → Import (fichier dans le wiki ⟨À CONFIRMER BMCI⟩).</li>
+  </ol>
+
+  <h3>5.2 — Ouvrir le back proprement</h3>
+  <p>File → Open → sélectionnez le <code>pom.xml</code> de <code>credit-orchestrator</code> → « Open as Project ». Attendez la fin de l'indexation + résolution Maven (barre du bas). Faites pareil pour un worker (<code>credit-contrat-svc</code>) — soit dans une seconde fenêtre, soit attachés au même projet (File → New → Module from Existing Sources) si vous préférez tout dans une fenêtre.</p>
+
+  <h3>5.3 — Les Run Configurations à créer</h3>
+  <table>
+    <tr><th style="width:280px">Nom</th><th>Type & réglages</th></tr>
+    <tr><td><code>orchestrator [local]</code></td><td>Spring Boot → classe main → <em>Active profiles</em> : <code>local</code> → Environment : rien (tout est dans <code>application-local.yml</code>)</td></tr>
+    <tr><td><code>contrat-svc [local]</code></td><td>Idem, profil <code>local</code> — pointe <code>base-url: http://localhost:8080/engine-rest</code></td></tr>
+    <tr><td><code>tests processus</code></td><td>JUnit → all in package <code>ma.banque.credit</code> — votre bouton « le BPMN est-il cassé ? »</td></tr>
+    <tr><td><code>stack docker</code></td><td>(optionnel) Run config « Docker Compose » sur le <code>docker-compose.yml</code> — ou gardez ça dans le terminal</td></tr>
+  </table>
+  <p>Astuce : une <em>Compound</em> configuration « TOUT le back » qui lance orchestrator + les workers d'un clic, une fois que chaque config individuelle fonctionne.</p>
+</section>
+<!-- ============ CH6 ============ -->
+<section class="chapter" id="ch6">
+  <div class="eyebrow">Étape 06 · Back-end</div>
+  <h2>Lancer le back en local</h2>
+
+  <p class="lead">Ordre de démarrage logique : d'abord les <strong>dépendances d'infrastructure</strong> (base + Keycloak, en Docker), puis <strong>l'orchestrateur</strong>, puis les <strong>workers</strong>. À chaque étape, une vérification avant de passer à la suivante.</p>
+
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    A["① docker compose up<br/>postgres + keycloak"] --> B["② orchestrator [local]<br/>depuis IntelliJ"]
+    B --> C["③ vérifier Cockpit<br/>localhost:8080/camunda"]
+    C --> D["④ démarrer les workers<br/>(ceux dont on a besoin)"]
+    D --> E["⑤ vérifier les<br/>subscriptions dans les logs"]
+    style C fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style E fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 2 — La séquence de démarrage. En cas de problème, on sait toujours quelle couche incriminer : celle qu'on vient d'ajouter.</p>
+
+  <h3>6.1 — ① L'infra locale</h3>
+  <div class="filetag">Terminal, dans credit-orchestrator/</div>
+  <pre><code class="language-bash">docker compose up -d postgres keycloak
+docker compose ps          # les 2 services doivent être "healthy"
+# Keycloak (realm de dev importé automatiquement) : http://localhost:8081
+#   → comptes de test : salma.test / karim.analyste ⟨mots de passe : voir wiki⟩</code></pre>
+  <div class="callout info">
+    <span class="t">ℹ Derrière le proxy, premier lancement</span>
+    <p>Le premier <code>docker compose up</code> télécharge les images — c'est le vrai test de votre config Docker du chap. 2.5. Erreur <code>x509</code> ou timeout → retournez-y, rien d'autre ne fonctionnera avant.</p>
+  </div>
+
+  <h3>6.2 — ② et ③ L'orchestrateur</h3>
+  <p>Lancez la run config <code>orchestrator [local]</code>. Dans les logs de démarrage, trois lignes valident tout :</p>
+  <pre><code class="language-text">... ENGINE-07015 Detected @EnableProcessApplication ...
+... ENGINE-08023 Deployment summary: credit-express.bpmn, niveau-validation.dmn   ← le BPMN est déployé
+... Tomcat started on port 8080</code></pre>
+  <p>Puis ouvrez <code>http://localhost:8080/camunda</code> (admin/admin en local) → Cockpit → le processus <em>credit-express</em> est là, avec son diagramme. <strong>Screenshot mental : c'est votre « ça marche » du back.</strong></p>
+
+  <h3>6.3 — ④ et ⑤ Les workers</h3>
+  <p>Lancez <code>contrat-svc [local]</code> (et les autres selon besoin). La ligne à guetter dans leurs logs :</p>
+  <pre><code class="language-text">... TASK/CLIENT-01007 Subscribed to topic 'credit.deblocage-fonds' ...</code></pre>
+  <p>Au quotidien, inutile de lancer les 4 workers : <strong>démarrez seulement ceux du sujet du jour</strong>. Un topic sans worker n'est pas une erreur — les jobs s'accumulent tranquillement et seront traités quand le worker démarrera. (C'est même un excellent exercice : démarrez un dossier sans le worker scoring, regardez le jeton attendre dans Cockpit, puis lancez le worker et voyez-le partir.)</p>
+
+  <h3>6.4 — Voir la base (optionnel mais instructif)</h3>
+  <p>DBeaver → PostgreSQL <code>localhost:5432/camunda_credit</code>. Les tables qui racontent tout : <code>ACT_RU_TASK</code> (les User Tasks en attente), <code>ACT_RU_VARIABLE</code> (le sac à dos des jetons), <code>ACT_RU_JOB</code> (timers et async), <code>ACT_RU_INCIDENT</code>. En lecture seulement — on ne modifie <strong>jamais</strong> ces tables à la main, même en local, sinon on apprend de mauvais réflexes.</p>
+</section>
+
+<!-- ============ CH7 ============ -->
+<section class="chapter" id="ch7">
+  <div class="eyebrow">Étape 07 · Front-end</div>
+  <h2>Lancer le front : shell + remotes</h2>
+
+  <h3>7.1 — La topologie locale</h3>
+  <p>Trois serveurs de dev Angular, trois ports — le shell charge les remotes locaux via sa config d'environnement :</p>
+  <table>
+    <tr><th style="width:220px">Appli</th><th style="width:130px">Port local</th><th>Commande</th></tr>
+    <tr><td><code>shell-banque</code></td><td>4200</td><td><code>npm ci && npm start</code></td></tr>
+    <tr><td><code>mf-espace-client</code></td><td>4201</td><td><code>npm ci && npm start</code></td></tr>
+    <tr><td><code>mf-corbeille</code></td><td>4202</td><td><code>npm ci && npm start</code></td></tr>
+  </table>
+  <p>La config <code>environment.local.ts</code> du shell pointe <code>http://localhost:4201/remoteEntry.js</code> et <code>4202</code> — vérifiez-la, c'est le câblage Module Federation local. <strong>Vous ne travaillez généralement que sur UN remote</strong> : de nombreuses équipes configurent le shell pour charger les autres remotes depuis l'environnement de dev partagé, pour ne lancer que 2 serveurs au lieu de 3 ⟨pratique À CONFIRMER BMCI⟩.</p>
+
+  <h3>7.2 — Le proxy de dev Angular (à ne pas confondre avec celui du chap. 02 !)</h3>
+  <p>Le navigateur appelle <code>/api/**</code> sur le port 4200 ; il faut relayer vers l'orchestrateur local. C'est le rôle du <code>proxy.conf.json</code> d'Angular — un proxy <em>de développement</em>, qui n'a rien à voir avec le proxy d'entreprise :</p>
+  <div class="filetag">shell-banque/proxy.conf.json</div>
+  <pre><code class="language-json">{
+  "/api":    { "target": "http://localhost:8080", "secure": false },
+  "/auth":   { "target": "http://localhost:8081", "secure": false }
+}</code></pre>
+  <p>(Référencé dans <code>angular.json</code> → serve → options → <code>proxyConfig</code>, généralement déjà en place.) Résultat : même origine pour le navigateur, zéro problème CORS en local.</p>
+
+  <h3>7.3 — Se connecter</h3>
+  <p>Ouvrez <code>http://localhost:4200</code> → redirection Keycloak local → connectez-vous en <code>karim.analyste</code> → menu « Corbeille crédit » : le shell charge <code>mf-corbeille</code> depuis le port 4202. Si la corbeille est vide, c'est normal : aucun dossier n'existe encore — on règle ça au chapitre suivant.</p>
+  <div class="callout">
+    <span class="t">💡 Deux profils, deux navigateurs</span>
+    <p>Gardez <strong>Chrome = Karim</strong> (analyste) et <strong>une fenêtre privée ou Edge = Salma</strong> (cliente) connectés en parallèle : indispensable pour dérouler le parcours complet sans se déconnecter/reconnecter sans arrêt.</p>
+  </div>
+</section>
+
+<!-- ============ CH8 ============ -->
+<section class="chapter" id="ch8">
+  <div class="eyebrow">Étape 08 · Validation</div>
+  <h2>Le smoke test de bout en bout</h2>
+
+  <p class="lead">Le rite de passage : dérouler un dossier complet sur VOTRE machine. Comptez 10 minutes. Chaque ligne cochée valide une tranche entière de votre installation.</p>
+
+  <table>
+    <tr><th style="width:60px">✓</th><th>Étape</th><th>Ce que ça prouve</th></tr>
+    <tr><td>☐</td><td>Fenêtre « Salma » : soumettre une demande de <strong>60 000 DH / 36 mois</strong> → écran « Demande reçue », numéro <code>CR-...</code></td><td>Front client → façade → démarrage d'instance</td></tr>
+    <tr><td>☐</td><td>Cockpit : l'instance apparaît, jeton sur « scoring/kyc » puis sur « Instruction analyste »</td><td>Workers scoring & kyc + DMN + moteur</td></tr>
+    <tr><td>☐</td><td>Fenêtre « Karim » : le dossier est dans la corbeille avec les bonnes données (score, taux)</td><td>TaskQuery par groupe + enrichissement façade + JWT</td></tr>
+    <tr><td>☐</td><td>Karim demande un <strong>complément</strong> → la tâche apparaît chez Salma ; Salma répond → retour chez Karim</td><td>La boucle User Task multi-acteurs + formKeys</td></tr>
+    <tr><td>☐</td><td>Karim <strong>accorde</strong> → Cockpit : jeton sur « attente signature »</td><td>Gateway décision + worker contrat</td></tr>
+    <tr><td>☐</td><td>Simuler la signature : <code>curl -X POST localhost:8080/webhooks/signature -H "Content-Type: application/json" -d '{"numeroDossier":"CR-...","signe":true}'</code></td><td>Corrélation de message</td></tr>
+    <tr><td>☐</td><td>Cockpit : instance terminée sur « Crédit accordé » ; timeline complète côté Salma</td><td>Workers fonds + notif, historique, timeline front</td></tr>
+    <tr><td>☐</td><td><strong>Bonus incident</strong> : coupez <code>contrat-svc</code>, refaites un dossier jusqu'au déblocage → observez les retries puis l'incident dans Cockpit → relancez le worker + « increment retries » → le dossier repart</td><td>Vous savez exploiter — pas seulement développer</td></tr>
+  </table>
+
+  <div class="callout">
+    <span class="t">✓ Rite accompli</span>
+    <p>Si les 8 cases sont cochées, votre poste est <strong>intégralement opérationnel</strong> : réseau, certificats, dépôts, dépendances, IDE, back, front, et même la posture d'exploitation. Ajoutez la date sur la fiche du chap. 10 — et proposez ce document au prochain arrivant de la squad.</p>
+  </div>
+</section>
+<!-- ============ CH9 ============ -->
+<section class="chapter" id="ch9">
+  <div class="eyebrow">Étape 09 · SOS</div>
+  <h2>Dépannage : les 12 erreurs classiques</h2>
+
+  <p class="lead">Gardez ce chapitre sous le coude : ce sont les erreurs que rencontre <em>chaque</em> nouvel arrivant en environnement bancaire, avec leur cause réelle et le fix. Le réflexe général : <strong>lisez le nom de l'erreur, pas seulement sa couleur</strong> — 90 % du diagnostic est dans le message.</p>
+
+  <table>
+    <tr><th style="width:340px">Symptôme (le message exact)</th><th>Cause & remède</th></tr>
+    <tr><td><code>407 Proxy Authentication Required</code><br>(mvn, npm, git…)</td><td>Le proxy exige votre compte AD. → Solution d'entreprise (Px/Cntlm ou proxy par IP), chap. 2.3. Jamais le mot de passe en clair dans une config.</td></tr>
+    <tr><td><code>PKIX path building failed: unable to find valid certification path</code><br>(Maven, appli Java)</td><td>Le JDK ne connaît pas le certificat de la banque. → <code>keytool -importcert</code> (chap. 2.4). À refaire pour <em>chaque</em> JDK installé — c'est par JDK, pas par machine.</td></tr>
+    <tr><td><code>SELF_SIGNED_CERT_IN_CHAIN</code> ou <code>UNABLE_TO_GET_ISSUER_CERT_LOCALLY</code><br>(npm, ng)</td><td>Node ne connaît pas le certificat. → <code>NODE_EXTRA_CA_CERTS</code> (chap. 2.3), puis rouvrir le terminal. Ne JAMAIS répondre par <code>strict-ssl=false</code>.</td></tr>
+    <tr><td><code>x509: certificate signed by unknown authority</code><br>(docker pull)</td><td>Le démon Docker ne connaît pas le certificat. → chap. 2.5 point 2. C'est le démon qu'il faut configurer, pas votre shell.</td></tr>
+    <tr><td><code>ECONNRESET</code> / <code>ETIMEDOUT</code> aléatoires (npm)</td><td>Proxy configuré à moitié (https-proxy manquant) ou NO_PROXY qui n'exclut pas Nexus interne. → relire 2.3 + 4.2, vérifier avec <code>npm config list</code>.</td></tr>
+    <tr><td>Maven télécharge depuis <code>repo.maven.apache.org</code> au lieu de Nexus</td><td>IntelliJ utilise son Maven embarqué avec un autre settings.xml. → Settings → Build Tools → Maven → <em>User settings file</em> (chap. 5.1 point 4).</td></tr>
+    <tr><td>Tout est rouge dans IntelliJ : <code>cannot resolve symbol 'log'</code>, constructeurs introuvables</td><td>Lombok : annotation processing désactivé. → chap. 5.1 point 5, puis Build → Rebuild Project.</td></tr>
+    <tr><td><code>Port 8080 was already in use</code></td><td>Un autre orchestrateur (ou Tomcat, ou un conteneur) tient le port. → <code>netstat -ano | findstr :8080</code> puis tuer le PID, ou changer <code>server.port</code> du profil local.</td></tr>
+    <tr><td>Au démarrage : <code>delegateExpression ... Unknown property used in expression: ${...Delegate}</code></td><td>Le bean Spring n'existe pas (faute de frappe dans le BPMN, ou classe non scannée). → comparer le nom dans le Modeler et le <code>@Component("...")</code>. C'est LE bug Camunda du débutant.</td></tr>
+    <tr><td>Le worker tourne mais ne prend aucun job</td><td>3 suspects dans l'ordre : ① topic mal orthographié (comparer BPMN ↔ <code>@ExternalTaskSubscription</code>) ; ② <code>base-url</code> du client qui ne pointe pas <code>localhost:8080/engine-rest</code> ; ③ le jeton n'est pas encore arrivé sur la tâche (regarder Cockpit).</td></tr>
+    <tr><td>Le shell affiche une page blanche sur la route du remote / erreur <code>remoteEntry.js</code> dans la console</td><td>Le remote n'est pas démarré, ou l'URL dans <code>environment.local.ts</code> ne correspond pas au port réel. F12 → onglet Network → chercher <code>remoteEntry.js</code> : son statut dit tout.</td></tr>
+    <tr><td>401/403 sur <code>/api/corbeille</code> alors que le login a marché</td><td>Le JWT ne porte pas le bon groupe (compte de test mal configuré dans le realm local) ou le mapping groupes→candidate groups diffère. → décoder le token sur jwt.io (celui de DEV local uniquement !) et comparer la claim <code>groups</code>.</td></tr>
+  </table>
+
+  <div class="callout info">
+    <span class="t">ℹ La méthode quand rien ne colle</span>
+    <p>Isolez la couche : la commande passe-t-elle <strong>hors VPN / sur un autre réseau</strong> ? (→ problème proxy/cert). Passe-t-elle en <strong>curl brut</strong> vers la même URL ? (→ problème de l'outil, pas du réseau). Passe-t-elle <strong>chez un collègue</strong> ? (→ votre poste). Trois questions, et le coupable est cerné — notez la solution dans le wiki d'équipe pour le suivant.</p>
+  </div>
+</section>
+
+<!-- ============ CH10 ============ -->
+<section class="chapter" id="ch10">
+  <div class="eyebrow">Étape 10 · Référence</div>
+  <h2>Ma fiche d'environnement</h2>
+
+  <p class="lead">À remplir au fil des chapitres, puis à garder (et à verser au wiki d'équipe si elle n'existe pas). C'est la carte d'identité de votre poste — et le document que vous enverrez au prochain arrivant.</p>
+
+  <table>
+    <tr><th style="width:290px">Élément</th><th>Ma valeur</th></tr>
+    <tr><td>Proxy d'entreprise (URL:port)</td><td><code>________________________________</code></td></tr>
+    <tr><td>Proxy authentifié ? Méthode retenue</td><td><code>________________________________</code></td></tr>
+    <tr><td>Domaines NO_PROXY</td><td><code>________________________________</code></td></tr>
+    <tr><td>Emplacement du certificat racine</td><td><code>C:\dev\certs\____________________</code></td></tr>
+    <tr><td>Organisation GitHub / URL Git</td><td><code>________________________________</code></td></tr>
+    <tr><td>Nexus Maven (URL du miroir)</td><td><code>________________________________</code></td></tr>
+    <tr><td>Nexus npm (registry + scope interne)</td><td><code>________________________________</code></td></tr>
+    <tr><td>Keycloak local (URL, realm, comptes de test)</td><td><code>________________________________</code></td></tr>
+    <tr><td>Ports locaux (orchestrateur / keycloak / shell / remotes)</td><td><code>8080 / 8081 / 4200 / 4201-4202</code></td></tr>
+    <tr><td>Versions (JDK / Node / Angular CLI / Docker)</td><td><code>________________________________</code></td></tr>
+    <tr><td>Date du smoke test réussi (chap. 08) 🎉</td><td><code>________________________________</code></td></tr>
+  </table>
+
+  <h3>Le démarrage quotidien, une fois tout en place</h3>
+  <div class="filetag">La routine du matin (≈ 2 minutes)</div>
+  <pre><code class="language-bash">cd C:\dev\credit\credit-orchestrator
+docker compose up -d postgres keycloak     # l'infra
+# IntelliJ : ▶ orchestrator [local]  puis  ▶ le(s) worker(s) du jour
+cd ..\shell-banque       && npm start      # :4200
+cd ..\mf-corbeille       && npm start      # :4202 (le remote du jour)
+# → http://localhost:4200 · Cockpit : http://localhost:8080/camunda</code></pre>
+
+  <div class="callout" style="margin-top:26px">
+    <span class="t">✓ La boucle est bouclée</span>
+    <p>Avec ce troisième document, la série est complète : <strong>le guide conceptuel</strong> (Camunda 7 de zéro à la prod) pour comprendre, <strong>le cas Crédit Express</strong> pour vous projeter dans l'architecture et le CI/CD, et <strong>ce guide de setup</strong> pour que tout tourne sur votre machine dès les premiers jours chez BMCI. Bon démarrage 🚀</p>
+  </div>
+</section>
+
+</div></main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+hljs.highlightAll();
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  securityLevel: 'loose',
+  themeVariables: {
+    darkMode: true,
+    background: '#111A2C',
+    primaryColor: '#16233B',
+    primaryTextColor: '#E6ECF5',
+    primaryBorderColor: '#2A3B5E',
+    lineColor: '#5A6B8C',
+    secondaryColor: '#0D1526',
+    tertiaryColor: '#111A2C',
+    fontFamily: 'inherit',
+    fontSize: '14px'
+  },
+  flowchart: { curve: 'basis', htmlLabels: true },
+  sequence: { actorFontWeight: 700, noteAlign: 'left' }
+});
+
+// Sommaire actif au scroll
+const links = [...document.querySelectorAll('.flownav a')];
+const sections = links.map(a => document.querySelector(a.getAttribute('href')));
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const i = sections.indexOf(e.target);
+      links.forEach(l => l.classList.remove('active'));
+      if (i >= 0) links[i].classList.add('active');
+    }
+  });
+}, { rootMargin: '-15% 0px -70% 0px' });
+sections.forEach(s => s && obs.observe(s));
+
+// Rendu manuel des diagrammes : la source est lue depuis des blocs script bruts,
+// jamais interprétés par le parseur HTML (fiable sur tous les navigateurs).
+(async () => {
+  const holders = document.querySelectorAll('.mermaid');
+  let i = 0;
+  for (const holder of holders) {
+    const srcEl = holder.querySelector('script[type="text/x-mermaid"]');
+    if (!srcEl) continue;
+    const src = srcEl.textContent.trim();
+    try {
+      const { svg } = await mermaid.render('mmd-' + (++i), src);
+      holder.innerHTML = svg;
+    } catch (e) {
+      holder.innerHTML = '<pre style="color:#F0616D;white-space:pre-wrap">Diagramme non rendu : '
+        + String(e && e.message || e) + '</pre>';
+      console.error('Mermaid #' + i, e);
+    }
+  }
+})();
+</script>
+</body>
+</html>

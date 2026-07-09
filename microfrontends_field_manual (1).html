@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Micro-Frontends Field Manual — BMCI Refonte · Youssef Rouane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#141b2e; --ink-soft:#1e2740; --paper:#fbfaf7; --surface:#ffffff;
+    --text:#1c2333; --muted:#5d6678; --line:#e6e3da;
+    --gold:#c08a1e; --gold-soft:#fbf3df; --gold-line:#e8cf95;
+    --teal:#0f766e; --teal-soft:#e6f3f1; --teal-line:#9fd2cb;
+    --rose:#a83246; --rose-soft:#fbecee; --rose-line:#e4b3bc;
+    --ng:#c3002f; --react:#0a7ea4; --vue:#1f9d63;
+    --code-bg:#161d33; --code-text:#e8ecf6; --code-dim:#8b97b8;
+    --code-key:#f0b657; --code-str:#8fd0a0; --code-cmt:#6b7799; --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--text);font-family:"Newsreader",Georgia,serif;font-size:18px;line-height:1.72;-webkit-font-smoothing:antialiased;}
+  .layout{display:flex;align-items:flex-start;}
+
+  .sidebar{width:320px;flex:0 0 320px;position:sticky;top:0;height:100vh;background:var(--ink);color:#cdd4e6;overflow-y:auto;padding:30px 22px 50px;border-right:1px solid #0c1120;}
+  .brand{font-family:"Space Grotesk",sans-serif;letter-spacing:.04em;}
+  .brand .tag{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--code-key);font-weight:600;}
+  .brand h1{font-size:20px;margin:6px 0 2px;color:#fff;font-weight:700;line-height:1.2;}
+  .brand .sub{font-size:12.5px;color:#8b95b3;font-family:"Newsreader",serif;font-style:italic;}
+  .navlist{list-style:none;margin:26px 0 0;padding:0;}
+  .navlist a{display:flex;gap:11px;align-items:baseline;text-decoration:none;color:#aeb7d3;font-family:"Space Grotesk",sans-serif;font-size:13.7px;padding:8px 12px;border-radius:8px;transition:background .15s,color .15s;}
+  .navlist a .n{font-size:11px;color:#6b769b;font-weight:600;min-width:18px;}
+  .navlist a:hover,.navlist a.active{background:var(--ink-soft);color:#fff;}
+  .navlist a.active .n{color:var(--code-key);}
+  .navnote{margin-top:24px;padding:14px;background:var(--ink-soft);border-radius:9px;font-size:12.3px;line-height:1.55;color:#9aa4c4;border:1px solid #283358;}
+  .navnote b{color:var(--code-key);font-family:"Space Grotesk",sans-serif;}
+
+  .main{flex:1 1 auto;min-width:0;padding:0 0 120px;}
+  .wrap{max-width:880px;margin:0 auto;padding:0 38px;}
+
+  header.hero{background:linear-gradient(155deg,#141b2e 0%,#243056 55%,#2d2350 100%);color:#fff;padding:56px 0 48px;border-bottom:3px solid var(--gold);}
+  header.hero .kicker{font-family:"Space Grotesk",sans-serif;text-transform:uppercase;letter-spacing:.24em;font-size:12px;color:var(--code-key);font-weight:600;}
+  header.hero h1{font-family:"Space Grotesk",sans-serif;font-size:40px;line-height:1.08;margin:14px 0 16px;font-weight:700;}
+  header.hero p{font-size:18px;color:#c8cfe4;max-width:660px;margin:0;}
+  .verstrip{margin-top:28px;display:flex;flex-wrap:wrap;gap:10px;}
+  .vbadge{font-family:"Space Grotesk",sans-serif;font-size:12.5px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);padding:7px 14px;border-radius:9px;color:#dbe1f2;display:flex;gap:8px;align-items:center;}
+  .vbadge b{color:#fff;}
+  .vbadge .dot{width:8px;height:8px;border-radius:50%;}
+
+  section.block{padding:54px 0 8px;border-bottom:1px solid var(--line);}
+  section.block:last-child{border-bottom:none;}
+  .eyebrow{font-family:"Space Grotesk",sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:var(--gold);font-weight:600;display:flex;align-items:center;gap:10px;}
+  .eyebrow .num{font-size:13px;color:#fff;background:var(--ink);width:26px;height:26px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;letter-spacing:0;}
+  h2{font-family:"Space Grotesk",sans-serif;font-size:31px;line-height:1.13;margin:14px 0 6px;font-weight:700;color:var(--ink);}
+  h3{font-family:"Space Grotesk",sans-serif;font-size:21px;margin:36px 0 8px;font-weight:600;color:var(--ink-soft);}
+  h4{font-family:"Space Grotesk",sans-serif;font-size:16px;margin:22px 0 4px;font-weight:600;color:var(--ink-soft);}
+  p{margin:12px 0;}
+  .lead{font-size:19.5px;color:#33405c;margin-top:14px;}
+  strong,b{font-weight:600;color:#10182b;}
+  em{color:#33405c;}
+  ul,ol{margin:12px 0;padding-left:24px;}
+  li{margin:7px 0;}
+  ul.tight li{margin:3px 0;}
+  .term{font-family:"Space Grotesk",sans-serif;font-weight:600;color:var(--ink);}
+
+  .callout{border-radius:var(--radius);padding:18px 20px 18px 22px;margin:20px 0;border:1px solid var(--line);border-left-width:5px;font-size:17px;line-height:1.66;}
+  .callout .clabel{font-family:"Space Grotesk",sans-serif;font-size:11.5px;text-transform:uppercase;letter-spacing:.12em;font-weight:600;display:block;margin-bottom:6px;}
+  .exp{background:var(--teal-soft);border-color:var(--teal-line);border-left-color:var(--teal);}
+  .exp .clabel{color:var(--teal);}
+  .say{background:var(--gold-soft);border-color:var(--gold-line);border-left-color:var(--gold);}
+  .say .clabel{color:#9a6b10;}
+  .say .quote{font-style:italic;color:#3a2f12;}
+  .gotcha{background:var(--rose-soft);border-color:var(--rose-line);border-left-color:var(--rose);}
+  .gotcha .clabel{color:var(--rose);}
+  .key{background:#eef1f8;border-color:#cdd6ea;border-left-color:var(--ink);}
+  .key .clabel{color:var(--ink);}
+  .latest{background:#f0f7f4;border-color:var(--teal-line);border-left-color:var(--teal);}
+  .latest .clabel{color:var(--teal);}
+
+  pre{background:var(--code-bg);color:var(--code-text);border-radius:var(--radius);padding:18px 20px;overflow-x:auto;font-family:"JetBrains Mono",monospace;font-size:13.3px;line-height:1.62;margin:18px 0;border:1px solid #232c47;}
+  pre .c{color:var(--code-cmt);font-style:italic;} pre .k{color:var(--code-key);} pre .s{color:var(--code-str);} pre .d{color:var(--code-dim);}
+  code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:#eceae3;padding:2px 6px;border-radius:5px;color:#5b3d8a;}
+  .callout code{background:rgba(0,0,0,.06);}
+
+  .tablewrap{overflow-x:auto;margin:20px 0;}
+  table{border-collapse:collapse;width:100%;font-size:14.6px;font-family:"Space Grotesk",sans-serif;background:var(--surface);border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5;}
+  th{background:var(--ink);color:#fff;font-weight:600;font-size:13px;}
+  td:first-child{font-weight:600;color:var(--ink-soft);}
+  tbody tr:nth-child(even){background:#f6f5f0;}
+  tbody tr:last-child td{border-bottom:none;}
+
+  .diagram{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 18px 14px;margin:24px 0;}
+  .diagram pre.mermaid{display:none;}
+  .diagram .mermaid-rendered{display:flex;justify-content:center;}
+  .diagram .mermaid-rendered svg{max-width:100%;height:auto;}
+  .diagram .mermaid-fallback{font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.5;background:#f4f6fb;border:1px solid var(--line);border-radius:8px;padding:14px 16px;white-space:pre-wrap;overflow-x:auto;color:#33405c;}
+  .diagram .cap{font-size:13.5px;color:var(--muted);font-style:italic;text-align:center;margin-top:10px;font-family:"Newsreader",serif;}
+
+  .qbox{background:var(--ink);color:#dfe4f2;border-radius:var(--radius);padding:20px 24px;margin:24px 0;}
+  .qbox h4{color:var(--code-key);margin-top:0;}
+  .qbox ul{margin:8px 0 0;padding-left:20px;}
+  .qbox li{margin:6px 0;font-family:"Space Grotesk",sans-serif;font-size:14.6px;}
+
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:20px 0;}
+  .threecol{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:20px 0;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;}
+  .card h4{margin-top:0;}
+  .card.ng{border-top:4px solid var(--ng);}
+  .card.react{border-top:4px solid var(--react);}
+  .card.vue{border-top:4px solid var(--vue);}
+  .divider-note{font-size:14px;color:var(--muted);font-style:italic;border-left:3px solid var(--line);padding-left:14px;margin:18px 0;}
+  .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+  .tagpill{font-family:"Space Grotesk",sans-serif;font-size:12px;padding:4px 11px;border-radius:99px;background:#eef1f8;border:1px solid #cdd6ea;color:var(--ink-soft);font-weight:500;}
+
+  footer{padding:40px 0 60px;text-align:center;color:var(--muted);font-size:14px;}
+
+  .menubtn{display:none;}
+  @media(max-width:1000px){
+    body{font-size:17px;}
+    .sidebar{position:fixed;z-index:50;left:0;top:0;transform:translateX(-100%);transition:transform .25s;width:280px;flex-basis:280px;box-shadow:0 0 40px rgba(0,0,0,.4);}
+    .sidebar.open{transform:translateX(0);}
+    .menubtn{display:flex;align-items:center;gap:8px;position:fixed;z-index:60;top:14px;left:14px;background:var(--ink);color:#fff;border:none;font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;padding:9px 14px;border-radius:9px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);}
+    .wrap{padding:0 20px;}
+    header.hero h1{font-size:30px;} header.hero{padding-top:64px;}
+    .twocol,.threecol{grid-template-columns:1fr;}
+  }
+  .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;}
+  .backdrop.show{display:block;}
+  @media print{.sidebar,.menubtn{display:none;} .main{padding:0;} pre{white-space:pre-wrap;}}
+</style>
+</head>
+<body>
+
+<button class="menubtn" id="menubtn">☰ Sections</button>
+<div class="backdrop" id="backdrop"></div>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="tag">Field Manual · v2026.06</span>
+      <h1>Micro-Frontends</h1>
+      <span class="sub">for the BMCI refonte · Angular · React · Vue</span>
+    </div>
+    <ul class="navlist">
+      <li><a href="#brief"><span class="n">00</span> The brief &amp; the 2026 landscape</a></li>
+      <li><a href="#what"><span class="n">01</span> What micro-frontends are</a></li>
+      <li><a href="#integration"><span class="n">02</span> Integration techniques</a></li>
+      <li><a href="#mf2"><span class="n">03</span> Module Federation 2.0</a></li>
+      <li><a href="#multiframework"><span class="n">04</span> The hard part: mixing frameworks</a></li>
+      <li><a href="#angular"><span class="n">05</span> Angular backbone (+ Native Fed)</a></li>
+      <li><a href="#react"><span class="n">06</span> React backbone</a></li>
+      <li><a href="#vue"><span class="n">07</span> Vue backbone</a></li>
+      <li><a href="#compare"><span class="n">08</span> Cross-framework patterns</a></li>
+      <li><a href="#production"><span class="n">09</span> Production: deploy, perf, security</a></li>
+      <li><a href="#rampup"><span class="n">10</span> Your ramp-up plan</a></li>
+    </ul>
+    <div class="navnote">
+      <b>How to use this.</b> Read 00→04 to own the architecture conversation, then 05–07 for framework depth. Teal boxes connect to your banking background; gold boxes are things to say out loud. Diagrams are live (Mermaid) — open in a browser.
+    </div>
+  </nav>
+
+  <div class="main">
+    <header class="hero">
+      <div class="wrap">
+        <span class="kicker">Technical deep-dive · prepared 30 June 2026</span>
+        <h1>The micro-frontend refonte,<br>from first principles to production.</h1>
+        <p>A complete map of micro-frontend architecture and the three frameworks BMCI may mix — grounded in the latest releases as of mid-2026, with diagrams, real config, and the strategic calls that separate a senior engineer from a tutorial-follower.</p>
+        <div class="verstrip">
+          <span class="vbadge"><span class="dot" style="background:#f0b657"></span><b>Module Federation 2.0</b> stable</span>
+          <span class="vbadge"><span class="dot" style="background:var(--ng)"></span><b>Angular 22</b> · Jun 2026</span>
+          <span class="vbadge"><span class="dot" style="background:var(--react)"></span><b>React 19.2</b></span>
+          <span class="vbadge"><span class="dot" style="background:var(--vue)"></span><b>Vue 3.6</b> · Vapor</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 00 BRIEF -->
+    <section class="block" id="brief">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">00</span> Orientation</div>
+        <h2>The brief, and why 2026 is the perfect moment for this</h2>
+        <p class="lead">BMCI wants to break a set of services into <strong>micro-frontends</strong>, built with Webpack, possibly mixing Angular, React and Vue. That's a microservices philosophy applied to the UI — and you already think in those terms from your backend work.</p>
+
+        <p>Here's the single most useful thing to understand before anything else: the whole frontend world converged on the same idea in the last 18 months. Angular went <strong>signal-first and zoneless</strong>, Vue shipped <strong>Vapor Mode</strong> (no virtual DOM), React shipped a <strong>compiler</strong> that auto-optimizes. Different roads, one destination: <em>the framework should know exactly what changed and touch only that.</em> When you talk to the BMCI team, framing things around this shared direction will make you sound like someone who sees the forest, not just the trees.</p>
+
+        <div class="diagram">
+          <pre class="mermaid">
+flowchart LR
+  SIG(["Signals — fine-grained reactivity"]):::core
+  NG["Angular 22<br/>signal-first · zoneless · OnPush default"]:::ng
+  VUE["Vue 3.6<br/>Vapor Mode · Alien Signals"]:::vue
+  OTHER["Solid · Svelte · Preact"]:::other
+  REACT["React 19<br/>Compiler auto-memoization"]:::react
+  SIG --> NG
+  SIG --> VUE
+  SIG --> OTHER
+  REACT -.->|"same goal: less wasted work"| SIG
+  classDef core fill:#141b2e,color:#fff,stroke:#c08a1e,stroke-width:2px;
+  classDef ng fill:#fbecee,color:#7a1020,stroke:#c3002f;
+  classDef vue fill:#e9f6ef,color:#0f5132,stroke:#1f9d63;
+  classDef react fill:#e3f1f6,color:#08506a,stroke:#0a7ea4;
+  classDef other fill:#eef1f8,color:#1c2333,stroke:#141b2e;
+          </pre>
+          <div class="cap">The 2026 convergence: every major framework is minimizing wasted rendering work, just by different means.</div>
+        </div>
+
+        <div class="callout latest">
+          <span class="clabel">Latest as of June 2026 — keep these numbers in your head</span>
+          <ul class="tight" style="margin-top:6px;">
+            <li><strong>Module Federation 2.0</strong> — stable, and no longer webpack-only: it runs on webpack, Rspack, Vite, Rollup and more, with automatic TypeScript types across remotes.</li>
+            <li><strong>Angular 22</strong> (3 June 2026) — Signal Forms &amp; Resource API stable, OnPush change detection is the new default, zoneless by default, Vitest for tests, Angular Aria for accessibility.</li>
+            <li><strong>React 19.2</strong> — React Compiler stable (auto-memoization), Server Components, Actions, the <code>use</code> hook, <code>&lt;Activity&gt;</code>.</li>
+            <li><strong>Vue 3.6</strong> — Vapor Mode (virtual-DOM-free, opt-in per component), Alien Signals reactivity, deep Vite integration.</li>
+          </ul>
+        </div>
+
+        <div class="callout exp">
+          <span class="clabel">Your edge here</span>
+          You spent years doing exactly this on the backend: bounded contexts, independent deployables, a gateway in front, resilience when a piece is down. Micro-frontends are the <em>same architecture moved up a layer</em>. Every instinct you built on TTA and Daily VAR transfers — you're not learning a new philosophy, only a new place to apply it.
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 WHAT -->
+    <section class="block" id="what">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">01</span> Foundations</div>
+        <h2>What a micro-frontend actually is</h2>
+        <p class="lead">A micro-frontend architecture splits a big single-page app into <strong>independently developed, built and deployed UI pieces</strong>, assembled into one experience the user sees as a single app.</p>
+
+        <h3>The vocabulary (only three words)</h3>
+        <ul>
+          <li><span class="term">Shell / Host</span> — the container application. It owns the shared layout, top-level routing, authentication, and the common libraries. It loads the pieces.</li>
+          <li><span class="term">Remote</span> — a separately built and deployed application (a "vertical" of the product) that <em>exposes</em> parts of itself (a component, a route, a feature) to be loaded by the host at runtime.</li>
+          <li><span class="term">Shared dependencies</span> — libraries (Angular, React, a design system) that the host and remotes agree to load <strong>once</strong> and reuse, instead of each shipping its own copy.</li>
+        </ul>
+
+        <div class="diagram">
+          <pre class="mermaid">
+flowchart TB
+  U(["User — one browser tab"]):::usr
+  S["SHELL / HOST<br/>layout · routing · auth · shared libs"]:::host
+  R1["Accounts remote<br/>team A · Angular"]:::rem
+  R2["Payments remote<br/>team B · React"]:::rem
+  R3["Cards remote<br/>team C · Vue"]:::rem
+  C1[("CDN / bucket")]:::cdn
+  C2[("CDN / bucket")]:::cdn
+  C3[("CDN / bucket")]:::cdn
+  U --> S
+  S -->|"loads at runtime"| R1
+  S -->|"loads at runtime"| R2
+  S -->|"loads at runtime"| R3
+  R1 -.->|"deploys on its own"| C1
+  R2 -.->|"deploys on its own"| C2
+  R3 -.->|"deploys on its own"| C3
+  classDef host fill:#141b2e,color:#fff,stroke:#c08a1e,stroke-width:2px;
+  classDef rem fill:#e6f3f1,color:#0f5132,stroke:#0f766e;
+  classDef cdn fill:#eef1f8,color:#1c2333,stroke:#141b2e;
+  classDef usr fill:#ffffff,color:#1c2333,stroke:#5d6678;
+          </pre>
+          <div class="cap">One shell, many independently-owned remotes — each its own repo, build, and deployment.</div>
+        </div>
+
+        <h3>Why a bank would want this</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Benefit</th><th>What it means in practice</th></tr></thead>
+            <tbody>
+              <tr><td>Team autonomy</td><td>The Payments squad ships on its own cadence without coordinating a giant release with Accounts and Cards.</td></tr>
+              <tr><td>Independent deployment</td><td>A fix to Cards goes live without rebuilding or redeploying the whole portal — exactly like microservices.</td></tr>
+              <tr><td>Incremental modernization</td><td>You can rebuild one legacy area at a time, leaving the rest untouched. Perfect for a "refonte."</td></tr>
+              <tr><td>Fault isolation</td><td>If one remote fails to load, the shell shows a fallback for that slot and the rest of the app keeps working.</td></tr>
+              <tr><td>Tech flexibility</td><td>Teams <em>can</em> use different frameworks — though, as we'll see, this is a power to use sparingly.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout gotcha">
+          <span class="clabel">The senior take — when NOT to do this</span>
+          Micro-frontends are <strong>organizational</strong> medicine, not a performance trick. They pay off when you have <em>multiple teams</em> that need to ship independently. For a single small team, they add real cost: distributed-systems problems land in the browser (remote availability, version drift, network errors mid-load), shared dependencies get tricky, and CSS/state can leak across boundaries. If BMCI has the team structure to justify it, great — but be ready to say <em>"a well-modularized monolith is the right answer until team independence is the actual bottleneck."</em> That sentence shows judgment.
+        </div>
+
+        <div class="diagram">
+          <pre class="mermaid">
+flowchart LR
+  subgraph MONO["Monolithic SPA — one of everything"]
+    direction TB
+    M1["one repo"] --> M2["one build"] --> M3["one deploy — all teams wait"]
+  end
+  subgraph MFE["Micro-frontends — independence per vertical"]
+    direction TB
+    A1["Shell"]
+    A1 --> A2["remote A · own pipeline"]
+    A1 --> A3["remote B · own pipeline"]
+    A1 --> A4["remote C · own pipeline"]
+  end
+          </pre>
+          <div class="cap">The trade you're making: simplicity of a monolith vs independence of micro-frontends.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 INTEGRATION -->
+    <section class="block" id="integration">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">02</span> The techniques</div>
+        <h2>How you actually stitch remotes into a shell</h2>
+        <p class="lead">There are several ways to compose micro-frontends. The first split to understand is <strong>build-time vs run-time</strong> composition.</p>
+
+        <div class="twocol">
+          <div class="card"><h4>Build-time composition</h4><p>Remotes are pulled in as packages and bundled together at build. Simple, type-safe — but you lose independent deployment, because changing one piece means rebuilding the host. Rarely "true" micro-frontends.</p></div>
+          <div class="card"><h4>Run-time composition ✓</h4><p>The host loads remotes <em>at runtime</em> from URLs. A remote can be redeployed and the host picks up the new version without rebuilding. This is what people mean by micro-frontends, and what Module Federation does.</p></div>
+        </div>
+
+        <h3>The five run-time approaches</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Approach</th><th>How it works</th><th>Best for</th></tr></thead>
+            <tbody>
+              <tr><td>Module Federation 2.0</td><td>Webpack/Rspack/Vite plugin: remotes expose modules via a <code>remoteEntry.js</code> manifest; host imports them dynamically and shares singletons.</td><td>The default in 2026 when teams share a framework. Best DX, type sharing, dependency sharing.</td></tr>
+              <tr><td>Native Federation</td><td>Same mental model, but browser-native using <strong>ES Modules + Import Maps</strong>; bundler-agnostic. The Angular path.</td><td>Modern Angular (esbuild builder), and anyone wanting standards over a webpack-specific runtime.</td></tr>
+              <tr><td>Web Components</td><td>Each remote is wrapped as a Custom Element (<code>&lt;cards-widget&gt;</code>); the shell just places the tag. Framework-neutral contract.</td><td>Genuinely mixed frameworks (Angular + React + Vue) living together.</td></tr>
+              <tr><td>single-spa</td><td>An orchestrator with lifecycle hooks (bootstrap/mount/unmount) per app; framework-agnostic router.</td><td>Legacy + modern coexisting (AngularJS, jQuery) or hard multi-framework cases.</td></tr>
+              <tr><td>iframes</td><td>Hard isolation via the browser's own boundary.</td><td>Strong isolation / third-party content; poor UX integration, so usually a last resort.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Which one? A decision tree</h3>
+        <div class="diagram">
+          <pre class="mermaid">
+flowchart TD
+  Q1{"Do all teams use the SAME framework?"}
+  Q2{"Angular on the esbuild builder?"}
+  WC["Web Components contract or single-spa<br/>plus Module/Native Federation to share what you can"]:::warn
+  NF["Native Federation<br/>ESM + Import Maps"]:::ok
+  MF["Module Federation 2.0<br/>webpack · Rspack · Vite"]:::ok
+  Q1 -->|"Yes"| Q2
+  Q1 -->|"No — truly mixed"| WC
+  Q2 -->|"Yes"| NF
+  Q2 -->|"No / React / Vue"| MF
+  classDef ok fill:#e6f3f1,color:#0f5132,stroke:#0f766e,stroke-width:1.5px;
+  classDef warn fill:#fbf3df,color:#7a5410,stroke:#c08a1e,stroke-width:1.5px;
+          </pre>
+          <div class="cap">The first question is always organizational (one framework or many?), not technical.</div>
+        </div>
+
+        <div class="callout key">
+          <span class="clabel">Clarify the "Webpack" assumption on day one</span>
+          When the interviewer said "Webpack," it likely means <em>Module Federation</em> (which began as a Webpack 5 feature). Two things to know and raise gently: (1) Module Federation 2.0 is no longer tied to Webpack — it runs on Rspack and Vite too, and Rspack gives Webpack-compatible config with far faster builds. (2) <strong>Angular's default builder has been esbuild since v17</strong>, where classic Webpack Module Federation doesn't apply — the modern Angular answer is <strong>Native Federation</strong>, which keeps the exact same mental model. Knowing this distinction on arrival is a strong first impression.
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 MF2 -->
+    <section class="block" id="mf2">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">03</span> The core engine</div>
+        <h2>Module Federation 2.0, in depth</h2>
+        <p class="lead">This is the heart of the refonte. Master the host/remote model, shared singletons, dynamic loading, and resilience, and you can hold any architecture conversation.</p>
+
+        <h3>The mechanics</h3>
+        <p>A <strong>remote</strong> builds a special entry file — <code>remoteEntry.js</code> — that lists what it <em>exposes</em> and which dependencies it <em>shares</em>. The <strong>host</strong> declares which remotes it consumes and which dependencies it shares. At runtime the host fetches the remote's manifest, negotiates shared versions, and dynamically imports the exposed module.</p>
+
+        <div class="diagram">
+          <pre class="mermaid">
+sequenceDiagram
+  participant B as Browser
+  participant H as Shell Host
+  participant R as Payments Remote
+  B->>H: load shell bundle
+  Note over H: user navigates to /payments
+  H->>R: fetch remoteEntry.js manifest
+  R-->>H: exposed modules and shared versions
+  Note over H,R: negotiate singletons — load framework once
+  H->>R: import payments/Checkout
+  R-->>B: Checkout renders into the shell slot
+          </pre>
+          <div class="cap">Runtime federation: the host discovers and loads a remote on demand, sharing common libraries.</div>
+        </div>
+
+        <h4>The remote — exposing a feature</h4>
+        <pre><span class="c">// webpack.config.js — the Payments remote (React example)</span>
+<span class="k">new</span> ModuleFederationPlugin({
+  name: <span class="s">'payments'</span>,
+  filename: <span class="s">'remoteEntry.js'</span>,            <span class="c">// the manifest the host fetches</span>
+  exposes: {
+    <span class="s">'./Checkout'</span>: <span class="s">'./src/Checkout'</span>,    <span class="c">// what the world can import</span>
+  },
+  shared: {
+    react:       { singleton: <span class="k">true</span>, requiredVersion: <span class="s">'^19.0.0'</span> },
+    <span class="s">'react-dom'</span>: { singleton: <span class="k">true</span>, requiredVersion: <span class="s">'^19.0.0'</span> },
+  },
+})</pre>
+
+        <h4>The host — consuming it</h4>
+        <pre><span class="c">// webpack.config.js — the Shell / Host</span>
+<span class="k">new</span> ModuleFederationPlugin({
+  name: <span class="s">'shell'</span>,
+  remotes: {
+    payments: <span class="s">'payments@https://payments.bmci.ma/remoteEntry.js'</span>,
+    cards:    <span class="s">'cards@https://cards.bmci.ma/remoteEntry.js'</span>,
+  },
+  shared: { react: { singleton: <span class="k">true</span> }, <span class="s">'react-dom'</span>: { singleton: <span class="k">true</span> } },
+})
+
+<span class="c">// in the host app — lazy load + Suspense + an error boundary</span>
+<span class="k">const</span> Checkout = lazy(() =&gt; <span class="k">import</span>(<span class="s">'payments/Checkout'</span>));
+&lt;ErrorBoundary fallback={&lt;CheckoutUnavailable/&gt;}&gt;
+  &lt;Suspense fallback={<span class="s">"Loading…"</span>}&gt;&lt;Checkout/&gt;&lt;/Suspense&gt;
+&lt;/ErrorBoundary&gt;</pre>
+
+        <h3>The four ideas that actually matter</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Concept</th><th>Why you must get it right</th></tr></thead>
+            <tbody>
+              <tr><td><code>singleton: true</code></td><td>Forces one shared instance of a library. <strong>Mandatory</strong> for React, Angular, Vue and any global state — two copies of React in one page break hooks and context. This is the #1 source of MFE bugs.</td></tr>
+              <tr><td><code>requiredVersion</code> / <code>strictVersion</code></td><td>Version negotiation. If a remote needs a version the host can't satisfy, you decide whether to fail loudly (<code>strictVersion</code>) or fall back. Version drift across teams is the hard operational problem.</td></tr>
+              <tr><td>Dynamic remotes</td><td>Instead of hard-coding remote URLs at build, read them from a manifest/config at runtime — so you can add or move a remote without rebuilding the shell. Essential for independent deployment.</td></tr>
+              <tr><td>Error boundaries &amp; fallbacks</td><td>A remote is a network call that can fail. Always wrap it so one dead remote degrades to a fallback instead of crashing the shell.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout latest">
+          <span class="clabel">What 2.0 added (and why it matters for a bank)</span>
+          <ul class="tight" style="margin-top:6px;">
+            <li><strong>Decoupled runtime</strong> — federation logic is separate from the bundler, so the same model works on webpack, Rspack and Vite. Migration is no longer "rip out your toolchain."</li>
+            <li><strong>Automatic TypeScript types across remotes</strong> — importing <code>payments/Checkout</code> is now type-checked. This kills a whole class of integration bugs — big for a regulated codebase.</li>
+            <li><strong>Manifest-based discovery, preloading, runtime plugins, Chrome DevTools</strong> — better operability and a fix for the "request waterfall" (loading remotes serially) via preloading.</li>
+            <li><strong>Node.js runtime support</strong> — remotes can be consumed by SSR and BFF layers, unifying delivery front-to-back.</li>
+          </ul>
+        </div>
+
+        <div class="callout gotcha">
+          <span class="clabel">The "request waterfall" — name it before they do</span>
+          A known MFE problem: the shell loads, then fetches a remote manifest, then fetches its chunks, then its shared deps — each step waiting on the last, hurting first paint. 2.0's answer is <strong>preloading</strong> and <strong>SSR/data prefetch</strong>. Mentioning the waterfall and its mitigation signals you've thought past the happy path.
+        </div>
+
+        <h3>The performance reality (so you can reassure them)</h3>
+        <p>Done right, federation is cheap: the shell loads instantly, remotes lazy-load on route entry, the shared framework loads once, and each remote keeps its own cache fingerprint so deploying Cards doesn't invalidate the Accounts cache. A typical three-remote setup adds only tens of milliseconds to first meaningful paint versus a monolith — a fair price for the deployment independence.</p>
+
+        <div class="callout exp">
+          <span class="clabel">Backend parallel to lean on</span>
+          The host/remote split <em>is</em> your gateway/microservice split. <code>singleton</code> sharing is the frontend version of "don't run five copies of the same library." Error boundaries are your circuit breakers. Dynamic remote config is service discovery for the UI. When you explain MFE to colleagues, use these analogies — they land instantly with backend people.
+        </div>
+
+        <div class="qbox">
+          <h4>Be ready to answer</h4>
+          <ul>
+            <li>Host vs remote — what does each declare?</li>
+            <li>What is <code>remoteEntry.js</code>?</li>
+            <li>Why must shared framework deps be singletons?</li>
+            <li>How do you handle a remote that fails to load?</li>
+            <li>What changed in Module Federation 2.0?</li>
+            <li>What is the request-waterfall problem and how is it mitigated?</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 MULTIFRAMEWORK -->
+    <section class="block" id="multiframework">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">04</span> The hard part · read this twice</div>
+        <h2>Mixing Angular, React and Vue in one app</h2>
+        <p class="lead">This is the question where most people hand-wave. If you can speak to it precisely, you'll be the most credible person in the room.</p>
+
+        <div class="callout gotcha">
+          <span class="clabel">The honest truth</span>
+          Module Federation shines when <strong>everyone shares one framework</strong> — then Angular/React loads once and is shared. The moment you genuinely mix Angular + React + Vue, you <strong>cannot share a framework runtime across them</strong>: the page ships Angular <em>and</em> React <em>and</em> Vue. That's heavier bundles, more memory, and a harder integration story. So multi-framework is a capability to use <em>deliberately</em> — usually to absorb a legacy app during migration — not a default to reach for.
+        </div>
+
+        <h3>The integration contract: Web Components</h3>
+        <p>When frameworks must coexist, the clean boundary is the browser's own standard: <strong>Custom Elements</strong>. Each remote wraps its root as a Web Component (Angular Elements, React via a wrapper, Vue's <code>defineCustomElement</code>). The shell just places a tag and passes data via attributes/properties; the remote emits <strong>custom events</strong> outward. Neither side needs to know the other's framework.</p>
+
+        <div class="diagram">
+          <pre class="mermaid">
+flowchart TB
+  S["SHELL — framework-neutral<br/>routing · layout · auth"]:::host
+  WC1["accounts-widget<br/>Angular Element"]:::ng
+  WC2["payments-widget<br/>React custom element"]:::react
+  WC3["cards-widget<br/>Vue defineCustomElement"]:::vue
+  BUS[("Shared event bus<br/>browser CustomEvents")]:::bus
+  S --> WC1
+  S --> WC2
+  S --> WC3
+  WC1 -.->|"CustomEvent"| BUS
+  WC2 -.->|"CustomEvent"| BUS
+  WC3 -.->|"CustomEvent"| BUS
+  BUS -.->|"props / attributes"| WC1
+  classDef host fill:#141b2e,color:#fff,stroke:#c08a1e,stroke-width:2px;
+  classDef ng fill:#fbecee,color:#7a1020,stroke:#c3002f;
+  classDef react fill:#e3f1f6,color:#08506a,stroke:#0a7ea4;
+  classDef vue fill:#e9f6ef,color:#0f5132,stroke:#1f9d63;
+  classDef bus fill:#fbf3df,color:#7a5410,stroke:#c08a1e;
+          </pre>
+          <div class="cap">Web Components as the neutral contract: each framework hides behind a standard custom element, talking via attributes in and events out.</div>
+        </div>
+
+        <h3>The four cross-cutting problems (and the patterns that solve them)</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Problem</th><th>Pattern</th></tr></thead>
+            <tbody>
+              <tr><td>Communication between remotes</td><td>Keep it loose: a shared <strong>event bus</strong> / browser <code>CustomEvent</code>s, or a tiny framework-agnostic shared store. Avoid one framework's state library leaking across boundaries.</td></tr>
+              <tr><td>Shared state (e.g. logged-in user)</td><td>Put it in the <strong>shell</strong> and pass down via props/attributes or a shared singleton service; treat cross-remote state as you would shared data between microservices — minimal and explicit.</td></tr>
+              <tr><td>Styling collisions</td><td>Scope everything: Shadow DOM (with Web Components), CSS modules, or a strict design-system token layer. CSS leakage is the classic MFE bug.</td></tr>
+              <tr><td>Routing</td><td>The <strong>shell owns top-level routing</strong> and delegates a URL sub-tree to each remote, which runs its own internal router. Agree the boundary early.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout say">
+          <span class="clabel">Say it like this — the multi-framework answer</span>
+          <span class="quote">"Module Federation is ideal when we standardize on one framework, because then it loads once and we share it. If we truly need Angular, React and Vue together — usually to migrate a legacy app gradually — I'd use Web Components as the neutral contract: each remote exposes a custom element, the shell passes data via attributes and listens to custom events, and we keep cross-remote state minimal and explicit. But I'd push to converge on one framework for new remotes, because multi-framework means shipping multiple runtimes and paying for it in bundle size and memory."</span>
+        </div>
+
+        <div class="callout exp">
+          <span class="clabel">Where you're strong / where to study</span>
+          Your Angular depth (Natixis, Angular 21/22) makes you the natural owner of the shell and the Angular remotes. Your past React work (BNP) means you're not starting cold on the React side. Vue is the one to put real hours into before day one — the good news is Vue's Composition API will feel familiar coming from Angular's reactive model.
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 ANGULAR -->
+    <section class="block" id="angular">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">05</span> Framework backbone · Angular</div>
+        <h2>Angular — the backbone <span style="color:var(--ng)">(your home turf)</span></h2>
+        <p class="lead">Angular is the <strong>batteries-included, TypeScript-first, opinionated</strong> framework: routing, forms, HTTP, DI and testing all ship in the box. In 2026 it's in its "signal-first" era.</p>
+
+        <h3>The pillars</h3>
+        <ul>
+          <li><span class="term">Components &amp; standalone</span> — UI is a tree of components. Since v19 <strong>standalone components</strong> are the default (no more NgModules boilerplate).</li>
+          <li><span class="term">Dependency Injection</span> — Angular's hierarchical DI is its superpower and matches your backend Spring instincts: declare what you need, the framework provides it.</li>
+          <li><span class="term">Templates &amp; control flow</span> — declarative HTML with the built-in <code>@if</code> / <code>@for</code> / <code>@switch</code> control flow (since v17).</li>
+          <li><span class="term">Signals</span> — the reactive primitive. A signal is a value that tracks who reads it and notifies them precisely when it changes.</li>
+          <li><span class="term">RxJS</span> — still there for streams and complex async; signals reduce how often you reach for it, but they coexist.</li>
+        </ul>
+
+        <pre><span class="c">// Angular 22 — signals + OnPush-by-default + standalone</span>
+<span class="k">import</span> { Component, signal, computed } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+
+<span class="k">@Component</span>({
+  selector: <span class="s">'app-counter'</span>,
+  template: <span class="s">`{{ count() }} → doubled {{ doubled() }}`</span>,
+})
+<span class="k">export class</span> Counter {
+  count   = signal(0);                       <span class="c">// writable signal</span>
+  doubled = computed(() =&gt; <span class="k">this</span>.count() * 2); <span class="c">// derived, cached</span>
+  inc() { <span class="k">this</span>.count.update(v =&gt; v + 1); }
+}</pre>
+
+        <div class="callout latest">
+          <span class="clabel">Angular 22 — what's current (June 2026)</span>
+          <ul class="tight" style="margin-top:6px;">
+            <li><strong>Signal-first &amp; zoneless</strong> — new apps no longer ship Zone.js; signals drive change detection, giving smaller bundles and more predictable updates.</li>
+            <li><strong>OnPush is the default</strong> change detection strategy now (the old "check everything" is renamed <code>Eager</code>).</li>
+            <li><strong>Signal Forms</strong> and the <strong>Resource API / httpResource</strong> are stable — a signal-based way to handle forms and async data with less boilerplate.</li>
+            <li><strong>Vitest</strong> replaced Karma for testing; <strong>Angular Aria</strong> ships accessible UI primitives (relevant to your WCAG work).</li>
+            <li>Build is <strong>esbuild</strong>-based (fast); <code>@boundary</code> template error boundaries are in preview.</li>
+          </ul>
+        </div>
+
+        <h3>Angular + micro-frontends = Native Federation</h3>
+        <p>Because Angular dropped Webpack for esbuild, classic Module Federation doesn't fit the default builder. The community answer — endorsed on the Angular blog — is <strong>Native Federation</strong> (<code>@angular-architects/native-federation</code>): the <em>same</em> host/remote/shared mental model and API, but implemented with browser-native <strong>ES Modules + Import Maps</strong>, delegating to Angular's esbuild builder. It supports SSR and incremental hydration, and can even interoperate with Webpack-based Module Federation remotes during a migration.</p>
+
+        <pre><span class="c">// federation.config.ts — an Angular shell with Native Federation</span>
+<span class="k">import</span> { withNativeFederation, shareAll } <span class="k">from</span> <span class="s">'@angular-architects/native-federation/config'</span>;
+
+<span class="k">export default</span> withNativeFederation({
+  name: <span class="s">'shell'</span>,
+  remotes: { dashboard: <span class="s">'http://localhost:4202/'</span> },
+  shared: { ...shareAll({ singleton: <span class="k">true</span>, strictVersion: <span class="k">true</span> }) },
+});
+
+<span class="c">// route that loads a remote on demand</span>
+{ path: <span class="s">'dashboard'</span>,
+  loadComponent: () =&gt; loadRemoteModule(<span class="s">'dashboard'</span>, <span class="s">'./Component'</span>)
+                        .then(m =&gt; m.DashboardComponent) }</pre>
+
+        <div class="callout key">
+          <span class="clabel">The crisp distinction to remember</span>
+          <strong>Module Federation</strong> = Webpack-born runtime (now also Rspack/Vite). <strong>Native Federation</strong> = same idea, browser-standard (ESM + Import Maps), built for Angular's esbuild builder. Same mental model, different engine. For new Angular work in 2026, Native Federation is the future-proof default; teams report build times dropping from ~45s to under 10s versus Webpack MF.
+        </div>
+        <div class="pill-row">
+          <span class="tagpill">Standalone components</span><span class="tagpill">Signals</span><span class="tagpill">Zoneless</span><span class="tagpill">Signal Forms</span><span class="tagpill">DI</span><span class="tagpill">RxJS</span><span class="tagpill">esbuild</span><span class="tagpill">Native Federation</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 REACT -->
+    <section class="block" id="react">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">06</span> Framework backbone · React</div>
+        <h2>React — the backbone <span style="color:var(--react)">(your second language)</span></h2>
+        <p class="lead">React is a <strong>library</strong>, not a full framework: it owns the view layer and leaves routing, data and structure to you (or to a meta-framework like Next.js). It's the most widely deployed of the three.</p>
+
+        <h3>The pillars</h3>
+        <ul>
+          <li><span class="term">Components &amp; JSX</span> — functions that return JSX (HTML-in-JS). Composition over inheritance.</li>
+          <li><span class="term">One-way data flow</span> — data flows down via <strong>props</strong>; changes flow up via callbacks. Predictable.</li>
+          <li><span class="term">Hooks</span> — <code>useState</code>, <code>useEffect</code>, <code>useMemo</code>, <code>useContext</code>… functions that add state and lifecycle to function components.</li>
+          <li><span class="term">Virtual DOM &amp; reconciliation</span> — React builds a virtual tree, diffs it against the previous one, and patches only what changed. (This is the cost the React Compiler now minimizes.)</li>
+        </ul>
+
+        <pre><span class="c">// React 19 — a function component with a hook</span>
+<span class="k">function</span> Counter() {
+  <span class="k">const</span> [count, setCount] = useState(0);
+  <span class="k">return</span> &lt;button onClick={() =&gt; setCount(c =&gt; c + 1)}&gt;{count}&lt;/button&gt;;
+}</pre>
+
+        <div class="callout latest">
+          <span class="clabel">React 19 / 19.2 — what's current (2026)</span>
+          <ul class="tight" style="margin-top:6px;">
+            <li><strong>React Compiler (stable)</strong> — automatically memoizes; you mostly stop hand-writing <code>useMemo</code>/<code>useCallback</code>/<code>memo</code>. Big mental-load reduction.</li>
+            <li><strong>Server Components (RSC)</strong> — components that render on the server, shipping less JavaScript to the browser. Powerful, but adds a server/client boundary to reason about.</li>
+            <li><strong>Actions &amp; Server Actions</strong>, <code>useFormStatus</code>, <code>useOptimistic</code> — built-in async form handling.</li>
+            <li><strong><code>use</code> hook</strong> (read a promise/context in render), <strong>ref as a prop</strong> (no more <code>forwardRef</code>), native document metadata, <strong><code>&lt;Activity&gt;</code></strong> (preserve state while hidden).</li>
+          </ul>
+        </div>
+
+        <div class="callout gotcha">
+          <span class="clabel">Banking-relevant security note</span>
+          A critical remote-code-execution vulnerability in <strong>React Server Components</strong> (CVE-2025-55182) was disclosed in late 2025 and patched in React 19.0.1 / 19.1.2 / 19.2.1. Pure client-side React apps weren't affected, but in a bank you'll want RSC-using services pinned to patched versions. Knowing this shows security awareness — exactly the BMCI instinct.
+        </div>
+
+        <h4>React in micro-frontends</h4>
+        <p>React is the most common framework in Module Federation examples, so the path is well-trodden: expose components from a remote, share <code>react</code> and <code>react-dom</code> as singletons, wrap remote loads in an Error Boundary + Suspense. One caveat: <strong>Server Components don't compose cleanly across federated boundaries yet</strong> — for MFE remotes, prefer classic client components unless you have a deliberate SSR strategy.</p>
+        <div class="pill-row">
+          <span class="tagpill">Library, not framework</span><span class="tagpill">JSX</span><span class="tagpill">Hooks</span><span class="tagpill">Virtual DOM</span><span class="tagpill">React Compiler</span><span class="tagpill">Server Components</span><span class="tagpill">Actions</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 VUE -->
+    <section class="block" id="vue">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">07</span> Framework backbone · Vue</div>
+        <h2>Vue — the backbone <span style="color:var(--vue)">(the one to study)</span></h2>
+        <p class="lead">Vue is the <strong>progressive, approachable</strong> framework: gentle to start, scales up with official routing and state. Its signature is the <strong>Single-File Component</strong> (template + script + style in one <code>.vue</code> file).</p>
+
+        <h3>The pillars</h3>
+        <ul>
+          <li><span class="term">Single-File Components (SFC)</span> — <code>&lt;template&gt;</code>, <code>&lt;script setup&gt;</code>, <code>&lt;style scoped&gt;</code> together. The <code>scoped</code> styles solve CSS leakage out of the box — handy for MFEs.</li>
+          <li><span class="term">Reactivity</span> — <code>ref()</code> for values, <code>reactive()</code> for objects, <code>computed()</code> for derived state, <code>watch()</code> for side effects. This is conceptually <em>very close to Angular signals</em>, which is your shortcut into Vue.</li>
+          <li><span class="term">Composition API</span> — the modern way to organize logic (<code>&lt;script setup&gt;</code>), versus the older Options API. The Composition API will feel natural to you.</li>
+          <li><span class="term">Template directives</span> — <code>v-if</code>, <code>v-for</code>, <code>v-model</code> (two-way binding), <code>@click</code>.</li>
+        </ul>
+
+        <pre><span class="c">// Vue 3.6 SFC — Composition API with &lt;script setup&gt;</span>
+&lt;script setup&gt;
+<span class="k">import</span> { ref, computed } <span class="k">from</span> <span class="s">'vue'</span>;
+<span class="k">const</span> count = ref(0);
+<span class="k">const</span> doubled = computed(() =&gt; count.value * 2);
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;button @click=<span class="s">"count++"</span>&gt;{{ count }} → {{ doubled }}&lt;/button&gt;
+&lt;/template&gt;</pre>
+
+        <div class="callout latest">
+          <span class="clabel">Vue 3.6 — what's current (2026)</span>
+          <ul class="tight" style="margin-top:6px;">
+            <li><strong>Vapor Mode</strong> — a compile target that skips the virtual DOM entirely, compiling templates to direct DOM operations. Opt-in per component with <code>&lt;script setup vapor&gt;</code>; performance lands near Solid.js / Svelte, with 20–50% smaller bundles for Vapor components.</li>
+            <li><strong>Alien Signals</strong> — a faster reactivity engine under the hood.</li>
+            <li><strong>Fully backward compatible</strong> — classic virtual-DOM Vue keeps working; you mix Vapor and VDOM via <code>vaporInteropPlugin</code>.</li>
+            <li>Caveats: Vapor needs <code>&lt;script setup&gt;</code> (no Options API yet), excludes <code>&lt;Suspense&gt;</code>, and some libraries are still catching up.</li>
+          </ul>
+        </div>
+
+        <div class="callout exp">
+          <span class="clabel">Your fast path into Vue</span>
+          Map it to what you know: Vue's <code>ref</code>/<code>computed</code>/<code>watch</code> ≈ Angular's <code>signal</code>/<code>computed</code>/<code>effect</code>; <code>&lt;script setup&gt;</code> ≈ a standalone component class; <code>scoped</code> styles ≈ Angular's view encapsulation; <code>v-model</code> ≈ two-way binding. You're not learning reactivity from zero — you're learning new syntax for a model you already understand. A weekend on the Composition API plus building one small SFC app will get you conversational.
+        </div>
+        <div class="pill-row">
+          <span class="tagpill">SFC</span><span class="tagpill">Composition API</span><span class="tagpill">ref / reactive / computed</span><span class="tagpill">Vapor Mode</span><span class="tagpill">Vite-native</span><span class="tagpill">scoped styles</span><span class="tagpill">Pinia (state)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 COMPARE -->
+    <section class="block" id="compare">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">08</span> Side by side</div>
+        <h2>The three frameworks, compared</h2>
+        <p class="lead">You don't need to pick a favourite — you need to articulate the trade-offs and the patterns that work across all three.</p>
+
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Dimension</th><th>Angular 22</th><th>React 19</th><th>Vue 3.6</th></tr></thead>
+            <tbody>
+              <tr><td>Type</td><td>Full framework, batteries-included</td><td>View library (+ ecosystem)</td><td>Progressive framework</td></tr>
+              <tr><td>Language slant</td><td>TypeScript-first, opinionated</td><td>JS/TS, flexible</td><td>JS/TS, approachable</td></tr>
+              <tr><td>Rendering model (2026)</td><td>Signal-first, zoneless, OnPush default</td><td>Virtual DOM + Compiler auto-memo</td><td>Virtual DOM, or Vapor (no VDOM)</td></tr>
+              <tr><td>Reactivity</td><td>Signals (+ RxJS)</td><td>Hooks + state, Compiler-optimized</td><td>Refs / reactive / Alien Signals</td></tr>
+              <tr><td>State management</td><td>Services + signals / NgRx</td><td>Context / Redux / Zustand</td><td>Pinia</td></tr>
+              <tr><td>Default build tool</td><td>esbuild (Application Builder)</td><td>Vite / Next.js / others</td><td>Vite (native)</td></tr>
+              <tr><td>MFE integration</td><td>Native Federation</td><td>Module Federation 2.0</td><td>Module Federation 2.0 / Vite plugin</td></tr>
+              <tr><td>Learning curve</td><td>Steeper, structured</td><td>Medium</td><td>Gentle</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="threecol">
+          <div class="card ng"><h4>Pick Angular when…</h4><p>You need structure, large teams, long-lived enterprise apps, strong typing and conventions. The shell and core remotes are a natural fit.</p></div>
+          <div class="card react"><h4>Pick React when…</h4><p>You want the biggest ecosystem and hiring pool, server-rendering options, and maximum flexibility. Most MFE tutorials assume it.</p></div>
+          <div class="card vue"><h4>Pick Vue when…</h4><p>You want fast onboarding, excellent performance (Vapor) for data-dense dashboards, and minimal ceremony.</p></div>
+        </div>
+
+        <div class="callout say">
+          <span class="clabel">Say it like this — when asked "which is best?"</span>
+          <span class="quote">"None is 'best' in the abstract — they've converged on the same goals. For BMCI I'd weigh team skills, hiring, and the existing codebase over benchmarks. The architectural decision that matters more than the framework is: do we standardize on one for new remotes — which lets Module Federation share the runtime — or do we genuinely need several, in which case Web Components become our contract and we accept the bundle cost."</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 PRODUCTION -->
+    <section class="block" id="production">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">09</span> Production reality</div>
+        <h2>Deployment, performance &amp; security</h2>
+        <p class="lead">This is where your banking instincts pay off — micro-frontends turn the frontend into a distributed system, and you already know how to run those responsibly.</p>
+
+        <h3>Independent deployment</h3>
+        <div class="diagram">
+          <pre class="mermaid">
+flowchart LR
+  DEV["Team commits a remote"]
+  CI["CI: build · test · SonarQube gate"]
+  ART["Versioned remoteEntry.js"]
+  CDN[("CDN / bucket")]
+  SHELL["Shell reads remote URLs<br/>from a manifest at runtime"]
+  USER(["User gets the new remote<br/>no shell redeploy"])
+  DEV --> CI
+  CI --> ART
+  ART --> CDN
+  SHELL --> CDN
+  CDN --> USER
+          </pre>
+          <div class="cap">Each remote ships on its own pipeline to a CDN; the shell discovers it at runtime via a manifest.</div>
+        </div>
+        <ul class="tight">
+          <li>Each remote = its own repo, CI pipeline, version and CDN path — exactly like a microservice.</li>
+          <li>Use a <strong>runtime manifest</strong> of remote URLs so adding/moving a remote needs no shell rebuild.</li>
+          <li>Per-remote cache fingerprints mean deploying one remote doesn't bust the others' caches.</li>
+          <li>Blue-green / canary applies per remote — flip the manifest to roll forward or back instantly.</li>
+        </ul>
+
+        <h3>Performance levers</h3>
+        <ul class="tight">
+          <li><strong>Share singletons</strong> (framework, design system) so they load once.</li>
+          <li><strong>Lazy-load remotes</strong> on route entry; <strong>preload</strong> likely-next remotes to beat the request waterfall.</li>
+          <li>Keep remotes small; watch total payload when multiple frameworks coexist.</li>
+          <li>Per-framework: Angular OnPush + signals; React Compiler; Vue Vapor for data-dense screens.</li>
+        </ul>
+
+        <h3>Security (the bank lens)</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Concern</th><th>What to do</th></tr></thead>
+            <tbody>
+              <tr><td>Loading code at runtime</td><td>Only load remotes from trusted, HTTPS, same-origin-controlled hosts; lock down with a strict <strong>Content-Security-Policy</strong>; consider Subresource Integrity where applicable.</td></tr>
+              <tr><td>Auth across remotes</td><td>Centralize OIDC in the shell (or a BFF). Remotes receive identity, never each re-implement login. (Your OIDC/BFF knowledge applies directly.)</td></tr>
+              <tr><td>Dependency / supply chain</td><td>Pin and scan dependencies; the React RSC CVE is a live reminder — keep federated remotes on patched versions.</td></tr>
+              <tr><td>Isolation</td><td>Shadow DOM / scoped styles to prevent one remote from interfering with another's DOM or CSS.</td></tr>
+              <tr><td>Resilience</td><td>Error boundaries + fallbacks per remote, so a failed or compromised remote degrades gracefully.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Testing</h3>
+        <p>Test each remote in isolation (unit + component: Vitest for Angular/Vue, Jest/Vitest + Testing Library for React), then add <strong>contract tests</strong> on the host↔remote interface (the exposed module's shape — now type-checked thanks to MF2) and a thin layer of <strong>end-to-end</strong> tests on the composed app for the critical journeys.</p>
+
+        <div class="callout exp">
+          <span class="clabel">Your whole backend toolkit maps over</span>
+          Independent deploy = microservice CI/CD. Manifest of remotes = service discovery. Singletons = shared-library hygiene. Error boundaries = circuit breakers. CSP + dependency scanning = the supply-chain rigor a bank already demands. You're not learning operations from scratch — you're applying the operations you already do, to the UI.
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 RAMP UP -->
+    <section class="block" id="rampup">
+      <div class="wrap">
+        <div class="eyebrow"><span class="num">10</span> Get fit before day one</div>
+        <h2>Your ramp-up plan</h2>
+        <p class="lead">You don't need to master all three frameworks before you start. You need to own the architecture, be fluent in Angular (you are), be dangerous in React (nearly there), and be conversational in Vue.</p>
+
+        <h3>A practical sequence</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Phase</th><th>Focus</th><th>Concrete action</th></tr></thead>
+            <tbody>
+              <tr><td>Week 1</td><td>Architecture &amp; MF2</td><td>Build a tiny shell + two Angular remotes with Native Federation (<code>ng add @angular-architects/native-federation</code>). Make one remote fail and add a fallback.</td></tr>
+              <tr><td>Week 2</td><td>React remote</td><td>Add a React remote via Module Federation 2.0 (Rspack for speed). Share singletons; wire an Error Boundary + Suspense.</td></tr>
+              <tr><td>Week 3</td><td>Vue + multi-framework</td><td>Wrap a Vue SFC as a Web Component; load it in the shell; pass data via attributes, listen for a custom event. Now you've done the hard case end-to-end.</td></tr>
+              <tr><td>Ongoing</td><td>Depth</td><td>Angular signals/Signal Forms; React Compiler &amp; RSC boundaries; Vue Composition API &amp; Vapor. One small build each.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>The talking points that make you sound senior on day one</h3>
+        <ul class="tight">
+          <li>"Micro-frontends are an org solution, not a perf trick — they earn their cost when teams need to ship independently."</li>
+          <li>"Module Federation 2.0 isn't webpack-only anymore; for our Angular work the future-proof path is Native Federation on esbuild."</li>
+          <li>"Share frameworks as singletons; multi-framework means shipping multiple runtimes, so I'd converge where we can and use Web Components where we can't."</li>
+          <li>"Treat each remote like a microservice: own pipeline, runtime manifest for discovery, error boundaries as circuit breakers, CSP and dependency scanning for supply chain."</li>
+          <li>"Mind the request waterfall — preload likely-next remotes."</li>
+        </ul>
+
+        <div class="callout say">
+          <span class="clabel">Mindset</span>
+          <span class="quote">You earned this role on architecture and banking judgment, not on having memorized three frameworks. The team needs someone who can see the whole system and make sound calls — that's exactly your strength. Learn Vue calmly, lean on your Angular depth, and bring the distributed-systems discipline you already have. You'll be an asset from week one.</span>
+        </div>
+
+        <div class="qbox">
+          <h4>Quick self-check before you start</h4>
+          <ul>
+            <li>Can I explain host / remote / shared in one breath?</li>
+            <li>Why must React/Angular be a singleton in a federated app?</li>
+            <li>Module Federation vs Native Federation — when each?</li>
+            <li>How would I make Angular, React and Vue coexist? (→ Web Components contract)</li>
+            <li>How do I deploy one remote without redeploying the shell?</li>
+            <li>What's the latest stable version of each framework, and one headline feature?</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">Field manual prepared for Youssef Rouane · 30 June 2026 · versions current as of this date — re-check release notes when you start, the ecosystem moves fast.</div>
+    </footer>
+  </div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'loose',
+    theme: 'base',
+    themeVariables: {
+      fontFamily: 'Space Grotesk, sans-serif',
+      fontSize: '14px',
+      primaryColor: '#eef1f8',
+      primaryTextColor: '#1c2333',
+      primaryBorderColor: '#141b2e',
+      lineColor: '#c08a1e',
+      secondaryColor: '#e6f3f1',
+      tertiaryColor: '#fbf3df',
+    },
+    flowchart: { htmlLabels: true, curve: 'basis' },
+  });
+
+  // Render each diagram independently: one parse error can never break the others,
+  // and raw Mermaid source is never shown to the reader.
+  const blocks = document.querySelectorAll('pre.mermaid');
+  for (let i = 0; i < blocks.length; i++) {
+    const el = blocks[i];
+    const code = (el.textContent || '').trim();
+    try {
+      const { svg } = await mermaid.render('mmd_' + i, code);
+      const out = document.createElement('div');
+      out.className = 'mermaid-rendered';
+      out.innerHTML = svg;
+      el.replaceWith(out);
+    } catch (err) {
+      console.error('Mermaid diagram ' + i + ' failed:', err);
+      const fb = document.createElement('div');
+      fb.className = 'mermaid-fallback';
+      fb.textContent = 'Diagram preview unavailable in this viewer. Open in a browser with an internet connection to render it.';
+      el.replaceWith(fb);
+    }
+  }
+</script>
+<script>
+  const sidebar=document.getElementById('sidebar');
+  const btn=document.getElementById('menubtn');
+  const backdrop=document.getElementById('backdrop');
+  function toggle(open){sidebar.classList.toggle('open',open);backdrop.classList.toggle('show',open);}
+  btn.addEventListener('click',()=>toggle(!sidebar.classList.contains('open')));
+  backdrop.addEventListener('click',()=>toggle(false));
+  document.querySelectorAll('.navlist a').forEach(a=>a.addEventListener('click',()=>{if(window.innerWidth<=1000)toggle(false);}));
+  const links=[...document.querySelectorAll('.navlist a')];
+  const map=new Map(links.map(l=>[l.getAttribute('href').slice(1),l]));
+  const obs=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('active'));const l=map.get(e.target.id);if(l)l.classList.add('active');}});},{rootMargin:'-15% 0px -75% 0px',threshold:0});
+  document.querySelectorAll('section.block').forEach(s=>obs.observe(s));
+</script>
+</body>
+</html>
