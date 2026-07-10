@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrée en Relation — Conception DDD & hexagonale d'un parcours bancaire orchestré (BMCI)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<style>
+:root{
+  --bg:#0B1220;            /* bleu nuit profond */
+  --surface:#111A2C;       /* panneaux */
+  --surface2:#0D1526;      /* blocs de code */
+  --line:#1E2A44;          /* bordures */
+  --txt:#E6ECF5;
+  --muted:#8A97AD;
+  --green:#00A76F;         /* accent BMCI */
+  --green-soft:rgba(0,167,111,.12);
+  --amber:#F5B841;
+  --amber-soft:rgba(245,184,65,.10);
+  --red:#F0616D;
+  --red-soft:rgba(240,97,109,.10);
+  --blue:#5AA9FF;
+  --blue-soft:rgba(90,169,255,.10);
+  --mono:ui-monospace,'Cascadia Code','JetBrains Mono',Consolas,monospace;
+  --sans:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:16px;line-height:1.7}
+::selection{background:var(--green);color:#04120C}
+
+/* ---------- Layout ---------- */
+.wrap{display:flex;min-height:100vh}
+aside{width:300px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 0 40px}
+main{flex:1;min-width:0;padding:0 clamp(20px,5vw,72px) 120px}
+.content{max-width:880px;margin:0 auto}
+
+/* ---------- Sidebar : le sommaire est lui-même un processus BPMN ---------- */
+.brand{padding:0 24px 20px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.brand .logo{font-family:var(--mono);font-size:13px;letter-spacing:.18em;color:var(--green);text-transform:uppercase}
+.brand h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin-top:6px}
+.brand p{font-size:12.5px;color:var(--muted);margin-top:4px}
+.flownav{position:relative;padding:6px 24px 0 34px}
+.flownav::before{content:"";position:absolute;left:43px;top:14px;bottom:26px;width:2px;
+  background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 11px)}
+.flownav a{display:flex;align-items:center;gap:12px;padding:7px 8px 7px 0;color:var(--muted);
+  text-decoration:none;font-size:13.5px;position:relative;border-radius:8px;transition:color .15s}
+.flownav a:hover{color:var(--txt)}
+.flownav a.active{color:var(--txt);font-weight:600}
+.node{width:20px;height:20px;flex-shrink:0;border:2px solid var(--line);background:var(--surface);
+  border-radius:6px;position:relative;z-index:1;transition:border-color .15s}
+.flownav a:hover .node,.flownav a.active .node{border-color:var(--green)}
+.flownav a.active .node{background:var(--green-soft)}
+.node.start,.node.end{border-radius:50%}
+.node.end{border-width:4px}
+.node.gate{transform:rotate(45deg);border-radius:4px;width:17px;height:17px;margin:0 1.5px}
+.flownav .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flownav .num{font-family:var(--mono);font-size:10.5px;color:var(--muted);opacity:.7}
+
+/* ---------- Typo & structure de chapitre ---------- */
+.chapter{padding-top:64px;border-top:1px solid var(--line);margin-top:64px}
+.chapter:first-of-type{border-top:none;margin-top:0}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--green);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.eyebrow::after{content:"";height:1px;flex:1;background:var(--line)}
+h2{font-size:clamp(26px,3.4vw,34px);font-weight:800;letter-spacing:-.025em;line-height:1.2;margin-bottom:14px}
+h3{font-size:21px;font-weight:700;letter-spacing:-.015em;margin:42px 0 12px;padding-top:6px}
+h4{font-size:16.5px;font-weight:700;margin:28px 0 8px}
+p{margin:0 0 14px;color:#C9D3E3}
+p strong,li strong{color:var(--txt)}
+.lead{font-size:18px;color:var(--txt);line-height:1.65}
+ul,ol{margin:0 0 16px 22px;color:#C9D3E3}
+li{margin-bottom:7px}
+a{color:var(--blue)}
+hr{border:none;border-top:1px solid var(--line);margin:32px 0}
+
+/* ---------- Composants ---------- */
+code:not(pre code){font-family:var(--mono);font-size:.86em;background:var(--surface2);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:#9FE8C8}
+pre{background:var(--surface2)!important;border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;overflow-x:auto;margin:0 0 18px;font-size:13.5px;line-height:1.6}
+pre code{font-family:var(--mono);background:transparent!important;padding:0}
+.filetag{display:inline-block;font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  background:var(--surface);border:1px solid var(--line);border-bottom:none;
+  border-radius:8px 8px 0 0;padding:5px 12px;margin-bottom:-1px;position:relative}
+.filetag+pre{border-top-left-radius:0}
+
+.callout{border:1px solid var(--line);border-left:3px solid var(--green);background:var(--green-soft);
+  border-radius:10px;padding:14px 18px;margin:0 0 18px;font-size:15px}
+.callout .t{font-weight:700;font-family:var(--mono);font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--green);display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+.callout.warn{border-left-color:var(--amber);background:var(--amber-soft)}
+.callout.warn .t{color:var(--amber)}
+.callout.danger{border-left-color:var(--red);background:var(--red-soft)}
+.callout.danger .t{color:var(--red)}
+.callout.info{border-left-color:var(--blue);background:var(--blue-soft)}
+.callout.info .t{color:var(--blue)}
+
+table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:14.5px}
+th{text-align:left;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--line)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:#C9D3E3}
+tr:hover td{background:rgba(255,255,255,.015)}
+td .sym{display:inline-flex;align-items:center;justify-content:center;width:52px;height:44px}
+
+.mermaid{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:20px;margin:0 0 20px;display:flex;justify-content:center;overflow-x:auto}
+.figcap{font-size:13px;color:var(--muted);text-align:center;margin:-10px 0 24px;font-style:italic}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.card h5{font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card p{font-size:14px;margin-bottom:0}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:99px;
+  border:1px solid var(--line);color:var(--muted);margin-right:6px}
+.pill.g{color:var(--green);border-color:rgba(0,167,111,.4)}
+.pill.a{color:var(--amber);border-color:rgba(245,184,65,.4)}
+.pill.r{color:var(--red);border-color:rgba(240,97,109,.4)}
+.pill.b{color:var(--blue);border-color:rgba(90,169,255,.4)}
+
+/* Hero */
+.hero{padding:88px 0 20px}
+.hero .k{font-family:var(--mono);color:var(--green);font-size:13px;letter-spacing:.2em;text-transform:uppercase}
+.hero h2{font-size:clamp(34px,5vw,52px);border:none;margin:14px 0 18px;padding:0}
+.hero h2 .thin{color:var(--muted);font-weight:300}
+.hero .sub{font-size:18px;color:#C9D3E3;max-width:640px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+details{border:1px solid var(--line);border-radius:10px;margin-bottom:12px;background:var(--surface)}
+summary{cursor:pointer;padding:13px 18px;font-weight:600;font-size:15px;list-style:none;display:flex;align-items:center;gap:10px}
+summary::before{content:"+";font-family:var(--mono);color:var(--green);font-size:16px;width:16px}
+details[open] summary::before{content:"–"}
+details .body{padding:0 18px 16px;font-size:14.5px}
+details .body p:last-child{margin-bottom:0}
+
+kbd{font-family:var(--mono);font-size:.85em;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:5px;padding:1px 6px;background:var(--surface2)}
+
+@media(max-width:960px){
+  aside{display:none}
+  main{padding:0 18px 80px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<aside>
+  <div class="brand">
+    <div class="logo">◈ Conception</div>
+    <h1>Entrée en Relation<br>par le domaine</h1>
+    <p>Du métier au déploiement : Event Storming, DDD, hexagonal, Camunda — le dossier « lead dev »</p>
+  </div>
+  <nav class="flownav" id="flownav">
+    <a href="#ch0"><span class="node start"></span><span class="lbl">Le métier d'abord</span></a>
+    <a href="#ch1"><span class="node"></span><span class="lbl"><span class="num">01</span> Event Storming : la découverte</span></a>
+    <a href="#ch2"><span class="node gate"></span><span class="lbl"><span class="num">02</span> Bounded contexts & context map</span></a>
+    <a href="#ch3"><span class="node"></span><span class="lbl"><span class="num">03</span> Le domaine « Souscription » (DDD tactique)</span></a>
+    <a href="#ch4"><span class="node"></span><span class="lbl"><span class="num">04</span> L'hexagone : où vit chaque chose</span></a>
+    <a href="#ch5"><span class="node"></span><span class="lbl"><span class="num">05</span> Camunda × hexagonal : le mariage</span></a>
+    <a href="#ch6"><span class="node"></span><span class="lbl"><span class="num">06</span> Le processus EER en BPMN + DMN</span></a>
+    <a href="#ch7"><span class="node gate"></span><span class="lbl"><span class="num">07</span> Un cas d'usage de A à Z</span></a>
+    <a href="#ch8"><span class="node"></span><span class="lbl"><span class="num">08</span> Tester un système DDD</span></a>
+    <a href="#ch9"><span class="node"></span><span class="lbl"><span class="num">09</span> CI/CD, ADRs & livraison</span></a>
+    <a href="#ch10"><span class="node end"></span><span class="lbl"><span class="num">10</span> La synthèse du lead</span></a>
+  </nav>
+</aside>
+
+<main><div class="content">
+<!-- ============ CH0 ============ -->
+<section class="hero" id="ch0">
+  <div class="k">Dossier de conception · Fonctionnel + DDD + Hexagonal</div>
+  <h2>L'Entrée en Relation, <span class="thin">conçue par le domaine</span><br>et orchestrée par Camunda.</h2>
+  <p class="sub">Les deux dossiers précédents montraient <em>comment</em> construire. Celui-ci montre <strong>comment penser</strong> : partir d'un vrai processus métier bancaire — l'entrée en relation (EER), telle que la digitalise une solution type Qlickeer — et dérouler la démarche complète d'un lead dev : ateliers Event Storming, découpage en bounded contexts, modèle de domaine, architecture hexagonale, mapping vers Camunda, implémentation d'un cas d'usage de bout en bout, tests et livraison GitHub.</p>
+  <div class="meta">
+    <span class="pill g">DDD stratégique + tactique</span>
+    <span class="pill g">Architecture hexagonale</span>
+    <span class="pill b">Camunda 7 · Spring Boot · Angular MF</span>
+    <span class="pill a">Conformité LCB-FT au cœur</span>
+  </div>
+
+  <h3>Le métier, avant toute technique : c'est quoi, une entrée en relation ?</h3>
+  <p>L'<strong>entrée en relation</strong> (EER), c'est le processus par lequel un <strong>prospect devient client</strong> de la banque : identification, vérifications réglementaires, choix d'une offre, signature de la convention de compte, puis ouverture effective du compte et de ses services. C'est un parcours à très fort enjeu :</p>
+  <ul>
+    <li><strong>Réglementaire</strong> : la loi impose de « connaître son client » (KYC — <em>Know Your Customer</em>) et de lutter contre le blanchiment (LCB-FT) : vérifier l'identité, dépister les personnes sous sanctions ou politiquement exposées (PPE), évaluer le risque, et adapter le <strong>niveau de vigilance</strong>. Chaque décision doit être tracée et auditable devant Bank Al-Maghrib.</li>
+    <li><strong>Commercial</strong> : chaque heure de délai et chaque écran de trop fait <strong>abandonner des prospects</strong>. L'EER digitale (type Qlickeer) vise « compte ouvert en minutes » quand le dossier est simple — tout en gardant l'humain là où la réglementation l'exige.</li>
+    <li><strong>Opérationnel</strong> : derrière un « oui », il faut provisionner sans couture : créer le client au référentiel, ouvrir le compte au core banking, commander la carte, activer la banque en ligne. Si l'une échoue, on ne laisse pas un client à moitié créé.</li>
+  </ul>
+
+  <h3>Les acteurs de notre parcours</h3>
+  <div class="grid2">
+    <div class="card"><h5>🧑🏽 Omar — le prospect</h5><p>Il ouvre un compte depuis son canapé : identité, photo de la CIN, selfie, choix du pack. Il veut un compte, pas un dossier administratif.</p></div>
+    <div class="card"><h5>👩🏻‍💼 Nadia — chargée de conformité</h5><p>Elle n'intervient que sur les dossiers à <strong>vigilance renforcée</strong> : PPE, non-résidents, profils à risque. Sa décision est engageante et tracée.</p></div>
+    <div class="card"><h5>🧑🏻‍💼 Rachid — conseiller en agence</h5><p>Il finalise les dossiers en vigilance standard qui nécessitent un contrôle visuel, et reprend les parcours abandonnés en ligne (« phygital »).</p></div>
+    <div class="card"><h5>⚖️ L'auditeur</h5><p>Personnage silencieux mais omniprésent : chaque exigence de traçabilité de ce document existe parce qu'un jour, il demandera « prouvez-moi pourquoi ce compte a été ouvert ».</p></div>
+  </div>
+
+  <div class="callout info">
+    <span class="t">ℹ Posture de ce document</span>
+    <p>Le déroulé fonctionnel est réaliste mais <strong>volontairement générique</strong> : les règles précises (seuils, listes de pièces, matrices de risque) appartiennent à la conformité BMCI et à la solution en place. La valeur ici est dans la <strong>démarche</strong> — celle que vous rejouerez en atelier avec les vrais experts métier. Les concepts Camunda et l'architecture microservices/MF sont ceux des dossiers précédents de la série.</p>
+  </div>
+</section>
+
+<!-- ============ CH1 ============ -->
+<section class="chapter" id="ch1">
+  <div class="eyebrow">Phase 01 · Découverte</div>
+  <h2>Event Storming : comprendre avant de découper</h2>
+
+  <p class="lead">Erreur classique : commencer par « quels microservices ? ». La démarche DDD commence par <strong>quels événements ?</strong> L'Event Storming est un atelier (métier + devs, un mur, des post-its) où l'on raconte le processus par ses <strong>événements métier au passé</strong>. C'est la matière première de tout ce qui suit — y compris, on le verra, du BPMN.</p>
+
+  <h3>1.1 — L'atelier reconstitué</h3>
+  <p>On demande au métier : « racontez-moi une entrée en relation, du premier clic au client actif ». On capture chaque fait marquant en <span class="pill a">événement</span> (orange, au passé), on remonte vers la <span class="pill b">commande</span> qui le déclenche (bleu, à l'impératif), l'<span class="pill">acteur</span>, et on marque en <span class="pill r">point chaud</span> les zones de friction ou de flou :</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    C1["🟦 Démarrer une<br/>souscription"] --> E1["🟧 Souscription<br/>démarrée"]
+    E1 --> C2["🟦 Déposer les<br/>pièces d'identité"] --> E2["🟧 Pièces<br/>déposées"]
+    E2 --> E3["🟧 Identité vérifiée<br/>(OCR + liveness)"]
+    E3 --> E4["🟧 Screening effectué<br/>(sanctions, PPE)"]
+    E4 --> E5["🟧 Niveau de vigilance<br/>déterminé"]
+    E5 --> H1["🟥 POINT CHAUD :<br/>qui décide en cas<br/>de doute ? quel délai ?"]
+    E5 --> C3["🟦 Statuer sur<br/>la conformité"] --> E6["🟧 Conformité validée<br/>(ou rejetée)"]
+    E6 --> C4["🟦 Signer la<br/>convention"] --> E7["🟧 Convention<br/>signée"]
+    E7 --> E8["🟧 Client créé<br/>au référentiel"]
+    E8 --> E9["🟧 Compte ouvert<br/>(core banking)"]
+    E9 --> E10["🟧 Carte commandée +<br/>banque en ligne activée"]
+    E10 --> E11["🟧 Relation<br/>activée 🎉"]
+    style H1 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style E11 fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 1 — Extrait du mur d'Event Storming. Les points chauds (rouges) sont de l'or : chacun deviendra une règle DMN, une User Task ou un timer dans le processus final.</p>
+
+  <p>Ce que l'atelier a fait émerger (et qu'aucune spec écrite n'aurait donné aussi vite) :</p>
+  <ul>
+    <li>Le mot « dossier » désignait <strong>trois choses différentes</strong> selon les interlocuteurs (la demande, le dossier réglementaire, le dossier client). → Il faudra des mots distincts : c'est le point de départ du <strong>langage ubiquitaire</strong>.</li>
+    <li>La <strong>décision de conformité</strong> est l'événement pivot : tout ce qui précède l'instruit, tout ce qui suit l'exécute. Personne ne peut ouvrir un compte sans elle — c'est un <strong>invariant métier</strong>, pas une règle d'écran.</li>
+    <li>L'abandon du prospect est un <strong>événement de première classe</strong> (fréquent !), pas un cas d'erreur : il a ses propres règles (relance à J+2, purge RGPD-like des pièces à J+30).</li>
+    <li>Le provisionnement (référentiel → compte → carte → digital) est une séquence <strong>où chaque étape peut échouer</strong> après des étapes réussies → besoin de compensation, on le savait, mais l'atelier a dit <em>dans quel ordre</em> annuler.</li>
+  </ul>
+
+  <h3>1.2 — Le langage ubiquitaire : le glossaire qui fait loi</h3>
+  <p>Règle DDD n°1 : <strong>les mots du métier deviennent les noms du code</strong> — classes, méthodes, variables de processus, colonnes. Extrait du glossaire issu de l'atelier (à faire valider par la conformité, puis à graver dans le wiki) :</p>
+  <table>
+    <tr><th style="width:230px">Terme</th><th>Définition contractuelle (et son nom dans le code)</th></tr>
+    <tr><td><strong>Prospect</strong></td><td>Personne physique engagée dans une souscription, pas encore cliente. (<code>Prospect</code>)</td></tr>
+    <tr><td><strong>Dossier de souscription</strong></td><td>L'objet central : la demande d'EER d'un prospect pour une offre, avec ses pièces, contrôles et décisions. (<code>DossierSouscription</code>)</td></tr>
+    <tr><td><strong>Pièce justificative</strong></td><td>Document exigé (CIN, justificatif de domicile…), avec un statut : attendue, déposée, validée, rejetée, expirée. (<code>PieceJustificative</code>)</td></tr>
+    <tr><td><strong>Screening</strong></td><td>Dépistage du prospect contre les listes de sanctions et de PPE. Résultat : aucune alerte / alerte à qualifier. (<code>ResultatScreening</code>)</td></tr>
+    <tr><td><strong>Niveau de vigilance</strong></td><td>Intensité du contrôle LCB-FT exigée : <code>SIMPLIFIEE</code>, <code>STANDARD</code>, <code>RENFORCEE</code>. Déterminé par des règles, jamais choisi à la main. (<code>NiveauVigilance</code>)</td></tr>
+    <tr><td><strong>Décision de conformité</strong></td><td>Acte par lequel une personne habilitée valide ou rejette le dossier. Unique, motivée, horodatée, nominative. (<code>DecisionConformite</code>)</td></tr>
+    <tr><td><strong>Provisionnement</strong></td><td>L'exécution technique de l'ouverture : référentiel client, compte, carte, digital. (<code>Provisionnement</code>)</td></tr>
+  </table>
+  <div class="callout">
+    <span class="t">💡 Le réflexe lead dev</span>
+    <p>En revue de code, le langage ubiquitaire est un critère de refus au même titre qu'un bug : une classe <code>RequestManager</code> ou une variable <code>status2</code> dans le contexte Souscription, c'est non. Si le métier dit « statuer sur la conformité », la méthode s'appelle <code>statuer(...)</code> — pas <code>updateStatus(...)</code>. Ce n'est pas de l'esthétique : c'est ce qui permet à un dev et à Nadia de parler du même système avec les mêmes mots pendant 5 ans.</p>
+  </div>
+</section>
+<!-- ============ CH2 ============ -->
+<section class="chapter" id="ch2">
+  <div class="eyebrow">Phase 02 · DDD stratégique</div>
+  <h2>Bounded contexts & context map</h2>
+
+  <p class="lead">Un <strong>bounded context</strong> (contexte borné) est une frontière à l'intérieur de laquelle chaque mot du langage a <strong>un sens unique</strong> et un seul modèle. Le découpage en contextes précède — et justifie — le découpage en microservices : <strong>un contexte = un (ou plusieurs) service(s), jamais l'inverse</strong>.</p>
+
+  <h3>2.1 — Comment on a tracé les frontières</h3>
+  <p>Sur le mur d'Event Storming, on cherche les lignes de fracture : là où <strong>le vocabulaire change de sens</strong>, où <strong>le rythme change</strong>, où <strong>les responsables changent</strong>. Trois indices concrets sur l'EER :</p>
+  <ul>
+    <li>« Client » ne veut pas dire pareil partout : pour la Souscription c'est un <em>aboutissement</em> ; pour le Référentiel c'est un <em>enregistrement maître</em> (état civil, adresses, consentements) qui vivra 30 ans. Deux modèles → deux contextes.</li>
+    <li>Le KYC (vérif identité, screening) a <strong>ses propres experts, ses propres fournisseurs</strong> (OCR, listes de sanctions), son propre cycle de mise à jour réglementaire, et il resservira à d'autres parcours (crédit, succession). → Contexte à part, réutilisable.</li>
+    <li>Le core banking est <strong>un monde existant qu'on ne changera pas</strong> : son modèle (comptes, chapitres comptables) ne doit pas contaminer le nôtre. → Il vit derrière une <em>couche anti-corruption</em>.</li>
+  </ul>
+
+  <h3>2.2 — La context map de l'EER</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    subgraph CORE["🎯 Domaine cœur (différenciant)"]
+        SOUS["<b>Souscription</b><br/>le parcours EER lui-même :<br/>dossier, pièces, décision, provisionnement<br/><i>← héberge le processus Camunda</i>"]
+    end
+    subgraph SUPPORT["🧰 Domaines support"]
+        KYC["<b>Identité & Conformité</b><br/>vérif identité, screening,<br/>qualification d'alertes"]
+        REF["<b>Référentiel Client</b><br/>données maîtres du client,<br/>consentements"]
+        SIGN["<b>Signature</b><br/>convention, certificats,<br/>preuve de signature"]
+    end
+    subgraph GEN["📦 Générique / existant"]
+        CB["<b>Core Banking</b> (existant)<br/>comptes, cartes"]
+        NOTIF["<b>Notification</b><br/>SMS, email, push"]
+        GED["<b>GED</b><br/>stockage des pièces"]
+    end
+    SOUS -- "Customer/Supplier<br/>(la Souscription commande,<br/>le KYC fournit)" --> KYC
+    SOUS -- "Customer/Supplier" --> REF
+    SOUS -- "Customer/Supplier" --> SIGN
+    SOUS -- "⚔️ ACL — couche<br/>anti-corruption" --> CB
+    SOUS -- "événements publiés<br/>(Open Host)" --> NOTIF
+    SOUS --- GED
+    style SOUS fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style CB fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 2 — La context map : QUI dépend de QUI, et par quel type de relation. C'est le document d'architecture le plus important du projet — une page, dix minutes à lire, des années de clarté.</p>
+
+  <table>
+    <tr><th style="width:230px">Relation</th><th>Ce que ça veut dire concrètement</th></tr>
+    <tr><td><strong>Customer / Supplier</strong></td><td>La Souscription est « cliente » du KYC : elle exprime ses besoins (contrat d'API négocié), le KYC s'engage dessus. Les deux équipes planifient ensemble les évolutions du contrat.</td></tr>
+    <tr><td><strong>ACL (Anti-Corruption Layer)</strong></td><td>Entre notre modèle propre et le core banking legacy, un <strong>traducteur</strong> : une classe adapter qui parle « chapitre 251, code produit 07 » côté core, et « Compte courant du pack Essentiel » côté domaine. Le jargon du legacy ne franchit JAMAIS cette couche (chap. 04).</td></tr>
+    <tr><td><strong>Open Host / événements</strong></td><td>La Souscription publie ses événements métier (<code>RelationActivee</code>…) sans connaître ses consommateurs : la Notification s'abonne, demain le CRM ou le décisionnel s'abonneront aussi.</td></tr>
+  </table>
+
+  <h3>2.3 — Du contexte au dépôt GitHub</h3>
+  <p>Le mapping final, dans la continuité de la série (un déployable = un repo = un pipeline) :</p>
+  <table>
+    <tr><th style="width:250px">Bounded context</th><th style="width:250px">Dépôt(s)</th><th>Remarque</th></tr>
+    <tr><td>Souscription <span class="pill g">cœur</span></td><td><code>eer-souscription-svc</code></td><td>Contient le domaine <strong>ET</strong> le moteur Camunda + le BPMN : le processus fait partie du métier de ce contexte (justifié au chap. 05)</td></tr>
+    <tr><td>Identité & Conformité</td><td><code>eer-kyc-svc</code></td><td>Workers <code>eer.verification-identite</code>, <code>eer.screening</code> + API de qualification d'alertes</td></tr>
+    <tr><td>Référentiel Client</td><td><code>ref-client-svc</code></td><td>Existant ou nouveau — worker <code>eer.creation-client</code></td></tr>
+    <tr><td>Signature</td><td><code>eer-signature-svc</code></td><td>Worker + webhook du prestataire</td></tr>
+    <tr><td>ACL Core banking</td><td><code>eer-corebanking-adapter</code></td><td>Workers <code>eer.ouverture-compte</code>, <code>eer.commande-carte</code> — tout le jargon legacy confiné ici</td></tr>
+    <tr><td>Front</td><td><code>mf-parcours-eer</code> (Omar) · <code>mf-conformite</code> (Nadia) · <code>mf-agence</code> (Rachid)</td><td>Un remote par « public », alignés sur les acteurs, pas sur les contextes back</td></tr>
+  </table>
+</section>
+
+<!-- ============ CH3 ============ -->
+<section class="chapter" id="ch3">
+  <div class="eyebrow">Phase 03 · DDD tactique</div>
+  <h2>Le domaine « Souscription » : agrégat, VOs, services</h2>
+
+  <p class="lead">On zoome dans le contexte cœur. Objectif du DDD tactique : un modèle où <strong>les règles métier sont dans les objets métier</strong> — pas éparpillées dans des services anémiques, des contrôleurs ou (pire) des delegates Camunda.</p>
+
+  <h3>3.1 — L'agrégat DossierSouscription</h3>
+  <p>Un <strong>agrégat</strong> est une grappe d'objets modifiés <strong>ensemble, de façon cohérente</strong>, derrière une seule porte d'entrée (la racine). La racine protège les <strong>invariants</strong> — les règles qui doivent être vraies à tout instant :</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    subgraph AGG["Agrégat DossierSouscription (racine = seule porte d'entrée)"]
+        ROOT["<b>DossierSouscription</b><br/>id · statut · niveauVigilance<br/>+ deposerPiece() + statuer()<br/>+ marquerScreening() ..."]
+        P1["PieceJustificative<br/>(entité enfant)<br/>type · refGed · statut"]
+        VO1["Prospect (VO)<br/>identité déclarée :<br/>Cin · Nom · Contact"]
+        VO2["OffreSouscrite (VO)<br/>codePack · options"]
+        VO3["DecisionConformite (VO)<br/>sens · motif · décideur ·<br/>horodatage — immuable"]
+        ROOT --- P1
+        ROOT --- VO1
+        ROOT --- VO2
+        ROOT --- VO3
+    end
+    EXT1["RéférentielClient,<br/>Compte, Alerte KYC..."] -.->|"référencés par ID<br/>uniquement, jamais<br/>par objet"| ROOT
+    style ROOT fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 3 — L'agrégat : petit, cohérent, transactionnel. Tout ce qui est en dehors est référencé par identifiant — exactement comme les « variables minces » de Camunda. Ce n'est pas un hasard : c'est la même discipline.</p>
+
+  <div class="filetag">domain/model/DossierSouscription.java — la racine (extraits)</div>
+  <pre><code class="language-java">public class DossierSouscription {
+
+    private final DossierId id;
+    private final Prospect prospect;
+    private final OffreSouscrite offre;
+    private final List&lt;PieceJustificative&gt; pieces = new ArrayList&lt;&gt;();
+    private StatutDossier statut = StatutDossier.EN_CONSTITUTION;
+    private NiveauVigilance niveauVigilance;          // null tant que non déterminé
+    private ResultatScreening screening;
+    private DecisionConformite decision;              // au plus UNE, immuable
+    private final List&lt;DomainEvent&gt; evenements = new ArrayList&lt;&gt;();
+
+    /** INVARIANT : on ne dépose une pièce que sur un dossier encore ouvert. */
+    public void deposerPiece(TypePiece type, RefGed refGed) {
+        assertStatut(EN_CONSTITUTION, COMPLEMENT_DEMANDE);
+        pieces.removeIf(p -> p.type() == type && p.estRejetee());   // re-dépôt
+        pieces.add(PieceJustificative.deposee(type, refGed));
+        if (toutesLesPiecesExigeesSontDeposees()) {
+            statut = StatutDossier.PIECES_COMPLETES;
+            evenements.add(new PiecesCompletees(id));
+        }
+    }
+
+    /** INVARIANT : une décision unique, motivée, par un décideur habilité,
+        sur un dossier dont l'instruction est terminée. */
+    public void statuer(SensDecision sens, Motif motif, Decideur decideur) {
+        assertStatut(EN_ATTENTE_DECISION);
+        if (decision != null)
+            throw new DecisionDejaPriseException(id);
+        if (niveauVigilance == RENFORCEE && !decideur.estHabiliteConformite())
+            throw new DecideurNonHabiliteException(decideur, id);
+        if (sens == REJET && motif.estVide())
+            throw new MotifObligatoireException("Un rejet doit être motivé");
+
+        this.decision = new DecisionConformite(sens, motif, decideur, Instant.now());
+        this.statut = (sens == VALIDATION) ? StatutDossier.CONFORME
+                                           : StatutDossier.REJETE;
+        evenements.add(sens == VALIDATION ? new ConformiteValidee(id)
+                                          : new ConformiteRejetee(id, motif));
+    }
+    // ... marquerIdentiteVerifiee(), appliquerVigilance(), abandonner(), etc.
+}</code></pre>
+  <div class="callout">
+    <span class="t">💡 Lisez ce code comme le ferait Nadia</span>
+    <p>« Une décision unique, motivée, par un décideur habilité » — l'exigence réglementaire est <strong>littéralement le code</strong>, compilée et testable. Aucun contrôleur, aucun écran, aucun worker ne peut la contourner, parce que la racine est la seule porte. C'est ça, l'apport du DDD tactique en banque : les invariants de conformité cessent d'être une convention pour devenir une impossibilité.</p>
+  </div>
+
+  <h3>3.2 — Les Value Objects : des types qui interdisent l'invalide</h3>
+  <p>Un <strong>Value Object</strong> n'a pas d'identité : il EST sa valeur, immuable, auto-validée à la construction. Le gain : plus aucun <code>String</code> anonyme qui se balade, plus de « et si le CIN est vide ? » répété dans 12 classes :</p>
+  <div class="filetag">domain/model/Cin.java</div>
+  <pre><code class="language-java">public record Cin(String valeur) {
+    private static final Pattern FORMAT = Pattern.compile("^[A-Z]{1,2}[0-9]{4,7}$");
+    public Cin {
+        Objects.requireNonNull(valeur, "CIN obligatoire");
+        valeur = valeur.trim().toUpperCase();
+        if (!FORMAT.matcher(valeur).matches())
+            throw new CinInvalideException(valeur);
+    }
+}</code></pre>
+  <p>Même traitement pour <code>Email</code>, <code>TelephoneMarocain</code>, <code>RefGed</code>, <code>NiveauVigilance</code>, <code>Motif</code>… Règle d'équipe : <strong>un concept métier nommé au glossaire = un type</strong>. Le compilateur devient votre premier relecteur de conformité.</p>
+
+  <h3>3.3 — Services de domaine vs services d'application : la distinction qui fait le lead</h3>
+  <p>La question qui revient à chaque revue : « où je mets cette logique ? ». La grille de décision :</p>
+  <table>
+    <tr><th style="width:200px"></th><th>Service de DOMAINE</th><th>Service d'APPLICATION (cas d'usage)</th></tr>
+    <tr><td><strong>Répond à</strong></td><td>Une règle métier qui ne loge naturellement dans <em>aucun</em> agrégat (elle en croise plusieurs, ou dépend d'une connaissance externe abstraite)</td><td>« Que fait le système quand on lui demande X ? » — l'orchestration d'UN cas d'usage</td></tr>
+    <tr><td><strong>Contenu</strong></td><td>Décisions, calculs, règles. AUCUNE transaction, AUCUN appel technique direct</td><td>Charger l'agrégat → appeler SA méthode → sauvegarder → publier les événements. AUCUNE règle métier</td></tr>
+    <tr><td><strong>Exemple EER</strong></td><td><code>DetecteurRelationExistante</code> : « ce prospect est-il déjà client ou en souscription ailleurs ? » (croise dossiers + référentiel, via des ports)</td><td><code>StatuerSurConformiteUseCase</code> : reçoit la commande de Nadia, charge le dossier, appelle <code>statuer()</code>, persiste, publie</td></tr>
+    <tr><td><strong>Test</strong></td><td>Unitaire pur (mocks des ports de lecture)</td><td>Unitaire avec ports mockés + un test d'intégration</td></tr>
+  </table>
+  <div class="filetag">domain/service/DetecteurRelationExistante.java — un service de domaine assumé</div>
+  <pre><code class="language-java">/** Règle métier : un même prospect (CIN) ne peut pas avoir deux souscriptions
+ *  actives, ni souscrire s'il est déjà client — sauf offre multi-détention. */
+public class DetecteurRelationExistante {
+
+    private final RechercheDossiers rechercheDossiers;     // port (interface domaine)
+    private final RechercheClients  rechercheClients;      // port
+
+    public VerdictDoublon verifier(Cin cin, OffreSouscrite offre) {
+        if (rechercheDossiers.existeSouscriptionActive(cin))
+            return VerdictDoublon.souscriptionEnCours();
+        var clientExistant = rechercheClients.parCin(cin);
+        if (clientExistant.isPresent() && !offre.autoriseMultiDetention())
+            return VerdictDoublon.dejaClient(clientExistant.get());
+        return VerdictDoublon.aucun();
+    }
+}</code></pre>
+  <p>Notez : ce service dépend d'<strong>interfaces</strong> (<code>RechercheDossiers</code>, <code>RechercheClients</code>) définies <em>par le domaine</em>. Qui les implémente, avec quelle techno ? Ce n'est pas son problème — c'est exactement la porte d'entrée du chapitre suivant : l'hexagone.</p>
+</section>
+<!-- ============ CH4 ============ -->
+<section class="chapter" id="ch4">
+  <div class="eyebrow">Phase 04 · Architecture</div>
+  <h2>L'hexagone : où vit chaque chose</h2>
+
+  <p class="lead">L'architecture hexagonale (ou « ports & adapters ») répond à une seule question, mais parfaitement : <strong>comment protéger le modèle du chapitre 3 de la technique ?</strong> Réponse : le domaine au centre, des <strong>ports</strong> (interfaces) comme seules frontières, des <strong>adapters</strong> (implémentations techniques) à l'extérieur. La règle de dépendance est absolue : <strong>tout pointe vers le centre, le centre ne pointe vers rien.</strong></p>
+
+  <h3>4.1 — L'hexagone du service Souscription</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    subgraph DRIVING["Adapters ENTRANTS (qui pilotent)"]
+        A1["REST<br/>SouscriptionController<br/>(Omar, Nadia via façade)"]
+        A2["Camunda<br/>workers + delegates<br/>(le processus pilote)"]
+        A3["Écouteur d'événements<br/>(webhook signature...)"]
+    end
+    subgraph HEX["⬡ L'application"]
+        subgraph APP["Couche application"]
+            UC1["Ports IN (interfaces des cas d'usage)<br/>DemarrerSouscription · DeposerPieces ·<br/>StatuerSurConformite · ...<br/>+ leurs implémentations UseCase"]
+        end
+        subgraph DOM["💎 Domaine (chap. 3) — PUR"]
+            D1["DossierSouscription · VOs ·<br/>DetecteurRelationExistante ·<br/>événements de domaine"]
+        end
+        UC1 --> D1
+    end
+    subgraph DRIVEN["Adapters SORTANTS (qui sont pilotés)"]
+        B1["JPA/PostgreSQL<br/>DossierRepositoryAdapter"]
+        B2["Client GED"]
+        B3["⚔️ ACL Core banking"]
+        B4["Publication d'événements<br/>(Kafka / outbox)"]
+    end
+    A1 --> UC1
+    A2 --> UC1
+    A3 --> UC1
+    UC1 -- "Ports OUT<br/>(interfaces définies côté hexagone)" --> B1
+    UC1 --> B2
+    UC1 --> B4
+    B3 -.->|"utilisé par le contexte<br/>corebanking-adapter"| B1
+    style DOM fill:#00A76F11,stroke:#00A76F,color:#E6ECF5
+    style A2 fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 4 — Point capital, souligné en jaune : <strong>Camunda est un adapter entrant comme un autre</strong>. Un worker et un contrôleur REST appellent LE MÊME port. On y consacre le chapitre 5.</p>
+
+  <h3>4.2 — L'arborescence qui matérialise la règle</h3>
+  <div class="filetag">eer-souscription-svc/src/main/java/ma/banque/eer/souscription/</div>
+  <pre><code class="language-text">domain/                          💎 ZÉRO dépendance framework (pas de Spring, pas de JPA, pas de Camunda)
+├── model/                       DossierSouscription, PieceJustificative, Cin, NiveauVigilance...
+├── service/                     DetecteurRelationExistante
+├── event/                       PiecesCompletees, ConformiteValidee, RelationActivee...
+└── port/                        RechercheDossiers, RechercheClients (besoins du domaine)
+
+application/
+├── port/
+│   ├── in/                      ← les CAS D'USAGE, un par intention métier :
+│   │                              DemarrerSouscriptionUseCase, DeposerPiecesUseCase,
+│   │                              StatuerSurConformiteUseCase, LancerProvisionnementUseCase...
+│   │                              + leurs Commands (records validés)
+│   └── out/                     ← les BESOINS techniques abstraits :
+│                                  ChargerDossierPort, SauverDossierPort,
+│                                  PublierEvenementsPort, ArchiverPiecePort...
+└── usecase/                     implémentations : orchestrent domaine + ports out, @Transactional ici
+
+adapter/
+├── in/
+│   ├── rest/                    controllers + DTOs d'API (jamais les objets du domaine en JSON !)
+│   ├── camunda/                 workers External Task + delegates + mapping variables ⟷ commands
+│   └── web/                     webhooks (signature)
+└── out/
+    ├── persistence/             entités JPA + mappers + adapters implémentant les ports out
+    ├── ged/                     client GED
+    └── events/                  outbox + publication</code></pre>
+
+  <div class="callout warn">
+    <span class="t">⚠ Les trois « fuites » qui tuent un hexagone (vu 100 fois en banque)</span>
+    <p>① <strong>L'entité JPA utilisée comme objet de domaine</strong> : les annotations <code>@Entity</code> imposent des setters et un constructeur vide → adieu les invariants. On garde deux classes (domaine / persistence) + un mapper, c'est le prix de la pureté et il est bas. ② <strong>Le DTO REST qui traverse jusqu'au domaine</strong> : le jour où l'API change, le domaine tremble. ③ <strong>La logique métier dans un adapter</strong> (« juste un petit if dans le worker ») : c'est le début de la fin — le chap. 8 montre comment ArchUnit rend ces trois fuites <em>impossibles à merger</em>.</p>
+  </div>
+
+  <h3>4.3 — Zoom sur l'ACL core banking : l'art du traducteur</h3>
+  <p>Le contexte <code>eer-corebanking-adapter</code> est un petit hexagone lui-même, dont tout le métier est la traduction :</p>
+  <div class="filetag">eer-corebanking-adapter — l'anti-corruption en action</div>
+  <pre><code class="language-java">/** Port (le langage PROPRE, défini par nous) */
+public interface OuvertureDeComptePort {
+    NumeroCompte ouvrir(ClientId client, CodePack pack, AgenceId agence);
+}
+
+/** Adapter (le langage LEGACY, confiné ici et nulle part ailleurs) */
+@Component
+class CoreBankingSoapAdapter implements OuvertureDeComptePort {
+    @Override
+    public NumeroCompte ouvrir(ClientId client, CodePack pack, AgenceId agence) {
+        // Traduction vers le monde d'en face : codes chapitre, produits...
+        OuvrirCompteRequest req = new OuvrirCompteRequest();
+        req.setCodeChapitre(ChapitreMapper.pourPack(pack));      // "Essentiel" → "251"
+        req.setCodeProduit(ProduitMapper.pourPack(pack));        // → "07"
+        req.setCodeAgence(agence.codeInterne());
+        req.setRefTiers(client.valeurPourCoreBanking());
+        OuvrirCompteResponse resp = soapClient.ouvrirCompte(req);
+        if ("KO".equals(resp.getCodeRetour()))
+            throw CoreBankingException.depuis(resp);              // codes → exceptions typées
+        return new NumeroCompte(resp.getNumCompte());
+    }
+}</code></pre>
+  <p>Le jour où le core banking change (migration, nouvelle version), <strong>un seul repo bouge</strong>. Et pendant les ateliers, quand quelqu'un dit « chapitre 251 », vous savez immédiatement que ce mot n'a pas le droit d'exister en dehors de cet adapter.</p>
+</section>
+
+<!-- ============ CH5 ============ -->
+<section class="chapter" id="ch5">
+  <div class="eyebrow">Phase 05 · L'articulation clé</div>
+  <h2>Camunda × hexagonal : le mariage propre</h2>
+
+  <p class="lead">C'est LA question d'architecte de ce projet : le processus BPMN orchestre le métier… mais le métier vit dans le domaine. Qui commande qui ? La réponse tient en une phrase : <strong>le processus séquence les cas d'usage ; il n'en implémente aucun.</strong></p>
+
+  <h3>5.1 — La répartition des rôles, une bonne fois pour toutes</h3>
+  <table>
+    <tr><th style="width:250px">Décision / connaissance</th><th style="width:190px">Vit dans…</th><th>Exemple EER</th></tr>
+    <tr><td>L'ORDRE des étapes, les attentes, les délais, les compensations</td><td><span class="pill g">BPMN</span></td><td>« le screening précède la décision », « relance à J+2 », « si échec carte, clôturer le compte ouvert »</td></tr>
+    <tr><td>Les règles PARAMÉTRÉES de routage</td><td><span class="pill a">DMN</span></td><td>la matrice du niveau de vigilance (chap. 6)</td></tr>
+    <tr><td>Les INVARIANTS et règles métier</td><td><span class="pill b">Domaine</span></td><td>« décision unique, motivée, décideur habilité »</td></tr>
+    <tr><td>L'orchestration d'UN cas d'usage (charger-agir-sauver-publier)</td><td><span class="pill b">Application</span></td><td><code>StatuerSurConformiteUseCase</code></td></tr>
+    <tr><td>La traduction variables Camunda ⟷ commandes</td><td><span class="pill">Adapter camunda</span></td><td>le worker ci-dessous</td></tr>
+  </table>
+
+  <h3>5.2 — Le worker : un adapter mince, toujours le même squelette</h3>
+  <div class="filetag">adapter/in/camunda/VerificationRelationExistanteWorker.java</div>
+  <pre><code class="language-java">@Component
+@ExternalTaskSubscription(topicName = "eer.verification-relation-existante")
+@RequiredArgsConstructor
+class VerificationRelationExistanteWorker implements ExternalTaskHandler {
+
+    private final VerifierRelationExistanteUseCase useCase;   // PORT IN — la seule dépendance métier
+
+    @Override
+    public void execute(ExternalTask task, ExternalTaskService svc) {
+        try {
+            // 1. TRADUIRE : variables du processus → commande typée du port
+            var commande = new VerifierRelationCommand(
+                DossierId.de(task.getBusinessKey()));
+
+            // 2. DÉLÉGUER : tout le métier est derrière le port
+            VerdictDoublon verdict = useCase.verifier(commande);
+
+            // 3. TRADUIRE le retour : résultat métier → variables de routage MINCES
+            svc.complete(task, Map.of(
+                "relationExistante", verdict.existe(),
+                "typeDoublon", verdict.type().name()), null);
+
+        } catch (RegleMetierException e) {              // erreur MÉTIER → chemin BPMN
+            svc.handleBpmnError(task, e.codeBpmn(), e.getMessage());
+        } catch (Exception e) {                          // erreur TECHNIQUE → retry
+            int r = task.getRetries() == null ? 3 : task.getRetries() - 1;
+            svc.handleFailure(task, e.getMessage(), "", r, 60_000L);
+        }
+    }
+}</code></pre>
+  <div class="callout">
+    <span class="t">💡 Le test du miroir</span>
+    <p>Un contrôleur REST qui exposerait le même cas d'usage ferait <strong>exactement les trois mêmes gestes</strong> : traduire l'entrée, appeler le port, traduire la sortie. Si votre worker fait plus que ça (un <code>if</code> métier, un calcul, un accès direct au repository), il a volé du travail au domaine — et cette logique vient de devenir invisible aux tests unitaires du domaine et réutilisable nulle part. Le worker parfait est <strong>ennuyeux</strong>.</p>
+  </div>
+
+  <h3>5.3 — Et les événements de domaine dans tout ça ?</h3>
+  <p>Le sens inverse existe aussi : parfois c'est <strong>le domaine qui doit réveiller le processus</strong>. Exemple : Omar dépose sa dernière pièce via l'API REST (pas via une User Task). L'agrégat émet <code>PiecesCompletees</code> ; un petit adapter s'abonne à cet événement et fait la corrélation :</p>
+  <div class="filetag">adapter/out/camunda/ProcessusSouscriptionNotifier.java</div>
+  <pre><code class="language-java">@Component
+@RequiredArgsConstructor
+class ProcessusSouscriptionNotifier {
+    private final RuntimeService runtimeService;
+
+    @EventListener
+    void quand(PiecesCompletees evt) {
+        runtimeService.createMessageCorrelation("Message_PiecesCompletees")
+            .processInstanceBusinessKey(evt.dossierId().valeur())
+            .correlate();
+    }
+}</code></pre>
+  <p>Résumé de la circulation : <strong>Camunda → port in → domaine</strong> pour exécuter, <strong>domaine → événement → corrélation Camunda</strong> pour signaler. Le domaine, lui, n'importe jamais une classe Camunda — vérifié par ArchUnit au chap. 8.</p>
+</section>
+<!-- ============ CH6 ============ -->
+<section class="chapter" id="ch6">
+  <div class="eyebrow">Phase 06 · Orchestration</div>
+  <h2>Le processus EER en BPMN + DMN</h2>
+
+  <p class="lead">Le BPMN se déduit maintenant presque mécaniquement : <strong>les événements orange de l'Event Storming deviennent les jalons du processus</strong>, les commandes deviennent des tâches, les points chauds deviennent des règles DMN, des User Tasks ou des timers. C'est la récompense d'avoir commencé par le métier.</p>
+
+  <h3>6.1 — Le processus « entree-en-relation »</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    START(("● Souscription<br/>démarrée")) --> T0["⚙ eer.verification-relation-existante"]
+    T0 -- "⚡ DEJA_CLIENT" --> RD(("⭘ Redirigé vers<br/>parcours client"))
+    T0 --> W1["✉ Attente Message_PiecesCompletees<br/>⏱ J+2 : relance / J+30 : purge & abandon"]
+    W1 -- "⏱ J+30" --> AB(("⭘ Souscription<br/>abandonnée"))
+    W1 --> PAR{"+ en parallèle"}
+    PAR --> T1["⚙ eer.verification-identite<br/>(OCR + liveness)"]
+    PAR --> T2["⚙ eer.screening<br/>(sanctions, PPE)"]
+    T1 --> J{"+ jonction"}
+    T2 --> J
+    T2 -- "⚡ SANCTION_AVEREE" --> RJ0(("⭘ Refus<br/>réglementaire"))
+    J --> DMN["▦ DMN niveau-vigilance"]
+    DMN --> G1{"✕ vigilance ?"}
+    G1 -- SIMPLIFIEE --> SIGN
+    G1 -- STANDARD --> U2["👤 Contrôle conseiller<br/>(Rachid) ⏱ 24h"]
+    G1 -- RENFORCEE --> U1["👤 Instruction conformité<br/>(Nadia) ⏱ 48h escalade"]
+    U1 --> G2{"✕ décision ?"}
+    U2 --> G2
+    G2 -- REJET --> RJ1(("⭘ Dossier<br/>rejeté"))
+    G2 -- COMPLEMENT --> W1
+    G2 -- VALIDATION --> SIGN["⚙ eer.envoi-convention puis<br/>⬠ signature ou ⏱ J+7"]
+    SIGN -- "⏱ J+7" --> AB2(("⭘ Offre<br/>expirée"))
+    SIGN -- ✉ signée --> PV1["⚙ eer.creation-client<br/>↩ désactiver client"]
+    PV1 --> PV2["⚙ eer.ouverture-compte<br/>↩ clôturer compte"]
+    PV2 --> PV3["⚙ eer.commande-carte + digital<br/>↩ annuler commande"]
+    PV3 --> NT["⚙ eer.notification-bienvenue"]
+    NT --> OK(("◉ Relation<br/>activée"))
+    style START fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style OK fill:#00A76F22,stroke:#00A76F,stroke-width:3px,color:#E6ECF5
+    style RJ0 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style RJ1 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style AB fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style AB2 fill:#F0616D22,stroke:#F0616D,color:#E6ECF5
+    style RD fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+    style U1 fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+    style U2 fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+    style DMN fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 5 — entree-en-relation.bpmn. Chaque fin nommée est un événement métier de l'atelier ; chaque topic correspond à un cas d'usage d'un bounded context ; la séquence de provisionnement porte ses compensations.</p>
+
+  <h3>6.2 — La matrice de vigilance en DMN</h3>
+  <p>Le point chaud n°1 de l'atelier (« qui décide, sur quels critères ? ») devient une table que la conformité <strong>possède</strong> :</p>
+  <table>
+    <tr><th>#</th><th>alerteScreening</th><th>ppe</th><th>résident</th><th>professionRisque</th><th style="color:#00A76F">niveauVigilance</th><th style="color:#00A76F">valideur</th></tr>
+    <tr><td>1</td><td><code>AVEREE</code></td><td>-</td><td>-</td><td>-</td><td colspan="2">→ traité en amont : refus réglementaire (BpmnError)</td></tr>
+    <tr><td>2</td><td><code>A_QUALIFIER</code></td><td>-</td><td>-</td><td>-</td><td><code>RENFORCEE</code></td><td><code>conformite</code></td></tr>
+    <tr><td>3</td><td><code>AUCUNE</code></td><td><code>true</code></td><td>-</td><td>-</td><td><code>RENFORCEE</code></td><td><code>conformite</code></td></tr>
+    <tr><td>4</td><td><code>AUCUNE</code></td><td><code>false</code></td><td><code>false</code></td><td>-</td><td><code>RENFORCEE</code></td><td><code>conformite</code></td></tr>
+    <tr><td>5</td><td><code>AUCUNE</code></td><td><code>false</code></td><td><code>true</code></td><td><code>true</code></td><td><code>STANDARD</code></td><td><code>conseillers</code></td></tr>
+    <tr><td>6</td><td><code>AUCUNE</code></td><td><code>false</code></td><td><code>true</code></td><td><code>false</code></td><td><code>SIMPLIFIEE</code></td><td>-</td></tr>
+  </table>
+  <p>Hit policy <code>First</code>, lignes ordonnées du plus restrictif au plus permissif. Quand la réglementation évolue, la conformité relit <em>sa</em> table, la modifie par PR, et l'historique Camunda garde la trace de <strong>quelle règle a classé quel dossier</strong> — la question préférée de l'auditeur.</p>
+
+  <div class="callout warn">
+    <span class="t">⚠ Frontière DMN / domaine : le critère du lead</span>
+    <p>La table DMN <strong>route</strong> (« ce dossier exige une vigilance renforcée »). Le domaine <strong>protège</strong> (« une vigilance renforcée exige un décideur habilité »). Si demain quelqu'un contourne le processus et appelle l'API directement, l'invariant du domaine tient toujours. Ne mettez jamais une règle de <em>protection</em> uniquement dans le DMN ou le BPMN : ils orchestrent le chemin nominal, ils ne gardent pas la porte.</p>
+  </div>
+</section>
+
+<!-- ============ CH7 ============ -->
+<section class="chapter" id="ch7">
+  <div class="eyebrow">Phase 07 · De bout en bout</div>
+  <h2>Un cas d'usage de A à Z : « Statuer sur la conformité »</h2>
+
+  <p class="lead">Traversée verticale complète d'UN cas d'usage — la décision de Nadia — de la user story au déploiement. C'est le gabarit à rejouer pour chaque cas d'usage du backlog.</p>
+
+  <h3>7.1 — La user story et ses critères (avec le métier)</h3>
+  <pre><code class="language-text">En tant que chargée de conformité,
+je veux statuer sur un dossier en vigilance renforcée (valider / rejeter / demander complément)
+afin d'autoriser ou non l'entrée en relation.
+
+Critères d'acceptation (Given/When/Then) :
+  1. Un rejet sans motif est refusé.
+  2. Une deuxième décision sur le même dossier est refusée.
+  3. Un décideur non habilité est refusé, même via l'API.
+  4. Une validation fait progresser le dossier vers la signature.
+  5. La décision (sens, motif, décideur, horodatage) est consultable à vie.</code></pre>
+
+  <h3>7.2 — Le contrat du cas d'usage (port in)</h3>
+  <div class="filetag">application/port/in/StatuerSurConformiteUseCase.java</div>
+  <pre><code class="language-java">public interface StatuerSurConformiteUseCase {
+    void statuer(StatuerCommand commande);
+
+    record StatuerCommand(DossierId dossierId, SensDecision sens,
+                          Motif motif, Decideur decideur) {
+        public StatuerCommand { Objects.requireNonNull(dossierId);
+                                Objects.requireNonNull(sens);
+                                Objects.requireNonNull(decideur); }
+    }
+}</code></pre>
+
+  <h3>7.3 — L'implémentation : charger, agir, sauver, publier</h3>
+  <div class="filetag">application/usecase/StatuerSurConformiteService.java</div>
+  <pre><code class="language-java">@UseCase   // notre annotation = @Service + @Transactional, marqueur ArchUnit
+@RequiredArgsConstructor
+class StatuerSurConformiteService implements StatuerSurConformiteUseCase {
+
+    private final ChargerDossierPort charger;
+    private final SauverDossierPort sauver;
+    private final PublierEvenementsPort publier;
+
+    @Override
+    public void statuer(StatuerCommand cmd) {
+        DossierSouscription dossier = charger.parId(cmd.dossierId())
+            .orElseThrow(() -> new DossierIntrouvableException(cmd.dossierId()));
+
+        dossier.statuer(cmd.sens(), cmd.motif(), cmd.decideur());  // ← TOUT le métier est là
+
+        sauver.sauver(dossier);
+        publier.publier(dossier.evenementsEtPurge());   // ConformiteValidee / Rejetee
+    }
+}</code></pre>
+  <p>Quatre lignes utiles. <strong>C'est voulu</strong> : si un use case grossit, c'est que du métier s'échappe de l'agrégat.</p>
+
+  <h3>7.4 — Les deux adapters entrants qui l'appellent</h3>
+  <p><strong>① REST</strong> (Nadia, via le micro-frontend <code>mf-conformite</code>) — le contrôleur traduit le JWT en <code>Decideur</code> (avec ses habilitations) et complète aussi la User Task :</p>
+  <div class="filetag">adapter/in/rest/ConformiteController.java (extrait)</div>
+  <pre><code class="language-java">@PostMapping("/api/conformite/dossiers/{id}/decision")
+public void decider(@PathVariable String id, @RequestBody DecisionDto dto,
+                    @AuthenticationPrincipal Jwt jwt) {
+    var decideur = Decideur.depuisJwt(jwt);          // groupes → habilitations
+    useCase.statuer(new StatuerCommand(
+        DossierId.de(id), dto.sens(), new Motif(dto.motif()), decideur));
+    tasklistFacade.completerTacheDecision(id, dto.sens());   // le jeton repart
+}</code></pre>
+  <p><strong>② Le processus</strong> n'appelle pas ce cas d'usage par un worker — la décision est humaine (User Task). En revanche le <em>rejet automatique à l'expiration du délai</em> (timer 5 j) passe, lui, par un worker qui appelle <strong>le même port</strong> avec <code>Decideur.SYSTEME</code> et un motif réglementaire type « délai dépassé ». Un seul chemin métier, deux déclencheurs — c'est l'hexagone qui paie.</p>
+
+  <h3>7.5 — L'adapter sortant : la persistence sans trahison</h3>
+  <div class="filetag">adapter/out/persistence — le trio entité/mapper/adapter</div>
+  <pre><code class="language-java">@Entity @Table(name = "dossier_souscription")
+class DossierJpa {                    // objet TECHNIQUE : setters, ctor vide, versions
+    @Id String id;
+    @Enumerated(EnumType.STRING) StatutDossier statut;
+    String niveauVigilance;
+    @Column(columnDefinition = "jsonb") String decisionJson;   // VO immuable → JSON
+    @Version long version;            // verrouillage optimiste
+    // ...
+}
+
+@Component
+@RequiredArgsConstructor
+class DossierRepositoryAdapter implements ChargerDossierPort, SauverDossierPort {
+    private final DossierJpaRepository jpa;
+    private final DossierMapper mapper;                        // MapStruct
+
+    public Optional&lt;DossierSouscription&gt; parId(DossierId id) {
+        return jpa.findById(id.valeur()).map(mapper::versDomaine);
+    }
+    public void sauver(DossierSouscription d) {
+        jpa.save(mapper.versJpa(d));
+    }
+}</code></pre>
+
+  <h3>7.6 — La traversée, visualisée</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+sequenceDiagram
+    autonumber
+    participant N as mf-conformite (Nadia)
+    participant R as REST adapter
+    participant U as StatuerSurConformite<br/>UseCase
+    participant D as 💎 DossierSouscription
+    participant P as Persistence adapter
+    participant C as Camunda
+    N->>R: POST /decision {VALIDATION, motif} + JWT
+    R->>U: statuer(StatuerCommand)
+    U->>P: charger.parId(dossierId)
+    P-->>U: DossierSouscription (reconstitué)
+    U->>D: dossier.statuer(sens, motif, decideur)
+    Note over D: invariants vérifiés :<br/>unique · motivée · habilitation ✓<br/>événement ConformiteValidee émis
+    U->>P: sauver(dossier)
+    U-->>R: ok
+    R->>C: completerTacheDecision(...)
+    Note over C: le jeton quitte la User Task,<br/>gateway "décision ?" → VALIDATION<br/>→ envoi de la convention
+</script></div>
+  <p class="figcap">Fig. 6 — La verticale complète. Remarquez l'ordre : le domaine statue et persiste D'ABORD, le processus avance ENSUITE. La vérité métier est dans l'agrégat ; Camunda reflète.</p>
+
+  <h3>7.7 — Livraison</h3>
+  <p>Le chemin est celui du dossier « Crédit Express », inchangé : PR (avec les tests du chap. 8 en porte d'entrée), image taguée au SHA, promotion GitOps dev → UAT → prod par PR approuvée. La seule nouveauté est <em>ce qui est testé</em> — justement, chapitre suivant.</p>
+</section>
+<!-- ============ CH8 ============ -->
+<section class="chapter" id="ch8">
+  <div class="eyebrow">Phase 08 · Qualité</div>
+  <h2>Tester un système DDD (et verrouiller l'hexagone)</h2>
+
+  <p class="lead">La pyramide s'inverse en votre faveur : plus le métier est concentré dans le domaine, plus la masse des tests est <strong>unitaire, pure et instantanée</strong>. Et l'architecture elle-même devient un test.</p>
+
+  <h3>8.1 — Étage 1 : le domaine, en JUnit pur (la masse)</h3>
+  <div class="filetag">domain — les critères d'acceptation de la story, mot pour mot</div>
+  <pre><code class="language-java">@Test
+void un_rejet_sans_motif_est_refuse() {
+    var dossier = DossierEnAttenteDecision.vigilanceRenforcee();   // object mother
+    assertThatThrownBy(() ->
+        dossier.statuer(REJET, Motif.vide(), Decideurs.nadia()))
+      .isInstanceOf(MotifObligatoireException.class);
+}
+
+@Test
+void une_deuxieme_decision_est_refusee() {
+    var dossier = DossierEnAttenteDecision.vigilanceRenforcee();
+    dossier.statuer(VALIDATION, Motif.de("dossier conforme"), Decideurs.nadia());
+    assertThatThrownBy(() ->
+        dossier.statuer(REJET, Motif.de("changement d'avis"), Decideurs.nadia()))
+      .isInstanceOf(DecisionDejaPriseException.class);
+}
+
+@Test
+void un_conseiller_ne_peut_pas_statuer_en_vigilance_renforcee() {
+    var dossier = DossierEnAttenteDecision.vigilanceRenforcee();
+    assertThatThrownBy(() ->
+        dossier.statuer(VALIDATION, Motif.de("ok"), Decideurs.rachid()))
+      .isInstanceOf(DecideurNonHabiliteException.class);
+}</code></pre>
+  <p>Aucun Spring, aucune base, aucun mock framework : ces tests tournent par milliers en quelques secondes. <strong>Ils sont lisibles par la conformité</strong> — nommez-les en français métier, c'est un choix délibéré et défendable.</p>
+
+  <h3>8.2 — Étage 2 : ArchUnit — l'architecture qui se défend toute seule</h3>
+  <div class="filetag">architecture/HexagonalRulesTest.java — la CI refuse les fuites du chap. 4.2</div>
+  <pre><code class="language-java">@AnalyzeClasses(packages = "ma.banque.eer.souscription")
+class HexagonalRulesTest {
+
+    @ArchTest
+    static final ArchRule le_domaine_est_pur =
+        noClasses().that().resideInAPackage("..domain..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                "org.springframework..", "jakarta.persistence..",
+                "org.camunda..", "..adapter..", "..application..");
+
+    @ArchTest
+    static final ArchRule seuls_les_usecases_sont_transactionnels =
+        classes().that().areAnnotatedWith(Transactional.class)
+            .should().resideInAPackage("..application.usecase..");
+
+    @ArchTest
+    static final ArchRule les_adapters_entrants_ne_touchent_pas_la_persistence =
+        noClasses().that().resideInAPackage("..adapter.in..")
+            .should().dependOnClassesThat().resideInAPackage("..adapter.out..");
+
+    @ArchTest
+    static final ArchRule le_jargon_core_banking_reste_dans_l_acl =
+        noClasses().that().resideOutsideOfPackage("..corebanking..")
+            .should().dependOnClassesThat().haveNameMatching(".*Chapitre.*|.*CodeProduit.*");
+}</code></pre>
+  <div class="callout">
+    <span class="t">💡 Pourquoi c'est un outil de LEAD avant d'être un outil de test</span>
+    <p>Ces règles remplacent dix rappels en revue de code par un échec de build immédiat et impersonnel. Le junior qui importe JPA dans le domaine reçoit l'explication <em>au moment où il code</em>, pas trois jours après en review. Écrivez le nom des règles comme des phrases : le rapport d'échec devient le message pédagogique.</p>
+  </div>
+
+  <h3>8.3 — Étage 3 : le processus et l'intégration</h3>
+  <ul>
+    <li><strong>Tests de processus</strong> (comme au dossier précédent) : moteur H2, workers mockés — on vérifie les <em>chemins</em> : vigilance renforcée passe par Nadia, sanction avérée finit en refus réglementaire, J+30 purge et abandonne. La table DMN se teste à part, cas par cas, avec le moteur DMN seul.</li>
+    <li><strong>Tests d'intégration ciblés</strong> : le trio persistence (entité/mapper/adapter) contre un vrai PostgreSQL (Testcontainers) — c'est là que vivent les bugs de mapping ; l'ACL core banking contre un WireMock des flux SOAP.</li>
+    <li><strong>Un test de bout en bout</strong> par chemin critique, pas plus : démarrage → dossier simplifié → relation activée, tout branché sauf les partenaires externes.</li>
+  </ul>
+</section>
+
+<!-- ============ CH9 ============ -->
+<section class="chapter" id="ch9">
+  <div class="eyebrow">Phase 09 · Livraison</div>
+  <h2>CI/CD, ADRs & livraison</h2>
+
+  <h3>9.1 — Le pipeline, enrichi des portes DDD</h3>
+  <p>Même colonne vertébrale GitHub Actions que « Crédit Express » (build → tests → image SHA → scan → GitOps → promotions par PR approuvées). Ce qui change : <strong>ce que la CI exige</strong> avant de laisser passer :</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    A["PR ouverte"] --> B["Tests domaine<br/>(critères d'acceptation)"]
+    B --> C["ArchUnit<br/>(hexagone verrouillé)"]
+    C --> D["Tests processus + DMN<br/>(couverture visuelle en artefact)"]
+    D --> E["Intégration ciblée<br/>(Testcontainers)"]
+    E --> F["Image + scan + GitOps<br/>(inchangé)"]
+    style C fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 7 — L'étape ArchUnit est une porte bloquante comme les autres : une violation d'architecture EST un test rouge.</p>
+  <div class="filetag">Extrait du job build-test (le reste est identique au dossier Crédit Express)</div>
+  <pre><code class="language-yaml">      - name: Tests (domaine + ArchUnit + processus + intégration)
+        run: mvn -B verify
+        # verify enchaîne : surefire (unit + ArchUnit) puis failsafe (IT Testcontainers)
+
+      - name: Artefacts de preuve (couverture processus + rapports)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preuves-qualite
+          path: |
+            target/process-test-coverage/
+            target/surefire-reports/</code></pre>
+
+  <h3>9.2 — Les ADRs : le journal des décisions du lead</h3>
+  <p>Une <strong>Architecture Decision Record</strong> = une page markdown par décision structurante : contexte, options, choix, conséquences. Versionnée dans <code>docs/adr/</code> du repo concerné, relue en PR comme du code. Celles de ce projet — que vous devez savoir <em>défendre</em>, car on vous les demandera :</p>
+  <table>
+    <tr><th style="width:80px">ADR</th><th style="width:330px">Décision</th><th>La justification en une phrase</th></tr>
+    <tr><td>001</td><td>Orchestration Camunda plutôt que chorégraphie événementielle pour l'EER</td><td>Processus long, réglementé, multi-acteurs humains, avec délais et compensations : la visibilité et l'auditabilité priment sur le couplage minimal.</td></tr>
+    <tr><td>002</td><td>Le moteur et le BPMN vivent DANS le bounded context Souscription</td><td>Le processus EST du métier de la souscription (son déroulé est une exigence métier) ; un moteur central mutualisé recréerait un couplage organisationnel entre contextes.</td></tr>
+    <tr><td>003</td><td>Variables de processus = identifiants + données de routage uniquement</td><td>La vérité vit dans les agrégats ; le processus route. Même discipline que les références par ID entre agrégats.</td></tr>
+    <tr><td>004</td><td>ACL dédiée devant le core banking, en service séparé</td><td>Le modèle legacy ne doit pas contaminer le domaine ; le confinement du jargon rend la future migration core banking locale à un repo.</td></tr>
+    <tr><td>005</td><td>Décision de conformité protégée par l'agrégat, PAS par le BPMN/DMN seul</td><td>Le processus décrit le chemin nominal ; l'invariant doit tenir même hors processus (API directe, reprise manuelle, batch).</td></tr>
+    <tr><td>006</td><td>Deux modèles persistence/domaine + mapper, malgré le coût</td><td>Les annotations JPA détruisent l'encapsulation ; le coût du mapping est linéaire, celui d'un domaine anémique est exponentiel.</td></tr>
+  </table>
+
+  <h3>9.3 — Livrer par tranches verticales</h3>
+  <p>Le backlog se découpe en <strong>cas d'usage complets</strong> (une verticale du chap. 7 chacun), jamais en couches (« sprint 1 : les entités ; sprint 2 : les APIs » — l'anti-pattern classique). Ordre de livraison recommandé, chaque incrément étant démontrable au métier :</p>
+  <ol>
+    <li><strong>Le chemin le plus court</strong> : démarrage → pièces → vigilance simplifiée → signature → provisionnement. Un vrai compte ouvert de bout en bout, même si 80 % des dossiers ne sont pas encore couverts.</li>
+    <li>La <strong>vigilance renforcée</strong> : la User Task de Nadia + le mf-conformite + l'invariant de décision.</li>
+    <li>Les <strong>chemins de la vraie vie</strong> : compléments, abandons/purge, refus réglementaire, compensations du provisionnement.</li>
+    <li>Le <strong>phygital</strong> de Rachid (reprise en agence) et l'outillage d'exploitation.</li>
+  </ol>
+</section>
+
+<!-- ============ CH10 ============ -->
+<section class="chapter" id="ch10">
+  <div class="eyebrow">Phase 10 · Synthèse</div>
+  <h2>La synthèse du lead</h2>
+
+  <h3>10.1 — La chaîne de traçabilité complète (à savoir dérouler à l'oral)</h3>
+  <p>Le fil qui relie tout, dans les deux sens — c'est LA réponse aux questions d'architecte :</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    A["Événement métier<br/>(post-it orange)"] --> B["Terme du langage<br/>ubiquitaire"]
+    B --> C["Bounded context<br/>(context map)"]
+    C --> D["Agrégat + invariants<br/>(DDD tactique)"]
+    D --> E["Port in = cas d'usage<br/>(hexagone)"]
+    E --> F["Topic / User Task<br/>(BPMN) ou endpoint REST"]
+    F --> G["Test qui porte le nom<br/>du critère d'acceptation"]
+    G --> H["Pipeline GitHub →<br/>SHA en prod"]
+    style D fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 8 — « Montrez-moi où est implémentée l'exigence “une décision unique et motivée” » : vous pouvez répondre en citant le post-it, la classe, la méthode, le test, et le commit. C'est ça, la maîtrise d'un système.</p>
+
+  <h3>10.2 — Auto-évaluation : les questions qu'on pose à un lead</h3>
+  <details><summary>Pourquoi le processus Camunda vit-il dans le bounded context Souscription et pas dans un « service workflow » central ?</summary><div class="body"><p>Parce que le déroulé de l'EER est une connaissance métier de la souscription (ADR-002). Un moteur central appartiendrait à tout le monde donc à personne, créerait des mises en production couplées entre équipes, et son modèle de variables deviendrait un langage commun implicite — l'inverse des bounded contexts. Chaque contexte qui a des processus longs héberge son moteur.</p></div></details>
+  <details><summary>Un dev propose d'ajouter « juste un if » dans le worker screening pour gérer un cas particulier. Réponse ?</summary><div class="body"><p>Non — le test du miroir (chap. 5.2) : le worker traduit et délègue, c'est tout. Le « if » est soit un invariant (→ agrégat), soit une règle de routage paramétrable (→ DMN), soit une règle croisée (→ service de domaine). Dans le worker, il serait invisible aux tests du domaine, dupliqué le jour où un autre déclencheur apparaît, et hors de portée de la conformité. ArchUnit peut même le rendre difficile (interdire au package adapter d'utiliser les types profonds du domaine).</p></div></details>
+  <details><summary>Pourquoi deux classes (domaine + JPA) alors que « ça marche » avec une seule ?</summary><div class="body"><p>Ça marche… jusqu'au premier invariant. JPA exige un constructeur vide et pousse aux setters : l'agrégat ne peut plus garantir « décision unique et motivée » puisque n'importe qui peut faire <code>setDecision(...)</code>. Le mapper coûte quelques lignes par champ (MapStruct les génère) ; l'invariant perdu coûte un incident de conformité. ADR-006.</p></div></details>
+  <details><summary>Que gagne concrètement la conformité BMCI avec cette architecture ?</summary><div class="body"><p>Trois choses démontrables : ses règles de routage sont dans UNE table DMN qu'elle relit elle-même ; ses invariants sont du code testé dont les tests portent les noms de ses exigences ; et chaque dossier a une trace complète (historique Camunda + décision immuable horodatée dans l'agrégat + historique Git des règles). L'audit passe de « reconstituer » à « montrer ».</p></div></details>
+  <details><summary>Comment démarreriez-vous ce projet lundi matin ?</summary><div class="body"><p>Par un Event Storming de deux demi-journées avec la conformité, un conseiller, et l'équipe de la solution EER actuelle — pas par du code. Livrables de la semaine 1 : le mur photographié, le glossaire v1, la context map v1, et les ADRs 001/002 en draft. Ensuite, la tranche verticale n°1 (chemin simplifié complet) comme preuve architecturale de bout en bout.</p></div></details>
+
+  <h3>10.3 — Les anti-patterns à guetter en revue (votre checklist de lead)</h3>
+  <ul>
+    <li><strong>Le domaine anémique</strong> : agrégats réduits à des getters/setters, tout le métier dans des « services managers ». Symptôme : les tests du domaine ne testent rien.</li>
+    <li><strong>Le processus-Dieu</strong> : le BPMN qui porte des dizaines de gateways de micro-logique. Symptôme : le métier ne reconnaît plus son processus. Remède : DMN et agrégats.</li>
+    <li><strong>Les variables obèses</strong> : le dossier sérialisé dans Camunda. Symptôme : Cockpit rame, deux sources de vérité divergent.</li>
+    <li><strong>L'ACL qui fuit</strong> : un « codeChapitre » aperçu dans un contrôleur. ArchUnit règle 4.</li>
+    <li><strong>La tranche horizontale</strong> : « on fait toutes les entités d'abord ». Symptôme : trois sprints sans rien de démontrable.</li>
+    <li><strong>Le langage qui dérive</strong> : « dossier », « demande », « request » pour la même chose selon les fichiers. Remède : le glossaire fait loi, la revue l'applique.</li>
+  </ul>
+
+  <div class="callout" style="margin-top:26px">
+    <span class="t">✓ La série est complète</span>
+    <p>Quatre documents, quatre altitudes : <strong>le guide Camunda</strong> (les mécanismes), <strong>Crédit Express</strong> (l'architecture assemblée et livrée), <strong>le setup</strong> (votre machine), et <strong>ce dossier</strong> (la pensée de conception — du métier au code). Vous avez maintenant le bagage pour animer l'atelier, trancher les débats d'architecture avec des arguments écrits, et faire grandir l'équipe autour d'un système que la conformité, les devs et l'auditeur lisent de la même façon. C'est exactement le travail d'un lead. 🚀</p>
+  </div>
+</section>
+
+</div></main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+hljs.highlightAll();
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  securityLevel: 'loose',
+  themeVariables: {
+    darkMode: true,
+    background: '#111A2C',
+    primaryColor: '#16233B',
+    primaryTextColor: '#E6ECF5',
+    primaryBorderColor: '#2A3B5E',
+    lineColor: '#5A6B8C',
+    secondaryColor: '#0D1526',
+    tertiaryColor: '#111A2C',
+    fontFamily: 'inherit',
+    fontSize: '14px'
+  },
+  flowchart: { curve: 'basis', htmlLabels: true },
+  sequence: { actorFontWeight: 700, noteAlign: 'left' }
+});
+
+// Sommaire actif au scroll
+const links = [...document.querySelectorAll('.flownav a')];
+const sections = links.map(a => document.querySelector(a.getAttribute('href')));
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const i = sections.indexOf(e.target);
+      links.forEach(l => l.classList.remove('active'));
+      if (i >= 0) links[i].classList.add('active');
+    }
+  });
+}, { rootMargin: '-15% 0px -70% 0px' });
+sections.forEach(s => s && obs.observe(s));
+
+// Rendu manuel des diagrammes : la source est lue depuis des blocs script bruts,
+// jamais interprétés par le parseur HTML (fiable sur tous les navigateurs).
+(async () => {
+  const holders = document.querySelectorAll('.mermaid');
+  let i = 0;
+  for (const holder of holders) {
+    const srcEl = holder.querySelector('script[type="text/x-mermaid"]');
+    if (!srcEl) continue;
+    const src = srcEl.textContent.trim();
+    try {
+      const { svg } = await mermaid.render('mmd-' + (++i), src);
+      holder.innerHTML = svg;
+    } catch (e) {
+      holder.innerHTML = '<pre style="color:#F0616D;white-space:pre-wrap">Diagramme non rendu : '
+        + String(e && e.message || e) + '</pre>';
+      console.error('Mermaid #' + i, e);
+    }
+  }
+})();
+</script>
+</body>
+</html>
