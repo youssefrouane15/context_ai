@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le référentiel du dev — Pratiques, patterns & checklists, de la story à la prod (BMCI)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<style>
+:root{
+  --bg:#0B1220;            /* bleu nuit profond */
+  --surface:#111A2C;       /* panneaux */
+  --surface2:#0D1526;      /* blocs de code */
+  --line:#1E2A44;          /* bordures */
+  --txt:#E6ECF5;
+  --muted:#8A97AD;
+  --green:#00A76F;         /* accent BMCI */
+  --green-soft:rgba(0,167,111,.12);
+  --amber:#F5B841;
+  --amber-soft:rgba(245,184,65,.10);
+  --red:#F0616D;
+  --red-soft:rgba(240,97,109,.10);
+  --blue:#5AA9FF;
+  --blue-soft:rgba(90,169,255,.10);
+  --mono:ui-monospace,'Cascadia Code','JetBrains Mono',Consolas,monospace;
+  --sans:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:16px;line-height:1.7}
+::selection{background:var(--green);color:#04120C}
+
+/* ---------- Layout ---------- */
+.wrap{display:flex;min-height:100vh}
+aside{width:300px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 0 40px}
+main{flex:1;min-width:0;padding:0 clamp(20px,5vw,72px) 120px}
+.content{max-width:880px;margin:0 auto}
+
+/* ---------- Sidebar : le sommaire est lui-même un processus BPMN ---------- */
+.brand{padding:0 24px 20px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.brand .logo{font-family:var(--mono);font-size:13px;letter-spacing:.18em;color:var(--green);text-transform:uppercase}
+.brand h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin-top:6px}
+.brand p{font-size:12.5px;color:var(--muted);margin-top:4px}
+.flownav{position:relative;padding:6px 24px 0 34px}
+.flownav::before{content:"";position:absolute;left:43px;top:14px;bottom:26px;width:2px;
+  background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 11px)}
+.flownav a{display:flex;align-items:center;gap:12px;padding:7px 8px 7px 0;color:var(--muted);
+  text-decoration:none;font-size:13.5px;position:relative;border-radius:8px;transition:color .15s}
+.flownav a:hover{color:var(--txt)}
+.flownav a.active{color:var(--txt);font-weight:600}
+.node{width:20px;height:20px;flex-shrink:0;border:2px solid var(--line);background:var(--surface);
+  border-radius:6px;position:relative;z-index:1;transition:border-color .15s}
+.flownav a:hover .node,.flownav a.active .node{border-color:var(--green)}
+.flownav a.active .node{background:var(--green-soft)}
+.node.start,.node.end{border-radius:50%}
+.node.end{border-width:4px}
+.node.gate{transform:rotate(45deg);border-radius:4px;width:17px;height:17px;margin:0 1.5px}
+.flownav .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flownav .num{font-family:var(--mono);font-size:10.5px;color:var(--muted);opacity:.7}
+
+/* ---------- Typo & structure de chapitre ---------- */
+.chapter{padding-top:64px;border-top:1px solid var(--line);margin-top:64px}
+.chapter:first-of-type{border-top:none;margin-top:0}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--green);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.eyebrow::after{content:"";height:1px;flex:1;background:var(--line)}
+h2{font-size:clamp(26px,3.4vw,34px);font-weight:800;letter-spacing:-.025em;line-height:1.2;margin-bottom:14px}
+h3{font-size:21px;font-weight:700;letter-spacing:-.015em;margin:42px 0 12px;padding-top:6px}
+h4{font-size:16.5px;font-weight:700;margin:28px 0 8px}
+p{margin:0 0 14px;color:#C9D3E3}
+p strong,li strong{color:var(--txt)}
+.lead{font-size:18px;color:var(--txt);line-height:1.65}
+ul,ol{margin:0 0 16px 22px;color:#C9D3E3}
+li{margin-bottom:7px}
+a{color:var(--blue)}
+hr{border:none;border-top:1px solid var(--line);margin:32px 0}
+
+/* ---------- Composants ---------- */
+code:not(pre code){font-family:var(--mono);font-size:.86em;background:var(--surface2);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:#9FE8C8}
+pre{background:var(--surface2)!important;border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;overflow-x:auto;margin:0 0 18px;font-size:13.5px;line-height:1.6}
+pre code{font-family:var(--mono);background:transparent!important;padding:0}
+.filetag{display:inline-block;font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  background:var(--surface);border:1px solid var(--line);border-bottom:none;
+  border-radius:8px 8px 0 0;padding:5px 12px;margin-bottom:-1px;position:relative}
+.filetag+pre{border-top-left-radius:0}
+
+.callout{border:1px solid var(--line);border-left:3px solid var(--green);background:var(--green-soft);
+  border-radius:10px;padding:14px 18px;margin:0 0 18px;font-size:15px}
+.callout .t{font-weight:700;font-family:var(--mono);font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--green);display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+.callout.warn{border-left-color:var(--amber);background:var(--amber-soft)}
+.callout.warn .t{color:var(--amber)}
+.callout.danger{border-left-color:var(--red);background:var(--red-soft)}
+.callout.danger .t{color:var(--red)}
+.callout.info{border-left-color:var(--blue);background:var(--blue-soft)}
+.callout.info .t{color:var(--blue)}
+
+table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:14.5px}
+th{text-align:left;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--line)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:#C9D3E3}
+tr:hover td{background:rgba(255,255,255,.015)}
+td .sym{display:inline-flex;align-items:center;justify-content:center;width:52px;height:44px}
+
+.mermaid{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:20px;margin:0 0 20px;display:flex;justify-content:center;overflow-x:auto}
+.figcap{font-size:13px;color:var(--muted);text-align:center;margin:-10px 0 24px;font-style:italic}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.card h5{font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card p{font-size:14px;margin-bottom:0}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:99px;
+  border:1px solid var(--line);color:var(--muted);margin-right:6px}
+.pill.g{color:var(--green);border-color:rgba(0,167,111,.4)}
+.pill.a{color:var(--amber);border-color:rgba(245,184,65,.4)}
+.pill.r{color:var(--red);border-color:rgba(240,97,109,.4)}
+.pill.b{color:var(--blue);border-color:rgba(90,169,255,.4)}
+
+/* Hero */
+.hero{padding:88px 0 20px}
+.hero .k{font-family:var(--mono);color:var(--green);font-size:13px;letter-spacing:.2em;text-transform:uppercase}
+.hero h2{font-size:clamp(34px,5vw,52px);border:none;margin:14px 0 18px;padding:0}
+.hero h2 .thin{color:var(--muted);font-weight:300}
+.hero .sub{font-size:18px;color:#C9D3E3;max-width:640px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+details{border:1px solid var(--line);border-radius:10px;margin-bottom:12px;background:var(--surface)}
+summary{cursor:pointer;padding:13px 18px;font-weight:600;font-size:15px;list-style:none;display:flex;align-items:center;gap:10px}
+summary::before{content:"+";font-family:var(--mono);color:var(--green);font-size:16px;width:16px}
+details[open] summary::before{content:"–"}
+details .body{padding:0 18px 16px;font-size:14.5px}
+details .body p:last-child{margin-bottom:0}
+
+kbd{font-family:var(--mono);font-size:.85em;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:5px;padding:1px 6px;background:var(--surface2)}
+
+@media(max-width:960px){
+  aside{display:none}
+  main{padding:0 18px 80px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<aside>
+  <div class="brand">
+    <div class="logo">◈ Référentiel</div>
+    <h1>Le playbook<br>du développement</h1>
+    <p>À relire phase par phase avant chaque dev — fil rouge : la feature « Procuration »</p>
+  </div>
+  <nav class="flownav" id="flownav">
+    <a href="#ch0"><span class="node start"></span><span class="lbl">Mode d'emploi du référentiel</span></a>
+    <a href="#ch1"><span class="node"></span><span class="lbl"><span class="num">P1</span> Comprendre & découper le besoin</span></a>
+    <a href="#ch2"><span class="node"></span><span class="lbl"><span class="num">P2</span> Conceptualiser le domaine</span></a>
+    <a href="#ch3"><span class="node"></span><span class="lbl"><span class="num">P3</span> Concevoir les contrats & mappings</span></a>
+    <a href="#ch4"><span class="node gate"></span><span class="lbl"><span class="num">P4</span> Modéliser dans Camunda</span></a>
+    <a href="#ch5"><span class="node"></span><span class="lbl"><span class="num">P5</span> Coder le back (+ patterns)</span></a>
+    <a href="#ch6"><span class="node"></span><span class="lbl"><span class="num">P6</span> Coder le front & les styles</span></a>
+    <a href="#ch7"><span class="node gate"></span><span class="lbl"><span class="num">P7</span> Qualité : tests & revue</span></a>
+    <a href="#ch8"><span class="node"></span><span class="lbl"><span class="num">P8</span> Livrer proprement</span></a>
+    <a href="#ch9"><span class="node"></span><span class="lbl"><span class="num">09</span> Le fil rouge, condensé</span></a>
+    <a href="#chref"><span class="node"></span><span class="lbl"><span class="num">RÉF</span> EER-247 pas à pas (le code)</span></a>
+    <a href="#ch10"><span class="node end"></span><span class="lbl"><span class="num">10</span> Aide-mémoires & catalogue de patterns</span></a>
+  </nav>
+</aside>
+
+<main><div class="content">
+<!-- ============ CH0 ============ -->
+<section class="hero" id="ch0">
+  <div class="k">Référentiel d'équipe · Pratiques & patterns</div>
+  <h2>Un développement, <span class="thin">de la story à la prod :</span><br>le playbook à relire avant de coder.</h2>
+  <p class="sub">Ce document est un <strong>référentiel opérationnel</strong> : huit phases, du besoin brut au déploiement, chacune avec ses principes génériques, ses bonnes pratiques, ses patterns, sa checklist — puis son application à un <strong>fil rouge concret</strong> : la feature « Procuration » (ajouter un mandataire lors de l'entrée en relation). Il complète les quatre dossiers précédents de la série : eux expliquent le système ; celui-ci explique <strong>votre journée de travail</strong>.</p>
+  <div class="meta">
+    <span class="pill g">8 phases · 8 checklists</span>
+    <span class="pill b">Java 17 · Spring Boot · DDD/hexagonal</span>
+    <span class="pill b">Angular · SCSS · MF</span>
+    <span class="pill a">Catalogue de design patterns</span>
+  </div>
+
+  <h3>Comment utiliser ce référentiel</h3>
+  <ul>
+    <li><strong>Avant d'entamer un dev</strong> : relisez la phase où vous êtes (10 min). Les checklists sont faites pour être copiées dans le ticket.</li>
+    <li><strong>En cours de dev</strong>, au moindre doute (« où mettre cette règle ? quel pattern ? quelle lib ? ») : le chapitre 10 est un index de décisions rapides.</li>
+    <li><strong>En revue de code</strong> : les checklists sont aussi la grille du reviewer — mêmes critères pour tout le monde, zéro débat d'humeur.</li>
+  </ul>
+
+  <h3>Le fil rouge : la feature « Procuration »</h3>
+  <p>Ticket réaliste, taille moyenne — exactement le genre de story qu'on vous assigne un lundi :</p>
+  <div class="callout info">
+    <span class="t">📋 EER-247 — Ajout d'un mandataire (procuration)</span>
+    <p><em>« En tant que prospect, je veux pouvoir désigner un mandataire (procuration générale ou limitée) lors de ma souscription, afin qu'un proche puisse opérer sur mon compte. Le mandataire doit être identifié et screené comme le titulaire. La procuration limitée plafonne les opérations à un montant. »</em></p>
+  </div>
+  <p>Elle touche <strong>toutes les couches</strong> : le domaine (nouveau concept, nouveaux invariants), le processus (screening du mandataire), l'API, le front (formulaire + styles), les tests, la livraison. Parfaite pour dérouler le playbook de bout en bout.</p>
+
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    P1["P1<br/>Comprendre<br/>& découper"] --> P2["P2<br/>Domaine"]
+    P2 --> P3["P3<br/>Contrats &<br/>mappings"]
+    P3 --> P4["P4<br/>Camunda"]
+    P4 --> P5["P5<br/>Back"]
+    P5 --> P6["P6<br/>Front"]
+    P6 --> P7["P7<br/>Qualité"]
+    P7 --> P8["P8<br/>Livraison"]
+    P7 -. "ça remonte souvent :<br/>un test révèle un trou<br/>fonctionnel → retour P1/P2" .-> P1
+    style P2 fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style P7 fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 1 — Les 8 phases. En pratique on itère (la flèche pointillée) — mais on ne SAUTE jamais P1 et P2 : 80 % des devs ratés le sont avant la première ligne de code.</p>
+</section>
+
+<!-- ============ P1 ============ -->
+<section class="chapter" id="ch1">
+  <div class="eyebrow">Phase 1 · Avant tout</div>
+  <h2>Comprendre & découper le besoin</h2>
+
+  <p class="lead">Principe : <strong>on ne code pas une story qu'on ne sait pas raconter</strong>. Cette phase transforme un ticket flou en critères vérifiables et en tranches livrables — c'est elle qui détermine la taille de vos PRs et la sérénité de votre sprint.</p>
+
+  <h3>1.1 — Les questions à poser (générique)</h3>
+  <p>Cinq familles de questions, à dérouler avec le PO/métier <em>avant</em> d'estimer :</p>
+  <table>
+    <tr><th style="width:190px">Famille</th><th>Questions types</th></tr>
+    <tr><td><strong>Le nominal</strong></td><td>Racontez-moi le cas le plus simple, de bout en bout. Qui déclenche ? Qui voit le résultat ?</td></tr>
+    <tr><td><strong>Les limites</strong></td><td>Combien au maximum (de mandataires, de pièces…) ? Quelles valeurs interdites ? Que se passe-t-il aux bornes ?</td></tr>
+    <tr><td><strong>Les cas dégradés</strong></td><td>Et si le mandataire est sous sanctions ? Déjà client ? Mineur ? Et si le prospect abandonne à cette étape ?</td></tr>
+    <tr><td><strong>Le temps</strong></td><td>Peut-on ajouter/révoquer une procuration APRÈS l'ouverture ? (→ hors scope ? autre story ?) Y a-t-il des délais réglementaires ?</td></tr>
+    <tr><td><strong>La preuve</strong></td><td>Que doit voir l'auditeur ? Que doit signer le mandataire ? Qu'est-ce qui doit être tracé ?</td></tr>
+  </table>
+  <p>Sur EER-247, ces questions ont fait émerger 3 décisions qui changent tout le design : <strong>max 2 mandataires</strong> par dossier ; le mandataire <strong>signe aussi</strong> la convention ; la révocation post-ouverture est <strong>une autre story</strong> (EER-263) — on la garde en tête pour ne pas se fermer de portes, sans la coder.</p>
+
+  <h3>1.2 — Écrire les critères en Given/When/Then</h3>
+  <p>Chaque critère devient <em>littéralement</em> un test (P7). Format court, langage du glossaire :</p>
+  <pre><code class="language-text">1. Étant donné un dossier en constitution, quand le prospect ajoute un mandataire
+   identifié (CIN, nom, lien), alors le dossier compte ce mandataire "à vérifier".
+2. Un troisième mandataire est refusé.
+3. Une procuration LIMITEE sans plafond est refusée ; une GENERALE avec plafond aussi.
+4. Le dossier ne peut être soumis à décision que si TOUS les mandataires sont screenés.
+5. Un mandataire sous sanction avérée entraîne le refus réglementaire du dossier entier.
+6. La convention de compte liste les mandataires et leurs pouvoirs.</code></pre>
+
+  <h3>1.3 — Découper en tranches verticales</h3>
+  <p>Règle : chaque tranche <strong>traverse toutes les couches et se démontre</strong>. Jamais de découpe par couche (« d'abord le back »). EER-247 devient trois PRs :</p>
+  <ul>
+    <li><strong>Tranche A</strong> — ajouter/retirer un mandataire au dossier (domaine + API + formulaire front). Démo : je saisis un mandataire, je le vois dans le récap.</li>
+    <li><strong>Tranche B</strong> — le screening du mandataire dans le processus (BPMN multi-instance + worker + refus réglementaire). Démo : un mandataire sanctionné bloque le dossier.</li>
+    <li><strong>Tranche C</strong> — la convention enrichie + signature du mandataire. Démo : le PDF liste les pouvoirs, les deux signent.</li>
+  </ul>
+
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    subgraph V["✅ Découpage VERTICAL — chaque tranche se démontre"]
+        direction LR
+        TA["Tranche A<br/>─────────<br/>domaine ✚<br/>API ✚ front"] --- TB2["Tranche B<br/>─────────<br/>BPMN ✚ worker<br/>✚ refus régl."] --- TC["Tranche C<br/>─────────<br/>convention ✚<br/>signature"]
+    end
+    subgraph HZ["❌ Découpage HORIZONTAL — rien de démontrable avant la fin"]
+        direction LR
+        H1["Sprint 1<br/>toutes les<br/>entités"] --- H2["Sprint 2<br/>toutes les<br/>APIs"] --- H3["Sprint 3<br/>tout le<br/>front"]
+    end
+    style V fill:#00A76F08,stroke:#00A76F,color:#E6ECF5
+    style HZ fill:#F0616D08,stroke:#F0616D,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 1b — Vertical vs horizontal : la tranche A livre de la valeur démontrable dès le jour 4 ; l'horizontal ne livre rien avant la semaine 6 — et découvre ses erreurs de conception en dernier.</p>
+
+  <div class="callout">
+    <span class="t">✅ Checklist P1 — à cocher dans le ticket avant de passer en "In Progress"</span>
+    <p>☐ Je sais raconter le nominal en 5 phrases · ☐ Critères Given/When/Then écrits et relus par le PO · ☐ Les cas dégradés ont une réponse (même « hors scope ») · ☐ Le hors-scope est listé explicitement · ☐ Découpage en tranches verticales ≤ 3 jours chacune · ☐ Les mots nouveaux sont ajoutés au glossaire (ici : <em>Mandataire, Procuration, Pouvoir, Plafond</em>)</p>
+  </div>
+</section>
+
+<!-- ============ P2 ============ -->
+<section class="chapter" id="ch2">
+  <div class="eyebrow">Phase 2 · Conception</div>
+  <h2>Conceptualiser le domaine</h2>
+
+  <p class="lead">Question centrale de la phase : <strong>quels concepts, quelles règles, quelles frontières ?</strong> Le livrable n'est pas un diagramme UML de 40 classes — c'est une décision d'agrégat justifiée et une liste d'invariants.</p>
+
+  <h3>2.1 — La méthode générique en 4 temps</h3>
+  <ol>
+    <li><strong>Nommer les concepts</strong> avec les mots du métier : <em>Mandataire, Procuration (générale | limitée), Plafond, Pouvoir</em>. Chaque nom entre au glossaire AVANT d'entrer dans le code.</li>
+    <li><strong>Lister les invariants</strong> — les phrases « il est impossible que… » : c'est EUX qui décident de tout le design. Ici : max 2 mandataires ; limitée ⇒ plafond obligatoire ; générale ⇒ pas de plafond ; soumission ⇒ tous screenés ; un mandataire = identifié (CIN valide).</li>
+    <li><strong>Décider des frontières d'agrégat</strong> avec l'arbre ci-dessous.</li>
+    <li><strong>Nommer les événements</strong> que ce changement émet : <code>MandataireAjoute</code>, <code>MandataireRetire</code>, <code>MandatairesScreenes</code>.</li>
+  </ol>
+
+  <h3>2.2 — L'arbre de décision : nouvel agrégat ou pas ?</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    Q1{"Le concept a-t-il une<br/>IDENTITÉ et un cycle de vie<br/>propre pour le métier ?"}
+    Q1 -- non --> VO["→ VALUE OBJECT<br/>immuable, auto-validé<br/><i>(ex : Plafond, Pouvoir)</i>"]
+    Q1 -- oui --> Q2{"Ses invariants doivent-ils être<br/>vrais DANS LA MÊME TRANSACTION<br/>que ceux d'un agrégat existant ?"}
+    Q2 -- oui --> ENT["→ ENTITÉ INTERNE<br/>de cet agrégat<br/><i>(ex : Mandataire, car « max 2 »<br/>et « tous screenés avant soumission »<br/>sont des règles DU DOSSIER)</i>"]
+    Q2 -- non --> Q3{"Est-il modifié par d'autres<br/>parcours, à d'autres rythmes,<br/>par d'autres équipes ?"}
+    Q3 -- oui --> AGG["→ NOUVEL AGRÉGAT<br/>référencé par ID<br/><i>(ex : la Procuration POST-ouverture<br/>de EER-263 sera un agrégat<br/>« Mandat » dans un autre contexte)</i>"]
+    Q3 -- non --> ENT
+    style ENT fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style VO fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+    style AGG fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 2 — L'arbre à dérouler pour CHAQUE nouveau concept. La question 2 (la transaction) est la vraie frontière d'agrégat — pas « les objets qui vont ensemble dans ma tête ».</p>
+
+  <h3>2.3 — Application : le design de la Procuration</h3>
+  <div class="filetag">Le verdict pour EER-247, en code</div>
+  <pre><code class="language-java">// VALUE OBJECTS — immuables, invalides impossibles
+public record Plafond(BigDecimal montantDh) {
+    public Plafond { if (montantDh.signum() &lt;= 0) throw new PlafondInvalideException(); }
+}
+public sealed interface Procuration permits Generale, Limitee {
+    record Generale() implements Procuration {}
+    record Limitee(Plafond plafond) implements Procuration {}   // limitée SANS plafond : impossible à construire
+}
+
+// ENTITÉ INTERNE de l'agrégat DossierSouscription
+public class Mandataire {
+    private final MandataireId id;
+    private final IdentitePersonne identite;      // VO : Cin + nom + lien
+    private final Procuration procuration;
+    private StatutScreening screening = StatutScreening.A_VERIFIER;
+    // pas de setter : marquerScreene(resultat) avec règle
+}
+
+// LES INVARIANTS — dans la racine, comme toujours
+public class DossierSouscription {
+    private static final int MAX_MANDATAIRES = 2;
+
+    public void ajouterMandataire(IdentitePersonne identite, Procuration proc) {
+        assertStatut(EN_CONSTITUTION, COMPLEMENT_DEMANDE);
+        if (mandataires.size() >= MAX_MANDATAIRES)
+            throw new NombreMandatairesDepasseException(MAX_MANDATAIRES);
+        if (identite.cin().equals(prospect.cin()))
+            throw new MandataireEstLeTitulaireException();
+        mandataires.add(Mandataire.nouveau(identite, proc));
+        evenements.add(new MandataireAjoute(id, identite.cin()));
+    }
+
+    /** L'invariant n°4 renforce une règle EXISTANTE : */
+    private boolean instructionComplete() {
+        return toutesLesPiecesExigeesSontDeposees()
+            && screening.estTermine()
+            && mandataires.stream().allMatch(Mandataire::estScreene);   // ← la nouveauté
+    }
+}</code></pre>
+  <p>Notez le <strong>type somme</strong> (<code>sealed interface</code>) pour la procuration : l'invariant n°3 (« limitée ⇒ plafond ») n'est pas <em>vérifié</em>, il est <strong>rendu impossible par construction</strong>. C'est toujours la meilleure version d'un invariant.</p>
+
+  <div class="callout">
+    <span class="t">✅ Checklist P2</span>
+    <p>☐ Chaque concept classé VO / entité / agrégat via l'arbre · ☐ Les invariants écrits en français PUIS en code, dans la racine · ☐ Ce qui peut être rendu impossible par le typage l'est (sealed, records, enums) · ☐ Les événements de domaine nommés au passé · ☐ Aucune référence d'objet entre agrégats (IDs seulement) · ☐ Le glossaire est à jour et le PO reconnaît ses mots</p>
+  </div>
+</section>
+<!-- ============ P3 ============ -->
+<section class="chapter" id="ch3">
+  <div class="eyebrow">Phase 3 · Contrats</div>
+  <h2>Concevoir les contrats & les mappings</h2>
+
+  <p class="lead">Un « contrat » = tout ce que d'autres consomment : API REST, ports, variables de processus, événements, schéma DB. Principe : <strong>les contrats se conçoivent AVANT de coder et changent moins vite que le code</strong>. Le mapping, c'est la douane entre les mondes — jamais un monde ne traverse sans être traduit.</p>
+
+  <h3>3.1 — Concevoir l'API REST (générique)</h3>
+  <table>
+    <tr><th style="width:270px">Règle</th><th>Concrètement</th></tr>
+    <tr><td>Des <strong>ressources</strong>, pas des verbes</td><td><code>POST /dossiers/{id}/mandataires</code> · <code>DELETE /dossiers/{id}/mandataires/{mid}</code> — pas <code>/addMandataire</code></td></tr>
+    <tr><td>Les <strong>actions métier nommées</strong> quand ce n'est pas du CRUD</td><td><code>POST /dossiers/{id}/soumission</code>, <code>POST /dossiers/{id}/decision</code> — l'intention est dans l'URL, comme dans le use case</td></tr>
+    <tr><td>DTOs dédiés, <strong>jamais</strong> les objets du domaine</td><td><code>AjouterMandataireRequest</code> / <code>MandataireView</code> — l'API peut évoluer sans toucher le domaine, et inversement</td></tr>
+    <tr><td>Erreurs en <strong>Problem Details</strong> (RFC 7807)</td><td>Un format unique : <code>{type, title, status, detail, code}</code>. Le code métier (<code>NOMBRE_MANDATAIRES_DEPASSE</code>) permet au front d'afficher le bon message sans parser du texte</td></tr>
+    <tr><td>Contrat <strong>écrit d'abord</strong></td><td>Le YAML OpenAPI (ou l'annotation springdoc) se relit avec le dev front AVANT l'implémentation — 15 min qui économisent 2 allers-retours de PR</td></tr>
+  </table>
+  <div class="filetag">Le contrat de la tranche A, posé en 5 minutes avec le dev front</div>
+  <pre><code class="language-yaml">POST /api/dossiers/{dossierId}/mandataires
+  body:    { cin, nom, prenom, lienAvecTitulaire, typeProcuration: GENERALE|LIMITEE, plafondDh? }
+  201:     { mandataireId }
+  422:     ProblemDetails — codes : CIN_INVALIDE · NOMBRE_MANDATAIRES_DEPASSE ·
+           MANDATAIRE_EST_LE_TITULAIRE · PLAFOND_REQUIS_POUR_LIMITEE
+GET  /api/dossiers/{dossierId}    →  le récap inclut mandataires[] avec statutScreening</code></pre>
+
+  <h3>3.2 — La règle d'or du mapping : 4 modèles, 3 douanes</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    DTO["DTO API<br/>(records, validés<br/>en surface)"] -- "douane 1 :<br/>le contrôleur/mapper<br/>construit les VOs" --> DOM["💎 Domaine<br/>(la vérité)"]
+    DOM -- "douane 2 :<br/>MapStruct<br/>persistence" --> JPA["Entités JPA<br/>(forme de stockage)"]
+    DOM -- "douane 3 :<br/>le worker traduit" --> VAR["Variables Camunda<br/>(routage mince)"]
+    style DOM fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 3 — Quatre représentations du même concept, chacune optimisée pour son monde. Le domaine ne connaît AUCUNE des trois autres.</p>
+  <p>Bonnes pratiques MapStruct (douane 2) qui évitent 90 % des bugs de mapping :</p>
+  <ul>
+    <li><code>unmappedTargetPolicy = ERROR</code> dans la config : un champ oublié = erreur de compilation, pas un null silencieux en prod.</li>
+    <li>Le mapper <strong>reconstruit le domaine par ses fabriques</strong> (<code>DossierSouscription.reconstituer(...)</code>), jamais par des setters — la reconstitution est le seul chemin qui contourne légitimement les invariants (l'objet a déjà été validé à l'écriture).</li>
+    <li>Les VOs ont leurs petits mappers dédiés (<code>String ⟷ Cin</code>) déclarés en <code>uses = ...</code> : écrits une fois, réutilisés partout.</li>
+  </ul>
+
+  <h3>3.3 — Les variables de processus : le contrat le plus oublié</h3>
+  <p>Nouvelle règle du dossier précédent, appliquée : pour la tranche B, on ajoute UNE variable de routage <code>mandatairesAScreener</code> (liste des CINs) et une variable de résultat <code>screeningMandatairesOk</code>. On documente ça dans <code>docs/variables.md</code> à côté du BPMN — qui écrit, qui lit, quel type. <strong>Une variable non documentée est une API cachée.</strong></p>
+
+  <div class="callout">
+    <span class="t">✅ Checklist P3</span>
+    <p>☐ Contrat API relu avec le front avant de coder · ☐ Erreurs métier = codes stables en Problem Details · ☐ DTOs ≠ domaine ≠ JPA ≠ variables (4 modèles) · ☐ MapStruct en <code>unmappedTargetPolicy=ERROR</code> · ☐ Nouvelles variables de processus documentées · ☐ Migration DB écrite (voir P8) en même temps que l'entité JPA</p>
+  </div>
+</section>
+
+<!-- ============ P4 ============ -->
+<section class="chapter" id="ch4">
+  <div class="eyebrow">Phase 4 · Orchestration</div>
+  <h2>Modéliser dans Camunda</h2>
+
+  <p class="lead">Première question, toujours : <strong>faut-il toucher au BPMN ?</strong> Si le changement n'affecte ni l'ordre des étapes, ni les attentes, ni le routage — le processus ne bouge pas. La tranche A (ajouter un mandataire au dossier) ne touche PAS le BPMN. La tranche B, si.</p>
+
+  <h3>4.1 — Les conventions de modélisation de l'équipe</h3>
+  <table>
+    <tr><th style="width:280px">Convention</th><th>Pourquoi</th></tr>
+    <tr><td>IDs nommés : <code>Task_ScreeningMandataires</code>, <code>Gateway_TousScreenesOk</code></td><td>Tests, logs et incidents lisibles. Refusez les <code>Activity_1x8k3</code> en revue.</td></tr>
+    <tr><td>Nominal en ligne droite, gauche → droite ; exceptions vers le bas</td><td>Le métier lit son processus sans formation</td></tr>
+    <tr><td>Chaque end event nommé = un événement métier</td><td>Les statistiques de fins deviennent des KPIs gratuits</td></tr>
+    <tr><td>« Async before » sur toute Service Task qui suit un point de non-retour</td><td>Frontières de transaction maîtrisées (série, dossier 1, chap. 3)</td></tr>
+    <tr><td>Erreurs MÉTIER = BpmnError avec code du glossaire ; technique = retry</td><td>La distinction sacrée — jamais l'une déguisée en l'autre</td></tr>
+    <tr><td>Un changement de BPMN = captures avant/après dans la PR</td><td>Le reviewer voit le diff visuel, pas 400 lignes de XML</td></tr>
+  </table>
+
+  <h3>4.2 — Application : la tranche B, deux options comparées</h3>
+  <p>Il faut screener chaque mandataire. Réflexe de conception : <strong>comparer deux modélisations avant de choisir</strong> — et documenter le choix en une ligne dans la PR :</p>
+  <div class="grid2">
+    <div class="card"><h5>Option 1 — boucle multi-instance</h5><p>La Service Task <code>eer.screening</code> devient <strong>multi-instance parallèle</strong> sur <code>${mandatairesAScreener}</code>. ✅ réutilise le worker existant du titulaire tel quel · ✅ un échec sur un mandataire = un incident ciblé. ❌ le diagramme ne montre pas « titulaire vs mandataires ».</p></div>
+    <div class="card"><h5>Option 2 — Call Activity « screener une personne »</h5><p>Extraire un sous-processus réutilisable appelé N fois. ✅ très propre si d'autres parcours screeneront des tiers. ❌ un processus de plus à versionner pour un besoin encore unique — YAGNI aujourd'hui.</p></div>
+  </div>
+  <p><strong>Choix : option 1</strong>, avec une note « si un 3ᵉ parcours screene des tiers, refactorer en Call Activity » — la dette est consciente, datée, tracée. Le worker, lui, ne change presque pas : il reçoit un CIN, il screene — il ignorait déjà si c'était un titulaire.</p>
+
+  <div class="callout warn">
+    <span class="t">⚠ Le réflexe versioning avant de merger</span>
+    <p>Des instances vivantes traversent-elles la zone modifiée ? Ici oui : des dossiers attendent en « pièces » ou en « décision ». La modification est <strong>additive en aval</strong> de leur position → elles migreront naturellement. Si le changement avait été en amont (nouvelle étape avant leur position), il aurait fallu décider : laisser finir sur l'ancienne version (défaut) ou plan de migration d'instances. <strong>Cette question fait partie de la definition of done d'un changement BPMN.</strong></p>
+  </div>
+
+  <div class="callout">
+    <span class="t">✅ Checklist P4</span>
+    <p>☐ Le BPMN doit-il vraiment changer ? · ☐ Deux modélisations comparées, choix documenté · ☐ IDs nommés, conventions respectées · ☐ Erreur métier vs technique tranchée pour chaque nouvelle tâche · ☐ Impact sur les instances en cours analysé · ☐ Variables ajoutées → documentées (P3) · ☐ Captures avant/après dans la PR</p>
+  </div>
+</section>
+
+<!-- ============ P5 ============ -->
+<section class="chapter" id="ch5">
+  <div class="eyebrow">Phase 5 · Back</div>
+  <h2>Coder le back : l'ordre, les patterns, les libs</h2>
+
+  <p class="lead">Principe : <strong>coder de l'intérieur vers l'extérieur</strong>. Le domaine d'abord (avec ses tests — c'est là que ça pense), puis le use case, puis les adapters (c'est là que ça branche). Jamais l'inverse : commencer par le contrôleur, c'est concevoir le métier sous la contrainte du transport.</p>
+
+  <h3>5.1 — L'ordre de codage d'une tranche</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    A["① Domaine + tests<br/>(les critères P1<br/>deviennent verts)"] --> B["② Port in + use case<br/>(4 lignes, transactionnel)"]
+    B --> C["③ Adapters out<br/>(persistence + migration DB)"]
+    C --> D["④ Adapters in<br/>(REST, worker)"]
+    D --> E["⑤ Câblage & test<br/>d'intégration ciblé"]
+    style A fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 4 — À l'étape ①, vous avez déjà résolu tous les vrais problèmes — sans base, sans Spring, en secondes de feedback.</p>
+
+  <h3>5.2 — Les design patterns qui servent VRAIMENT (et quand)</h3>
+  <p>Un pattern se choisit sur un <strong>symptôme</strong>, jamais « pour faire propre ». Les six du quotidien sur cette stack :</p>
+  <table>
+    <tr><th style="width:210px">Pattern</th><th style="width:330px">Symptôme déclencheur</th><th>Exemple concret du scope</th></tr>
+    <tr><td><strong>Strategy</strong></td><td>Un <code>switch</code> sur un type qui grossit à chaque évolution</td><td>Le calcul des pouvoirs selon le type de procuration : <code>Map&lt;TypeProcuration, ReglePouvoirs&gt;</code> — demain « procuration notariée » = une classe de plus, zéro modif</td></tr>
+    <tr><td><strong>Specification</strong></td><td>Des critères d'éligibilité combinables qui prolifèrent</td><td><code>dossierSoumissible = piecesCompletes.and(screeningTermine).and(mandatairesScreenes)</code> — chaque règle testée seule, la combinaison lisible</td></tr>
+    <tr><td><strong>Factory (méthode statique nommée)</strong></td><td>Des constructeurs à 6 paramètres dont on ne sait plus l'intention</td><td><code>Mandataire.nouveau(...)</code> vs <code>Mandataire.reconstituer(...)</code> : deux intentions, deux niveaux de validation</td></tr>
+    <tr><td><strong>Observer (domain events)</strong></td><td>Un use case qui fait « et aussi » : notifier, corréler, auditer…</td><td><code>MandataireAjoute</code> → le notifier Camunda et l'audit s'abonnent ; le use case reste 4 lignes</td></tr>
+    <tr><td><strong>Template Method</strong></td><td>Le même squelette copié-collé (nos workers !)</td><td><code>AbstractWorker</code> : try/traduire/déléguer/catch métier/catch technique — chaque worker n'écrit que la traduction</td></tr>
+    <tr><td><strong>Chain of Responsibility</strong></td><td>Une suite de contrôles où chacun peut stopper</td><td>Les validations de surface d'une demande entrante (format, doublon, cohérence) — chaque maillon testable, l'ordre configurable</td></tr>
+    <tr><td colspan="3" style="color:var(--muted)">Et les anti-réflexes : Singleton (Spring le fait), Builder partout (les records + factories suffisent), abstraction « au cas où » (YAGNI — on abstrait à la 2ᵉ occurrence réelle).</td></tr>
+  </table>
+
+  <h3>5.3 — Choisir une librairie : la grille en 5 questions</h3>
+  <p>Avant tout <code>&lt;dependency&gt;</code> : ① Est-elle déjà dans le socle de l'équipe ou sur la liste blanche sécurité ⟨BMCI⟩ ? ② Maintenue (commits récents, CVEs traitées) ? ③ Quel coût de sortie si on la quitte — reste-t-elle confinée à un adapter ? ④ Fait-elle UNE chose (vs framework envahissant) ? ⑤ La stdlib ou Spring ne le font-ils pas déjà ? <strong>Le socle standard de cette série</strong>, qui répond déjà à presque tout : MapStruct (mapping), Lombok (<em>discipline : @RequiredArgsConstructor/@Slf4j oui — @Data sur le domaine, jamais</em>), ArchUnit, Testcontainers, Resilience4j (retry/circuit-breaker dans les adapters sortants), springdoc-openapi. Une lib nouvelle = une ligne de justification dans la PR.</p>
+
+  <h3>5.4 — Les pratiques transverses non négociables</h3>
+  <ul>
+    <li><strong>Exceptions</strong> : hiérarchie métier (<code>RegleMetierException</code> + code) → 422 Problem Details côté REST, BpmnError côté worker. Les exceptions techniques ne portent JAMAIS de décision métier.</li>
+    <li><strong>Logs</strong> : la business key dans le MDC dès l'entrée (filtre REST + le worker la pose depuis la tâche). Log structuré, événements métier en INFO (<code>mandataire_ajoute dossier=CR-... cin=***4521</code>), données personnelles masquées.</li>
+    <li><strong>Nullabilité</strong> : <code>Optional</code> en retour de port, jamais en paramètre ; les VOs rendent le reste non-nullable par construction.</li>
+    <li><strong>Transactions</strong> : UNE par use case (l'annotation vit sur le use case, ArchUnit le vérifie). Un use case qui appelle un système externe ET écrit en base → l'appel externe sort de la transaction (outbox ou étape de processus séparée).</li>
+  </ul>
+
+  <div class="callout">
+    <span class="t">✅ Checklist P5</span>
+    <p>☐ Domaine codé et vert AVANT tout adapter · ☐ Chaque pattern introduit répond à un symptôme nommé · ☐ Nouvelle lib passée à la grille des 5 questions · ☐ Erreurs métier = codes stables, mêmes codes REST et BPMN · ☐ Business key dans tous les logs · ☐ @Transactional uniquement sur les use cases · ☐ ArchUnit passe</p>
+  </div>
+</section>
+<!-- ============ P6 ============ -->
+<section class="chapter" id="ch6">
+  <div class="eyebrow">Phase 6 · Front</div>
+  <h2>Coder le front Angular & les feuilles de styles</h2>
+
+  <p class="lead">Même philosophie qu'au back, transposée : <strong>la logique au centre, le rendu aux bords</strong>. Un composant qui affiche ne décide pas ; un service qui décide n'affiche pas. Et les styles suivent un système, pas l'inspiration du jour.</p>
+
+  <h3>6.1 — Découper l'écran : smart / dumb (containers / presentational)</h3>
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    subgraph SMART["Composant SMART (container) — mandataires.page.ts"]
+        ST["connaît le service, l'état, la navigation<br/>orchestre — ne rend presque rien"]
+    end
+    subgraph DUMB["Composants DUMB (présentation) — réutilisables, testables sans mock"]
+        D1["mandataire-form<br/>@input dossierId? non !<br/>inputs = données pures<br/>outputs = intentions"]
+        D2["mandataire-card<br/>affiche un mandataire<br/>+ badge screening"]
+        D3["plafond-input<br/>champ montant DH<br/>formaté, validé"]
+    end
+    SVC["mandataires.service.ts<br/>appels API + mapping DTO→ViewModel"] --> ST
+    ST -->|"inputs (signals)"| D1
+    ST -->|inputs| D2
+    D1 -->|"output (ajouter)"| ST
+    D1 --- D3
+    style ST fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 5 — La règle : les dumb components reçoivent des données et émettent des intentions. Ils ne connaissent ni HTTP, ni le routeur, ni le dossier — donc ils se testent et se réutilisent trivialement.</p>
+
+  <h3>6.2 — Le formulaire : typé, réactif, et qui encode les règles</h3>
+  <p>Même réflexe qu'au domaine : <strong>ce qui peut être rendu impossible par le formulaire l'est</strong> — sans jamais remplacer la validation du back (le front guide, le back garde) :</p>
+  <div class="filetag">mandataire-form.component.ts (extraits — Angular moderne, standalone + signals)</div>
+  <pre><code class="language-typescript">export class MandataireFormComponent {
+  // inputs/outputs = le contrat du composant, aussi soigné qu'un port
+  disabled = input(false);
+  ajouter = output&lt;AjouterMandataireIntention&gt;();
+
+  form = this.fb.group({
+    cin:    ['', [Validators.required, Validators.pattern(/^[A-Z]{1,2}\d{4,7}$/i)]],
+    nom:    ['', Validators.required],
+    prenom: ['', Validators.required],
+    lien:   this.fb.control&lt;LienTitulaire | null&gt;(null, Validators.required),
+    typeProcuration: this.fb.control&lt;'GENERALE' | 'LIMITEE'&gt;('GENERALE'),
+    plafondDh: [{ value: null, disabled: true },
+                [Validators.required, Validators.min(1)]],
+  });
+
+  constructor(private fb: NonNullableFormBuilder) {
+    // La règle métier "limitée ⇒ plafond" encodée dans l'UX :
+    this.form.controls.typeProcuration.valueChanges.pipe(takeUntilDestroyed())
+      .subscribe(t => t === 'LIMITEE'
+        ? this.form.controls.plafondDh.enable()
+        : this.form.controls.plafondDh.disable());   // disabled = ni saisi ni envoyé
+  }
+
+  soumettre() {
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    this.ajouter.emit(this.form.getRawValue() as AjouterMandataireIntention);
+  }
+}</code></pre>
+  <p>Et côté smart component, la gestion des <strong>trois états universels</strong> — chargement, erreur, succès — avec les codes Problem Details du back (P3) mappés vers des messages du glossaire : <code>NOMBRE_MANDATAIRES_DEPASSE → « Maximum 2 mandataires par compte »</code>. Un code inconnu → message générique + log. Jamais de <code>err.message</code> brut à l'écran.</p>
+
+  <h3>6.3 — Les feuilles de styles : un système, pas des styles</h3>
+  <table>
+    <tr><th style="width:290px">Règle</th><th>Concrètement</th></tr>
+    <tr><td><strong>Design tokens d'abord</strong></td><td>Couleurs, espacements, rayons, typo = variables CSS du design system <code>@banque/ds-angular</code>. <strong>Zéro valeur en dur</strong> : <code>color: var(--ds-color-danger)</code>, jamais <code>#e53935</code>. Le rebranding devient un non-événement.</td></tr>
+    <tr><td><strong>Échelle d'espacement</strong></td><td>Multiples de 4 px via tokens (<code>--ds-space-2/4/6</code>). Un espacement hors échelle en revue = question posée.</td></tr>
+    <tr><td><strong>BEM local au composant</strong></td><td><code>.mandataire-card__badge--rejete</code> dans le SCSS du composant (encapsulé par Angular). Pas de styles globaux hors du thème ; pas de <code>::ng-deep</code> (fuites imprévisibles) sauf dérogation commentée.</td></tr>
+    <tr><td><strong>États = classes, pas du style inline</strong></td><td><code>[class.is-invalid]</code>, <code>[class.is-loading]</code> — testables, lisibles, thémables.</td></tr>
+    <tr><td><strong>Responsive par le contenu</strong></td><td>Breakpoints du DS uniquement ; le formulaire passe en 1 colonne sous <code>--ds-bp-md</code>. Tester au viewport agence (souvent 1366×768 !).</td></tr>
+    <tr><td><strong>Accessibilité incluse</strong></td><td>Labels reliés, erreurs annoncées (<code>aria-describedby</code> + <code>role="alert"</code>), focus visible, navigation clavier du formulaire complet. En banque c'est réglementaire, pas optionnel.</td></tr>
+  </table>
+
+  <div class="callout">
+    <span class="t">✅ Checklist P6</span>
+    <p>☐ Smart/dumb respecté (les dumb : zéro injection de service métier) · ☐ Formulaire typé, règles UX alignées sur les invariants · ☐ Les 3 états (loading/erreur/succès) gérés, codes d'erreur mappés au glossaire · ☐ Zéro couleur/espacement en dur — tokens uniquement · ☐ BEM local, pas de ::ng-deep · ☐ Clavier + lecteur d'écran testés sur le parcours · ☐ Le formKey est enregistré au registre si c'est un formulaire de User Task</p>
+  </div>
+</section>
+
+<!-- ============ P7 ============ -->
+<section class="chapter" id="ch7">
+  <div class="eyebrow">Phase 7 · Qualité</div>
+  <h2>Tests & revue de code</h2>
+
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart TB
+    E2E["▲ 1 E2E par tranche<br/>lent · fragile · précieux"]
+    INT["Intégration ciblée : persistence (Testcontainers) ·<br/>contrat API (MockMvc) · processus (moteur H2)"]
+    UNIT["La MASSE : domaine pur + ArchUnit + composants front<br/>milliers de tests · millisecondes · zéro infra"]
+    E2E --- INT --- UNIT
+    style UNIT fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+    style INT fill:#5AA9FF22,stroke:#5AA9FF,color:#E6ECF5
+    style E2E fill:#F5B84122,stroke:#F5B841,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. 6b — La pyramide de cette stack : plus le métier est dans le domaine (P2/P5), plus la base est large et rapide — la CI reste sous 5 minutes.</p>
+
+  <h3>7.1 — Quoi tester où : la carte des responsabilités</h3>
+  <table>
+    <tr><th style="width:250px">Quoi</th><th style="width:230px">Type de test</th><th>Sur EER-247</th></tr>
+    <tr><td>Invariants & règles</td><td>Unitaire domaine pur (la masse)</td><td>Les 6 critères de P1, mot pour mot : <code>un_troisieme_mandataire_est_refuse()</code>…</td></tr>
+    <tr><td>Architecture</td><td>ArchUnit</td><td>Rien à écrire : les règles existantes couvrent les nouveaux packages</td></tr>
+    <tr><td>Routage du processus</td><td>Test de processus (H2)</td><td>« un mandataire sanctionné → refus réglementaire », « 2 mandataires → 3 exécutions du screening (multi-instance) »</td></tr>
+    <tr><td>Mapping & persistence</td><td>Intégration Testcontainers</td><td>Aller-retour <code>DossierSouscription</code> avec 2 mandataires ⟷ PostgreSQL (le JSON de la procuration !)</td></tr>
+    <tr><td>Contrat API</td><td>Test de contrôleur (MockMvc)</td><td>422 + code <code>PLAFOND_REQUIS_POUR_LIMITEE</code> pour le cas limite</td></tr>
+    <tr><td>Composants front</td><td>Unitaires (dumb) + un test du smart</td><td>« LIMITEE active le champ plafond », « l'intention émise porte les bonnes valeurs »</td></tr>
+    <tr><td>Le parcours</td><td>1 E2E max par tranche</td><td>Ajouter un mandataire → le voir dans le récap avec badge « à vérifier »</td></tr>
+  </table>
+  <p>L'heuristique quand vous hésitez : <strong>testez le comportement au niveau le plus bas qui peut le prouver</strong>. Si un test E2E échoue et qu'aucun test plus bas n'échoue, il manque un test plus bas.</p>
+
+  <h3>7.2 — La revue de code : la grille du reviewer</h3>
+  <p>Relire une PR = dérouler les checklists des phases concernées, plus ces questions transverses :</p>
+  <ul>
+    <li><strong>Le langage</strong> : les nouveaux mots sont-ils ceux du glossaire ? (« Procuration », pas « PowerOfAttorney » ni « proc »)</li>
+    <li><strong>La bonne couche</strong> : chaque règle est-elle là où l'arbre P2 / le tableau P5.2 la place ? Le test du miroir sur les workers.</li>
+    <li><strong>La taille</strong> : une PR = une tranche = relisible en 30 min. Au-delà de ~400 lignes utiles, demander le découpage n'est pas une insulte.</li>
+    <li><strong>Les tests racontent la story</strong> : peut-on comprendre EER-247 en lisant uniquement les noms des tests ? Si oui, la PR est probablement bonne.</li>
+    <li><strong>La réversibilité</strong> : migration DB rétrocompatible ? instances BPMN en cours analysées ? feature désactivable ?</li>
+  </ul>
+  <div class="callout">
+    <span class="t">💡 La règle de la remarque récurrente</span>
+    <p>Une remarque faite 3 fois en revue devient soit une règle ArchUnit/lint (automatisée), soit une ligne de ce référentiel (documentée), soit elle disparaît (elle n'était pas si importante). La revue humaine se réserve pour ce qui pense — pas pour ce qui se vérifie.</p>
+  </div>
+</section>
+
+<!-- ============ P8 ============ -->
+<section class="chapter" id="ch8">
+  <div class="eyebrow">Phase 8 · Livraison</div>
+  <h2>Livrer proprement</h2>
+
+  <h3>8.1 — L'hygiène de la PR au déploiement</h3>
+  <ul>
+    <li><strong>Commits conventionnels</strong> : <code>feat(souscription): ajout mandataire à l'agrégat (EER-247)</code>, <code>fix:</code>, <code>refactor:</code>, <code>test:</code> — l'historique devient un changelog gratuit.</li>
+    <li><strong>La PR raconte</strong> : le POURQUOI (lien ticket + décisions prises, ex. le choix multi-instance de P4), les captures (UI avant/après, BPMN avant/après), comment tester. Le reviewer ne doit rien deviner.</li>
+    <li><strong>Migrations DB (Flyway) : expand → migrate → contract.</strong> V47 ajoute la table <code>mandataire</code> (rétrocompatible : l'ancien code l'ignore). On ne supprime/renomme JAMAIS dans la même release qu'on déploie le code qui s'en passe — le rollback doit rester possible à tout instant.</li>
+    <li><strong>Feature flag quand la feature attend le métier</strong> : la tranche A peut partir en prod invisible (<code>eer.mandataires.enabled=false</code> masque le bloc UI et ferme l'endpoint en 404). Livrer ≠ activer : on déploie souvent, on active quand le métier est prêt. Nettoyer le flag = un ticket créé le jour où on le pose.</li>
+    <li><strong>Observabilité de la feature</strong> : avant de merger la tranche B, on sait répondre à « combien de dossiers avec mandataires ? combien de refus liés ? » — un compteur métier (Micrometer) + les fins nommées du BPMN suffisent.</li>
+  </ul>
+
+  <h3>8.2 — La definition of done, complète</h3>
+  <div class="callout">
+    <span class="t">✅ DoD — EER-247, tranche B</span>
+    <p>☐ Critères P1 = tests verts qui portent leurs noms · ☐ Checklists P2→P6 déroulées · ☐ Pipeline vert (domaine, ArchUnit, processus + couverture visuelle, intégration, image, scan) · ☐ Migration DB expand-only · ☐ Docs à jour : glossaire, variables.md, ADR si décision structurante · ☐ Démo faite au PO sur DEV · ☐ Promotion UAT par PR · ☐ Métriques visibles sur le dashboard · ☐ Ticket de nettoyage du flag créé</p>
+  </div>
+</section>
+
+<!-- ============ CH9 ============ -->
+<section class="chapter" id="ch9">
+  <div class="eyebrow">Synthèse · Le fil rouge</div>
+  <h2>EER-247 déroulée : le condensé phase par phase</h2>
+
+  <p class="lead">La même story, vue en une seule table — c'est le gabarit à recopier dans chaque ticket d'ampleur :</p>
+  <table>
+    <tr><th style="width:90px">Phase</th><th style="width:330px">Livrable produit</th><th>La décision clé prise</th></tr>
+    <tr><td><strong>P1</strong></td><td>6 critères G/W/T · 3 tranches · hors-scope explicite (révocation = EER-263)</td><td>Max 2 mandataires ; le mandataire signe aussi</td></tr>
+    <tr><td><strong>P2</strong></td><td><code>Mandataire</code> entité interne, <code>Procuration</code> sealed, invariants dans la racine</td><td>PAS un nouvel agrégat (invariants transactionnels avec le dossier)</td></tr>
+    <tr><td><strong>P3</strong></td><td>Contrat REST + 4 codes d'erreur · variable <code>mandatairesAScreener</code> documentée</td><td>Un seul endpoint d'ajout, le récap porte le statut screening</td></tr>
+    <tr><td><strong>P4</strong></td><td>Screening en multi-instance parallèle, captures dans la PR</td><td>Option boucle > Call Activity (YAGNI documenté) ; instances en cours : impact nul</td></tr>
+    <tr><td><strong>P5</strong></td><td>Domaine → use case → adapters ; Strategy pour les pouvoirs</td><td>Aucune nouvelle lib nécessaire — le socle suffit</td></tr>
+    <tr><td><strong>P6</strong></td><td>mandataire-form (dumb) + page (smart), tokens DS, a11y</td><td>La règle « limitée ⇒ plafond » encodée dans l'UX ET gardée par le back</td></tr>
+    <tr><td><strong>P7</strong></td><td>Tests à chaque niveau, dont multi-instance et le JSON de procuration</td><td>1 seul E2E ; le reste prouvé plus bas</td></tr>
+    <tr><td><strong>P8</strong></td><td>3 PRs, Flyway V47 expand-only, flag <code>eer.mandataires.enabled</code></td><td>Livrer invisible d'abord, activer quand la conformité valide les libellés</td></tr>
+  </table>
+</section>
+<!-- ============ CHREF ============ -->
+<section class="chapter" id="chref">
+  <div class="eyebrow">Référence · L'exemple de bout en bout</div>
+  <h2>EER-247 implémentée pas à pas : le code de référence</h2>
+
+  <p class="lead">La tranche A (« ajouter un mandataire au dossier »), développée <strong>fichier par fichier, dans l'ordre réel</strong>, sur 4 jours. Chaque étape montre le code complet et pointe la pratique du playbook qu'elle applique <span class="pill g">✓ Px</span>. C'est le gabarit à imiter pour chaque story.</p>
+
+  <div class="mermaid"><script type="text/x-mermaid">
+flowchart LR
+    J1["JOUR 1 matin<br/>Étapes 1-2<br/>💎 Domaine en TDD"] --> J1b["JOUR 1 aprèm<br/>Étape 3<br/>Use case + ports"]
+    J1b --> J2["JOUR 2<br/>Étapes 4-5<br/>Persistence + REST"]
+    J2 --> J3["JOUR 3<br/>Étapes 6-7<br/>Front + styles"]
+    J3 --> J4["JOUR 4<br/>Étapes 8-9<br/>Bout en bout local + PR"]
+    style J1 fill:#00A76F22,stroke:#00A76F,color:#E6ECF5
+</script></div>
+  <p class="figcap">Fig. R0 — Le déroulé. Remarquez : la moitié du back est finie avant d'ouvrir la moindre classe Spring — c'est l'effet « domaine d'abord ».</p>
+
+  <h3>Étape 0 — La carte des fichiers (avant d'écrire une ligne)</h3>
+  <p>Cinq minutes pour lister ce qui sera créé <span class="pill g">NOUVEAU</span> ou modifié <span class="pill a">MODIF</span> — c'est le plan de la PR, collé dans le ticket :</p>
+  <pre><code class="language-text">eer-souscription-svc/
+├── src/main/java/ma/banque/eer/souscription/
+│   ├── domain/model/
+│   │   ├── DossierSouscription.java                      MODIF  (+2 méthodes, +1 invariant)
+│   │   ├── Mandataire.java                               NOUVEAU
+│   │   ├── Procuration.java · Plafond.java               NOUVEAU (VOs)
+│   │   └── event/MandataireAjoute.java · MandataireRetire.java   NOUVEAU
+│   ├── application/
+│   │   ├── port/in/GererMandatairesUseCase.java          NOUVEAU
+│   │   └── usecase/GererMandatairesService.java          NOUVEAU
+│   └── adapter/
+│       ├── in/rest/MandataireController.java + dto/      NOUVEAU
+│       └── out/persistence/
+│           ├── MandataireJpa.java                        NOUVEAU
+│           └── DossierMapper.java                        MODIF
+├── src/main/resources/db/migration/V47__mandataires.sql  NOUVEAU
+└── src/test/java/... (miroir des fichiers ci-dessus)     NOUVEAU
+
+mf-parcours-eer/src/app/mandataires/
+├── mandataires.page.ts (smart) · mandataires.service.ts  NOUVEAU
+├── mandataire-form/ (dumb : .ts .html .scss)             NOUVEAU
+└── mandataire-card/ (dumb)                               NOUVEAU</code></pre>
+  <p><span class="pill g">✓ P1</span> tranche verticale identifiable d'un coup d'œil · <span class="pill g">✓ P7</span> la PR restera relisible : ~15 fichiers, une intention.</p>
+
+  <h3>Étape 1 — JOUR 1, 9h00 : le premier test, ROUGE</h3>
+  <p>On n'écrit pas <code>Mandataire.java</code> d'abord. On écrit <strong>le critère n°2 de P1 tel quel</strong>, il ne compile même pas — c'est normal, c'est lui qui va dicter l'API du domaine :</p>
+  <div class="filetag">src/test/java/.../domain/model/MandatairesTest.java</div>
+  <pre><code class="language-java">class MandatairesTest {
+
+    @Test
+    void un_troisieme_mandataire_est_refuse() {                    // critère P1 n°2
+        var dossier = DossierEnConstitution.avec2Mandataires();    // object mother (test data builder)
+        assertThatThrownBy(() -> dossier.ajouterMandataire(
+                Identites.frereDuProspect(), Procurations.generale()))
+            .isInstanceOf(NombreMandatairesDepasseException.class);
+    }
+
+    @Test
+    void une_procuration_limitee_sans_plafond_est_impossible() {   // critère n°3
+        // Pas un test d'exception : le CODE NE COMPILE PAS si on essaie.
+        // new Limitee() sans Plafond n'existe pas → l'invariant est prouvé par le compilateur.
+        Procuration p = new Procuration.Limitee(new Plafond(BigDecimal.valueOf(50_000)));
+        assertThat(p).isInstanceOf(Procuration.Limitee.class);
+    }
+
+    @Test
+    void le_titulaire_ne_peut_pas_etre_son_propre_mandataire() {   // cas dégradé P1
+        var dossier = DossierEnConstitution.deOmar();
+        assertThatThrownBy(() -> dossier.ajouterMandataire(
+                Identites.deOmar(), Procurations.generale()))
+            .isInstanceOf(MandataireEstLeTitulaireException.class);
+    }
+
+    @Test
+    void ajouter_un_mandataire_emet_l_evenement() {                // critère n°1
+        var dossier = DossierEnConstitution.deOmar();
+        dossier.ajouterMandataire(Identites.frereDuProspect(), Procurations.generale());
+        assertThat(dossier.evenementsEtPurge())
+            .singleElement().isInstanceOf(MandataireAjoute.class);
+    }
+}</code></pre>
+  <p><span class="pill g">✓ P2</span> invariants écrits en tests avant le code · <span class="pill g">✓ P7</span> les noms de tests = les critères, mot pour mot. Le builder <code>DossierEnConstitution</code> est un <strong>Object Mother</strong> : un fichier de fabriques de jeux d'essai réutilisées par toute l'équipe — écrivez-le une fois, il rend tous les tests suivants triviaux.</p>
+
+  <h3>Étape 2 — JOUR 1, 10h30 : le domaine qui rend les tests VERTS</h3>
+  <p>Maintenant seulement, le code (les VOs et l'invariant de la racine sont ceux montrés en P2 — voici la pièce manquante, l'entité) :</p>
+  <div class="filetag">domain/model/Mandataire.java — complet</div>
+  <pre><code class="language-java">public class Mandataire {
+
+    private final MandataireId id;
+    private final IdentitePersonne identite;          // VO : Cin + nom + prénom + lien
+    private final Procuration procuration;            // VO scellé (Generale | Limitee)
+    private StatutScreening screening;
+
+    private Mandataire(MandataireId id, IdentitePersonne identite,
+                       Procuration procuration, StatutScreening screening) {
+        this.id = id; this.identite = identite;
+        this.procuration = procuration; this.screening = screening;
+    }
+
+    /** Création métier : screening toujours "à vérifier" au départ. ✓ P5 factory nommée */
+    static Mandataire nouveau(IdentitePersonne identite, Procuration procuration) {
+        return new Mandataire(MandataireId.genere(), identite,
+                              procuration, StatutScreening.A_VERIFIER);
+    }
+
+    /** Reconstitution depuis la persistence : contourne LÉGITIMEMENT la règle ci-dessus. */
+    public static Mandataire reconstituer(MandataireId id, IdentitePersonne identite,
+                                          Procuration procuration, StatutScreening s) {
+        return new Mandataire(id, identite, procuration, s);
+    }
+
+    /** Seule transition d'état autorisée — pas de setter. */
+    void marquerScreene(ResultatScreening resultat) {
+        if (screening != StatutScreening.A_VERIFIER)
+            throw new ScreeningDejaEffectueException(id);
+        this.screening = resultat.versStatut();
+    }
+
+    boolean estScreene() { return screening != StatutScreening.A_VERIFIER; }
+    // getters de lecture uniquement
+}</code></pre>
+  <p><strong>11h45 : les 4 tests sont verts.</strong> Tout le métier de la tranche existe, testé, sans que Spring ait démarré une seule fois. <span class="pill g">✓ P5</span> ordre intérieur → extérieur.</p>
+
+  <h3>Étape 3 — JOUR 1, 14h00 : le port et le use case</h3>
+  <div class="filetag">application/port/in/GererMandatairesUseCase.java + usecase/GererMandatairesService.java</div>
+  <pre><code class="language-java">public interface GererMandatairesUseCase {
+    MandataireId ajouter(AjouterMandataireCommand cmd);
+    void retirer(RetirerMandataireCommand cmd);
+
+    record AjouterMandataireCommand(DossierId dossierId, IdentitePersonne identite,
+                                    Procuration procuration) {
+        public AjouterMandataireCommand {                       // ✓ P3 : commande auto-validée
+            Objects.requireNonNull(dossierId); Objects.requireNonNull(identite);
+            Objects.requireNonNull(procuration);
+        }
+    }
+    record RetirerMandataireCommand(DossierId dossierId, MandataireId mandataireId) {}
+}
+
+@UseCase                                                        // = @Service + @Transactional ✓ P5
+@RequiredArgsConstructor
+class GererMandatairesService implements GererMandatairesUseCase {
+
+    private final ChargerDossierPort charger;
+    private final SauverDossierPort sauver;
+    private final PublierEvenementsPort publier;
+
+    @Override
+    public MandataireId ajouter(AjouterMandataireCommand cmd) {
+        var dossier = charger.parId(cmd.dossierId())
+                .orElseThrow(() -> new DossierIntrouvableException(cmd.dossierId()));
+        var id = dossier.ajouterMandataire(cmd.identite(), cmd.procuration()); // ← le métier
+        sauver.sauver(dossier);
+        publier.publier(dossier.evenementsEtPurge());
+        return id;
+    }
+    // retirer() : même squelette, 4 lignes
+}</code></pre>
+  <p>Le test du use case mocke les 3 ports (Mockito) et vérifie l'enchaînement charger→agir→sauver→publier + la propagation de l'exception métier. 20 minutes, fait.</p>
+
+  <h3>Étape 4 — JOUR 2, 9h00 : la persistence (migration D'ABORD)</h3>
+  <div class="filetag">src/main/resources/db/migration/V47__mandataires.sql</div>
+  <pre><code class="language-sql">-- ✓ P8 : EXPAND ONLY — aucune modification des tables existantes, rollback code toujours possible
+CREATE TABLE mandataire (
+    id              VARCHAR(36)  PRIMARY KEY,
+    dossier_id      VARCHAR(36)  NOT NULL REFERENCES dossier_souscription(id),
+    cin             VARCHAR(10)  NOT NULL,
+    nom             VARCHAR(80)  NOT NULL,
+    prenom          VARCHAR(80)  NOT NULL,
+    lien_titulaire  VARCHAR(30)  NOT NULL,
+    procuration     JSONB        NOT NULL,   -- le VO scellé, sérialisé tel quel
+    statut_screening VARCHAR(20) NOT NULL DEFAULT 'A_VERIFIER',
+    CONSTRAINT uq_mandataire_par_dossier UNIQUE (dossier_id, cin)  -- ceinture ET bretelles
+);
+CREATE INDEX idx_mandataire_dossier ON mandataire(dossier_id);</code></pre>
+  <p>Puis le trio : <code>MandataireJpa</code> (setters, ctor vide — objet technique assumé), le mapper enrichi, et le test Testcontainers qui prouve l'aller-retour :</p>
+  <div class="filetag">adapter/out/persistence — le point délicat : le mapping du VO scellé</div>
+  <pre><code class="language-java">@Mapper(config = CentralMapperConfig.class, uses = ProcurationJsonMapper.class)
+interface DossierMapper {
+    // ... mappings existants ...
+    @Mapping(target = "procuration", qualifiedByName = "procurationVersJson")
+    MandataireJpa versJpa(Mandataire m);
+}
+
+@Component
+class ProcurationJsonMapper {                        // ✓ P3 : la douane du VO, écrite UNE fois
+    @Named("procurationVersJson")
+    String versJson(Procuration p) {
+        return switch (p) {                          // le sealed force l'exhaustivité :
+            case Procuration.Generale g -> """
+                {"type":"GENERALE"}""";              // un nouveau type demain = erreur de compil ici
+            case Procuration.Limitee l -> """
+                {"type":"LIMITEE","plafondDh":%s}""".formatted(l.plafond().montantDh());
+        };
+    }
+    // versDomaine(String) : l'inverse, avec Plafond reconstruit → revalidé
+}
+
+@DataJpaTest @Testcontainers                          // ✓ P7 : le mapping contre un VRAI PostgreSQL
+class DossierPersistenceIT {
+    @Test
+    void aller_retour_avec_deux_mandataires_dont_un_limite() {
+        var avant = DossierEnConstitution.avec2Mandataires();
+        adapter.sauver(avant);
+        var apres = adapter.parId(avant.id()).orElseThrow();
+        assertThat(apres.mandataires()).usingRecursiveComparison()
+            .isEqualTo(avant.mandataires());          // JSONB compris
+    }
+}</code></pre>
+
+  <h3>Étape 5 — JOUR 2, 14h00 : l'adapter REST</h3>
+  <div class="filetag">adapter/in/rest/MandataireController.java + le contrat en action</div>
+  <pre><code class="language-java">@RestController
+@RequestMapping("/api/dossiers/{dossierId}/mandataires")
+@RequiredArgsConstructor
+class MandataireController {
+
+    private final GererMandatairesUseCase useCase;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    MandataireCreeResponse ajouter(@PathVariable String dossierId,
+                                   @Valid @RequestBody AjouterMandataireRequest req) {
+        var id = useCase.ajouter(new AjouterMandataireCommand(
+            DossierId.de(dossierId),
+            req.versIdentite(),                       // le DTO construit les VOs = douane 1 ✓ P3
+            req.versProcuration()));
+        return new MandataireCreeResponse(id.valeur());
+    }
+}
+
+/** DTO : la forme de l'API, pas celle du domaine. ✓ P3 */
+record AjouterMandataireRequest(
+    @NotBlank String cin, @NotBlank String nom, @NotBlank String prenom,
+    @NotNull LienTitulaire lienAvecTitulaire,
+    @NotNull TypeProcurationDto typeProcuration,
+    @Positive BigDecimal plafondDh) {
+
+    Procuration versProcuration() {
+        return switch (typeProcuration) {
+            case GENERALE -> new Procuration.Generale();
+            case LIMITEE  -> new Procuration.Limitee(new Plafond(
+                Optional.ofNullable(plafondDh)
+                    .orElseThrow(PlafondRequisPourLimiteeException::new)));
+        };
+    }
+}</code></pre>
+  <p>Le <code>@RestControllerAdvice</code> existant traduit déjà toute <code>RegleMetierException</code> en Problem Details — <strong>rien à écrire</strong>, c'est le bénéfice des codes stables de P3. La preuve par curl, exécutée en local :</p>
+  <pre><code class="language-text">$ curl -s -X POST localhost:8080/api/dossiers/EER-2026-1042/mandataires \
+    -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+    -d '{"cin":"BK5544","nom":"Alami","prenom":"Yassine",
+         "lienAvecTitulaire":"FRERE","typeProcuration":"LIMITEE","plafondDh":50000}'
+→ 201 {"mandataireId":"6f2c81..."}
+
+$ # le même, une 3ᵉ fois :
+→ 422 {"type":"about:blank","title":"Règle métier non respectée","status":422,
+       "code":"NOMBRE_MANDATAIRES_DEPASSE",
+       "detail":"Un dossier ne peut compter plus de 2 mandataires"}</code></pre>
+
+  <h3>Étape 6 — JOUR 3, 9h00 : le front — service, page, formulaire</h3>
+  <p>Le composant formulaire est celui de P6. Voici les deux pièces qui l'entourent — la traversée complète côté navigateur :</p>
+  <div class="mermaid"><script type="text/x-mermaid">
+sequenceDiagram
+    autonumber
+    participant F as mandataire-form<br/>(dumb)
+    participant P as mandataires.page<br/>(smart)
+    participant S as mandataires.service
+    participant B as Back /api/...
+    F->>P: (ajouter) AjouterMandataireIntention
+    P->>P: enSoumission.set(true)
+    P->>S: ajouter(dossierId, intention)
+    S->>B: POST /dossiers/{id}/mandataires
+    alt 201
+        B-->>S: {mandataireId}
+        S-->>P: Mandataire (ViewModel)
+        P->>P: mandataires.update(liste + nouveau)<br/>form reset · toast succès
+    else 422 code métier
+        B-->>S: ProblemDetails{code}
+        S-->>P: ErreurMetier(code)
+        P->>P: message = MESSAGES[code]<br/>affiché près du formulaire
+    end
+</script></div>
+  <p class="figcap">Fig. R1 — La traversée front. Le dumb émet une intention ; le smart orchestre les 3 états ; le service traduit HTTP ⟷ ViewModel — le miroir exact des couches du back.</p>
+  <div class="filetag">mandataires.page.ts (smart) — l'état par signals, les erreurs par codes</div>
+  <pre><code class="language-typescript">@Component({
+  selector: 'eer-mandataires-page',
+  standalone: true,
+  imports: [MandataireFormComponent, MandataireCardComponent],
+  templateUrl: './mandataires.page.html',
+})
+export class MandatairesPage {
+  private svc = inject(MandatairesService);
+  dossierId = input.required&lt;string&gt;();
+
+  mandataires  = signal&lt;MandataireVm[]&gt;([]);
+  enSoumission = signal(false);
+  erreur       = signal&lt;string | null&gt;(null);
+  formDesactive = computed(() =>                            // la règle "max 2" GUIDÉE côté UX
+    this.enSoumission() || this.mandataires().length >= 2); // …et GARDÉE côté back ✓ P6
+
+  onAjouter(intention: AjouterMandataireIntention) {
+    this.enSoumission.set(true); this.erreur.set(null);
+    this.svc.ajouter(this.dossierId(), intention).subscribe({
+      next: m => { this.mandataires.update(l => [...l, m]); this.enSoumission.set(false); },
+      error: (e: ErreurMetier) => {
+        this.erreur.set(MESSAGES_MANDATAIRE[e.code] ?? MESSAGE_GENERIQUE);  // ✓ P6 codes → glossaire
+        this.enSoumission.set(false);
+      },
+    });
+  }
+}</code></pre>
+
+  <h3>Étape 7 — JOUR 3, 14h00 : les styles — et l'écran obtenu</h3>
+  <div class="filetag">mandataire-card.component.scss — 100 % tokens, BEM local ✓ P6</div>
+  <pre><code class="language-scss">.mandataire-card {
+  display: flex; align-items: center; gap: var(--ds-space-4);
+  padding: var(--ds-space-4) var(--ds-space-6);
+  border: 1px solid var(--ds-color-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-surface);
+
+  &__identite { flex: 1; min-width: 0; }
+  &__nom  { font-weight: var(--ds-font-weight-semibold); }
+  &__lien { color: var(--ds-color-text-muted); font-size: var(--ds-font-size-sm); }
+
+  &__badge {
+    font-size: var(--ds-font-size-xs); padding: 2px var(--ds-space-2);
+    border-radius: var(--ds-radius-pill); border: 1px solid currentColor;
+    &--a-verifier { color: var(--ds-color-warning); }
+    &--valide     { color: var(--ds-color-success); }
+    &--rejete     { color: var(--ds-color-danger); }
+  }
+
+  @media (max-width: var(--ds-bp-md)) {      // breakpoint du DS, jamais de px maison
+    flex-wrap: wrap;
+  }
+}</code></pre>
+  <p>Le rendu visé (maquette de l'écran, à l'échelle des composants) :</p>
+  <div style="border:1px solid var(--line);border-radius:14px;background:#0E1626;padding:26px 28px;margin:0 0 8px;max-width:560px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">Mandataires <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">(1/2)</span></div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Personnes autorisées à opérer sur votre compte</div>
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:16px">
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--green-soft);color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">YA</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:600">Yassine Alami <span style="color:var(--muted);font-weight:400">· Frère</span></div>
+      <div style="font-size:12px;color:var(--muted)">Procuration limitée — 50 000 DH</div></div>
+      <span style="font-family:var(--mono);font-size:10.5px;color:var(--amber);border:1px solid var(--amber);border-radius:99px;padding:2px 9px">À VÉRIFIER</span>
+      <span style="color:var(--muted);font-size:15px">🗑</span>
+    </div>
+    <div style="border:1px dashed var(--line);border-radius:10px;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;font-size:12.5px">
+      <div><div style="color:var(--muted);margin-bottom:3px">CIN</div><div style="border:1px solid var(--line);border-radius:7px;padding:7px 10px;color:#7f8ca3">BK5544</div></div>
+      <div><div style="color:var(--muted);margin-bottom:3px">Lien avec le titulaire</div><div style="border:1px solid var(--line);border-radius:7px;padding:7px 10px;color:#7f8ca3">Frère ▾</div></div>
+      <div><div style="color:var(--muted);margin-bottom:3px">Type de procuration</div><div style="border:1px solid var(--green);border-radius:7px;padding:7px 10px;color:var(--green)">Limitée ▾</div></div>
+      <div><div style="color:var(--muted);margin-bottom:3px">Plafond (DH) <span style="color:var(--amber)">•</span></div><div style="border:1px solid var(--line);border-radius:7px;padding:7px 10px;color:#7f8ca3">50 000</div></div>
+      <div style="grid-column:1/-1;text-align:right"><span style="background:var(--green);color:#04120C;font-weight:700;border-radius:8px;padding:8px 18px;font-size:12.5px">Ajouter le mandataire</span></div>
+    </div>
+  </div>
+  <p class="figcap">Fig. R2 — L'écran cible : la carte du mandataire existant (badge de screening) + le formulaire où le champ « Plafond » ne s'active qu'en procuration limitée. Le bouton se désactivera à 2/2.</p>
+
+  <h3>Étape 8 — JOUR 4, 9h00 : le bout en bout sur le poste</h3>
+  <p>La stack locale du dossier « setup » démarrée, on rejoue le smoke test enrichi : navigateur « Omar » → écran mandataires → ajout de Yassine → <strong>vérifications croisées</strong> : ① la carte apparaît avec le badge « À VÉRIFIER » ; ② <code>GET /api/dossiers/EER-2026-1042</code> renvoie le mandataire ; ③ en base, la ligne <code>mandataire</code> avec son JSONB ; ④ Cockpit : l'instance n'a pas bougé (tranche A = pas de BPMN, comme décidé en P4). ⑤ Le cas d'erreur : un 3ᵉ ajout affiche « Maximum 2 mandataires par compte » — le message du glossaire, pas une stack trace.</p>
+
+  <h3>Étape 9 — JOUR 4, 11h00 : la PR</h3>
+  <div class="filetag">La description de PR, telle qu'elle part en revue</div>
+  <pre><code class="language-text">feat(souscription): ajout des mandataires au dossier (EER-247 — tranche A/3)
+
+POURQUOI  : EER-247 — désigner jusqu'à 2 mandataires pendant la souscription.
+            Tranche A = saisie/retrait + récap. (B = screening BPMN, C = convention.)
+DÉCISIONS : Mandataire = entité INTERNE de l'agrégat (invariants transactionnels, arbre P2)
+            Procuration = sealed interface → "limitée sans plafond" incompilable
+            Pas de changement BPMN dans cette tranche (P4)
+DB        : V47 expand-only (nouvelle table, aucune modif existante)
+TESTS     : 9 unit domaine (= les critères) · 2 use case · 1 IT persistence (JSONB)
+            · 2 MockMvc (201 + 422 codes) · 4 front (form + page) — pipeline vert
+DÉMO      : capture écran + curl ci-dessous · testable sur DEV via flag eer.mandataires.enabled
+HORS SCOPE: révocation post-ouverture (EER-263)</code></pre>
+  <p>Le pipeline déroule les portes habituelles (domaine → ArchUnit → processus inchangé mais re-prouvé → IT → image SHA → GitOps dev). <strong>Relecture : 25 minutes, 2 commentaires, merge à 15h.</strong> La tranche B suivra le même gabarit — en commençant, elle aussi, par un test rouge.</p>
+
+  <div class="callout">
+    <span class="t">💡 Ce que cet exemple doit vous laisser</span>
+    <p>Le rythme. Regardez où le temps est passé : <strong>une demi-journée de domaine + tests avant tout framework</strong>, la persistence et l'API en une journée <em>parce que les décisions étaient déjà prises</em>, le front en une journée <em>parce que le contrat était écrit</em>, et une PR courte <em>parce que la tranche était bien découpée dès P1</em>. Les pratiques ne ralentissent pas le dev — elles déplacent l'effort là où il rapporte.</p>
+  </div>
+</section>
+
+<!-- ============ CH10 ============ -->
+<section class="chapter" id="ch10">
+  <div class="eyebrow">Référence · À garder ouvert</div>
+  <h2>Aide-mémoires & catalogue de décisions rapides</h2>
+
+  <h3>10.1 — « Où mettre cette logique ? » — l'index en une table</h3>
+  <table>
+    <tr><th style="width:380px">La logique ressemble à…</th><th>Elle vit dans…</th></tr>
+    <tr><td>« Il est impossible que… » (protège la cohérence)</td><td><strong>L'agrégat</strong> (méthode de la racine)</td></tr>
+    <tr><td>Une valeur qui a un format/des bornes (CIN, plafond, motif)</td><td><strong>Un Value Object</strong> (invalide inconstructible)</td></tr>
+    <tr><td>Une règle qui croise plusieurs agrégats ou une connaissance externe</td><td><strong>Service de domaine</strong> (dépend de ports)</td></tr>
+    <tr><td>Des seuils/matrices que le métier veut modifier lui-même</td><td><strong>Table DMN</strong></td></tr>
+    <tr><td>L'ordre des étapes, les attentes, délais, compensations</td><td><strong>BPMN</strong></td></tr>
+    <tr><td>Charger → agir → sauver → publier (l'intention d'un appel)</td><td><strong>Use case</strong> (application, transactionnel)</td></tr>
+    <tr><td>Traduire un format externe (JSON, variables, SOAP legacy)</td><td><strong>Adapter</strong> (et rien d'autre !)</td></tr>
+    <tr><td>Confort de saisie, affichage conditionnel, messages</td><td><strong>Front</strong> (qui guide — le back garde)</td></tr>
+  </table>
+
+  <h3>10.2 — Le catalogue patterns : symptôme → remède</h3>
+  <table>
+    <tr><th style="width:330px">Symptôme dans le code</th><th style="width:210px">Pattern</th><th>Vigilance</th></tr>
+    <tr><td>switch/if-else sur un type, modifié à chaque évolution</td><td>Strategy (+ Map d'implémentations)</td><td>2 cas stables ne justifient pas encore le pattern</td></tr>
+    <tr><td>Critères booléens combinés partout, dupliqués</td><td>Specification</td><td>Restez dans le domaine ; pas de sur-framework</td></tr>
+    <tr><td>Constructeurs ambigus, invariants de création variables</td><td>Factory methods nommées</td><td><code>nouveau()</code> ≠ <code>reconstituer()</code> : niveaux de validation différents</td></tr>
+    <tr><td>Un use case qui « fait aussi » 3 choses annexes</td><td>Domain events + listeners</td><td>Les listeners restent des adapters ; l'essentiel reste synchrone</td></tr>
+    <tr><td>Squelette technique copié-collé (workers, jobs)</td><td>Template Method / classe de base</td><td>La base ne doit contenir QUE du technique</td></tr>
+    <tr><td>Suite de contrôles séquentiels avec arrêt possible</td><td>Chain of Responsibility</td><td>L'ordre des maillons est un choix : testez-le</td></tr>
+    <tr><td>Appels externes fragiles dans un adapter sortant</td><td>Retry/Circuit-breaker (Resilience4j)</td><td>Ne double-retriez pas ce que Camunda retrie déjà !</td></tr>
+    <tr><td>Écrire en base ET publier un événement fiablement</td><td>Outbox</td><td>Le publier « best effort » suffit parfois — mesurez le besoin</td></tr>
+  </table>
+
+  <h3>10.3 — Les checklists, regroupées (à copier dans le ticket)</h3>
+  <details><summary>P1 — Avant de passer "In Progress"</summary><div class="body"><p>Nominal racontable en 5 phrases · critères G/W/T validés PO · cas dégradés adressés · hors-scope explicite · tranches verticales ≤ 3 j · glossaire à jour.</p></div></details>
+  <details><summary>P2 — Avant de coder le domaine</summary><div class="body"><p>Concepts classés via l'arbre (VO/entité/agrégat) · invariants en français puis en code dans la racine · impossible-par-construction privilégié · événements au passé · références inter-agrégats par ID.</p></div></details>
+  <details><summary>P3 — Avant d'implémenter les bords</summary><div class="body"><p>Contrat API relu avec le front · codes d'erreur stables (Problem Details) · 4 modèles distincts + douanes · MapStruct en unmapped=ERROR · variables de processus documentées · migration DB écrite.</p></div></details>
+  <details><summary>P4 — Avant de toucher le BPMN</summary><div class="body"><p>Le BPMN doit-il changer ? · 2 modélisations comparées · IDs nommés · métier vs technique tranché · instances en cours analysées · captures avant/après dans la PR.</p></div></details>
+  <details><summary>P5 — Pendant le back</summary><div class="body"><p>Domaine d'abord (tests verts) · patterns sur symptôme · libs passées à la grille des 5 questions · business key dans les logs · @Transactional sur les use cases seulement · ArchUnit vert.</p></div></details>
+  <details><summary>P6 — Pendant le front</summary><div class="body"><p>Smart/dumb · formulaires typés alignés sur les invariants · 3 états gérés + codes mappés · tokens uniquement (zéro valeur en dur) · BEM local, pas de ::ng-deep · clavier + a11y · formKey enregistré.</p></div></details>
+  <details><summary>P7 — Avant de demander la revue</summary><div class="body"><p>Chaque critère P1 = un test nommé pareil · comportement testé au niveau le plus bas possible · 1 E2E max par tranche · la PR ≤ ~400 lignes utiles et raconte le pourquoi.</p></div></details>
+  <details><summary>P8 — Avant de merger</summary><div class="body"><p>Commits conventionnels · Flyway expand-only · flag si le métier n'active pas tout de suite (+ ticket de nettoyage) · métriques de la feature visibles · docs (glossaire, variables, ADR) à jour · démo PO faite.</p></div></details>
+
+  <h3>10.4 — Les 8 pièges qui coûtent le plus cher (vus en mission)</h3>
+  <ol>
+    <li><strong>Coder avant de savoir raconter</strong> la story → P1 n'est pas optionnelle.</li>
+    <li><strong>L'agrégat choisi par intuition</strong> (« ça va ensemble ») au lieu de la transaction → déroulez l'arbre.</li>
+    <li><strong>La règle métier dans le worker / le contrôleur / le formulaire</strong> → l'index 10.1 tranche en 10 secondes.</li>
+    <li><strong>Le mapping « rapide »</strong> (entité JPA qui se promène) → 4 modèles, 3 douanes, toujours.</li>
+    <li><strong>Le BPMN modifié sans penser aux instances vivantes</strong> → la question fait partie de la DoD.</li>
+    <li><strong>La PR fleuve</strong> multi-tranches → indécoupable, inrelisible, risquée : découpez en P1, pas en P7.</li>
+    <li><strong>Le front qui devient la seule garde</strong> d'une règle → le front guide, le back garde. Toujours les deux.</li>
+    <li><strong>La valeur en dur</strong> (couleur, seuil, URL, espacement) → token, DMN, config ou constante nommée — selon 10.1.</li>
+  </ol>
+
+  <div class="callout" style="margin-top:26px">
+    <span class="t">✓ Le référentiel vivant</span>
+    <p>Ce document n'est pas figé : chaque rétro, chaque remarque de revue récurrente, chaque piège rencontré en mission vient l'enrichir (une ligne dans une table suffit). Versionnez-le dans le repo de docs de l'équipe et faites-le relire aux nouveaux — avec le guide Camunda, le cas Crédit Express, le setup du poste et le dossier EER/DDD, il complète votre référentiel BMCI : <strong>comprendre, construire, installer, concevoir… et maintenant, travailler chaque jour</strong>. 🚀</p>
+  </div>
+</section>
+
+</div></main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+hljs.highlightAll();
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  securityLevel: 'loose',
+  themeVariables: {
+    darkMode: true,
+    background: '#111A2C',
+    primaryColor: '#16233B',
+    primaryTextColor: '#E6ECF5',
+    primaryBorderColor: '#2A3B5E',
+    lineColor: '#5A6B8C',
+    secondaryColor: '#0D1526',
+    tertiaryColor: '#111A2C',
+    fontFamily: 'inherit',
+    fontSize: '14px'
+  },
+  flowchart: { curve: 'basis', htmlLabels: true },
+  sequence: { actorFontWeight: 700, noteAlign: 'left' }
+});
+
+// Sommaire actif au scroll
+const links = [...document.querySelectorAll('.flownav a')];
+const sections = links.map(a => document.querySelector(a.getAttribute('href')));
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const i = sections.indexOf(e.target);
+      links.forEach(l => l.classList.remove('active'));
+      if (i >= 0) links[i].classList.add('active');
+    }
+  });
+}, { rootMargin: '-15% 0px -70% 0px' });
+sections.forEach(s => s && obs.observe(s));
+
+// Rendu manuel des diagrammes : la source est lue depuis des blocs script bruts,
+// jamais interprétés par le parseur HTML (fiable sur tous les navigateurs).
+(async () => {
+  const holders = document.querySelectorAll('.mermaid');
+  let i = 0;
+  for (const holder of holders) {
+    const srcEl = holder.querySelector('script[type="text/x-mermaid"]');
+    if (!srcEl) continue;
+    const src = srcEl.textContent.trim();
+    try {
+      const { svg } = await mermaid.render('mmd-' + (++i), src);
+      holder.innerHTML = svg;
+    } catch (e) {
+      holder.innerHTML = '<pre style="color:#F0616D;white-space:pre-wrap">Diagramme non rendu : '
+        + String(e && e.message || e) + '</pre>';
+      console.error('Mermaid #' + i, e);
+    }
+  }
+})();
+</script>
+</body>
+</html>
