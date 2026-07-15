@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fund Management Microservice — Technical &amp; Functional Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAFAF6;
+  --ink:#15211B;
+  --muted:#5A6B62;
+  --green:#0B6B4F;       /* banknote green — primary accent */
+  --green-deep:#07402F;
+  --gold:#B8892C;        /* seal / warning accent */
+  --red:#A6392E;         /* issue severity */
+  --line:#DDE4DD;
+  --chip:#EDF3EE;
+  --code-bg:#0E1E17;
+  --code-ink:#D8E6DC;
+  --max:900px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Public Sans',system-ui,sans-serif;
+  font-size:16px;line-height:1.65;
+}
+/* ---------- layout ---------- */
+.wrap{display:flex;min-height:100vh}
+nav.side{
+  width:270px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;
+  background:var(--green-deep);color:#CFE3D6;padding:28px 22px 40px;
+}
+nav.side .brand{font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:#fff;margin-bottom:4px}
+nav.side .brand small{display:block;font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:11px;letter-spacing:.02em;color:#8FBCA6;margin-top:6px;text-transform:none}
+nav.side hr{border:0;border-top:1px solid rgba(255,255,255,.14);margin:18px 0}
+nav.side a{display:block;color:#B9D6C6;text-decoration:none;font-size:13.5px;padding:5px 8px;border-radius:5px;border-left:2px solid transparent}
+nav.side a:hover{background:rgba(255,255,255,.08);color:#fff}
+nav.side a.sub{padding-left:22px;font-size:12.5px;color:#8FBCA6}
+nav.side .nav-group{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#6E9C86;margin:16px 0 4px 8px}
+main{flex:1;min-width:0}
+.inner{max-width:var(--max);margin:0 auto;padding:0 44px 120px}
+/* ---------- hero ---------- */
+header.hero{
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 7px),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,transparent 1px 7px),
+    var(--green-deep);
+  color:#F2F7F3;padding:64px 44px 52px;border-bottom:5px solid var(--gold);
+}
+header.hero .kicker{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#9FC7B2;margin-bottom:14px}
+header.hero h1{font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(30px,4.4vw,46px);line-height:1.08;margin:0 0 18px;max-width:820px}
+header.hero p.lede{max-width:720px;font-size:17px;color:#CFE3D6;margin:0 0 26px}
+.facts{display:flex;flex-wrap:wrap;gap:10px}
+.fact{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;background:rgba(255,255,255,.09);
+  border:1px solid rgba(255,255,255,.18);border-radius:4px;padding:6px 12px;color:#E4F0E8;
+}
+.fact b{color:#FFD98A;font-weight:600}
+/* ---------- sections ---------- */
+section{padding-top:56px}
+.sec-tag{
+  display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--green);border:1px solid var(--green);border-radius:3px;
+  padding:3px 10px;margin-bottom:10px;background:var(--chip);
+}
+h2{font-family:'Archivo',sans-serif;font-weight:800;font-size:30px;line-height:1.15;margin:6px 0 8px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;margin:34px 0 8px}
+h4{font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;margin:24px 0 6px}
+p{margin:10px 0}
+a{color:var(--green)}
+strong{font-weight:600}
+ul,ol{padding-left:22px;margin:10px 0}
+li{margin:5px 0}
+code{font-family:'IBM Plex Mono',monospace;font-size:.86em;background:var(--chip);border:1px solid var(--line);border-radius:3px;padding:1px 5px;color:var(--green-deep)}
+pre{
+  background:var(--code-bg);color:var(--code-ink);border-radius:8px;padding:18px 20px;overflow-x:auto;
+  font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.6;border:1px solid #21382C;
+}
+pre code{background:none;border:0;padding:0;color:inherit;font-size:inherit}
+pre .c{color:#6E9C86}     /* comment */
+pre .k{color:#8FD3A9;font-weight:600}   /* keyword */
+pre .s{color:#F1D48A}     /* string */
+/* ---------- tables ---------- */
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  text-align:left;color:var(--green-deep);background:var(--chip);
+  border-top:2px solid var(--green);border-bottom:1px solid var(--line);padding:9px 12px;
+}
+td{border-bottom:1px solid var(--line);padding:9px 12px;vertical-align:top}
+tr:hover td{background:#F2F6F1}
+td code{white-space:nowrap}
+/* ---------- callouts & chips ---------- */
+.note,.warn,.crit{border-left:4px solid;border-radius:0 6px 6px 0;padding:12px 18px;margin:16px 0;font-size:14.5px}
+.note{border-color:var(--green);background:#EEF5EF}
+.warn{border-color:var(--gold);background:#F8F2E2}
+.crit{border-color:var(--red);background:#F8ECEA}
+.note b:first-child,.warn b:first-child,.crit b:first-child{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
+.note b:first-child{color:var(--green-deep)} .warn b:first-child{color:#8A6417} .crit b:first-child{color:var(--red)}
+.method{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:11px;border-radius:3px;padding:2px 8px;color:#fff;display:inline-block}
+.GET{background:#0B6B4F}.POST{background:#1D5FA8}.PUT{background:#B8892C}.PATCH{background:#7A4FA0}.DEL{background:#A6392E}
+.sev{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.08em;border-radius:3px;padding:2px 8px;display:inline-block}
+.sev.blocker{background:#F3D9D5;color:#7E2B22}
+.sev.major{background:#F3E6C4;color:#7A5A12}
+.sev.minor{background:#DFEDE3;color:#0B6B4F}
+/* ---------- diagram ---------- */
+.diagram{background:#fff;border:1px solid var(--line);border-radius:8px;padding:20px 22px;margin:18px 0;overflow-x:auto}
+.diagram pre{background:none;border:0;color:var(--ink);padding:0;font-size:12.5px;line-height:1.5}
+.legend{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:8px}
+/* ---------- module ledger (signature element) ---------- */
+.ledger{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:18px 0;background:#fff}
+.ledger .row{display:grid;grid-template-columns:180px 1fr 130px;border-bottom:1px dashed var(--line)}
+.ledger .row:last-child{border-bottom:0}
+.ledger .row>div{padding:12px 16px}
+.ledger .mod{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--green-deep);background:var(--chip);border-right:1px solid var(--line)}
+.ledger .dep{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);text-align:right}
+.ledger .desc{font-size:14px}
+.ledger header{
+  display:grid;grid-template-columns:180px 1fr 130px;background:var(--green-deep);color:#CFE3D6;
+  font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+}
+.ledger header>div{padding:8px 16px}
+@media (max-width:960px){
+  nav.side{display:none}
+  .inner{padding:0 20px 80px}
+  header.hero{padding:44px 20px 36px}
+  .ledger .row,.ledger header{grid-template-columns:1fr}
+  .ledger .dep{text-align:left}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="side" aria-label="Table of contents">
+  <div class="brand">Fund Management<small>microservice-fund-management · 1.0-SNAPSHOT</small></div>
+  <hr>
+  <div class="nav-group">Understand</div>
+  <a href="#intent">1 · Functional intent</a>
+  <a href="#architecture">2 · Architecture</a>
+  <a href="#modules">3 · Maven modules</a>
+  <a href="#domain">4 · Domain model</a>
+  <a href="#data">5 · Data model</a>
+  <a href="#api">6 · REST API</a>
+  <a href="#flow">7 · Request lifecycle</a>
+  <div class="nav-group">Operate</div>
+  <a href="#setup">8 · Setup &amp; run</a>
+  <a href="#testing">9 · Testing the API</a>
+  <div class="nav-group">Improve</div>
+  <a href="#issues">10 · Current issues</a>
+  <a href="#gaps">11 · What's missing</a>
+  <a href="#roadmap">12 · Improvement roadmap</a>
+</nav>
+<main>
+<header class="hero">
+  <div class="kicker">BMCI · Workflow System · Q360</div>
+  <h1>Fund Management Microservice — the branch cash-supply workflow, end to end</h1>
+  <p class="lede">A Spring Boot 3 / Java 17 hexagonal microservice that lets a bank branch create, update and cancel <strong>cash requests</strong> — supply or collection of physical money (banknotes and coins, per currency and per denomination) for ATMs and cash desks. This document explains what it does, how it's built, how to run and test it, and exactly where it needs to be fixed and hardened.</p>
+  <div class="facts">
+    <span class="fact">Java <b>17</b></span>
+    <span class="fact">Spring Boot <b>3.3.1</b></span>
+    <span class="fact">PostgreSQL · JPA/Hibernate</span>
+    <span class="fact">Port <b>8300</b></span>
+    <span class="fact">Architecture <b>Hexagonal (Ports &amp; Adapters)</b></span>
+    <span class="fact">Modules <b>5</b></span>
+  </div>
+</header>
+<div class="inner">
+<!-- ============================ 1. FUNCTIONAL INTENT ============================ -->
+<section id="intent">
+<span class="sec-tag">01 · Functional</span>
+<h2>Functional intent — what problem this service solves</h2>
+<p>Every bank branch handles physical cash. ATMs run out of banknotes, cash desks accumulate more money than they are allowed to keep, and foreign-currency tills need restocking. Branches therefore need a formal, auditable workflow to ask the central cash service for money (a <strong>supply</strong>, French: <em>alimentation</em>) or to send excess money back (a <strong>collection</strong>, French: <em>délestage / ramassage</em>).</p>
+<p>The Fund Management microservice digitizes that workflow. Its core business object is the <strong>Cash Request</strong> (<code>CashRequest</code>) — one demand emitted by a branch, on behalf of an identified user, for a given establishment. A request groups one or more <strong>Cash Operations</strong>, and each operation is broken down precisely into <em>which currency, which denominations (200 MAD note, 100 MAD note, 10 MAD coin…), and how many of each</em>.</p>
+
+<h3>The functional hierarchy</h3>
+<div class="diagram"><pre>
+CashRequest ─ "Branch 012 of establishment BMCI asks for cash" (status: INITIATED → VALIDATED → CANCELLED)
+ │
+ ├── CashOperation #1 ─ SUPPLY an ATM, urgent, status INITIATED
+ │     ├── OperationCurrencyDetail (MAD) — total 250 000,00
+ │     │     ├── OperationDenomination: 200 MAD banknote × 1 000
+ │     │     └── OperationDenomination: 100 MAD banknote ×   500
+ │     └── OperationCurrencyDetail (EUR) — total 10 000,00
+ │           └── OperationDenomination: 50 EUR banknote × 200
+ │
+ └── CashOperation #2 ─ COLLECTION from cash desk 001 → target desk 002
+       └── ...
+</pre><div class="legend">One request → N operations → N currency details per operation → N denomination lines per currency.</div></div>
+
+<h3>Business concepts &amp; vocabulary</h3>
+<table>
+<tr><th>Concept</th><th>In the code</th><th>Meaning</th></tr>
+<tr><td>Cash request</td><td><code>CashRequest</code></td><td>The aggregate root. Carries branch code, establishment, requesting user (uid), a global status.</td></tr>
+<tr><td>Operation</td><td><code>CashOperation</code></td><td>One movement of cash. Has a <em>direction</em> (<code>operationSens</code>: SUPPLY / COLLECTION), a <em>target type</em> (<code>operationType</code>: ATM / CASH_DESK / CURRENCY), urgency flag, source and target cash-desk numbers, its own status.</td></tr>
+<tr><td>Currency detail</td><td><code>OperationCurrencyDetail</code></td><td>Per-currency breakdown of an operation with its own subtotal (<code>totalAmountByCurrency</code>). Allows multi-currency operations (MAD + EUR + USD in the same movement).</td></tr>
+<tr><td>Denomination line</td><td><code>OperationDenomination</code></td><td>The physical ventilation: <em>which</em> note/coin and <em>how many</em> (quantity).</td></tr>
+<tr><td>Denomination (referential)</td><td><code>Denomination</code></td><td>Master data: 'BANKNOTE' or 'COIN', face value (200.00), label ("Billet 200 DH").</td></tr>
+<tr><td>Currency (referential)</td><td><code>Currency</code></td><td>Master data: ISO code (MAD, EUR, USD) + name.</td></tr>
+<tr><td>Establishment</td><td><code>EstablishmentEntity</code></td><td>Master data: the banking entity (3-char code + name). Resolved by code at persistence time.</td></tr>
+<tr><td>User profile</td><td><code>UserProfileEntity</code></td><td>The requesting user, resolved by <code>uid</code>; carries a profile code / label / type (probably tied to authorization later).</td></tr>
+</table>
+
+<h3>Business rules currently implemented</h3>
+<ul>
+<li><strong>A request must contain at least one operation</strong> (<code>CashRequest.validateRequest()</code> — written but currently commented out in the create flow).</li>
+<li><strong>A cancelled request is frozen</strong>: no operation can be added or updated on it (<code>addOperation</code> / <code>updateOperation</code> guards), and the use case rejects <code>update()</code> on a CANCELLED request.</li>
+<li><strong>Cancelling a request cancels all of its operations</strong> (cascade of status in <code>cancelById</code>).</li>
+<li><strong>Operations can be cancelled individually</strong>; when the last active operation of a request is cancelled, the whole request auto-flips to CANCELLED (<code>cancelOperations</code>).</li>
+<li><strong>An already-cancelled operation cannot be cancelled twice</strong> (throws).</li>
+<li><strong>Denomination totals should be validated</strong> for supply-to-cash-desk operations: quantity × face value summed per line must produce the total (<code>CashOperation.validateAndCalculateTotal</code> — partially implemented, currently buggy, see <a href="#issues">§10</a>).</li>
+<li><strong>Referential integrity by lookup</strong>: currencies are resolved by ISO code, denominations by label, establishments by code, users by uid — unknown values raise an error instead of silently creating garbage.</li>
+</ul>
+
+<div class="note"><b>Where this fits in the bigger picture</b>
+The parent groupId is <code>com.bmci.workflow.system</code> and the domain package is <code>com.bmci.q360</code>. This service is one microservice inside a broader BMCI branch-workflow platform ("Q360" / "qlick_flow" database). Left-over enums (<code>IdentificationMethod</code>, <code>RegistrationReason</code>, <code>QlickeerEventName</code>, <code>IdentityMessage</code>) and value objects (<code>Gender</code>, <code>DocumentType</code>…) were copied from a sibling identity/queue-management service and are dead code here — flagged in §10. Statuses like INITIATED → VALIDATED → CANCELLED strongly suggest a validation workflow (branch manager / cash center approval) that will later be orchestrated — a natural fit for Camunda 7, see §12.</div>
+</section>
+
+<!-- ============================ 2. ARCHITECTURE ============================ -->
+<section id="architecture">
+<span class="sec-tag">02 · Technical</span>
+<h2>Architecture — hexagonal, ports &amp; adapters</h2>
+<p>The project follows the classic <strong>Clean / Hexagonal Architecture</strong> layout popularized for Spring microservices (domain-core → application-service → adapters → container). The rule that everything obeys: <strong>dependencies point inward</strong>. The domain core knows nothing about Spring, JPA or REST; adapters implement the interfaces (<em>ports</em>) the domain declares.</p>
+
+<div class="diagram"><pre>
+                       ┌───────────────────────────────────────────────────────┐
+   HTTP (JSON)  ──────▶│  fund-management-application        (input adapter)   │
+                       │  CashDemandController  /cash/**                       │
+                       └───────────────┬───────────────────────────────────────┘
+                                       │ calls input port
+                       ┌───────────────▼───────────────────────────────────────┐
+                       │  fund-management-application-service                  │
+                       │  CashDemandUseCase (input port)                       │
+                       │  CashDemandUseCaseImpl (orchestration + tx)           │
+                       │  DTOs · Web mappers                                   │
+                       │  CashDemandRepository / DenominationRepository        │
+                       │  (output ports = interfaces)                          │
+                       └───────────────┬───────────────────────────────────────┘
+                                       │ pure java calls
+                       ┌───────────────▼───────────────────────────────────────┐
+                       │  fund-management-domain-core        (the hexagon)     │
+                       │  CashRequest (AggregateRoot) · CashOperation ·        │
+                       │  Currency · Denomination · Value objects (ids)        │
+                       │  Business rules (validate, cancel guards)             │
+                       └───────────────▲───────────────────────────────────────┘
+                                       │ implements output ports
+                       ┌───────────────┴───────────────────────────────────────┐
+   PostgreSQL ◀────────│  fund-management-data-access        (output adapter)  │
+                       │  CashDemandRepositoryImpl · JPA entities · mappers    │
+                       │  Spring Data JpaRepositories                          │
+                       └───────────────────────────────────────────────────────┘
+                       ┌───────────────────────────────────────────────────────┐
+                       │  fund-management-container  (composition root)        │
+                       │  WorkFlowFundManagementApplication + application.yml  │
+                       │  wires everything, produces the runnable boot jar    │
+                       └───────────────────────────────────────────────────────┘
+</pre><div class="legend">Ports = interfaces owned by the application-service layer. Adapters = REST controller (driving) and JPA repositories (driven).</div></div>
+
+<h3>The three mapping frontiers</h3>
+<p>Because the domain must stay framework-free, the same information is represented three times and converted at each border. Understanding this triple mapping is the key to reading the codebase:</p>
+<table>
+<tr><th>Representation</th><th>Classes</th><th>Converted by</th></tr>
+<tr><td><strong>DTO</strong> (wire format)</td><td><code>CashRequestDTO</code>, <code>CashOperationDTO</code>, <code>OperationCurrencyDetailDTO</code>, <code>OperationDenominationDTO</code>, <code>CurrencyDTO</code>, <code>DenominationDTO</code></td><td><code>CashRequestWebMapper</code> (DTO ⇄ domain) — the active one; <code>CashRequestManualMapper</code> is an older, half-commented sibling</td></tr>
+<tr><td><strong>Domain</strong> (business)</td><td><code>CashRequest</code>, <code>CashOperation</code>, <code>OperationCurrencyDetail</code>, <code>OperationDenomination</code>, <code>Currency</code>, <code>Denomination</code> + typed ids (<code>CashRequestId</code>…)</td><td>—</td></tr>
+<tr><td><strong>JPA entity</strong> (persistence)</td><td><code>CashRequestEntity</code>, <code>CashOperationEntity</code>, <code>OperationCurrencyDetailEntity</code>, <code>OperationDenominationEntity</code>, <code>CurrencyEntity</code>, <code>DenominationEntity</code>, <code>EstablishmentEntity</code>, <code>UserProfileEntity</code></td><td><code>CashRequestDataAccessMappers</code> (package <code>mapperTemp1</code>) — the active one; <code>CashRequestDataAccessMapper</code> + <code>CashOperationDataAccessMapper</code> are legacy</td></tr>
+</table>
+<div class="warn"><b>Design smell to keep on your radar</b>
+There are <em>two generations of mappers coexisting</em> (packages <code>mapper</code> and <code>mapperTemp1</code>, and web-side <code>mapper</code> vs <code>mapperTemp1.CashRequestWebMapper</code>). The "Temp1" generation is the real one (it knows about currency details, establishment, user profile); the old generation is still injected in a few places (<code>getCashDemandById</code>, <code>getAll</code> use the old <code>CashRequestManualMapper</code>), which means <strong>read endpoints return a poorer object than write endpoints</strong> (no currency details, no user, establishment sometimes null). Consolidation is priority #1 in the roadmap.</div>
+</section>
+
+<!-- ============================ 3. MODULES ============================ -->
+<section id="modules">
+<span class="sec-tag">03 · Technical</span>
+<h2>Maven module ledger</h2>
+<p>Root POM <code>microservice-fund-management</code> (packaging <code>pom</code>) inherits <code>spring-boot-starter-parent 3.3.1</code>, pins Java 17, and manages the internal module versions. Common dependencies (web, validation, data-jpa, postgres, lombok, mapstruct, test stack) are declared at the root — every module inherits them.</p>
+<div class="ledger">
+<header><div>Module</div><div>Responsibility</div><div>Depends on</div></header>
+<div class="row"><div class="mod">domain-core</div><div class="desc">Pure business model: <code>CashRequest</code> aggregate, entities, enums (<code>OperationType</code>, <code>RequestType</code>), typed-id value objects, business rules. Should have <em>zero</em> framework dependencies (only Lombok declared — but see issue I-08: jakarta.persistence imports leaked in).</div><div class="dep">lombok</div></div>
+<div class="row"><div class="mod">application-service</div><div class="desc">Use cases (<code>CashDemandUseCase</code> / <code>Impl</code>), DTOs, web mappers, and the <strong>output ports</strong> (<code>CashDemandRepository</code>, <code>DenominationRepository</code>) that adapters must implement. Also hosts <code>ConfigHash</code> (SHA-256 helper, currently unused).</div><div class="dep">domain-core</div></div>
+<div class="row"><div class="mod">data-access</div><div class="desc">JPA entities (all extending <code>BaseEntity</code>: generated UUID id + creation/modification timestamps), Spring Data repositories, data-access mappers, and the port implementations (<code>CashDemandRepositoryImpl</code>, <code>DenominationRepositoryImpl</code>).</div><div class="dep">domain-core, application-service, hibernate, jakarta-persistence</div></div>
+<div class="row"><div class="mod">application</div><div class="desc">The REST input adapter: <code>CashDemandController</code> mapped on <code>/cash</code>, producing <code>application/vnd.api.v1+json</code>. Plus its MockMvc test.</div><div class="dep">application-service</div></div>
+<div class="row"><div class="mod">container</div><div class="desc">Composition root. <code>WorkFlowFundManagementApplication</code> with explicit <code>@EntityScan</code> / <code>@EnableJpaRepositories</code> pointing at the data-access packages, <code>application.yml</code>, the spring-boot-maven-plugin (only module producing a runnable jar), and integration-style tests.</div><div class="dep">all of the above</div></div>
+</div>
+<div class="note"><b>Note on the module tree</b>
+The root POM lists a <code>fund-management-domain</code> module which is itself the parent of <code>fund-management-domain-core</code> and <code>fund-management-application-service</code> (their <code>&lt;parent&gt;</code> is <code>fund-management-domain</code>). So the real tree is: root → {application, container, data-access, domain → {domain-core, application-service}}.</div>
+</section>
+<!-- ============================ 4. DOMAIN ============================ -->
+<section id="domain">
+<span class="sec-tag">04 · Technical</span>
+<h2>Domain model in detail</h2>
+<h3>DDD building blocks</h3>
+<ul>
+<li><strong>Typed identifiers</strong> — every entity id is a value object wrapping a UUID (<code>BaseId&lt;T&gt;</code> → <code>CashRequestId</code>, <code>CashOperationId</code>, <code>CurrencyId</code>, <code>DenominationId</code>, <code>OperationCurrencyDetailId</code>, <code>OperationDenominationId</code>). This prevents accidentally passing an operation id where a request id is expected — a genuinely good practice.</li>
+<li><strong>Aggregate root</strong> — <code>CashRequest extends AggregateRoot&lt;CashRequestId&gt;</code>. It is the only entry point for mutating the cluster: <code>addOperation()</code>, <code>updateOperation()</code>, <code>validateRequest()</code> all guard against modifying a CANCELLED request.</li>
+<li><strong>Entities</strong> — <code>CashOperation</code>, <code>OperationCurrencyDetail</code>, <code>Denomination</code> extend the identity-equality <code>BaseEntity&lt;T&gt;</code> (equals/hashCode on id only).</li>
+<li><strong>Enums</strong> — <code>RequestType { SUPPLY, COLLECTION }</code> is used as the operation <em>direction</em> (<code>operationSens</code>); <code>OperationType { ATM, CASH_DESK, CURRENCY }</code> is the target.</li>
+</ul>
+
+<h3>Behavior living in the domain (as it should)</h3>
+<pre><code><span class="c">// CashRequest — invariant guards</span>
+public void addOperation(CashOperation operation) {
+    if ("CANCELLED".equals(this.requestStatus))
+        throw new IllegalStateException("cannot add an operation to a cancelled request");
+    this.operations.add(operation);
+}
+
+<span class="c">// CashOperation — ventilation check for SUPPLY + CASH_DESK</span>
+public void validateAndCalculateTotal(CashOperation op, Map&lt;String, BigDecimal&gt; faceValuesMap) {
+    <span class="c">// requires currencyDetails to be present, then sums faceValue × quantity per line</span>
+}</code></pre>
+<div class="crit"><b>Bug inside validateAndCalculateTotal</b>
+The lookup is <code>faceValuesMap.get(opDenom.getDenomination())</code> — a <code>Denomination</code> object used as key in a <code>Map&lt;String, BigDecimal&gt;</code> keyed by label. It always returns <code>null</code>, so every valid ventilation throws <em>"cupure inconu"</em>. It must be <code>faceValuesMap.get(opDenom.getDenomination().getDenominationLabel())</code>. Also the computed total is never stored (the <code>totalAmount</code> assignment is commented out), and the method takes itself as a parameter (<code>op</code>) while also being an instance method — it should just use <code>this</code>.</div>
+
+<h3>Status model (implicit state machine)</h3>
+<div class="diagram"><pre>
+ CashRequest.requestStatus            CashOperation.operationStatus
+ ─────────────────────────            ─────────────────────────────
+   INITIATED ──▶ VALIDATED              INITIATED ──▶ (VALIDATED?)
+       │                                    │
+       └───────▶ CANCELLED                  └───────▶ CANCELLED
+   (auto when all ops CANCELLED)        (individually, or cascaded from request)
+</pre><div class="legend">Statuses are plain Strings today ("INITIATED", "VALIDATED", "CANCELLED") — a typed enum + explicit transition rules is a quick win (§12).</div></div>
+</section>
+
+<!-- ============================ 5. DATA MODEL ============================ -->
+<section id="data">
+<span class="sec-tag">05 · Technical</span>
+<h2>Data model (PostgreSQL)</h2>
+<p>Database <code>qlick_flow</code>, schema managed by Hibernate (<code>ddl-auto: update</code>). The tables as actually produced by the <strong>JPA entities</strong> (which are the source of truth today):</p>
+<table>
+<tr><th>Table</th><th>Key columns</th><th>Relations</th></tr>
+<tr><td><code>cash_request</code></td><td>id (UUID), branch_code, request_status, creation/modification timestamps</td><td>1→N <code>cash_operation</code> (cascade ALL, orphanRemoval) · 1→1 <code>user_profile</code> (FK not null) · 1→1 <code>establishment</code> (FK not null)</td></tr>
+<tr><td><code>cash_operation</code></td><td>id, operation_type, operation_sens, institution_code (def. 1), cash_desk_number (def. '001'), is_urgent ('YES'/'NO'), target_cash_desk_number, total_amount, operation_status, establishment (string!), created_at/updated_at</td><td>N→1 <code>cash_request</code> · 1→N <code>operation_currency</code></td></tr>
+<tr><td><code>operation_currency</code></td><td>id, total_amount_by_curerency <em>(sic — typo in column name)</em></td><td>N→1 <code>cash_operation</code> · N→1 <code>currency</code> · 1→N <code>operation_denomination</code></td></tr>
+<tr><td><code>operation_denomination</code></td><td>id, quantity</td><td>N→1 <code>operation_currency</code> · N→1 <code>denomination</code></td></tr>
+<tr><td><code>currency</code></td><td>id, iso_code (unique, 3), currency_name</td><td>referential</td></tr>
+<tr><td><code>denomination</code></td><td>id, item_type (BANKNOTE/COIN), face_value, denomination_label</td><td>referential</td></tr>
+<tr><td><code>establishment</code></td><td>id, establishment_code (unique, 3), establishment_name</td><td>referential</td></tr>
+<tr><td><code>user_profile</code></td><td>id, uid, profile_code, profile_label, profile_type</td><td>referential</td></tr>
+</table>
+
+<div class="warn"><b>Schema drift: the SQL script no longer matches the entities</b>
+The hand-written DDL script in the repo describes an <em>older</em> model: <code>cash_request</code> with <code>unique_request_ref / requesting_branch / requester_ref / request_type</code>, <code>cash_operation</code> with a direct <code>currency_id</code> (1:1 currency per operation), and <code>operation_denomination</code> as a pure N:N pivot with a composite PK. The entities have since evolved (currency moved to the intermediate <code>operation_currency</code> level, establishment &amp; user extracted to referential tables, ids everywhere via <code>BaseEntity</code>). Because <code>ddl-auto: update</code> never drops anything, a database initialized from the script and then "updated" by Hibernate will contain a mix of live and dead columns, plus NOT NULL orphans that can break inserts. Action: retire the script, adopt Flyway/Liquibase as the single source of truth (§12).</div>
+
+<h3>Loading strategy</h3>
+<ul>
+<li>All @ManyToOne / @OneToOne are <code>LAZY</code>; <code>open-in-view</code> is <code>false</code> (good, forces conscious fetching).</li>
+<li><code>CashDemandJpaRepository.findByIdWithOperation</code> uses a <code>join fetch</code> on operations — but <em>not</em> on currency details / denominations / establishment / user, so mapping those outside a transaction throws <code>LazyInitializationException</code> (this is why <code>getCashDemandById</code> currently maps with the shallow legacy mapper).</li>
+<li>Save/update flows preload the whole <code>denomination</code> and <code>currency</code> referentials into maps to resolve labels/ISO codes — fine for small referentials, replace by targeted <code>findByLabelIn(...)</code> queries if they grow.</li>
+</ul>
+</section>
+
+<!-- ============================ 6. API ============================ -->
+<section id="api">
+<span class="sec-tag">06 · Technical</span>
+<h2>REST API — <code>CashDemandController</code></h2>
+<p>Base path <code>/cash</code>, all endpoints produce <code>application/vnd.api.v1+json</code> (versioned media type — remember to send an <code>Accept</code> header that matches, or Spring returns 406).</p>
+<table>
+<tr><th>Endpoint</th><th>Purpose</th><th>Body / params</th><th>State</th></tr>
+<tr><td><span class="method POST">POST</span> <code>/cash</code></td><td>Create a cash request with its full operation/currency/denomination tree. Validates ventilation totals, resolves referentials, persists the whole aggregate in one transaction.</td><td><code>CashRequestDTO</code></td><td><span class="sev minor">Works*</span></td></tr>
+<tr><td><span class="method PUT">PUT</span> <code>/cash/{id}</code></td><td>Full replace of a request: clears existing operations (orphanRemoval) and re-attaches the incoming ones; refreshes establishment &amp; user. Rejected if request is CANCELLED.</td><td>path <code>id</code> + <code>CashRequestDTO</code></td><td><span class="sev minor">Works*</span></td></tr>
+<tr><td><span class="method GET">GET</span> <code>/cash/{id}</code></td><td>Fetch one request (with operations fetched eagerly via the fetch-join query).</td><td>path <code>id</code></td><td><span class="sev major">Shallow</span> — maps with legacy mapper, no currency details returned</td></tr>
+<tr><td><span class="method GET">GET</span> <code>/cash/getCashDemandById?cashRequestId=…</code></td><td>Duplicate of the above via query param.</td><td>query <code>cashRequestId</code></td><td><span class="sev minor">Redundant</span></td></tr>
+<tr><td><span class="method GET">GET</span> <code>/cash</code></td><td>List all requests.</td><td><em>declares</em> <code>@PathVariable UUID id</code></td><td><span class="sev blocker">Broken</span> — see I-01</td></tr>
+<tr><td><span class="method PATCH">PATCH</span> <code>/cash/{id}/cancel</code></td><td>Cancel the request and cascade CANCELLED onto every operation.</td><td>path <code>id</code></td><td><span class="sev minor">Works</span></td></tr>
+<tr><td><span class="method PATCH">PATCH</span> <code>/cash/{id}/operations/cancel</code></td><td>Cancel only the operations listed in the body; auto-cancel the request when none remain active; refuse double cancellation.</td><td>path <code>id</code> + <code>CashRequestDTO.operations[]</code> (ids)</td><td><span class="sev minor">Works</span></td></tr>
+</table>
+<p style="font-size:13px;color:var(--muted)">* “Works” = the happy path functions; error handling still surfaces raw 500s (see §10).</p>
+
+<h3>Representative payload — <code>POST /cash</code></h3>
+<pre><code>{
+  "establishment": "001",
+  "branchCode": "AGADIR-012",
+  "user": "u-4589",
+  "requestStatus": "INITIATED",
+  "operations": [
+    {
+      "operationSens": "SUPPLY",
+      "operationType": "CASH_DESK",
+      "isUrgent": "YES",
+      "operationStatus": "INITIATED",
+      "establishment": "001",
+      "currencyDetails": [
+        {
+          "currency": { "isoCode": "MAD" },
+          "totalAmountByCurrency": 250000.00,
+          "operationDenominations": [
+            { "denomination": { "denominationLabel": "Billet 200 DH" }, "quantity": 1000 },
+            { "denomination": { "denominationLabel": "Billet 100 DH" }, "quantity": 500 }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre>
+<p>The response echoes the persisted aggregate (<code>CashRequestWebMapper.toResponseDTO</code>): generated ids, statuses, timestamps per operation, and the full currency/denomination tree.</p>
+</section>
+
+<!-- ============================ 7. LIFECYCLE ============================ -->
+<section id="flow">
+<span class="sec-tag">07 · Technical</span>
+<h2>Request lifecycle — what happens on a create</h2>
+<div class="diagram"><pre>
+POST /cash (JSON)
+  └▶ CashDemandController.create(dto)
+       └▶ CashDemandUseCaseImpl.create(dto)                       [@Transactional]
+            1. CashRequestWebMapper.toDomain(dto)                  DTO → domain tree
+            2. DenominationRepository.findAllActiveDenominations() label → faceValue map
+            3. each operation.validateAndCalculateTotal(...)       business validation
+            4. CashDemandRepository.save(domain)
+                 └▶ CashDemandRepositoryImpl.save                  [@Transactional]
+                      a. preload denominations (all) + currencies (map by ISO)
+                      b. EstablishmentJpaRepository.findByEstablishmentCode(code)
+                      c. UserProfileJpaRepository.findByUid(uid)
+                      d. CashRequestDataAccessMappers.toPersistence(...)  domain → entity graph
+                         (wires bidirectional parents, resolves FK targets, fails fast
+                          on unknown currency / denomination)
+                      e. cashDemandJpaRepository.save(entity)      cascade ALL persists the tree
+                      f. toDomain(saved)                           entity → domain (full depth)
+            5. CashRequestWebMapper.toResponseDTO(domain)          domain → DTO
+  ◀ 200 OK + persisted aggregate
+</pre></div>
+<p>Cancel flows are simpler: load entity by id → mutate statuses in memory with the business checks → save → map back. Update is the destructive variant: <code>existingEntity.getOperations().clear()</code> then re-add all incoming operations (relying on <code>orphanRemoval = true</code> to delete the replaced rows).</p>
+</section>
+<!-- ============================ 8. SETUP ============================ -->
+<section id="setup">
+<span class="sec-tag">08 · Operate</span>
+<h2>Setup &amp; run</h2>
+<h3>Prerequisites</h3>
+<ul>
+<li>JDK <strong>17</strong> (root POM pins source/target 17; Boot 3.3.1 requires 17+)</li>
+<li>Maven 3.8+</li>
+<li>PostgreSQL 13+ with a database named <code>qlick_flow</code></li>
+<li>An IDE with <strong>Lombok annotation processing enabled</strong> (the whole codebase relies on it)</li>
+</ul>
+
+<h3>1 · Database</h3>
+<pre><code>createdb qlick_flow
+<span class="c"># or: CREATE DATABASE qlick_flow;</span></code></pre>
+<p>Hibernate creates/updates the tables at startup (<code>ddl-auto: update</code>). You must then <strong>seed the referentials</strong>, because create/update resolve everything against them and fail otherwise:</p>
+<pre><code>INSERT INTO currency (id, iso_code, currency_name, creation_date, modification_date)
+VALUES (gen_random_uuid(), 'MAD', 'Dirham Marocain', now(), now()),
+       (gen_random_uuid(), 'EUR', 'Euro', now(), now());
+
+INSERT INTO denomination (id, item_type, face_value, denomination_label, creation_date, modification_date)
+VALUES (gen_random_uuid(), 'BANKNOTE', 200.00, 'Billet 200 DH', now(), now()),
+       (gen_random_uuid(), 'BANKNOTE', 100.00, 'Billet 100 DH', now(), now()),
+       (gen_random_uuid(), 'COIN',      10.00, 'Pièce 10 DH',   now(), now());
+
+INSERT INTO establishment (id, establishment_code, establishment_name, creation_date, modification_date)
+VALUES (gen_random_uuid(), '001', 'BMCI', now(), now());
+
+INSERT INTO user_profile (id, uid, profile_code, profile_label, profile_type, creation_date, modification_date)
+VALUES (gen_random_uuid(), 'u-4589', 'AGT', 'Agent Guichet', 'BRANCH', now(), now());</code></pre>
+
+<h3>2 · Configuration</h3>
+<p><code>fund-management-container/src/main/resources/application.yml</code> currently hardcodes a remote datasource (<code>10.74.234.132:5432</code>, user/password <code>postgres/postgres</code>). For local work, point it at localhost — and long term, externalize it:</p>
+<pre><code>spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/qlick_flow}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}</code></pre>
+
+<h3>3 · Build &amp; run</h3>
+<pre><code><span class="c"># from the repo root</span>
+mvn clean install -DskipTests          <span class="c"># installs all 5 modules into the local repo</span>
+
+<span class="c"># run (only the container module is executable)</span>
+cd fund-management-container
+mvn spring-boot:run
+<span class="c"># or</span>
+java -jar target/fund-management-container.jar</code></pre>
+<p>The service listens on <strong>http://localhost:8300</strong>. <code>show-sql: true</code> prints every statement — useful now, disable in production.</p>
+<div class="warn"><b>Known build friction</b>
+The root POM references <code>${maven-compiler-plugin.version}</code> in the compiler plugin without defining that property — depending on your Maven setup this warns or fails; pin it (e.g. <code>3.13.0</code>). <code>ResourcePersistenceJpaRepositoryTest</code> is a <code>@SpringBootTest</code> that boots the full context and therefore needs the real database up: run <code>-DskipTests</code> or fix it with Testcontainers/H2 (§12).</div>
+</section>
+
+<!-- ============================ 9. TESTING ============================ -->
+<section id="testing">
+<span class="sec-tag">09 · Operate</span>
+<h2>Testing the API</h2>
+<h3>Manual smoke test (curl)</h3>
+<pre><code><span class="c"># 1. create</span>
+curl -s -X POST http://localhost:8300/cash \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/vnd.api.v1+json" \
+  -d @create-request.json          <span class="c"># payload from §6 — save the returned "id"</span>
+
+<span class="c"># 2. read it back</span>
+curl -s http://localhost:8300/cash/&lt;id&gt; -H "Accept: application/vnd.api.v1+json"
+
+<span class="c"># 3. update (full replace of operations)</span>
+curl -s -X PUT http://localhost:8300/cash/&lt;id&gt; \
+  -H "Content-Type: application/json" -H "Accept: application/vnd.api.v1+json" \
+  -d @update-request.json
+
+<span class="c"># 4. cancel one operation</span>
+curl -s -X PATCH http://localhost:8300/cash/&lt;id&gt;/operations/cancel \
+  -H "Content-Type: application/json" -H "Accept: application/vnd.api.v1+json" \
+  -d '{"operations":[{"id":"&lt;operationId&gt;"}]}'
+
+<span class="c"># 5. cancel the whole request</span>
+curl -s -X PATCH http://localhost:8300/cash/&lt;id&gt;/cancel -H "Accept: application/vnd.api.v1+json"</code></pre>
+<div class="note"><b>Two gotchas when testing by hand</b>
+(1) The controller <em>produces</em> <code>application/vnd.api.v1+json</code> — without a compatible <code>Accept</code> header you'll get 406. (2) <code>GET /cash</code> (list) responds 500 today because of the stray <code>@PathVariable</code> (issue I-01) — test the other endpoints first.</div>
+
+<h3>Automated tests already in place</h3>
+<table>
+<tr><th>Test class</th><th>Style</th><th>Covers</th></tr>
+<tr><td><code>CashDemandControllerTest</code></td><td>MockMvc <em>standalone</em> + Mockito mock of the use case</td><td>HTTP wiring for create / update / cancel / cancelOperations (status 200, use case invoked with right args)</td></tr>
+<tr><td><code>CashDemandRepositoryTest</code></td><td>Pure Mockito unit test of <code>CashDemandRepositoryImpl</code></td><td>The cancellation business logic: cascade cancel, selective cancel, auto-cancel of request when last op cancelled, double-cancel rejection, not-found rejection — the best-written tests in the repo</td></tr>
+<tr><td><code>ResourcePersistenceJpaRepositoryTest</code></td><td><code>@SpringBootTest</code> (full context) + glytching extensions</td><td>Nothing yet (empty body); currently a liability because it needs the live DB</td></tr>
+</table>
+<h3>What a solid test pyramid would add</h3>
+<ul>
+<li><strong>Domain unit tests</strong> — <code>validateAndCalculateTotal</code> (once fixed), <code>addOperation</code>/<code>updateOperation</code> guards, status transitions. Zero infrastructure, fastest feedback.</li>
+<li><strong>Use case tests</strong> — <code>CashDemandUseCaseImpl</code> with mocked ports: create rejects empty operations, update rejects CANCELLED, exception translation.</li>
+<li><strong>Mapper round-trip tests</strong> — DTO → domain → entity → domain → DTO equality; today the mappers are the most fragile code and have no coverage.</li>
+<li><strong>Slice/integration tests</strong> — <code>@DataJpaTest</code> + Testcontainers-PostgreSQL for <code>CashDemandRepositoryImpl.save/update</code> (cascade + orphanRemoval behavior is exactly the kind of thing that only breaks against a real DB).</li>
+<li><strong>Contract test</strong> — one <code>@SpringBootTest(webEnvironment=RANDOM_PORT)</code> happy-path create→get→cancel against Testcontainers.</li>
+</ul>
+</section>
+
+<!-- ============================ 10. ISSUES ============================ -->
+<section id="issues">
+<span class="sec-tag">10 · Improve</span>
+<h2>Current issues — the audit</h2>
+<p>Ranked by severity. Blockers break requests today; majors corrupt behavior or data quality; minors are hygiene.</p>
+<table>
+<tr><th style="width:70px">ID</th><th style="width:92px">Severity</th><th>Issue &amp; fix</th></tr>
+<tr><td><code>I-01</code></td><td><span class="sev blocker">Blocker</span></td><td><strong><code>getAll()</code> declares <code>@PathVariable UUID id</code></strong> on <code>GET /cash</code>, which has no path variable → every call fails (<code>MissingPathVariableException</code> → 500). Fix: remove the parameter. Also decide between <code>GET /cash/{id}</code> and <code>GET /cash/getCashDemandById</code> — keep the RESTful one, delete the other.</td></tr>
+<tr><td><code>I-02</code></td><td><span class="sev blocker">Blocker</span></td><td><strong><code>validateAndCalculateTotal</code> map lookup uses the wrong key</strong> (Denomination object vs String label) → every SUPPLY/CASH_DESK create with ventilation throws. Fix key, store the computed total into the operation, compare it to the declared <code>totalAmountByCurrency</code>, and make the method use <code>this</code> instead of receiving itself.</td></tr>
+<tr><td><code>I-03</code></td><td><span class="sev blocker">Blocker</span></td><td><strong>Schema drift + <code>ddl-auto: update</code></strong> (see §5). NOT NULL legacy columns (e.g. <code>unique_request_ref</code>) left in an old DB will make inserts fail even though the code is correct. Fix: Flyway baseline migration generated from the current entities, <code>ddl-auto: validate</code>.</td></tr>
+<tr><td><code>I-04</code></td><td><span class="sev major">Major</span></td><td><strong>Read endpoints use the legacy shallow mapper</strong> (<code>CashRequestManualMapper</code>): <code>GET</code> responses omit currency details, user, establishment on some paths — and <code>getAll()</code> maps lazy <code>operations</code> outside a transaction with <code>open-in-view=false</code> → <code>LazyInitializationException</code> risk. Fix: route all reads through <code>mapperTemp1</code> generation, add fetch-joins (or projections) for list/detail, delete the legacy mappers.</td></tr>
+<tr><td><code>I-05</code></td><td><span class="sev major">Major</span></td><td><strong>No error contract</strong>: every business failure is wrapped in <code>SessionServiceException</code> (misnamed — copied from another service) or raw <code>RuntimeException</code> → HTTP 500 for "not found", "already cancelled", "cannot update cancelled". Fix: dedicated exceptions (<code>CashRequestNotFoundException</code>, <code>OperationAlreadyCancelledException</code>…) + a <code>@RestControllerAdvice</code> mapping them to 404 / 409 / 422 with a ProblemDetail body (Spring 6 has it built in).</td></tr>
+<tr><td><code>I-06</code></td><td><span class="sev major">Major</span></td><td><strong>Hardcoded credentials + internal IP in <code>application.yml</code></strong> committed to the repo. Fix: environment placeholders (shown in §8), Spring profiles (<code>local</code>/<code>dev</code>/<code>prod</code>), secrets from vault/env. Also disable <code>show-sql</code> outside dev.</td></tr>
+<tr><td><code>I-07</code></td><td><span class="sev major">Major</span></td><td><strong>No input validation</strong>: <code>spring-boot-starter-validation</code> is on the classpath but no <code>@Valid</code>, no constraints on DTOs. A create with null establishment/user reaches the DB and dies on a FK. Also <code>update()</code> does <code>cashRequestDTO.getRequestStatus().toString()</code> → NPE when status is absent. Fix: <code>@NotBlank</code>/<code>@NotEmpty</code>/<code>@Valid</code> cascade on the DTO tree + null-safe checks.</td></tr>
+<tr><td><code>I-08</code></td><td><span class="sev major">Major</span></td><td><strong>Domain purity broken</strong>: <code>domain-core</code> classes import <code>jakarta.persistence</code> (<code>CashRequest</code>, <code>Currency</code>, <code>Denomination</code>…) even though the module doesn't declare the dependency — it compiles only because it leaks transitively. Fix: strip JPA imports from domain-core; add the maven-enforcer plugin (banned dependencies) to keep it clean.</td></tr>
+<tr><td><code>I-09</code></td><td><span class="sev major">Major</span></td><td><strong><code>update()</code> replace strategy is risky</strong>: clearing the collection then re-adding entities that carry their old ids makes Hibernate mix orphan-deletes and re-inserts of the same PK (typically <em>"identifier altered"</em> / constraint errors) once clients send operation ids back. Fix: merge by id (update existing, add new, remove missing) — the logic already drafted in the legacy <code>CashOperationDataAccessMapper.updateEntityFromDomain</code> is the right idea, finish it on the new model.</td></tr>
+<tr><td><code>I-10</code></td><td><span class="sev minor">Minor</span></td><td><strong>Duplicate/legacy code</strong>: two mapper generations (<code>mapper</code> vs <code>mapperTemp1</code> — "Temp1" must not ship), <code>CashDemandDTO</code> (unused, wrong package <code>dto.enums</code>), dead enums copied from the identity service, unused <code>ConfigHash</code>, self-assignment bug <code>domain.setEstablishment(domain.getEstablishment())</code> in <code>DenominationDataAccessMapper</code>, commented-out blocks everywhere.</td></tr>
+<tr><td><code>I-11</code></td><td><span class="sev minor">Minor</span></td><td><strong>Style &amp; consistency</strong>: field <code>@Autowired</code> mixed with <code>@RequiredArgsConstructor</code> (pick constructor injection everywhere — also makes tests cleaner), PascalCase method names (<code>CancelRequest</code>, <code>CancelOperations</code>), typos (<em>retreaving</em>, <em>cupure inconu</em>, column <code>total_amount_by_curerency</code>), JUnit 3 (<code>junit:junit:3.8.1</code>) and <code>junit.framework.Assert</code> still on the classpath, <code>enum OperationType</code> missing <code>COLLECTION</code> while the old DDL allowed it (confirm intended values), DTOs exposing bidirectional back-references (<code>CashOperationDTO.cashRequest</code>) → JSON serialization cycles if ever populated.</td></tr>
+<tr><td><code>I-12</code></td><td><span class="sev minor">Minor</span></td><td><strong>Duplicate timestamps</strong>: <code>CashOperationEntity</code> has both inherited <code>creationDate/modificationDate</code> (Hibernate-managed) and manual <code>createdAt/updatedAt</code> defaulted with <code>LocalDateTime.now()</code>. Keep one pair.</td></tr>
+</table>
+</section>
+
+<!-- ============================ 11. GAPS ============================ -->
+<section id="gaps">
+<span class="sec-tag">11 · Improve</span>
+<h2>What's missing entirely</h2>
+<ul>
+<li><strong>Security</strong> — no Spring Security, no authentication/authorization. Anyone reaching port 8300 can create or cancel cash movements for any branch. Given <code>UserProfileEntity</code> exists, wiring OAuth2/JWT (uid from the token instead of the payload) is the obvious next step.</li>
+<li><strong>The validation workflow itself</strong> — statuses imply an approval chain (INITIATED → VALIDATED) but there is no endpoint, no actor model, no history of who validated what. This is where <strong>Camunda 7</strong> fits: a BPMN process <em>Cash Request Approval</em> (branch manager task → cash-center task → status callback into this service), keeping this microservice as the system of record and Camunda as the orchestrator.</li>
+<li><strong>Database migrations</strong> — no Flyway/Liquibase (root cause of I-03).</li>
+<li><strong>API documentation</strong> — no springdoc-openapi; consumers (the Angular front) have no contract to code against.</li>
+<li><strong>Observability</strong> — no actuator, no health/readiness probes, no metrics, no structured logging/correlation ids.</li>
+<li><strong>Pagination &amp; filtering</strong> — <code>getAll()</code> returns everything; needs <code>Pageable</code> + filters (status, branch, date range) — <code>JpaSpecificationExecutor</code> is already declared on the repositories (untyped, add the generic) and unused.</li>
+<li><strong>Reference data endpoints</strong> — the front will need <code>GET /denominations</code>, <code>GET /currencies</code>, <code>GET /establishments</code> to build the request form; the repositories exist, the controllers don't.</li>
+<li><strong>Unique request reference</strong> — the domain field <code>uniqueRequestRef</code> exists but is never generated/persisted; a human-readable reference (e.g. <code>CR-2026-000123</code>) is essential for branch/back-office communication.</li>
+<li><strong>Auditing</strong> — who did what, when: status-change history table or Envers.</li>
+<li><strong>CI/CD &amp; containerization</strong> — no Dockerfile, no pipeline, no code-quality gate (the <code>@SuppressWarnings("java:S119")</code> hints Sonar is intended but not enforced).</li>
+</ul>
+</section>
+
+<!-- ============================ 12. ROADMAP ============================ -->
+<section id="roadmap">
+<span class="sec-tag">12 · Improve</span>
+<h2>Improvement roadmap — the order I'd do it in</h2>
+<h3>Sprint 1 — Make it correct (fix before feature)</h3>
+<ol>
+<li>Fix <code>I-01</code> (broken <code>getAll</code>) and <code>I-02</code> (ventilation validation) — with unit tests locking both.</li>
+<li>Introduce Flyway: <code>V1__baseline.sql</code> generated from current entities + referential seed migration; switch to <code>ddl-auto: validate</code> (<code>I-03</code>).</li>
+<li>Error contract: domain exceptions + <code>@RestControllerAdvice</code> + <code>ProblemDetail</code>; return 404/409/422 correctly (<code>I-05</code>).</li>
+<li>Bean Validation on the DTO tree + <code>@Valid</code> in the controller (<code>I-07</code>).</li>
+<li>Externalize configuration, add <code>local</code>/<code>dev</code> profiles, remove credentials from git history (<code>I-06</code>).</li>
+</ol>
+<h3>Sprint 2 — Make it clean</h3>
+<ol>
+<li>Delete the legacy mapper generation; either keep the hand-written "Temp1" mappers <em>renamed properly</em>, or — since MapStruct is already a managed dependency — migrate the mechanical parts to MapStruct and keep only referential-resolution logic by hand (<code>I-04</code>, <code>I-10</code>).</li>
+<li>Replace String statuses with enums (<code>RequestStatus</code>, <code>OperationStatus</code>) + a small transition table in the domain; same for <code>isUrgent</code> → boolean.</li>
+<li>Constructor injection everywhere, remove field <code>@Autowired</code>; purge dead code and jakarta imports from domain-core with an enforcer rule (<code>I-08</code>, <code>I-11</code>).</li>
+<li>Proper merge-by-id update strategy (<code>I-09</code>), single timestamp pair (<code>I-12</code>).</li>
+<li>Test pyramid from §9: domain, use case, mapper round-trips, Testcontainers slice.</li>
+</ol>
+<h3>Sprint 3 — Make it complete</h3>
+<ol>
+<li>Reference-data endpoints (denominations, currencies, establishments) for the Angular form.</li>
+<li>Pagination/filtering on the list endpoint via Specifications; generate <code>uniqueRequestRef</code> (sequence-backed).</li>
+<li>springdoc-openapi + published contract; actuator + health probes; Dockerfile + compose (app + postgres) + CI pipeline with tests and Sonar.</li>
+<li>Spring Security resource server (JWT); derive the requesting user from the token.</li>
+</ol>
+<h3>Sprint 4 — Make it a workflow (Camunda 7)</h3>
+<ol>
+<li>Model <em>Cash Request Approval</em> in BPMN: start on request creation → user task "Validate request" (branch manager) → user task "Approve &amp; schedule transport" (cash center) → service task calling back <code>PATCH /cash/{id}/validate</code> (new endpoint) → end / rejection branch that calls the existing cancel.</li>
+<li>Run Camunda 7 either embedded in this service (spring-boot starter, same DB or dedicated schema) or as the platform's central engine with external task workers — given this is a microservice platform, <strong>external tasks</strong> keep the coupling lowest.</li>
+<li>Add a <code>VALIDATED</code> transition + validation history; emit domain events (request created / validated / cancelled) so downstream services (transport, treasury) can react — the empty <code>QlickeerEventName</code> enum suggests an event bus already exists in the platform.</li>
+</ol>
+<div class="note"><b>Working agreement going forward</b>
+For every task on this service I will: (1) respect the hexagonal blueprint — business rules in domain-core, orchestration in use cases, frameworks only in adapters; (2) never add a third mapper generation — converge, don't fork; (3) ship each fix with the test that would have caught it; (4) keep this document updated as the living architecture record.</div>
+</section>
+<footer style="margin-top:80px;border-top:2px solid var(--ink);padding-top:18px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted)">
+microservice-fund-management · documentation generated 15 Jul 2026 · sources: repository snapshot (controllers, use cases, entities, mappers, POMs, application.yml, DDL script, tests)
+</footer>
+</div>
+</main>
+</div>
+</body>
+</html>
