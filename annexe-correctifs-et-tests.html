@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Annexe — Correctifs Sprint 1 &amp; tests des mappers · Fund Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#FAFAF6;--ink:#15211B;--muted:#5A6B62;--green:#0B6B4F;--green-deep:#07402F;--gold:#B8892C;--red:#A6392E;--line:#DDE4DD;--chip:#EDF3EE;--code-bg:#0E1E17;--code-ink:#D8E6DC;--max:960px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Public Sans',system-ui,sans-serif;font-size:16px;line-height:1.65}
+.inner{max-width:var(--max);margin:0 auto;padding:0 40px 120px}
+header.hero{background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 7px),repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,transparent 1px 7px),var(--green-deep);color:#F2F7F3;padding:56px 40px 44px;border-bottom:5px solid var(--gold)}
+header.hero .kicker{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#9FC7B2;margin-bottom:12px}
+header.hero h1{font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(26px,4vw,40px);line-height:1.12;margin:0 0 16px;max-width:860px}
+header.hero p.lede{max-width:760px;font-size:16.5px;color:#CFE3D6;margin:0}
+nav.toc{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px 24px;margin:32px 0;font-size:14px}
+nav.toc b{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green-deep);display:block;margin-bottom:8px}
+nav.toc a{color:var(--green);text-decoration:none;display:block;padding:2px 0}
+nav.toc a:hover{text-decoration:underline}
+section{padding-top:48px}
+.sec-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);border:1px solid var(--green);border-radius:3px;padding:3px 10px;margin-bottom:10px;background:var(--chip)}
+h2{font-family:'Archivo',sans-serif;font-weight:800;font-size:27px;line-height:1.15;margin:6px 0 8px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:19px;margin:30px 0 8px}
+p{margin:10px 0}
+ul,ol{padding-left:22px;margin:10px 0}
+li{margin:5px 0}
+code{font-family:'IBM Plex Mono',monospace;font-size:.86em;background:var(--chip);border:1px solid var(--line);border-radius:3px;padding:1px 5px;color:var(--green-deep)}
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:0 0 8px 8px;padding:18px 20px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.55;border:1px solid #21382C;border-top:0;margin:0 0 24px}
+pre code{background:none;border:0;padding:0;color:inherit;font-size:inherit}
+pre.solo{border-radius:8px;border-top:1px solid #21382C;margin:14px 0}
+.filehead{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:#12281E;border:1px solid #21382C;border-bottom:1px dashed #2E4A3A;border-radius:8px 8px 0 0;padding:10px 16px;margin-top:18px}
+.filehead .action{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.1em;border-radius:3px;padding:3px 10px}
+.action.replace{background:#B8892C;color:#1A1405}
+.action.create{background:#0B6B4F;color:#fff}
+.action.method{background:#7A4FA0;color:#fff}
+.filehead .path{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#CFE3D6;word-break:break-all}
+.note,.warn,.crit{border-left:4px solid;border-radius:0 6px 6px 0;padding:12px 18px;margin:16px 0;font-size:14.5px}
+.note{border-color:var(--green);background:#EEF5EF}
+.warn{border-color:var(--gold);background:#F8F2E2}
+.crit{border-color:var(--red);background:#F8ECEA}
+.note b:first-child,.warn b:first-child,.crit b:first-child{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px}
+.note b:first-child{color:var(--green-deep)}.warn b:first-child{color:#8A6417}.crit b:first-child{color:var(--red)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;text-align:left;color:var(--green-deep);background:var(--chip);border-top:2px solid var(--green);border-bottom:1px solid var(--line);padding:9px 12px}
+td{border-bottom:1px solid var(--line);padding:9px 12px;vertical-align:top}
+.tree{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px 22px;margin:16px 0;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;overflow-x:auto;white-space:pre}
+.tree .new{color:var(--green);font-weight:600}
+.tree .mod{color:var(--gold);font-weight:600}
+footer{margin-top:70px;border-top:2px solid var(--ink);padding-top:16px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted)}
+input[type=checkbox]{accent-color:var(--green);width:15px;height:15px;margin-right:8px;vertical-align:-2px}
+.check li{list-style:none;margin:8px 0}
+.check{padding-left:4px}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="kicker">BMCI · Fund Management · Annexe à la documentation</div>
+  <h1>Correctifs Sprint 1 &amp; tests des mappers — code prêt à copier-coller</h1>
+  <p class="lede">Chaque bloc de code ci-dessous est <strong>complet et autonome</strong> : le bandeau au-dessus de chaque bloc indique l'action (<strong>REMPLACER</strong> le fichier existant en entier, ou <strong>CRÉER</strong> un nouveau fichier) et le chemin exact. Il suffit de copier le contenu du bloc et de le coller tel quel — rien à adapter.</p>
+</header>
+<div class="inner">
+<nav class="toc">
+<b>Sommaire</b>
+<a href="#modemploi">0 · Mode d'emploi (à lire d'abord)</a>
+<a href="#fix1">Correctif 1 — CashDemandController (I-01 : GET /cash cassé)</a>
+<a href="#fix2">Correctif 2 — CashOperation (I-02 : règle R6 buguée)</a>
+<a href="#fix3">Correctif 3 — CashDemandUseCaseImpl (NPE + règle R1 réactivée)</a>
+<a href="#fix4">Correctif 4 — CashRequestWebMapper (NPE devise sans id)</a>
+<a href="#fix5">Correctif 5 — DenominationDataAccessMapper (auto-affectation)</a>
+<a href="#tests">Les 3 classes de test (où les créer, et le code)</a>
+<a href="#run">Lancer les tests</a>
+<a href="#checklist">Checklist finale</a>
+</nav>
+
+<section id="modemploi">
+<span class="sec-tag">00 · Mode d'emploi</span>
+<h2>Avant de coller quoi que ce soit</h2>
+<ol>
+<li><strong>Crée une branche</strong> : <code>git checkout -b fix/sprint1-blockers</code> — jamais de correctifs directement sur la branche principale.</li>
+<li>Applique les correctifs <strong>dans l'ordre 1 → 5</strong> (le 3 dépend du 2 : la signature de <code>validateAndCalculateTotal</code> change).</li>
+<li>Crée ensuite les 3 fichiers de test — attention, ils vont dans <code>src/<b>test</b>/java</code>, pas <code>src/main/java</code>. Si les dossiers <code>src/test/java/...</code> n'existent pas encore dans un module, crée-les (clic droit dans l'IDE → New Directory, ou crée le fichier au bon chemin et l'IDE créera l'arborescence).</li>
+<li>Compile tout : <code>mvn clean install -DskipTests</code> à la racine, puis lance les tests (section <a href="#run">Lancer les tests</a>).</li>
+</ol>
+<div class="tree"><span class="mod">■ jaune = fichier existant à REMPLACER</span>   <span class="new">■ vert = fichier à CRÉER</span>
+
+C:\dev\fund-management-microservice\
+├── fund-management-application\
+│   └── src\main\java\com\bmci\workflow\fund\management\application\rest\
+│       └── <span class="mod">CashDemandController.java</span>                        ← Correctif 1
+├── fund-management-domain\
+│   ├── fund-management-domain-core\
+│   │   ├── src\main\java\com\bmci\q360\domain\entity\
+│   │   │   └── <span class="mod">CashOperation.java</span>                           ← Correctif 2
+│   │   └── src\test\java\com\bmci\q360\domain\entity\
+│   │       └── <span class="new">CashOperationTest.java</span>                       ← Test A
+│   └── fund-management-application-service\
+│       ├── src\main\java\...\service\domain\
+│       │   ├── ports\<span class="mod">CashDemandUseCaseImpl.java</span>             ← Correctif 3
+│       │   └── mapperTemp1\<span class="mod">CashRequestWebMapper.java</span>        ← Correctif 4
+│       └── src\test\java\com\bmci\workflow\fund\management\service\domain\mapperTemp1\
+│           └── <span class="new">CashRequestWebMapperTest.java</span>                ← Test B
+└── fund-management-data-access\
+    ├── src\main\java\...\dataaccess\mapper\
+    │   └── <span class="mod">DenominationDataAccessMapper.java</span>                ← Correctif 5 (une méthode)
+    └── src\test\java\com\bmci\workflow\fund\management\dataaccess\mapperTemp1\
+        └── <span class="new">CashRequestDataAccessMappersTest.java</span>            ← Test C
+</div>
+<div class="note"><b>Règle d'or des tests</b>
+Le <strong>package</strong> d'une classe de test doit être identique à celui de la classe testée (ex. <code>CashRequestWebMapper</code> est dans <code>...service.domain.mapperTemp1</code> ⇒ son test aussi), et le fichier doit être sous <code>src/test/java</code> du <strong>même module Maven</strong>. Si tu respectes les chemins du schéma ci-dessus, c'est automatiquement bon.</div>
+</section>
+
+<section id="fix1">
+<span class="sec-tag">Correctif 1 · I-01 — Bloquant</span>
+<h2>CashDemandController — <code>GET /cash</code> cassé</h2>
+<p><strong>Le problème :</strong> la méthode <code>getAll()</code> déclarait un paramètre <code>@PathVariable UUID id</code> alors que la route <code>GET /cash</code> n'a pas de variable de chemin ⇒ Spring levait une erreur à chaque appel de la liste (500).</p>
+<p><strong>Ce que ce fichier corrige aussi :</strong> injection par constructeur au lieu de <code>@Autowired</code> sur champ, méthodes renommées en camelCase (<code>cancelRequest</code>, <code>cancelOperations</code>), et suppression du doublon <code>GET /getCashDemandById</code> (la route RESTful <code>GET /cash/{id}</code> fait la même chose).</p>
+<div class="warn"><b>Attention</b>
+Si le front (ou un collègue) appelle déjà <code>GET /cash/getCashDemandById?cashRequestId=...</code>, préviens-le de basculer sur <code>GET /cash/{id}</code> — ou dis-le-moi et je te redonne le fichier avec le doublon conservé.</div>
+<div class="filehead"><span class="action replace">REMPLACER TOUT LE FICHIER</span><span class="path">fund-management-application\\src\\main\\java\\com\\bmci\\workflow\\fund\\management\\application\\rest\\CashDemandController.java</span></div>
+<pre><code>package com.bmci.workflow.fund.management.application.rest;
+
+import com.bmci.workflow.fund.management.service.domain.dto.CashRequestDTO;
+import com.bmci.workflow.fund.management.service.domain.ports.inputs.service.CashDemandUseCase;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * @author Hamza Marouane
+ * Correctifs I-01 + I-11 :
+ *  - getAll() : suppression du @PathVariable parasite (cassait GET /cash en 500)
+ *  - suppression du doublon GET /getCashDemandById (garder la route RESTful /{id})
+ *  - injection par constructeur (final + @RequiredArgsConstructor) au lieu de @Autowired champ
+ *  - noms de methodes en camelCase (cancelRequest, cancelOperations)
+ */
+@RestController
+@RequestMapping(value = &quot;/cash&quot;, produces = &quot;application/vnd.api.v1+json&quot;)
+@RequiredArgsConstructor
+public class CashDemandController {
+
+    private final CashDemandUseCase cashDemandUseCase;
+
+    @PostMapping
+    public ResponseEntity&lt;CashRequestDTO&gt; create(@RequestBody CashRequestDTO request) {
+        return ResponseEntity.ok(cashDemandUseCase.create(request));
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;CashRequestDTO&gt; update(
+            @PathVariable UUID id,
+            @RequestBody CashRequestDTO request) {
+        return ResponseEntity.ok(cashDemandUseCase.update(id, request));
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;CashRequestDTO&gt; getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(cashDemandUseCase.getCashDemandById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;CashRequestDTO&gt;&gt; getAll() {
+        return ResponseEntity.ok(cashDemandUseCase.getAll());
+    }
+
+    @PatchMapping(&quot;/{id}/cancel&quot;)
+    public ResponseEntity&lt;CashRequestDTO&gt; cancelRequest(@PathVariable UUID id) {
+        return ResponseEntity.ok(cashDemandUseCase.cancel(id));
+    }
+
+    @PatchMapping(&quot;/{id}/operations/cancel&quot;)
+    public ResponseEntity&lt;CashRequestDTO&gt; cancelOperations(
+            @PathVariable UUID id,
+            @RequestBody CashRequestDTO request) {
+        return ResponseEntity.ok(cashDemandUseCase.cancelOperations(id, request.getOperations()));
+    }
+}
+</code></pre>
+</section>
+
+<section id="fix2">
+<span class="sec-tag">Correctif 2 · I-02 — Bloquant</span>
+<h2>CashOperation — la règle R6 (ventilation) était buguée</h2>
+<p><strong>Le problème :</strong> la ligne <code>faceValuesMap.get(opDenom.getDenomination())</code> cherchait un <em>objet</em> <code>Denomination</code> comme clé dans une <code>Map</code> indexée par <em>libellé</em> (String). Une clé du mauvais type ne matche jamais ⇒ le résultat était toujours <code>null</code> ⇒ chaque création d'alimentation de caisse avec ventilation levait « cupure inconu », même avec des coupures parfaitement valides.</p>
+<p><strong>Ce que la nouvelle version fait :</strong></p>
+<ul>
+<li>Recherche par <code>getDenominationLabel()</code> (la vraie clé de la Map) ;</li>
+<li>La méthode utilise <code>this</code> au lieu de se recevoir elle-même en paramètre (l'ancienne signature <code>validateAndCalculateTotal(CashOperation op, Map...)</code> devient <code>validateAndCalculateTotal(Map...)</code> — c'est pour ça que le Correctif 3 met à jour l'appelant) ;</li>
+<li>Vérifie la <strong>cohérence du total déclaré</strong> : si le client annonce 250 000 MAD mais que Σ (valeur faciale × quantité) donne autre chose ⇒ erreur explicite ;</li>
+<li>Normalise : le total prouvé par la ventilation est toujours stocké dans <code>totalAmountByCurrency</code> ;</li>
+<li>Contrôle les cas dégénérés : quantité négative ou absente, ligne sans coupure ;</li>
+<li>Supprime les imports <code>jakarta.persistence</code> (le domaine doit rester pur — I-08).</li>
+</ul>
+<div class="filehead"><span class="action replace">REMPLACER TOUT LE FICHIER</span><span class="path">fund-management-domain\\fund-management-domain-core\\src\\main\\java\\com\\bmci\\q360\\domain\\entity\\CashOperation.java</span></div>
+<pre><code>package com.bmci.q360.domain.entity;
+
+import com.bmci.q360.domain.entity.enums.OperationType;
+import com.bmci.q360.domain.entity.enums.RequestType;
+import com.bmci.q360.domain.valueobjects.CashOperationId;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author Hamza Marouane
+ * Correctifs I-02 + I-08 :
+ *  - validateAndCalculateTotal : la recherche de la valeur faciale utilisait
+ *    l&#x27;objet Denomination comme cle d&#x27;une Map indexee par libelle (String)
+ *    =&gt; toujours null =&gt; &quot;cupure inconu&quot; a chaque creation. Corrige avec
+ *    getDenominationLabel(). La methode utilise desormais &quot;this&quot; au lieu de
+ *    se recevoir elle-meme en parametre, verifie la coherence du total
+ *    declare (regle R6) et normalise le total calcule.
+ *  - suppression des imports jakarta.persistence (purete du domaine).
+ */
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+public class CashOperation {
+
+    private CashOperationId id;
+
+    private CashRequest cashRequest;
+
+    private Currency currency;
+
+    private OperationType operationType;
+
+    private Integer institutionCode = 1;
+    private String cashDeskNumber;
+    private String isUrgent;
+    private String targetCashDeskNumber;
+    private RequestType operationSens;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private String operationStatus;
+    private String establishment;
+
+    private List&lt;OperationCurrencyDetail&gt; currencyDetails = new ArrayList&lt;&gt;();
+
+    /**
+     * Regle R6 : pour une alimentation de caisse (SUPPLY + CASH_DESK),
+     * la ventilation par coupures est obligatoire et le total de chaque
+     * devise doit valoir la somme (valeur faciale x quantite) de ses lignes.
+     *
+     * @param faceValuesMap referentiel { libelle de coupure -&gt; valeur faciale }
+     */
+    public void validateAndCalculateTotal(Map&lt;String, BigDecimal&gt; faceValuesMap) {
+        if (this.operationSens != RequestType.SUPPLY || this.operationType != OperationType.CASH_DESK) {
+            return; // regle applicable uniquement aux alimentations de caisse
+        }
+
+        if (this.currencyDetails == null || this.currencyDetails.isEmpty()) {
+            throw new IllegalStateException(
+                    &quot;Les details des coupures sont obligatoires pour alimenter une caisse&quot;);
+        }
+
+        for (OperationCurrencyDetail detail : this.currencyDetails) {
+            String devise = (detail.getCurrency() != null &amp;&amp; detail.getCurrency().getIsoCode() != null)
+                    ? detail.getCurrency().getIsoCode()
+                    : &quot;?&quot;;
+
+            if (detail.getOperationDenominations() == null || detail.getOperationDenominations().isEmpty()) {
+                throw new IllegalStateException(
+                        &quot;La ventilation par coupures est obligatoire pour la devise &quot; + devise);
+            }
+
+            BigDecimal totalCalcule = BigDecimal.ZERO;
+            for (OperationDenomination ligne : detail.getOperationDenominations()) {
+
+                if (ligne.getDenomination() == null
+                        || ligne.getDenomination().getDenominationLabel() == null) {
+                    throw new IllegalArgumentException(
+                            &quot;Ligne de ventilation sans coupure pour la devise &quot; + devise);
+                }
+
+                String label = ligne.getDenomination().getDenominationLabel();
+
+                // FIX I-02 : la cle est le LIBELLE, pas l&#x27;objet Denomination
+                BigDecimal faceValue = faceValuesMap.get(label);
+                if (faceValue == null) {
+                    throw new IllegalArgumentException(&quot;Coupure inconnue : &quot; + label);
+                }
+
+                if (ligne.getQuantity() == null || ligne.getQuantity() &lt; 0) {
+                    throw new IllegalArgumentException(&quot;Quantite invalide pour la coupure &quot; + label);
+                }
+
+                totalCalcule = totalCalcule.add(
+                        faceValue.multiply(BigDecimal.valueOf(ligne.getQuantity())));
+            }
+
+            // Si un total a ete declare par le client, il doit etre coherent
+            if (detail.getTotalAmountByCurrency() != null
+                    &amp;&amp; detail.getTotalAmountByCurrency().compareTo(totalCalcule) != 0) {
+                throw new IllegalStateException(&quot;Total incoherent pour la devise &quot; + devise
+                        + &quot; : declare = &quot; + detail.getTotalAmountByCurrency()
+                        + &quot;, calcule = &quot; + totalCalcule);
+            }
+
+            // Normalisation : on stocke toujours le total prouve par la ventilation
+            detail.setTotalAmountByCurrency(totalCalcule);
+        }
+    }
+}
+</code></pre>
+</section>
+
+<section id="fix3">
+<span class="sec-tag">Correctif 3 — dépend du Correctif 2</span>
+<h2>CashDemandUseCaseImpl — appelant mis à jour + NPE + règle R1</h2>
+<p><strong>Trois changements :</strong></p>
+<ul>
+<li><code>create()</code> appelle la nouvelle signature : <code>op.validateAndCalculateTotal(faceValuesMap)</code> — sans ce fichier, le projet ne compile plus après le Correctif 2 ;</li>
+<li><code>create()</code> réactive la <strong>règle R1</strong> (« une demande contient au moins une opération ») via <code>cashRequest.validateRequest()</code>, qui existait déjà mais dont l'appel était commenté ;</li>
+<li><code>update()</code> : <code>getRequestStatus().toString()</code> plantait en <code>NullPointerException</code> quand le statut était absent du JSON. Remplacé par <code>"CANCELLED".equals(...)</code> — l'equals sur la constante gère le null proprement (renvoie <code>false</code>).</li>
+</ul>
+<div class="filehead"><span class="action replace">REMPLACER TOUT LE FICHIER</span><span class="path">fund-management-domain\\fund-management-application-service\\src\\main\\java\\com\\bmci\\workflow\\fund\\management\\service\\domain\\ports\\CashDemandUseCaseImpl.java</span></div>
+<pre><code>package com.bmci.workflow.fund.management.service.domain.ports;
+
+import com.bmci.q360.domain.entity.CashOperation;
+import com.bmci.q360.domain.entity.CashRequest;
+import com.bmci.q360.domain.entity.Denomination;
+import com.bmci.workflow.fund.management.service.domain.dto.CashOperationDTO;
+import com.bmci.workflow.fund.management.service.domain.dto.CashRequestDTO;
+import com.bmci.workflow.fund.management.service.domain.exceptions.SessionServiceException;
+import com.bmci.workflow.fund.management.service.domain.mapper.CashRequestManualMapper;
+import com.bmci.workflow.fund.management.service.domain.mapperTemp1.CashRequestWebMapper;
+import com.bmci.workflow.fund.management.service.domain.ports.inputs.service.CashDemandUseCase;
+import com.bmci.workflow.fund.management.service.domain.ports.output.repository.CashDemandRepository;
+import com.bmci.workflow.fund.management.service.domain.ports.output.repository.DenominationRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+/**
+ * @author Hamza Marouane
+ * Correctifs :
+ *  - create() : reactivation de la regle R1 (au moins une operation) via
+ *    cashRequest.validateRequest(), et appel de la nouvelle signature
+ *    op.validateAndCalculateTotal(faceValuesMap) — voir CashOperation.
+ *  - update() : suppression du .toString() sur getRequestStatus() qui
+ *    provoquait un NullPointerException quand le statut etait absent
+ *    (&quot;CANCELLED&quot;.equals(null) renvoie simplement false).
+ */
+@Slf4j
+@RequiredArgsConstructor
+@Service
+public class CashDemandUseCaseImpl implements CashDemandUseCase {
+
+    private final CashDemandRepository cashDemandRepository;
+    private final DenominationRepository denominationRepository;
+    private final CashRequestManualMapper cashRequestDomainMapper;
+    private final CashRequestWebMapper mapperTamp;
+
+    @Override
+    public CashRequestDTO getCashDemandById(UUID id) {
+        try {
+            return cashRequestDomainMapper.toDto(cashDemandRepository.getCashRequestById(id));
+        } catch (Exception e) {
+            log.error(&quot;Error retrieving cash request&quot;, e);
+            throw new SessionServiceException(&quot;Failed to retrieve cash request : &quot; + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public CashRequestDTO create(CashRequestDTO cashRequestDTO) {
+        CashRequest cashRequest = mapperTamp.toDomain(cashRequestDTO);
+
+        // Regle R1 : une demande doit contenir au moins une operation
+        cashRequest.validateRequest();
+
+        Map&lt;String, BigDecimal&gt; faceValuesMap = denominationRepository.findAllActiveDenominations()
+                .stream()
+                .collect(Collectors.toMap(
+                        Denomination::getDenominationLabel,
+                        Denomination::getFaceValue));
+
+        // Regle R6 : validation de la ventilation par coupures
+        cashRequest.getOperations().forEach(op -&gt; op.validateAndCalculateTotal(faceValuesMap));
+
+        return mapperTamp.toResponseDTO(cashDemandRepository.save(cashRequest));
+    }
+
+    @Override
+    public CashRequestDTO update(UUID id, CashRequestDTO cashRequestDTO) {
+        try {
+            // FIX NPE : plus de .toString(), et null-safe (equals sur la constante)
+            if (&quot;CANCELLED&quot;.equals(cashRequestDTO.getRequestStatus())) {
+                throw new IllegalStateException(&quot;Cannot update cancelled request&quot;);
+            }
+            CashRequest cashRequest = mapperTamp.toDomain(cashRequestDTO);
+            return mapperTamp.toResponseDTO(cashDemandRepository.update(id, cashRequest));
+        } catch (Exception e) {
+            log.error(&quot;Error updating cash request&quot;, e);
+            throw new SessionServiceException(&quot;Failed to update cash request : &quot; + e.getMessage());
+        }
+    }
+
+    @Override
+    public List&lt;CashRequestDTO&gt; getAll() {
+        try {
+            return cashDemandRepository.findAll().stream()
+                    .map(cashRequestDomainMapper::toDto)
+                    .toList();
+        } catch (Exception e) {
+            log.error(&quot;Error getting all cash request&quot;, e);
+            throw new SessionServiceException(&quot;Failed to get all cash request : &quot; + e.getMessage());
+        }
+    }
+
+    @Override
+    public CashRequestDTO cancel(UUID id) {
+        try {
+            return mapperTamp.toResponseDTO(cashDemandRepository.cancelById(id));
+        } catch (Exception e) {
+            log.error(&quot;Error cancelling cash request&quot;, e);
+            throw new SessionServiceException(&quot;Failed to cancel cash request : &quot; + e.getMessage());
+        }
+    }
+
+    @Override
+    public CashRequestDTO cancelOperations(UUID id, List&lt;CashOperationDTO&gt; operations) {
+        try {
+            List&lt;CashOperation&gt; cashOperations = operations.stream()
+                    .map(mapperTamp::toOperationDomain)
+                    .toList();
+            return mapperTamp.toResponseDTO(cashDemandRepository.cancelOperations(id, cashOperations));
+        } catch (Exception e) {
+            log.error(&quot;Error cancelling cash request&quot;, e);
+            throw new SessionServiceException(&quot;Failed to cancel cash operations : &quot; + e.getMessage());
+        }
+    }
+}
+</code></pre>
+</section>
+
+<section id="fix4">
+<span class="sec-tag">Correctif 4 — NPE latent découvert pendant l'écriture des tests</span>
+<h2>CashRequestWebMapper — devise sans id dans <code>toResponseDTO</code></h2>
+<p><strong>Le problème :</strong> dans <code>toResponseDTO</code>, la ligne <code>c.setId(detail.getCurrency().getId().getValue())</code> supposait que la devise avait toujours un id. Or quand l'arbre domaine est construit depuis un DTO (via <code>toDomain</code>), la devise ne porte que son <code>isoCode</code> — pas d'id ⇒ <code>NullPointerException</code>. C'est exactement le genre de bug que les tests aller-retour de mappers attrapent (le test B contient le cas <code>toResponseDTO_deviseSansId_nePlantePas</code> qui le verrouille).</p>
+<p><strong>Le correctif :</strong> l'id n'est copié que s'il existe. Imports inutiles nettoyés au passage. Tout le reste du fichier est identique à l'existant.</p>
+<div class="filehead"><span class="action replace">REMPLACER TOUT LE FICHIER</span><span class="path">fund-management-domain\\fund-management-application-service\\src\\main\\java\\com\\bmci\\workflow\\fund\\management\\service\\domain\\mapperTemp1\\CashRequestWebMapper.java</span></div>
+<pre><code>package com.bmci.workflow.fund.management.service.domain.mapperTemp1;
+
+import com.bmci.q360.domain.entity.*;
+import com.bmci.q360.domain.valueobjects.*;
+import com.bmci.workflow.fund.management.service.domain.dto.*;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * @author Hamza Marouane
+ * Correctif : dans toResponseDTO, l&#x27;acces detail.getCurrency().getId().getValue()
+ * plantait en NullPointerException quand la devise n&#x27;avait pas d&#x27;id (cas d&#x27;un
+ * arbre construit depuis un DTO, ou seul l&#x27;isoCode est renseigne). L&#x27;id est
+ * desormais copie seulement s&#x27;il existe. Imports inutiles supprimes.
+ */
+@Component
+public class CashRequestWebMapper {
+
+    public CashRequest toDomain(CashRequestDTO dto) {
+        if (dto == null) return null;
+        CashRequest domain = new CashRequest();
+        domain.setBranchCode(dto.getBranchCode());
+        domain.setUidUser(dto.getUser());
+        domain.setEstablishment(dto.getEstablishment());
+        domain.setRequestStatus(dto.getRequestStatus());
+        if (dto.getId() != null) {
+            domain.setId(new CashRequestId(dto.getId()));
+        }
+        if (dto.getOperations() != null) {
+            List&lt;CashOperation&gt; operations = dto.getOperations().stream()
+                    .map(this::toOperationDomain)
+                    .collect(Collectors.toList());
+            domain.setOperations(operations);
+        } else {
+            domain.setOperations(new ArrayList&lt;&gt;());
+        }
+
+        return domain;
+    }
+
+    public CashOperation toOperationDomain(CashOperationDTO dtoOp) {
+        if (dtoOp == null) return null;
+
+        CashOperation domainOp = new CashOperation();
+        if (dtoOp.getOperationType() != null) {
+            domainOp.setOperationType(dtoOp.getOperationType());
+        }
+        if (dtoOp.getOperationSens() != null) {
+            domainOp.setOperationSens(dtoOp.getOperationSens());
+        }
+
+        if (dtoOp.getId() != null) {
+            domainOp.setId(new CashOperationId(dtoOp.getId()));
+        }
+        domainOp.setIsUrgent(dtoOp.getIsUrgent());
+        domainOp.setOperationStatus(dtoOp.getOperationStatus());
+        domainOp.setEstablishment(dtoOp.getEstablishment());
+        if (dtoOp.getCurrencyDetails() != null) {
+            List&lt;OperationCurrencyDetail&gt; currencyDetails = dtoOp.getCurrencyDetails().stream()
+                    .map(dtoDetail -&gt; {
+                        OperationCurrencyDetail detail = new OperationCurrencyDetail();
+                        if (dtoDetail.getId() != null) {
+                            detail.setId(new OperationCurrencyDetailId(dtoDetail.getId()));
+                        }
+                        detail.setTotalAmountByCurrency(dtoDetail.getTotalAmountByCurrency());
+                        Currency c = new Currency();
+                        c.setIsoCode(dtoDetail.getCurrency().getIsoCode());
+                        detail.setCurrency(c);
+                        if (dtoDetail.getOperationDenominations() != null) {
+                            List&lt;OperationDenomination&gt; denominations = dtoDetail.getOperationDenominations().stream()
+                                    .map(dtoDenom -&gt; {
+                                        OperationDenomination od = new OperationDenomination();
+                                        if (dtoDenom.getId() != null) {
+                                            od.setId(new OperationDenominationId(dtoDenom.getId()));
+                                        }
+                                        od.setQuantity(dtoDenom.getQuantity());
+                                        Denomination d = new Denomination();
+                                        d.setDenominationLabel(dtoDenom.getDenomination().getDenominationLabel());
+                                        od.setDenomination(d);
+                                        return od;
+                                    })
+                                    .collect(Collectors.toList());
+                            detail.setOperationDenominations(denominations);
+                        }
+                        return detail;
+                    })
+                    .collect(Collectors.toList());
+            domainOp.setCurrencyDetails(currencyDetails);
+        }
+
+        return domainOp;
+    }
+
+    public CashRequestDTO toResponseDTO(CashRequest domain) {
+        if (domain == null) return null;
+
+        CashRequestDTO dto = new CashRequestDTO();
+        if (domain.getId() != null) {
+            dto.setId(domain.getId().getValue());
+        }
+        dto.setBranchCode(domain.getBranchCode());
+        dto.setUser(domain.getUidUser());
+        dto.setEstablishment(domain.getEstablishment());
+        dto.setRequestStatus(domain.getRequestStatus());
+        if (domain.getOperations() != null) {
+            List&lt;CashOperationDTO&gt; ops = domain.getOperations().stream()
+                    .map(op -&gt; {
+                        CashOperationDTO opDto = new CashOperationDTO();
+                        opDto.setOperationSens(op.getOperationSens());
+
+                        if (op.getId() != null) opDto.setId(op.getId().getValue());
+                        opDto.setOperationType(op.getOperationType());
+                        opDto.setOperationStatus(op.getOperationStatus());
+
+                        opDto.setEstablishment(op.getEstablishment());
+                        opDto.setIsUrgent(op.getIsUrgent());
+                        opDto.setCashDeskNumber(op.getCashDeskNumber());
+                        opDto.setCreatedAt(op.getCreatedAt());
+                        opDto.setUpdatedAt(op.getUpdatedAt());
+                        opDto.setInstitutionCode(op.getInstitutionCode());
+                        opDto.setTargetCashDeskNumber(op.getTargetCashDeskNumber());
+
+                        if (op.getCurrencyDetails() != null) {
+                            var details = op.getCurrencyDetails().stream().map(detail -&gt; {
+                                var detailDto = new OperationCurrencyDetailDTO();
+                                if (detail.getCurrency() != null) {
+                                    CurrencyDTO c = new CurrencyDTO();
+                                    c.setIsoCode(detail.getCurrency().getIsoCode());
+                                    // FIX NPE : ne copier l&#x27;id que s&#x27;il existe
+                                    if (detail.getCurrency().getId() != null) {
+                                        c.setId(detail.getCurrency().getId().getValue());
+                                    }
+                                    detailDto.setCurrency(c);
+                                }
+                                detailDto.setTotalAmountByCurrency(detail.getTotalAmountByCurrency());
+
+                                if (detail.getOperationDenominations() != null) {
+                                    var denoms = detail.getOperationDenominations().stream().map(d -&gt; {
+                                        var dDto = new OperationDenominationDTO();
+                                        DenominationDTO demDto = new DenominationDTO();
+                                        demDto.setDenominationLabel(d.getDenomination().getDenominationLabel());
+                                        dDto.setDenomination(demDto);
+                                        dDto.setQuantity(d.getQuantity());
+                                        return dDto;
+                                    }).collect(Collectors.toList());
+                                    detailDto.setOperationDenominations(denoms);
+                                }
+                                return detailDto;
+                            }).collect(Collectors.toList());
+                            opDto.setCurrencyDetails(details);
+                        }
+                        return opDto;
+                    }).collect(Collectors.toList());
+            dto.setOperations(ops);
+        }
+
+        return dto;
+    }
+}
+</code></pre>
+</section>
+
+<section id="fix5">
+<span class="sec-tag">Correctif 5 · I-10 — Mineur</span>
+<h2>DenominationDataAccessMapper — auto-affectation</h2>
+<p><strong>Le problème :</strong> la ligne <code>domain.setEstablishment(domain.getEstablishment());</code> copiait la valeur sur elle-même (donc <code>null</code> → <code>null</code>) : code mort trompeur. Ici on ne remplace pas tout le fichier — <strong>uniquement la méthode <code>toDomain</code></strong> : dans le fichier existant, sélectionne la méthode <code>toDomain</code> entière (de sa Javadoc jusqu'à son accolade fermante) et colle ceci à la place :</p>
+<div class="filehead"><span class="action method">REMPLACER UNIQUEMENT LA MÉTHODE toDomain</span><span class="path">fund-management-data-access\\src\\main\\java\\com\\bmci\\workflow\\fund\\management\\dataaccess\\mapper\\DenominationDataAccessMapper.java</span></div>
+<pre><code>    /**
+     * ENTITY JPA -&gt; DOMAINE
+     * Correctif : suppression de la ligne domain.setEstablishment(domain.getEstablishment())
+     * qui etait une auto-affectation (elle copiait la valeur sur elle-meme, donc null -&gt; null).
+     */
+    public Denomination toDomain(DenominationEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+        Denomination domain = new Denomination();
+        if (entity.getId() != null) {
+            domain.setId(new DenominationId(entity.getId()));
+        }
+        domain.setItemType(entity.getItemType());
+        domain.setFaceValue(entity.getFaceValue());
+        domain.setDenominationLabel(entity.getDenominationLabel());
+        return domain;
+    }
+</code></pre>
+</section>
+
+<section id="tests">
+<span class="sec-tag">Tests — 3 nouvelles classes</span>
+<h2>Les tests : domaine + les deux mappers</h2>
+<p>Trois classes, trois modules. Rappel des règles de placement : <code>src/test/java</code> du <strong>même module</strong> que la classe testée, <strong>même package</strong> que la classe testée. Aucune dépendance à ajouter : le POM racine fournit déjà JUnit 5 et Mockito à tous les modules (et ces tests n'ont même pas besoin de Mockito — ce sont des tests purs, sans Spring, sans base : ils tournent en quelques millisecondes).</p>
+
+<h3>Test A — la règle R6 corrigée (domaine)</h3>
+<p>Couvre le Correctif 2 : ventilation valide (avec vérification arithmétique 1000×200 + 500×100 = 250 000), total calculé automatiquement quand non déclaré, total déclaré incohérent rejeté, coupure inconnue rejetée, quantité négative rejetée, détails manquants rejetés, et non-application de la règle hors périmètre (COLLECTION).</p>
+<div class="filehead"><span class="action create">CRÉER LE FICHIER</span><span class="path">fund-management-domain\\fund-management-domain-core\\src\\test\\java\\com\\bmci\\q360\\domain\\entity\\CashOperationTest.java</span></div>
+<pre><code>package com.bmci.q360.domain.entity;
+
+import com.bmci.q360.domain.entity.enums.OperationType;
+import com.bmci.q360.domain.entity.enums.RequestType;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Tests de la regle metier R6 (validateAndCalculateTotal) apres correctif I-02.
+ * Test de domaine pur : aucune dependance Spring, aucun mock.
+ */
+class CashOperationTest {
+
+    private Map&lt;String, BigDecimal&gt; faceValues;
+
+    @BeforeEach
+    void setUp() {
+        faceValues = Map.of(
+                &quot;Billet 200 DH&quot;, new BigDecimal(&quot;200.00&quot;),
+                &quot;Billet 100 DH&quot;, new BigDecimal(&quot;100.00&quot;),
+                &quot;Piece 10 DH&quot;, new BigDecimal(&quot;10.00&quot;)
+        );
+    }
+
+    // ---------- helpers de construction ----------
+
+    private CashOperation alimentationDeCaisse() {
+        CashOperation op = new CashOperation();
+        op.setOperationSens(RequestType.SUPPLY);
+        op.setOperationType(OperationType.CASH_DESK);
+        return op;
+    }
+
+    private OperationDenomination ligne(String label, int quantite) {
+        Denomination d = new Denomination();
+        d.setDenominationLabel(label);
+        OperationDenomination l = new OperationDenomination();
+        l.setDenomination(d);
+        l.setQuantity(quantite);
+        return l;
+    }
+
+    private OperationCurrencyDetail detail(String isoCode, BigDecimal totalDeclare,
+                                           OperationDenomination... lignes) {
+        Currency c = new Currency();
+        c.setIsoCode(isoCode);
+        OperationCurrencyDetail detail = new OperationCurrencyDetail();
+        detail.setCurrency(c);
+        detail.setTotalAmountByCurrency(totalDeclare);
+        detail.setOperationDenominations(List.of(lignes));
+        return detail;
+    }
+
+    // ---------- les tests ----------
+
+    @Test
+    void ventilationValide_passeEtNormaliseLeTotal() {
+        CashOperation op = alimentationDeCaisse();
+        op.setCurrencyDetails(List.of(detail(&quot;MAD&quot;, new BigDecimal(&quot;250000.00&quot;),
+                ligne(&quot;Billet 200 DH&quot;, 1000),
+                ligne(&quot;Billet 100 DH&quot;, 500))));
+
+        op.validateAndCalculateTotal(faceValues);
+
+        // 1000 x 200 + 500 x 100 = 250 000
+        Assertions.assertEquals(0, new BigDecimal(&quot;250000.00&quot;)
+                .compareTo(op.getCurrencyDetails().get(0).getTotalAmountByCurrency()));
+    }
+
+    @Test
+    void totalNonDeclare_estCalculeAutomatiquement() {
+        CashOperation op = alimentationDeCaisse();
+        op.setCurrencyDetails(List.of(detail(&quot;MAD&quot;, null,
+                ligne(&quot;Piece 10 DH&quot;, 30))));
+
+        op.validateAndCalculateTotal(faceValues);
+
+        Assertions.assertEquals(0, new BigDecimal(&quot;300.00&quot;)
+                .compareTo(op.getCurrencyDetails().get(0).getTotalAmountByCurrency()));
+    }
+
+    @Test
+    void totalDeclareIncoherent_leveUneErreur() {
+        CashOperation op = alimentationDeCaisse();
+        op.setCurrencyDetails(List.of(detail(&quot;MAD&quot;, new BigDecimal(&quot;999.00&quot;),
+                ligne(&quot;Billet 200 DH&quot;, 1000))));
+
+        IllegalStateException ex = Assertions.assertThrows(IllegalStateException.class,
+                () -&gt; op.validateAndCalculateTotal(faceValues));
+
+        Assertions.assertTrue(ex.getMessage().contains(&quot;Total incoherent&quot;));
+    }
+
+    @Test
+    void coupureInconnue_leveUneErreur() {
+        CashOperation op = alimentationDeCaisse();
+        op.setCurrencyDetails(List.of(detail(&quot;MAD&quot;, null,
+                ligne(&quot;Billet 300 DH&quot;, 5)))); // n&#x27;existe pas dans le referentiel
+
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class,
+                () -&gt; op.validateAndCalculateTotal(faceValues));
+
+        Assertions.assertTrue(ex.getMessage().contains(&quot;Billet 300 DH&quot;));
+    }
+
+    @Test
+    void quantiteNegative_leveUneErreur() {
+        CashOperation op = alimentationDeCaisse();
+        op.setCurrencyDetails(List.of(detail(&quot;MAD&quot;, null,
+                ligne(&quot;Billet 200 DH&quot;, -5))));
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -&gt; op.validateAndCalculateTotal(faceValues));
+    }
+
+    @Test
+    void detailsManquants_leveUneErreur() {
+        CashOperation op = alimentationDeCaisse();
+        op.setCurrencyDetails(null);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -&gt; op.validateAndCalculateTotal(faceValues));
+    }
+
+    @Test
+    void horsPerimetre_neValidePas() {
+        // La regle R6 ne s&#x27;applique qu&#x27;a SUPPLY + CASH_DESK :
+        // un delestage (COLLECTION) sans ventilation ne doit pas planter.
+        CashOperation op = new CashOperation();
+        op.setOperationSens(RequestType.COLLECTION);
+        op.setOperationType(OperationType.CASH_DESK);
+        op.setCurrencyDetails(null);
+
+        Assertions.assertDoesNotThrow(() -&gt; op.validateAndCalculateTotal(faceValues));
+    }
+}
+</code></pre>
+
+<h3>Test B — le mapper web, DTO ⇄ domaine</h3>
+<p>Couvre <code>CashRequestWebMapper</code> : mapping complet de l'arbre dans les deux sens (y compris les renommages piégeux <code>user</code> ⇄ <code>uidUser</code>), liste vide quand le DTO n'a pas d'opérations, null → null, le correctif NPE du Correctif 4 (devise sans id), et un test aller-retour DTO → domaine → DTO qui garantit qu'aucune donnée métier ne se perd en route.</p>
+<div class="filehead"><span class="action create">CRÉER LE FICHIER</span><span class="path">fund-management-domain\\fund-management-application-service\\src\\test\\java\\com\\bmci\\workflow\\fund\\management\\service\\domain\\mapperTemp1\\CashRequestWebMapperTest.java</span></div>
+<pre><code>package com.bmci.workflow.fund.management.service.domain.mapperTemp1;
+
+import com.bmci.q360.domain.entity.*;
+import com.bmci.q360.domain.entity.enums.OperationType;
+import com.bmci.q360.domain.entity.enums.RequestType;
+import com.bmci.q360.domain.valueobjects.CashOperationId;
+import com.bmci.q360.domain.valueobjects.CashRequestId;
+import com.bmci.q360.domain.valueobjects.CurrencyId;
+import com.bmci.workflow.fund.management.service.domain.dto.*;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Tests aller-retour du mapper web (DTO &lt;-&gt; domaine).
+ * Aucune dependance Spring : le mapper est instancie a la main.
+ */
+class CashRequestWebMapperTest {
+
+    private CashRequestWebMapper mapper;
+
+    @BeforeEach
+    void setUp() {
+        mapper = new CashRequestWebMapper();
+    }
+
+    // =====================================================================
+    // DTO -&gt; DOMAINE (toDomain)
+    // =====================================================================
+
+    @Test
+    void toDomain_mappeToutLArbre() {
+        UUID requestId = UUID.randomUUID();
+        UUID operationId = UUID.randomUUID();
+
+        CashRequestDTO dto = CashRequestDTO.builder()
+                .id(requestId)
+                .establishment(&quot;001&quot;)
+                .branchCode(&quot;AGADIR-012&quot;)
+                .user(&quot;u-4589&quot;)
+                .requestStatus(&quot;INITIATED&quot;)
+                .operations(List.of(CashOperationDTO.builder()
+                        .id(operationId)
+                        .operationSens(RequestType.SUPPLY)
+                        .operationType(OperationType.CASH_DESK)
+                        .isUrgent(&quot;YES&quot;)
+                        .operationStatus(&quot;INITIATED&quot;)
+                        .establishment(&quot;001&quot;)
+                        .currencyDetails(List.of(OperationCurrencyDetailDTO.builder()
+                                .currency(CurrencyDTO.builder().isoCode(&quot;MAD&quot;).build())
+                                .totalAmountByCurrency(new BigDecimal(&quot;250000.00&quot;))
+                                .operationDenominations(List.of(
+                                        OperationDenominationDTO.builder()
+                                                .denomination(DenominationDTO.builder()
+                                                        .denominationLabel(&quot;Billet 200 DH&quot;).build())
+                                                .quantity(1000)
+                                                .build()))
+                                .build()))
+                        .build()))
+                .build();
+
+        CashRequest domain = mapper.toDomain(dto);
+
+        // Racine
+        Assertions.assertEquals(requestId, domain.getId().getValue());
+        Assertions.assertEquals(&quot;AGADIR-012&quot;, domain.getBranchCode());
+        Assertions.assertEquals(&quot;001&quot;, domain.getEstablishment());
+        Assertions.assertEquals(&quot;u-4589&quot;, domain.getUidUser()); // &quot;user&quot; du DTO -&gt; uidUser du domaine
+        Assertions.assertEquals(&quot;INITIATED&quot;, domain.getRequestStatus());
+
+        // Operation
+        Assertions.assertEquals(1, domain.getOperations().size());
+        CashOperation op = domain.getOperations().get(0);
+        Assertions.assertEquals(operationId, op.getId().getValue());
+        Assertions.assertEquals(RequestType.SUPPLY, op.getOperationSens());
+        Assertions.assertEquals(OperationType.CASH_DESK, op.getOperationType());
+        Assertions.assertEquals(&quot;YES&quot;, op.getIsUrgent());
+
+        // Detail devise
+        OperationCurrencyDetail detail = op.getCurrencyDetails().get(0);
+        Assertions.assertEquals(&quot;MAD&quot;, detail.getCurrency().getIsoCode());
+        Assertions.assertEquals(0, new BigDecimal(&quot;250000.00&quot;)
+                .compareTo(detail.getTotalAmountByCurrency()));
+
+        // Ligne de ventilation
+        OperationDenomination ligne = detail.getOperationDenominations().get(0);
+        Assertions.assertEquals(&quot;Billet 200 DH&quot;, ligne.getDenomination().getDenominationLabel());
+        Assertions.assertEquals(1000, ligne.getQuantity());
+    }
+
+    @Test
+    void toDomain_sansOperations_produitUneListeVide() {
+        CashRequestDTO dto = CashRequestDTO.builder()
+                .establishment(&quot;001&quot;)
+                .branchCode(&quot;B-01&quot;)
+                .requestStatus(&quot;INITIATED&quot;)
+                .build(); // operations = null
+
+        CashRequest domain = mapper.toDomain(dto);
+
+        Assertions.assertNotNull(domain.getOperations());
+        Assertions.assertTrue(domain.getOperations().isEmpty());
+    }
+
+    @Test
+    void toDomain_avecNull_renvoieNull() {
+        Assertions.assertNull(mapper.toDomain(null));
+    }
+
+    // =====================================================================
+    // DOMAINE -&gt; DTO (toResponseDTO)
+    // =====================================================================
+
+    private CashRequest domaineComplet(UUID requestId, UUID operationId, UUID currencyId) {
+        Currency currency = new Currency();
+        currency.setIsoCode(&quot;MAD&quot;);
+        if (currencyId != null) {
+            currency.setId(new CurrencyId(currencyId));
+        }
+
+        Denomination denomination = new Denomination();
+        denomination.setDenominationLabel(&quot;Billet 100 DH&quot;);
+
+        OperationDenomination ligne = new OperationDenomination();
+        ligne.setDenomination(denomination);
+        ligne.setQuantity(500);
+
+        OperationCurrencyDetail detail = new OperationCurrencyDetail();
+        detail.setCurrency(currency);
+        detail.setTotalAmountByCurrency(new BigDecimal(&quot;50000.00&quot;));
+        detail.setOperationDenominations(List.of(ligne));
+
+        CashOperation op = new CashOperation();
+        op.setId(new CashOperationId(operationId));
+        op.setOperationSens(RequestType.SUPPLY);
+        op.setOperationType(OperationType.CASH_DESK);
+        op.setIsUrgent(&quot;NO&quot;);
+        op.setOperationStatus(&quot;INITIATED&quot;);
+        op.setEstablishment(&quot;001&quot;);
+        op.setCurrencyDetails(List.of(detail));
+
+        CashRequest domain = new CashRequest();
+        domain.setId(new CashRequestId(requestId));
+        domain.setBranchCode(&quot;AGADIR-012&quot;);
+        domain.setEstablishment(&quot;001&quot;);
+        domain.setUidUser(&quot;u-4589&quot;);
+        domain.setRequestStatus(&quot;INITIATED&quot;);
+        domain.setOperations(List.of(op));
+        return domain;
+    }
+
+    @Test
+    void toResponseDTO_mappeToutLArbre() {
+        UUID requestId = UUID.randomUUID();
+        UUID operationId = UUID.randomUUID();
+        UUID currencyId = UUID.randomUUID();
+
+        CashRequestDTO dto = mapper.toResponseDTO(domaineComplet(requestId, operationId, currencyId));
+
+        Assertions.assertEquals(requestId, dto.getId());
+        Assertions.assertEquals(&quot;AGADIR-012&quot;, dto.getBranchCode());
+        Assertions.assertEquals(&quot;u-4589&quot;, dto.getUser()); // uidUser du domaine -&gt; &quot;user&quot; du DTO
+        Assertions.assertEquals(&quot;INITIATED&quot;, dto.getRequestStatus());
+
+        CashOperationDTO opDto = dto.getOperations().get(0);
+        Assertions.assertEquals(operationId, opDto.getId());
+        Assertions.assertEquals(RequestType.SUPPLY, opDto.getOperationSens());
+        Assertions.assertEquals(OperationType.CASH_DESK, opDto.getOperationType());
+
+        OperationCurrencyDetailDTO detailDto = opDto.getCurrencyDetails().get(0);
+        Assertions.assertEquals(&quot;MAD&quot;, detailDto.getCurrency().getIsoCode());
+        Assertions.assertEquals(currencyId, detailDto.getCurrency().getId());
+        Assertions.assertEquals(0, new BigDecimal(&quot;50000.00&quot;)
+                .compareTo(detailDto.getTotalAmountByCurrency()));
+
+        OperationDenominationDTO ligneDto = detailDto.getOperationDenominations().get(0);
+        Assertions.assertEquals(&quot;Billet 100 DH&quot;, ligneDto.getDenomination().getDenominationLabel());
+        Assertions.assertEquals(500, ligneDto.getQuantity());
+    }
+
+    @Test
+    void toResponseDTO_deviseSansId_nePlantePas() {
+        // Verifie le correctif NPE : une devise construite depuis un DTO
+        // n&#x27;a que son isoCode (pas d&#x27;id) — le mapper ne doit pas planter.
+        CashRequest domain = domaineComplet(UUID.randomUUID(), UUID.randomUUID(), null);
+
+        CashRequestDTO dto = Assertions.assertDoesNotThrow(() -&gt; mapper.toResponseDTO(domain));
+
+        Assertions.assertEquals(&quot;MAD&quot;,
+                dto.getOperations().get(0).getCurrencyDetails().get(0).getCurrency().getIsoCode());
+        Assertions.assertNull(
+                dto.getOperations().get(0).getCurrencyDetails().get(0).getCurrency().getId());
+    }
+
+    // =====================================================================
+    // ALLER-RETOUR (DTO -&gt; domaine -&gt; DTO)
+    // =====================================================================
+
+    @Test
+    void allerRetour_conserveLesDonneesMetier() {
+        CashRequestDTO original = CashRequestDTO.builder()
+                .id(UUID.randomUUID())
+                .establishment(&quot;001&quot;)
+                .branchCode(&quot;B-77&quot;)
+                .user(&quot;u-1&quot;)
+                .requestStatus(&quot;INITIATED&quot;)
+                .operations(List.of(CashOperationDTO.builder()
+                        .operationSens(RequestType.COLLECTION)
+                        .operationType(OperationType.ATM)
+                        .isUrgent(&quot;NO&quot;)
+                        .operationStatus(&quot;INITIATED&quot;)
+                        .establishment(&quot;001&quot;)
+                        .currencyDetails(List.of(OperationCurrencyDetailDTO.builder()
+                                .currency(CurrencyDTO.builder().isoCode(&quot;EUR&quot;).build())
+                                .totalAmountByCurrency(new BigDecimal(&quot;10000.00&quot;))
+                                .operationDenominations(List.of(OperationDenominationDTO.builder()
+                                        .denomination(DenominationDTO.builder()
+                                                .denominationLabel(&quot;Billet 50 EUR&quot;).build())
+                                        .quantity(200)
+                                        .build()))
+                                .build()))
+                        .build()))
+                .build();
+
+        CashRequestDTO resultat = mapper.toResponseDTO(mapper.toDomain(original));
+
+        Assertions.assertEquals(original.getId(), resultat.getId());
+        Assertions.assertEquals(original.getBranchCode(), resultat.getBranchCode());
+        Assertions.assertEquals(original.getUser(), resultat.getUser());
+        Assertions.assertEquals(&quot;EUR&quot;, resultat.getOperations().get(0)
+                .getCurrencyDetails().get(0).getCurrency().getIsoCode());
+        Assertions.assertEquals(200, resultat.getOperations().get(0)
+                .getCurrencyDetails().get(0).getOperationDenominations().get(0).getQuantity());
+    }
+}
+</code></pre>
+
+<h3>Test C — le mapper de persistance, domaine ⇄ entités JPA</h3>
+<p>Couvre <code>CashRequestDataAccessMappers</code> : la résolution des référentiels (règle R7 — devise trouvée par code ISO, coupure par libellé, erreur explicite quand introuvables), le <strong>câblage des liens parent-enfant</strong> (opération → demande, détail → opération, ligne → détail : c'est ce câblage qui permet à la cascade JPA de tout sauver d'un coup — s'il casse, la sauvegarde casse), et le chemin retour entités → domaine (les String redeviennent des enums, les entités référentiel redeviennent des codes simples).</p>
+<div class="filehead"><span class="action create">CRÉER LE FICHIER</span><span class="path">fund-management-data-access\\src\\test\\java\\com\\bmci\\workflow\\fund\\management\\dataaccess\\mapperTemp1\\CashRequestDataAccessMappersTest.java</span></div>
+<pre><code>package com.bmci.workflow.fund.management.dataaccess.mapperTemp1;
+
+import com.bmci.q360.domain.entity.*;
+import com.bmci.q360.domain.entity.enums.OperationType;
+import com.bmci.q360.domain.entity.enums.RequestType;
+import com.bmci.q360.domain.valueobjects.CashOperationId;
+import com.bmci.q360.domain.valueobjects.CashRequestId;
+import com.bmci.workflow.fund.management.dataaccess.entity.*;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Tests du mapper de persistance (domaine &lt;-&gt; entites JPA), incluant la
+ * resolution des referentiels (regle R7 : devise par code ISO, coupure par
+ * libelle) et le cablage des liens parent-enfant.
+ * Aucune dependance Spring ni base de donnees.
+ */
+class CashRequestDataAccessMappersTest {
+
+    private CashRequestDataAccessMappers mapper;
+
+    // Referentiels simules (ce que la vraie implementation charge en base)
+    private List&lt;DenominationEntity&gt; denominations;
+    private Map&lt;String, CurrencyEntity&gt; currencyMap;
+    private EstablishmentEntity establishment;
+    private UserProfileEntity userProfile;
+
+    private CurrencyEntity mad;
+    private DenominationEntity billet200;
+
+    @BeforeEach
+    void setUp() {
+        mapper = new CashRequestDataAccessMappers();
+
+        mad = new CurrencyEntity();
+        mad.setId(UUID.randomUUID());
+        mad.setIsoCode(&quot;MAD&quot;);
+        mad.setCurrencyName(&quot;Dirham Marocain&quot;);
+        currencyMap = Map.of(&quot;MAD&quot;, mad);
+
+        billet200 = new DenominationEntity();
+        billet200.setId(UUID.randomUUID());
+        billet200.setItemType(&quot;BANKNOTE&quot;);
+        billet200.setFaceValue(new BigDecimal(&quot;200.00&quot;));
+        billet200.setDenominationLabel(&quot;Billet 200 DH&quot;);
+        denominations = List.of(billet200);
+
+        establishment = new EstablishmentEntity();
+        establishment.setId(UUID.randomUUID());
+        establishment.setEstablishmentCode(&quot;001&quot;);
+        establishment.setEstablishmentName(&quot;BMCI&quot;);
+
+        userProfile = new UserProfileEntity();
+        userProfile.setId(UUID.randomUUID());
+        userProfile.setUid(&quot;u-4589&quot;);
+    }
+
+    // ---------- helper : un arbre domaine complet ----------
+
+    private CashRequest domaineComplet(String isoCode, String labelCoupure) {
+        Currency currency = new Currency();
+        currency.setIsoCode(isoCode);
+
+        Denomination denomination = new Denomination();
+        denomination.setDenominationLabel(labelCoupure);
+
+        OperationDenomination ligne = new OperationDenomination();
+        ligne.setDenomination(denomination);
+        ligne.setQuantity(1000);
+
+        OperationCurrencyDetail detail = new OperationCurrencyDetail();
+        detail.setCurrency(currency);
+        detail.setTotalAmountByCurrency(new BigDecimal(&quot;200000.00&quot;));
+        detail.setOperationDenominations(List.of(ligne));
+
+        CashOperation op = new CashOperation();
+        op.setOperationSens(RequestType.SUPPLY);
+        op.setOperationType(OperationType.CASH_DESK);
+        op.setIsUrgent(&quot;YES&quot;);
+        op.setOperationStatus(&quot;INITIATED&quot;);
+        op.setEstablishment(&quot;001&quot;);
+        op.setCurrencyDetails(List.of(detail));
+
+        CashRequest domain = new CashRequest();
+        domain.setBranchCode(&quot;AGADIR-012&quot;);
+        domain.setEstablishment(&quot;001&quot;);
+        domain.setUidUser(&quot;u-4589&quot;);
+        domain.setRequestStatus(&quot;INITIATED&quot;);
+        domain.setOperations(List.of(op));
+        return domain;
+    }
+
+    // =====================================================================
+    // DOMAINE -&gt; ENTITES JPA (toPersistence)
+    // =====================================================================
+
+    @Test
+    void toPersistence_resoutLesReferentielsEtCableLesParents() {
+        CashRequest domain = domaineComplet(&quot;MAD&quot;, &quot;Billet 200 DH&quot;);
+
+        CashRequestEntity entity = mapper.toPersistence(
+                domain, denominations, currencyMap, establishment, userProfile);
+
+        // Racine + referentiels resolus (regle R7)
+        Assertions.assertEquals(&quot;AGADIR-012&quot;, entity.getBranchCode());
+        Assertions.assertEquals(&quot;INITIATED&quot;, entity.getRequestStatus());
+        Assertions.assertSame(establishment, entity.getEstablishment());
+        Assertions.assertSame(userProfile, entity.getUserProfile());
+
+        // Operation + lien vers le parent (indispensable pour la cascade JPA)
+        Assertions.assertEquals(1, entity.getOperations().size());
+        CashOperationEntity opEntity = entity.getOperations().get(0);
+        Assertions.assertSame(entity, opEntity.getCashRequest());
+        Assertions.assertEquals(&quot;SUPPLY&quot;, opEntity.getOperationSens());
+        Assertions.assertEquals(&quot;CASH_DESK&quot;, opEntity.getOperationType());
+        Assertions.assertEquals(&quot;YES&quot;, opEntity.getIsUrgent());
+
+        // Detail devise : devise resolue par code ISO + lien parent
+        OperationCurrencyDetailEntity detailEntity = opEntity.getCurrencyDetails().get(0);
+        Assertions.assertSame(opEntity, detailEntity.getCashOperation());
+        Assertions.assertSame(mad, detailEntity.getCurrency());
+        Assertions.assertEquals(0, new BigDecimal(&quot;200000.00&quot;)
+                .compareTo(detailEntity.getTotalAmountByCurrency()));
+
+        // Ligne de ventilation : coupure resolue par libelle + lien parent
+        OperationDenominationEntity ligneEntity = detailEntity.getOperationDenominations().get(0);
+        Assertions.assertSame(detailEntity, ligneEntity.getOperationCurrencyDetail());
+        Assertions.assertSame(billet200, ligneEntity.getDenomination());
+        Assertions.assertEquals(1000, ligneEntity.getQuantity());
+    }
+
+    @Test
+    void toPersistence_deviseInconnue_leveUneErreur() {
+        // &quot;USD&quot; n&#x27;est pas dans le referentiel simule (seul MAD existe)
+        CashRequest domain = domaineComplet(&quot;USD&quot;, &quot;Billet 200 DH&quot;);
+
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class,
+                () -&gt; mapper.toPersistence(domain, denominations, currencyMap, establishment, userProfile));
+
+        Assertions.assertTrue(ex.getMessage().contains(&quot;USD&quot;));
+    }
+
+    @Test
+    void toPersistence_coupureInconnue_leveUneErreur() {
+        // &quot;Billet 300 DH&quot; n&#x27;existe pas dans le referentiel
+        CashRequest domain = domaineComplet(&quot;MAD&quot;, &quot;Billet 300 DH&quot;);
+
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class,
+                () -&gt; mapper.toPersistence(domain, denominations, currencyMap, establishment, userProfile));
+
+        Assertions.assertTrue(ex.getMessage().contains(&quot;Billet 300 DH&quot;));
+    }
+
+    @Test
+    void toPersistence_avecNull_renvoieNull() {
+        Assertions.assertNull(mapper.toPersistence(
+                null, denominations, currencyMap, establishment, userProfile));
+    }
+
+    // =====================================================================
+    // ENTITES JPA -&gt; DOMAINE (toDomain)
+    // =====================================================================
+
+    @Test
+    void toDomain_mappeToutLArbre() {
+        UUID requestId = UUID.randomUUID();
+        UUID operationId = UUID.randomUUID();
+
+        OperationDenominationEntity ligneEntity = new OperationDenominationEntity();
+        ligneEntity.setId(UUID.randomUUID());
+        ligneEntity.setDenomination(billet200);
+        ligneEntity.setQuantity(1000);
+
+        OperationCurrencyDetailEntity detailEntity = new OperationCurrencyDetailEntity();
+        detailEntity.setId(UUID.randomUUID());
+        detailEntity.setCurrency(mad);
+        detailEntity.setTotalAmountByCurrency(new BigDecimal(&quot;200000.00&quot;));
+        detailEntity.setOperationDenominations(List.of(ligneEntity));
+
+        CashOperationEntity opEntity = new CashOperationEntity();
+        opEntity.setId(operationId);
+        opEntity.setOperationSens(&quot;SUPPLY&quot;);
+        opEntity.setOperationType(&quot;CASH_DESK&quot;);
+        opEntity.setIsUrgent(&quot;YES&quot;);
+        opEntity.setOperationStatus(&quot;INITIATED&quot;);
+        opEntity.setEstablishment(&quot;001&quot;);
+        opEntity.setCashDeskNumber(&quot;001&quot;);
+        opEntity.setInstitutionCode(1);
+        opEntity.setCreatedAt(LocalDateTime.now());
+        opEntity.setUpdatedAt(LocalDateTime.now());
+        opEntity.setCurrencyDetails(List.of(detailEntity));
+
+        CashRequestEntity entity = new CashRequestEntity();
+        entity.setId(requestId);
+        entity.setBranchCode(&quot;AGADIR-012&quot;);
+        entity.setRequestStatus(&quot;INITIATED&quot;);
+        entity.setEstablishment(establishment);
+        entity.setUserProfile(userProfile);
+        entity.setOperations(new ArrayList&lt;&gt;(List.of(opEntity)));
+
+        CashRequest domain = mapper.toDomain(entity);
+
+        // Racine : les referentiels redeviennent des codes simples
+        Assertions.assertEquals(requestId, domain.getId().getValue());
+        Assertions.assertEquals(&quot;AGADIR-012&quot;, domain.getBranchCode());
+        Assertions.assertEquals(&quot;001&quot;, domain.getEstablishment());
+        Assertions.assertEquals(&quot;u-4589&quot;, domain.getUidUser());
+
+        // Operation : les String redeviennent des enums
+        CashOperation op = domain.getOperations().get(0);
+        Assertions.assertEquals(operationId, op.getId().getValue());
+        Assertions.assertEquals(RequestType.SUPPLY, op.getOperationSens());
+        Assertions.assertEquals(OperationType.CASH_DESK, op.getOperationType());
+        Assertions.assertEquals(&quot;YES&quot;, op.getIsUrgent());
+
+        // Detail devise
+        OperationCurrencyDetail detail = op.getCurrencyDetails().get(0);
+        Assertions.assertEquals(&quot;MAD&quot;, detail.getCurrency().getIsoCode());
+        Assertions.assertEquals(mad.getId(), detail.getCurrency().getId().getValue());
+        Assertions.assertEquals(0, new BigDecimal(&quot;200000.00&quot;)
+                .compareTo(detail.getTotalAmountByCurrency()));
+
+        // Ligne de ventilation
+        OperationDenomination ligne = detail.getOperationDenominations().get(0);
+        Assertions.assertEquals(&quot;Billet 200 DH&quot;, ligne.getDenomination().getDenominationLabel());
+        Assertions.assertEquals(0, new BigDecimal(&quot;200.00&quot;)
+                .compareTo(ligne.getDenomination().getFaceValue()));
+        Assertions.assertEquals(&quot;BANKNOTE&quot;, ligne.getDenomination().getItemType());
+        Assertions.assertEquals(1000, ligne.getQuantity());
+    }
+
+    @Test
+    void toDomain_avecNull_renvoieNull() {
+        Assertions.assertNull(mapper.toDomain(null));
+    }
+}
+</code></pre>
+</section>
+
+<section id="run">
+<span class="sec-tag">Exécution</span>
+<h2>Lancer les tests</h2>
+<pre class="solo"><code># 1. D'abord, tout compiler et installer les modules dans le repo Maven local
+#    (obligatoire une premiere fois : les modules dependent les uns des autres)
+mvn clean install -DskipTests
+
+# 2. Lancer les nouveaux tests, module par module :
+mvn test -pl fund-management-domain/fund-management-domain-core          # Test A
+mvn test -pl fund-management-domain/fund-management-application-service  # Test B
+mvn test -pl fund-management-data-access -Dtest=CashRequestDataAccessMappersTest  # Test C
+
+# (le -Dtest=... du module data-access evite de declencher d'anciens tests du module ;
+#  tu peux aussi cibler une seule classe partout : -Dtest=CashOperationTest)
+
+# 3. Verifier que les tests existants passent toujours :
+mvn test -pl fund-management-application                                 # CashDemandControllerTest
+mvn test -pl fund-management-data-access -Dtest=CashDemandRepositoryTest</code></pre>
+<div class="warn"><b>Pourquoi pas <code>mvn test</code> à la racine ?</b>
+Parce que <code>ResourcePersistenceJpaRepositoryTest</code> (module container) démarre tout le contexte Spring et exige la base PostgreSQL démarrée et configurée — il fera échouer le build sur une machine sans base. En attendant sa correction (Testcontainers, Sprint 2), on cible les modules. Si ta base locale tourne, <code>mvn test</code> à la racine fonctionne aussi.</div>
+<p>Dans IntelliJ, plus simple encore : clic droit sur la classe de test → <strong>Run 'CashOperationTest'</strong>. Les trois classes sont des tests purs, ils s'exécutent instantanément.</p>
+</section>
+
+<section id="checklist">
+<span class="sec-tag">Validation</span>
+<h2>Checklist finale</h2>
+<ul class="check">
+<li><input type="checkbox"> Branche <code>fix/sprint1-blockers</code> créée</li>
+<li><input type="checkbox"> Correctifs 1 → 5 collés (5 fichiers remplacés dont 1 méthode seule)</li>
+<li><input type="checkbox"> 3 classes de test créées aux bons chemins (<code>src/test/java</code>, bons packages)</li>
+<li><input type="checkbox"> <code>mvn clean install -DskipTests</code> passe (compilation OK sur les 5 modules)</li>
+<li><input type="checkbox"> Test A vert (7 tests) · Test B vert (7 tests) · Test C vert (6 tests)</li>
+<li><input type="checkbox"> Tests existants toujours verts (<code>CashDemandControllerTest</code>, <code>CashDemandRepositoryTest</code>)</li>
+<li><input type="checkbox"> Vérification manuelle : <code>GET /cash</code> renvoie enfin 200 (le bug I-01 est mort)</li>
+<li><input type="checkbox"> Vérification manuelle : le <code>POST /cash</code> du §8 de la doc passe, et le même POST avec un total faux (ex. 999) est rejeté avec « Total incoherent »</li>
+<li><input type="checkbox"> Commit + push + demande de revue au tech lead</li>
+</ul>
+<div class="note"><b>Ce qui reste du Sprint 1 (non couvert par cette annexe)</b>
+Flyway (I-03), le contrat d'erreur 404/409/422 (I-05), la Bean Validation sur les DTOs (I-07) et l'externalisation de la config (I-06) — dis-moi quand tu veux l'annexe suivante avec ces morceaux, dans le même format copier-coller.</div>
+</section>
+<footer>Annexe 1 · correctifs I-01, I-02, NPE update, NPE mapper web, I-10 partiel + tests CashOperation / CashRequestWebMapper / CashRequestDataAccessMappers · générée le 16 juillet 2026</footer>
+</div>
+</body>
+</html>
