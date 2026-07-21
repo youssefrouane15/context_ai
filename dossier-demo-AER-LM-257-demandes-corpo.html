@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Démo AER_LM-257 — Demandes Corpo : dossier de présentation et défense</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.65;font-size:15.5px;}
+.wrap{max-width:1060px;margin:0 auto;padding:0 28px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:52px 28px 44px;margin-bottom:40px;}
+header.hero .inner{max-width:1060px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:12px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:33px;line-height:1.15;}
+.hero p.sub{margin-top:14px;max-width:800px;color:#DCEBE3;font-size:15.5px;}
+.badge-v{display:inline-block;margin-top:16px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:24px;color:var(--vertF);margin:56px 0 6px;padding-top:18px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:19px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:17.5px;color:var(--vert);margin:32px 0 8px;}
+p{margin:10px 0;}
+ul,ol{margin:10px 0 10px 26px;}
+li{margin:5px 0;}
+strong{color:var(--vertF);}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:13px 17px;margin:16px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:13px 17px;margin:16px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.qa{background:var(--carte);border:1px solid var(--ligne);border-left:4px solid var(--vertF);border-radius:0 8px 8px 0;padding:14px 18px;margin:14px 0;}
+.qa .q{font-weight:700;color:var(--vertF);margin-bottom:6px;}
+pre{background:#10231C;color:#E8F2EC;padding:18px 20px;overflow-x:auto;border-radius:8px;font-size:13px;line-height:1.55;margin:12px 0;}
+code{font-family:'IBM Plex Mono',monospace;}
+p code,li code,td code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-size:13px;}
+table{width:100%;border-collapse:collapse;margin:18px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:14px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:10px 14px;font-family:'Archivo',sans-serif;font-size:13px;letter-spacing:.5px;}
+td{padding:9px 14px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.toc{background:var(--carte);border:1px solid var(--ligne);border-radius:10px;padding:22px 28px;margin:6px 0 10px;}
+.toc a{color:var(--vert);text-decoration:none;font-weight:600;}
+.toc ol{margin-left:20px;}
+.tree{background:#10231C;color:#CBE3D8;padding:20px 22px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.5;overflow-x:auto;white-space:pre;}
+.tree .hl{color:#7FDCAB;font-weight:600;}
+kbd{background:var(--vertF);color:#fff;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+.step{display:flex;gap:14px;margin:12px 0;align-items:flex-start;}
+.step .n{flex:0 0 30px;height:30px;border-radius:50%;background:var(--or);color:#fff;font-family:'Archivo',sans-serif;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · Sprint Review</div>
+<h1>Demandes Corpo (AER_LM-257)<br>Dossier de démo : réalisations, choix et justifications</h1>
+<p class="sub">Tout ce qu'il faut pour présenter et défendre le travail : ce qui a été livré, comment la Jira a été traduite en modèle, pourquoi chaque choix d'architecture a été fait (DDD + hexagonal), comment les règles métier sont implémentées et quels cas sont couverts — avec un déroulé de démo minuté et les questions/réponses anticipées.</p>
+<div class="badge-v">DOSSIER DÉMO · 20/07/2026</div>
+</div></header>
+<div class="wrap">
+
+<div class="toc"><strong>Sommaire</strong>
+<ol>
+<li><a href="#s1">L'essentiel en 30 secondes</a></li>
+<li><a href="#s2">De la Jira au modèle : les choix et leurs raisons</a></li>
+<li><a href="#s3">Architecture : comment le corpo respecte le DDD + hexagonal du projet</a></li>
+<li><a href="#s4">Règles métier : implémentation et localisation dans le code</a></li>
+<li><a href="#s5">Couverture des cas : le contrat d'erreur complet</a></li>
+<li><a href="#s6">Qualité d'ingénierie : tests, enums, MapStruct, zéro impact nominal</a></li>
+<li><a href="#s7">Déroulé de démo suggéré (8-10 min)</a></li>
+<li><a href="#s8">Questions anticipées &amp; réponses préparées</a></li>
+<li><a href="#s9">Ce qui reste ouvert (transparence)</a></li>
+</ol></div>
+
+<h2 id="s1"><span class="num">1</span>L'essentiel en 30 secondes</h2>
+<p>La Jira AER_LM-257 demandait le <strong>modèle de données des demandes Corporate</strong> (alimentation / ramassage de caisse via la Caisse Centrale) et sa gestion dans l'application. Livré :</p>
+<ul>
+<li>Un <strong>modèle relationnel</strong> (validé tech lead / PO) dans un <strong>schéma PostgreSQL dédié <code>corpo</code></strong> : entête de demande + ventilation normalisée + référentiel des 11 coupures de la Jira, seedé.</li>
+<li>Une <strong>API CRUD complète</strong> sur <code>/corpo/cash</code> : création (avec génération de la référence <code>CO-AAAA-NNNNNN</code> et calcul du montant), consultation unitaire et liste, modification, annulation — avec cycle de vie INITIATED / VALIDATED / CANCELLED.</li>
+<li>Un <strong>contrat d'erreur professionnel</strong> : 400 / 404 / 409 / 422 au format ProblemDetail, codes API machine + messages métier en français.</li>
+<li>Le tout <strong>sans modifier une seule ligne du périmètre nominal</strong> : uniquement des créations, dans l'architecture existante.</li>
+</ul>
+
+<h2 id="s2"><span class="num">2</span>De la Jira au modèle : les choix et leurs raisons</h2>
+<h3>Le modèle retenu</h3>
+<div class="tree">schéma corpo (PostgreSQL) — isolé de public
+├── corpo_denomination            <span class="hl">RÉFÉRENTIEL</span> : les 11 coupures de la Jira, seedées
+│     (BILLET_200/100/50/20, PIECE_10/5/1, CENTIME_50/20/10/5)
+├── corpo_cash_request            <span class="hl">ENTÊTE</span> : réf, type, statut, client (zones libres),
+│                                  montant, urgent, dates création/màj
+└── corpo_request_denomination    <span class="hl">VENTILATION</span> : (demande, coupure) → quantité
+      FK CASCADE vers l'entête · FK RESTRICT vers le référentiel · unicité (demande, coupure)
+</div>
+<h3>Chaque choix, sa justification</h3>
+<table>
+<tr><th>Choix</th><th>Justification (à donner telle quelle en démo)</th></tr>
+<tr><td><strong>Relationnel plutôt que 11 colonnes plates</strong></td><td>Arbitré avec le tech lead et le PO. La ventilation en lignes normalisées vers un référentiel rend le modèle évolutif : ajouter une coupure demain = une ligne de seed, zéro migration de structure. La contrainte d'unicité (demande, coupure) garantit l'intégrité de la ventilation au niveau BDD, pas seulement applicatif.</td></tr>
+<tr><td><strong>Schéma PostgreSQL dédié <code>corpo</code></strong></td><td>Isolation nette des deux périmètres : le nominal vit dans <code>public</code>, le corpo dans son schéma, aucune FK croisée. Une seule base, une seule datasource, zéro configuration ajoutée — le ciblage se fait par l'attribut <code>schema</code> des entités JPA. Le jour où le corpo devient un service à part, son schéma part avec lui.</td></tr>
+<tr><td><strong>Référentiel de coupures propre au corpo</strong></td><td>Le référentiel nominal ne couvre pas les centimes (10/20/50 cts, 5 cts) exigés par la Jira, et une FK cross-schema aurait couplé les deux périmètres. Les codes stables (<code>BILLET_200</code>…) servent de contrat d'API : le front envoie un code + une quantité, le serveur résout label et valeur faciale.</td></tr>
+<tr><td><strong>Référence lisible <code>CO-AAAA-NNNNNN</code></strong></td><td>Générée serveur sur séquence dédiée — jamais pilotable par le client. Préfixe CO- distinct du nominal, année pour la traçabilité, séquence pour l'unicité garantie par la base.</td></tr>
+<tr><td><strong>Statuts INITIATED / VALIDATED / CANCELLED</strong></td><td>Alignés sur le nominal pour la cohérence de la plateforme. INITIATED par défaut, annulation exposée (PATCH), VALIDATED prévu en base (contrainte CHECK) mais sans endpoint : la validation arrivera avec le workflow Caisse Centrale — même approche que le nominal.</td></tr>
+<tr><td><strong>Zones libres non obligatoires</strong></td><td>La Jira qualifie réf client / ville / adresse / compte de « zones libres » sans exiger d'obligation : nous n'avons inventé aucune contrainte non spécifiée. Les rendre obligatoires est un changement d'une annotation si le métier le demande.</td></tr>
+<tr><td><strong>Champs serveur non pilotables</strong></td><td>Référence, statut et dates sont ignorés en entrée (mapper web) : le statut ne change que par le endpoint d'annulation, la référence ne vient que de la séquence. Principe : le client exprime une intention, le serveur détient l'état.</td></tr>
+</table>
+
+<h2 id="s3"><span class="num">3</span>Architecture : comment le corpo respecte le DDD + hexagonal du projet</h2>
+<p>Le corpo reproduit exactement la structure en couches du microservice, module par module — aucune entorse, aucune modification de l'existant :</p>
+<table>
+<tr><th>Couche (module)</th><th>Contenu corpo</th><th>Principe respecté</th></tr>
+<tr><td><strong>Domaine</strong><br>fund-management-domain-core</td><td>Agrégat <code>CorpoCashRequest</code> (racine) + <code>CorpoRequestDenomination</code>, value objects d'identité, enums, exceptions métier. <strong>Zéro dépendance</strong> Spring/JPA — du Java pur.</td><td>Le cœur métier ne connaît ni le web ni la base : les règles (calcul du montant, défauts, garde du type) vivent dans l'agrégat et sont testables sans framework.</td></tr>
+<tr><td><strong>Application service</strong><br>fund-management-application-service</td><td>DTO, mapper web, <strong>ports</strong> : entrant <code>CorpoDemandUseCase</code> (le contrat offert), sortants <code>CorpoDemandRepository</code> et <code>CorpoDenominationRepository</code> (les besoins exprimés) ; l'implémentation du cas d'usage orchestre.</td><td>Cœur de l'hexagone : le use case ne dépend que d'interfaces. Il ignore que la persistance est du JPA/Postgres — on pourrait la remplacer sans le toucher.</td></tr>
+<tr><td><strong>Adaptateur sortant</strong><br>fund-management-data-access</td><td>Entités JPA (schéma corpo), JpaRepositories, mapper de persistance, <code>CorpoDemandRepositoryImpl</code> / <code>CorpoDenominationRepositoryImpl</code> qui <em>implémentent les ports sortants</em>.</td><td>Inversion de dépendance : c'est la persistance qui dépend du domaine (elle implémente ses interfaces), jamais l'inverse. Le domaine ne contient aucune annotation JPA.</td></tr>
+<tr><td><strong>Adaptateur entrant</strong><br>fund-management-application</td><td><code>CorpoDemandController</code> (REST, mêmes conventions que le nominal : media type versionné, style CRUD) + <code>CorpoDemandExceptionHandler</code>.</td><td>Le REST est un simple adaptateur : il traduit HTTP ↔ use case, sans aucune logique métier.</td></tr>
+</table>
+<h3>Arguments d'architecture à mettre en avant</h3>
+<ul>
+<li><strong>Le flux traverse les couches dans le bon sens</strong> : Controller → port entrant → agrégat (règles) → port sortant → adaptateur JPA. Chaque flèche pointe vers l'intérieur de l'hexagone.</li>
+<li><strong>Isolation par périmètre</strong> : tout le corpo vit dans des sous-paquets <code>corpo</code> dédiés — visible d'un coup d'œil, extractible d'un bloc (vers un module common ou un microservice) le jour venu.</li>
+<li><strong>Zéro modification de l'existant</strong> : ni la classe main, ni les poms, ni une classe du nominal. Les entités/repositories corpo sont placés en sous-paquets des racines déjà scannées par <code>@EntityScan</code>/<code>@EnableJpaRepositories</code> — intégration sans intrusion.</li>
+<li><strong>Résolution du référentiel par code</strong> (clé stable), là où le nominal résout par objet/label — un choix qui évite une classe de bugs de correspondance.</li>
+</ul>
+
+<h2 id="s4"><span class="num">4</span>Règles métier : implémentation et localisation dans le code</h2>
+<table>
+<tr><th>Règle</th><th>Comportement</th><th>Où dans le code</th></tr>
+<tr><td>Type obligatoire</td><td>ALIMENTATION ou RAMASSAGE exigé, sinon rejet</td><td>Bean Validation (@NotNull, 400) + garde domaine (défense en profondeur, 422)</td></tr>
+<tr><td>Montant ALIMENTATION</td><td><strong>Calculé serveur</strong> : Σ (valeur faciale du référentiel × quantité). Si un montant est fourni et diverge du calcul → rejet 422 explicite (contrôle de cohérence, le montant envoyé sert de checksum front/back)</td><td><code>CorpoCashRequest.validateAndComputeAmount()</code></td></tr>
+<tr><td>Montant RAMASSAGE</td><td>Pris tel que fourni — « alimenté en direct » (Jira) ; défaut 0</td><td>idem</td></tr>
+<tr><td>Défauts Jira</td><td>Quantités absentes → 0 ; urgent → NO ; montant → 0 ; statut → INITIATED</td><td>Agrégat (normalisation) + DEFAULT en BDD (double filet)</td></tr>
+<tr><td>Coupure inconnue</td><td>Rejet 422 « Coupure inconnue : X » — jamais d'insertion partielle</td><td>Domaine (calcul) + mapper de persistance (résolution)</td></tr>
+<tr><td>Quantité négative</td><td>Rejet 400 (@Min) + CHECK ≥ 0 en base</td><td>DTO + contrainte BDD</td></tr>
+<tr><td>Cycle de vie</td><td>Annulation idempotente refusée (déjà annulée → 409) ; modification d'une demande annulée → 409 ; vérification sur l'<strong>état réel en base</strong>, pas sur le payload</td><td><code>CorpoDemandRepositoryImpl</code></td></tr>
+<tr><td>Référence unique</td><td>Générée à la création uniquement, jamais modifiée par un update</td><td>Adapter (séquence) + UNIQUE en base</td></tr>
+<tr><td>Update de la ventilation</td><td>Remplacement atomique des lignes avec recalcul du montant ; flush intermédiaire pour respecter la contrainte d'unicité (bug Hibernate insert-avant-delete identifié en test et corrigé)</td><td>Adapter (@Transactional + flush)</td></tr>
+</table>
+<div class="ok"><strong>Ligne de défense en profondeur</strong> — c'est l'argument fort : chaque règle est tenue à plusieurs niveaux. Exemple de la quantité négative : rejetée par Bean Validation (400), et même si elle passait, bloquée par le CHECK en base. Exemple du statut : garde applicative + contrainte CHECK. L'API est stricte, la base est le dernier rempart.</div>
+
+<h2 id="s5"><span class="num">5</span>Couverture des cas : le contrat d'erreur complet</h2>
+<p>Format <strong>ProblemDetail (RFC 7807)</strong>, avec un <code>code</code> machine pour le front et un message métier français pour l'humain :</p>
+<table>
+<tr><th>Cas</th><th>HTTP</th><th>Code API</th><th>Message</th></tr>
+<tr><td>Type manquant, quantité négative, montant négatif</td><td>400</td><td>CORPO_BAD_REQUEST</td><td>Détail champ par champ (<code>fieldErrors</code>)</td></tr>
+<tr><td>JSON illisible, valeur d'enum inconnue (« PEUT-ETRE »)</td><td>400</td><td>CORPO_BAD_REQUEST</td><td>« Corps de requête illisible ou valeur non autorisée… »</td></tr>
+<tr><td>Demande introuvable (GET/PUT/PATCH)</td><td>404</td><td>CORPO_NOT_FOUND</td><td>« La demande corpo &lt;id&gt; est introuvable »</td></tr>
+<tr><td>Double annulation</td><td>409</td><td>CORPO_CONFLICT</td><td>« La demande CO-… est déjà annulée »</td></tr>
+<tr><td>Modification d'une demande annulée</td><td>409</td><td>CORPO_CONFLICT</td><td>« Impossible de modifier la demande CO-… : elle est annulée »</td></tr>
+<tr><td>Coupure inconnue</td><td>422</td><td>CORPO_VALIDATION_ERROR</td><td>« Coupure inconnue : BILLET_500 »</td></tr>
+<tr><td>Montant incohérent avec la ventilation (alimentation)</td><td>422</td><td>CORPO_VALIDATION_ERROR</td><td>« Le montant fourni (…) ne correspond pas à la ventilation (…) »</td></tr>
+</table>
+<p>Implémentation : exceptions métier typées nées dans le domaine et l'adaptateur, traduites par un <code>@RestControllerAdvice</code> <strong>volontairement scopé au controller corpo</strong> — le nominal conserve strictement son comportement actuel. Ce handler est le prototype du contrat d'erreur qui pourra être généralisé à la plateforme.</p>
+
+<h2 id="s6"><span class="num">6</span>Qualité d'ingénierie</h2>
+<ul>
+<li><strong>Tests sur toutes les couches</strong> : domaine (règles de calcul, défauts, cas d'erreur), mappers (web + persistance, résolution du référentiel), controller (contrat d'erreur testé statut par statut : 400 avec fieldErrors, 404, 409, 422), adaptateur (génération de référence, gardes du cycle de vie, flush).</li>
+<li><strong>Zéro magic string</strong> : statuts, types et flag urgent en enums de bout en bout — colonnes varchar et contrat JSON inchangés, mais toute valeur invalide rejetée dès la désérialisation.</li>
+<li><strong>MapStruct</strong> : mapper web entièrement généré à la compilation, mapper de persistance hybride (mécanique générée, logique de résolution manuelle) — moins de boilerplate, moins de bugs de recopie, sans rien changer au build (processor déjà dans le pom parent).</li>
+<li><strong>Bug réel trouvé et corrigé par le test manuel</strong> : violation de la contrainte d'unicité à l'update (ordre insert/delete d'Hibernate) — diagnostiqué, corrigé (flush), couvert par un test. Bon exemple à raconter : la contrainte BDD a fait son travail.</li>
+<li><strong>Discipline de périmètre</strong> : git status de la PR = uniquement des ajouts ; le nominal est byte-identique.</li>
+</ul>
+
+<h2 id="s7"><span class="num">7</span>Déroulé de démo suggéré (8-10 min)</h2>
+<div class="step"><div class="n">1</div><div><strong>Le modèle (1 min)</strong> — pgAdmin, <code>Schemas → corpo</code> : montrer les 3 tables et le référentiel seedé (<code>SELECT * FROM corpo.corpo_denomination ORDER BY face_value DESC;</code>). Message : « modèle relationnel validé ensemble, isolé dans son schéma ».</div></div>
+<div class="step"><div class="n">2</div><div><strong>Création alimentation (2 min)</strong> — POST avec 10×BILLET_200 + 4×BILLET_100 + 20×PIECE_5. Faire remarquer : référence CO-2026-…, statut INITIATED, <strong>montant 2500.00 calculé serveur</strong>, lignes enrichies (label, valeur faciale), défauts appliqués.</div></div>
+<div class="step"><div class="n">3</div><div><strong>Création ramassage (1 min)</strong> — POST avec montant 15000 sans ventilation : montant conservé (« alimenté en direct » comme dit la Jira).</div></div>
+<div class="step"><div class="n">4</div><div><strong>Modification (1 min)</strong> — PUT en changeant les quantités : montant recalculé, ventilation remplacée, updatedAt avancé, référence intacte.</div></div>
+<div class="step"><div class="n">5</div><div><strong>Le contrat d'erreur (2-3 min — le moment fort)</strong> — enchaîner : coupure BILLET_500 → 422 ; type manquant → 400 avec le champ fautif ; id inconnu → 404 ; annulation puis 2ᵉ annulation → 200 puis 409 ; PUT sur l'annulée → 409. Message : « chaque erreur a un statut, un code machine et un message métier français ».</div></div>
+<div class="step"><div class="n">6</div><div><strong>Zéro impact nominal (30 s)</strong> — un GET /cash pour montrer que rien n'a bougé, et l'onglet Files de la PR : uniquement des créations.</div></div>
+
+<h2 id="s8"><span class="num">8</span>Questions anticipées &amp; réponses préparées</h2>
+<div class="qa"><div class="q">« Pourquoi un schéma dédié plutôt que des tables dans public ? »</div>Isolation des périmètres sans coût : une base, une datasource, zéro config — juste l'attribut schema sur les entités. Droits différenciables plus tard, et extraction facilitée si le corpo devient un service. Le nominal n'est pas pollué.</div>
+<div class="qa"><div class="q">« Pourquoi un référentiel de coupures séparé du nominal ? »</div>Le référentiel nominal ne contient pas les centimes exigés par la Jira, et une FK cross-schema aurait couplé les périmètres. La mutualisation reste possible via le futur module common — question ouverte assumée, pas un oubli.</div>
+<div class="qa"><div class="q">« Le montant d'une alimentation, pourquoi le calculer côté serveur ? »</div>Un montant d'opération de caisse ne peut pas être déclaratif : il découle de la ventilation. Le serveur fait autorité, et si le front envoie un montant divergent, on le rejette en 422 au lieu de masquer l'incohérence — dans une banque, une divergence de montant se signale, elle ne se corrige pas silencieusement.</div>
+<div class="qa"><div class="q">« Pourquoi pas d'endpoint de validation (VALIDATED) ? »</div>Même position que le nominal : la valeur est prévue (contrainte en base), mais le déclencheur relève du workflow Caisse Centrale à venir (Camunda). Exposer un PATCH validate aujourd'hui serait préjuger du processus métier.</div>
+<div class="qa"><div class="q">« Le nominal ne renvoie que des 500, pourquoi le corpo fait différemment ? »</div>Le handler est volontairement scopé au controller corpo : le nominal est inchangé. Le corpo sert de prototype du contrat d'erreur cible ; la généralisation au nominal est un chantier identifié, à mener explicitement, pas en effet de bord.</div>
+<div class="qa"><div class="q">« Pourquoi ne pas avoir mutualisé du code dans un module common tout de suite ? »</div>Le corpo réutilise le socle existant (BaseId, AggregateRoot, BaseEntity, conventions). Ce qui mériterait common — exceptions génériques, handler global, cycle de vie — n'a de valeur qu'appliqué aux deux périmètres : on le créera au moment de généraliser, avec un contenu réel plutôt qu'un module vide.</div>
+<div class="qa"><div class="q">« Qu'est-ce qui garantit l'intégrité de la ventilation ? »</div>Trois niveaux : Bean Validation à l'entrée (code obligatoire, quantité ≥ 0), résolution stricte contre le référentiel (coupure inconnue = rejet, transaction annulée), et contraintes BDD (unicité demande/coupure, CHECK ≥ 0, FK RESTRICT sur le référentiel). Le bug d'unicité trouvé à l'update prouve que ce dernier filet fonctionne.</div>
+
+<h2 id="s9"><span class="num">9</span>Ce qui reste ouvert (transparence)</h2>
+<ul>
+<li><strong>Endpoint / déclencheur de VALIDATED</strong> — en attente du processus de validation Caisse Centrale (workflow).</li>
+<li><strong>isUrgent</strong> : enum YES/NO conservé pour la continuité de contrat ; un Boolean serait plus idiomatique — arbitrage tech lead.</li>
+<li><strong>Champs obligatoires des zones libres</strong> — à préciser par le métier si besoin (une annotation par champ).</li>
+<li><strong>Backlog technique</strong> : pagination sur la liste, tests d'intégration JPA (Testcontainers), généralisation du contrat d'erreur au nominal, module common au premier vrai partage.</li>
+</ul>
+<div class="ok"><strong>Message de conclusion pour la démo</strong> : « La Jira est livrée dans l'architecture de la plateforme, avec les arbitrages validés ensemble, un contrat d'API strict, et sans toucher un octet de l'existant. Les points ouverts sont identifiés et attendent des décisions métier, pas des correctifs. »</div>
+</div></body></html>
