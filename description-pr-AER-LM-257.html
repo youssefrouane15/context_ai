@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR AER_LM-257 — Description à coller</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.65;font-size:15.5px;}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 70px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:40px 28px 34px;margin-bottom:34px;}
+header.hero .inner{max-width:900px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:10px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:27px;line-height:1.2;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:20px;color:var(--vertF);margin:34px 0 8px;padding-top:14px;border-top:3px solid var(--vert);}
+p{margin:10px 0;}
+ol{margin:10px 0 10px 26px;}
+li{margin:5px 0;}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:12px 16px;margin:14px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.copybox{position:relative;margin-top:14px;}
+.copyhead{display:flex;justify-content:space-between;align-items:center;background:var(--vertF);color:#fff;padding:9px 16px;border-radius:8px 8px 0 0;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+button.copy{background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:5px 14px;border-radius:4px;cursor:pointer;letter-spacing:.5px;}
+button.copy:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:20px 22px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+code{font-family:'IBM Plex Mono',monospace;}
+p code,li code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-size:13px;}
+.preview{background:var(--carte);border:1px solid var(--ligne);border-radius:10px;padding:24px 30px;margin-top:14px;}
+.preview h3{font-family:'Archivo',sans-serif;font-size:17px;color:var(--vertF);margin:16px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--ligne);}
+.preview h3:first-child{margin-top:0;}
+.preview ul{margin:8px 0 8px 24px;}
+.preview li{margin:4px 0;font-size:14.5px;}
+.preview p{font-size:14.5px;}
+.warn{color:#B3402A;font-weight:700;}
+kbd{background:var(--vertF);color:#fff;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · Pull Request</div>
+<h1>Description de la PR — [AER_LM-257] Modèle de données Demandes Corpo</h1>
+</div></header>
+<div class="wrap">
+
+<h2>Mode d'emploi</h2>
+<ol>
+<li>Clique sur <strong>Copier le Markdown</strong> ci-dessous (ou sélectionne tout le bloc et Ctrl+C).</li>
+<li>Colle dans le champ <strong>« Leave a comment »</strong> de la PR GitHub (onglet Write).</li>
+<li>Vérifie le rendu dans l'onglet <strong>Preview</strong> de GitHub, puis Create pull request.</li>
+</ol>
+<div class="note">Pense aussi à : <strong>Reviewers → Yassin</strong>, Assignees → toi, et à envoyer le <strong>script SQL sur Teams</strong> (il ne fait pas partie du repo — c'est l'action manuelle signalée dans la description).</div>
+
+<h2>Le Markdown à coller</h2>
+<div class="copybox">
+<div class="copyhead"><span>description-pr.md</span><button class="copy" onclick="copyMd()">📋 Copier le Markdown</button></div>
+<pre id="mdcontent"><code>## Jira
+AER_LM-257 — Modèle de données &quot;Demandes Corpo&quot;
+
+## Contenu
+- Modèle relationnel dans un schéma PostgreSQL dédié `corpo` : entête `corpo_cash_request` + ventilation `corpo_request_denomination` + référentiel `corpo_denomination` (11 coupures seedées)
+- Statuts INITIATED / VALIDATED / CANCELLED + endpoint d&#x27;annulation
+- Endpoints `/corpo/cash` : POST, GET /{id}, GET, PUT, PATCH /{id}/cancel
+- Montant ALIMENTATION calculé serveur depuis la ventilation ; RAMASSAGE fourni (défaut 0)
+- 32 fichiers créés, aucun fichier existant modifié, nominal intact
+
+## ⚠️ Action manuelle requise
+Exécuter le script SQL (schéma corpo + tables + séquence + seed) sur chaque environnement AVANT de démarrer l&#x27;application — script partagé sur Teams.
+
+## Tests
+- mvn test vert (tests domaine, mappers, controller, adapter)
+- Smoke test Postman OK : création alimentation (montant calculé 2500.00, réf CO-2026-000001), ramassage (montant fourni conservé), update avec recalcul et remplacement de la ventilation, annulation + gardes (double cancel refusé, update après cancel refusé)</code></pre>
+</div>
+
+<h2>Aperçu du rendu (tel que GitHub l'affichera)</h2>
+<div class="preview">
+<h3>Jira</h3>
+<p>AER_LM-257 — Modèle de données "Demandes Corpo"</p>
+<h3>Contenu</h3>
+<ul>
+<li>Modèle relationnel dans un schéma PostgreSQL dédié <code>corpo</code> : entête <code>corpo_cash_request</code> + ventilation <code>corpo_request_denomination</code> + référentiel <code>corpo_denomination</code> (11 coupures seedées)</li>
+<li>Statuts INITIATED / VALIDATED / CANCELLED + endpoint d'annulation</li>
+<li>Endpoints <code>/corpo/cash</code> : POST, GET /{id}, GET, PUT, PATCH /{id}/cancel</li>
+<li>Montant ALIMENTATION calculé serveur depuis la ventilation ; RAMASSAGE fourni (défaut 0)</li>
+<li>32 fichiers créés, aucun fichier existant modifié, nominal intact</li>
+</ul>
+<h3><span class="warn">⚠️ Action manuelle requise</span></h3>
+<p>Exécuter le script SQL (schéma corpo + tables + séquence + seed) sur chaque environnement <strong>AVANT</strong> de démarrer l'application — script partagé sur Teams.</p>
+<h3>Tests</h3>
+<ul>
+<li>mvn test vert (tests domaine, mappers, controller, adapter)</li>
+<li>Smoke test Postman OK : création alimentation (montant calculé 2500.00, réf CO-2026-000001), ramassage (montant fourni conservé), update avec recalcul et remplacement de la ventilation, annulation + gardes (double cancel refusé, update après cancel refusé)</li>
+</ul>
+</div>
+
+</div>
+<script>
+function copyMd() {
+  const text = document.getElementById('mdcontent').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const b = document.querySelector('button.copy');
+    b.textContent = '✔ Copié !';
+    setTimeout(() => b.textContent = '📋 Copier le Markdown', 2000);
+  });
+}
+</script>
+</body></html>
