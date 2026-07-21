@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corpo — Lot d'améliorations : MapStruct, contrat d'erreur, validations, enums</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.65;font-size:15.5px;}
+.wrap{max-width:1060px;margin:0 auto;padding:0 28px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:52px 28px 44px;margin-bottom:40px;}
+header.hero .inner{max-width:1060px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:12px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:33px;line-height:1.15;}
+.hero p.sub{margin-top:14px;max-width:800px;color:#DCEBE3;font-size:15.5px;}
+.badge-v{display:inline-block;margin-top:16px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:24px;color:var(--vertF);margin:56px 0 6px;padding-top:18px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:19px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:17.5px;color:var(--vert);margin:34px 0 8px;}
+p{margin:10px 0;}
+ul,ol{margin:10px 0 10px 26px;}
+li{margin:5px 0;}
+strong{color:var(--vertF);}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:13px 17px;margin:16px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:13px 17px;margin:16px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.danger{background:#FCEFEC;border-left:4px solid #B3402A;padding:13px 17px;margin:16px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.filehead{display:flex;align-items:center;gap:12px;background:var(--vertF);color:#fff;padding:9px 16px;border-radius:8px 8px 0 0;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;flex-wrap:wrap;}
+.fh-act{font-weight:600;padding:2px 10px;border-radius:3px;letter-spacing:1px;font-size:11px;}
+.act-rep{background:var(--or);color:#fff;}
+.act-new{background:#178A5E;color:#fff;}
+.act-del{background:#B3402A;color:#fff;}
+.fh-path{word-break:break-all;color:#CBE3D8;}
+.fh-note{color:#F2D9A0;font-size:11.5px;width:100%;}
+pre{background:#10231C;color:#E8F2EC;padding:20px 22px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:13px;line-height:1.55;margin-bottom:8px;}
+code{font-family:'IBM Plex Mono',monospace;}
+p code,li code,td code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-size:13px;}
+table{width:100%;border-collapse:collapse;margin:18px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:14px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:10px 14px;font-family:'Archivo',sans-serif;font-size:13px;letter-spacing:.5px;}
+td{padding:9px 14px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.toc{background:var(--carte);border:1px solid var(--ligne);border-radius:10px;padding:22px 28px;margin:6px 0 10px;}
+.toc a{color:var(--vert);text-decoration:none;font-weight:600;}
+.toc ol{margin-left:20px;}
+kbd{background:var(--vertF);color:#fff;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · Améliorations post-Jira AER_LM-257</div>
+<h1>Corpo — Lot d'améliorations<br>MapStruct · contrat d'erreur · validations · enums</h1>
+<p class="sub">À appliquer sur la branche corpo mergée (v3 + fix flush). Quatre chantiers dans ce lot : <strong>contrat d'erreur propre</strong> (exceptions typées + ControllerAdvice scopé corpo, codes API 400/404/409/422, messages métier explicites), <strong>Bean Validation</strong> (@Valid + contraintes sur les DTO), <strong>fin des magic strings</strong> (enums CorpoRequestStatus et UrgencyFlag), et <strong>MapStruct</strong> (web mapper full généré, persistence mapper hybride). Périmètre corpo uniquement : le nominal reste strictement inchangé. Zéro pom modifié, zéro changement BDD.</p>
+<div class="badge-v">LOT AMÉLIORATIONS CORPO · 20/07/2026</div>
+</div></header>
+<div class="wrap">
+
+<div class="toc"><strong>Sommaire</strong>
+<ol>
+<li><a href="#s0">Vue d'ensemble : ce qui change et pourquoi</a></li>
+<li><a href="#s1">Étape A — Domaine : enums + exceptions typées + agrégat</a></li>
+<li><a href="#s2">Étape B — Couche service : DTO validés, web mapper MapStruct, use case allégé</a></li>
+<li><a href="#s3">Étape C — Persistance : mapper hybride MapStruct + adaptateur</a></li>
+<li><a href="#s4">Étape D — REST : @Valid + CorpoDemandExceptionHandler</a></li>
+<li><a href="#s5">Étape E — Tests mis à jour</a></li>
+<li><a href="#s6">Étape F — Build &amp; smoke test du contrat d'erreur</a></li>
+<li><a href="#s7">Checklist &amp; suites</a></li>
+</ol></div>
+
+<h2 id="s0"><span class="num">1</span>Vue d'ensemble : ce qui change et pourquoi</h2>
+<h3>Le nouveau contrat d'erreur</h3>
+<table>
+<tr><th>Cas</th><th>HTTP</th><th>Code API</th><th>Exemple de message</th></tr>
+<tr><td>Corps invalide (@Valid) ou JSON/enum illisible</td><td>400</td><td><code>CORPO_BAD_REQUEST</code></td><td>« Un ou plusieurs champs sont invalides » + détail par champ</td></tr>
+<tr><td>Demande introuvable</td><td>404</td><td><code>CORPO_NOT_FOUND</code></td><td>« La demande corpo &lt;id&gt; est introuvable »</td></tr>
+<tr><td>État incompatible</td><td>409</td><td><code>CORPO_CONFLICT</code></td><td>« La demande CO-2026-000001 est déjà annulée »</td></tr>
+<tr><td>Règle métier violée</td><td>422</td><td><code>CORPO_VALIDATION_ERROR</code></td><td>« Coupure inconnue : BILLET_500 »</td></tr>
+</table>
+<p>Format : <strong>ProblemDetail</strong> (RFC 7807), avec propriétés <code>code</code> (lisible machine, pour le front) et <code>timestamp</code>. Trois mécanismes s'enchaînent : les <strong>exceptions typées</strong> naissent dans le domaine/l'adaptateur avec un message métier ; le <strong>use case ne les attrape plus</strong> (les try/catch + SessionServiceException écrasaient tout en 500 — c'est le prérequis de tout le lot) ; le <strong>CorpoDemandExceptionHandler</strong> les traduit en HTTP.</p>
+<div class="danger"><strong>Point de design important</strong> : le handler est scopé <code>@RestControllerAdvice(assignableTypes = CorpoDemandController.class)</code> — il n'intercepte QUE les endpoints corpo. Le nominal (/cash) garde exactement son comportement actuel (SessionServiceException → 500). La généralisation au nominal viendra avec l'annexe correctifs, pas en douce ici.</div>
+<h3>Les autres chantiers du lot</h3>
+<table>
+<tr><th>Chantier</th><th>Détail</th></tr>
+<tr><td>Enums (fin des magic strings)</td><td><code>CorpoRequestStatus</code> (INITIATED/VALIDATED/CANCELLED) et <code>UrgencyFlag</code> (YES/NO) traversent domaine et DTO. Colonnes varchar inchangées (MapStruct fait enum↔String tout seul, les CHECK en base couvrent déjà ces valeurs) → <strong>zéro changement BDD, contrat JSON identique</strong>. Bonus : « isUrgent »: « PEUT-ETRE » est maintenant rejeté en 400 dès la désérialisation. Alternative Boolean urgent notée en question tech lead</td></tr>
+<tr><td>Bean Validation</td><td><code>@Valid</code> sur create/update + contraintes : type obligatoire, code coupure obligatoire, quantité ≥ 0, montant ≥ 0. La validation structurelle se joue en 400 AVANT le métier ; le métier (coupure inconnue, calcul) reste dans le domaine en 422</td></tr>
+<tr><td>MapStruct — web mapper FULL</td><td>Interface + implémentation générée à la compilation (~90 lignes de boilerplate supprimées). Seules les conversions UUID↔value objects sont écrites (methods default)</td></tr>
+<tr><td>MapStruct — persistence mapper HYBRIDE</td><td>Classe abstraite : le mécanique est généré (entité→domaine avec aplatissement du référentiel, champs d'entête via @MappingTarget) ; la logique reste manuelle (résolution par code contre le référentiel, câblage du parent, statut par défaut). MapStruct ne sait pas générer ça proprement — l'hybride prend le meilleur des deux</td></tr>
+</table>
+<div class="ok"><strong>Zéro pom modifié</strong> : mapstruct, mapstruct-processor et lombok-mapstruct-binding sont déjà configurés dans le pom parent (annotationProcessorPaths) — c'est pour ça que ce lot est possible sans toucher au build. Les implémentations générées atterrissent dans <code>target/generated-sources/annotations</code> après compilation. Si IntelliJ souligne <code>CorpoCashRequestWebMapperImpl</code> en rouge : Settings → Build → Compiler → Annotation Processors → Enable, puis Reload Maven + Build.</div>
+<h3>Récap des fichiers</h3>
+<table>
+<tr><th>Action</th><th>Fichiers</th></tr>
+<tr><td>CRÉER (6)</td><td>2 enums + 3 exceptions (domain-core), CorpoDemandExceptionHandler (application)</td></tr>
+<tr><td>REMPLACER (12)</td><td>CorpoCashRequest, 2 DTO, web mapper, use case impl, persistence mapper, adapter, controller + 5 tests</td></tr>
+<tr><td>Inchangés</td><td>Entités JPA, JpaRepositories, ports, CorpoDenominationRepositoryImpl, SQL, poms, nominal</td></tr>
+</table>
+
+<h2 id="s1"><span class="num">2</span>Étape A — Domaine (fund-management-domain-core)</h2>
+<p>Deux nouveaux paquets sous <code>domain/corpo</code> : les enums rejoignent <code>enums</code>, les exceptions typées naissent dans <code>exceptions</code> (dans domain-core car tous les modules en dépendent — le domaine les lance, l'adaptateur aussi, le handler les traduit).</p>
+<div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\enums\CorpoRequestStatus.java</span></div><pre><code>package com.bmci.q360.domain.corpo.enums;
+
+/**
+ * Cycle de vie d&#x27;une demande Corporate. Persiste en varchar (name()), les
+ * contraintes CHECK en base couvrent deja exactement ces valeurs.
+ */
+public enum CorpoRequestStatus {
+    INITIATED, VALIDATED, CANCELLED
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\enums\UrgencyFlag.java</span></div><pre><code>package com.bmci.q360.domain.corpo.enums;
+
+/**
+ * &quot;Flag urgent (oui/non). Valeur par defaut non&quot; — Jira AER_LM-257.
+ * Enum plutot que String libre : le contrat JSON reste &quot;YES&quot;/&quot;NO&quot; (aucun
+ * impact front ni BDD), mais toute autre valeur est rejetee en 400 des la
+ * deserialisation. Alternative plus radicale : un Boolean urgent — a
+ * trancher avec le tech lead car cela changerait le contrat.
+ */
+public enum UrgencyFlag {
+    YES, NO
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\exceptions\CorpoValidationException.java</span></div><pre><code>package com.bmci.q360.domain.corpo.exceptions;
+
+/**
+ * Regle metier corpo violee (type manquant, coupure inconnue...).
+ * Traduite en HTTP 422 par le CorpoDemandExceptionHandler.
+ */
+public class CorpoValidationException extends RuntimeException {
+    public CorpoValidationException(String message) {
+        super(message);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\exceptions\CorpoNotFoundException.java</span></div><pre><code>package com.bmci.q360.domain.corpo.exceptions;
+
+/**
+ * Demande Corporate introuvable. Traduite en HTTP 404 par le
+ * CorpoDemandExceptionHandler.
+ */
+public class CorpoNotFoundException extends RuntimeException {
+    public CorpoNotFoundException(String message) {
+        super(message);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\exceptions\CorpoConflictException.java</span></div><pre><code>package com.bmci.q360.domain.corpo.exceptions;
+
+/**
+ * Operation incompatible avec l&#x27;etat actuel de la demande (deja annulee...).
+ * Traduite en HTTP 409 par le CorpoDemandExceptionHandler.
+ */
+public class CorpoConflictException extends RuntimeException {
+    public CorpoConflictException(String message) {
+        super(message);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\CorpoCashRequest.java</span><span class="fh-note">Statut et urgent en enums ; CorpoValidationException à la place des IllegalState/IllegalArgument</span></div><pre><code>package com.bmci.q360.domain.corpo;
+
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.enums.UrgencyFlag;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.q360.domain.corpo.valueobjects.CorpoCashRequestId;
+import com.bmci.q360.domain.entity.common.AggregateRoot;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Agregat &quot;demande Corporate&quot; — Jira AER_LM-257.
+ * Statut et flag urgent portes par des enums (plus de magic strings), regles
+ * metier violees signalees par CorpoValidationException (-&gt; 422 cote API).
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class CorpoCashRequest extends AggregateRoot&lt;CorpoCashRequestId&gt; {
+
+    private String uniqueRequestRef;
+    private CorpoRequestType requestType;
+    private CorpoRequestStatus requestStatus = CorpoRequestStatus.INITIATED;
+    private String clientRef;
+    private String city;
+    private String addressComplement;
+    private String accountNumber;
+    private List&lt;CorpoRequestDenomination&gt; denominations = new ArrayList&lt;&gt;();
+    private BigDecimal amount = BigDecimal.ZERO;
+    private UrgencyFlag isUrgent = UrgencyFlag.NO;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    /**
+     * Applique les defauts de la Jira et calcule le montant d&#x27;une
+     * ALIMENTATION depuis la ventilation (faciales fournies par le
+     * referentiel corpo, cle = code coupure).
+     */
+    public void validateAndComputeAmount(Map&lt;String, BigDecimal&gt; faceValuesByCode) {
+        if (requestType == null) {
+            throw new CorpoValidationException(
+                    &quot;Le type de demande (ALIMENTATION/RAMASSAGE) est obligatoire&quot;);
+        }
+        if (requestStatus == null) {
+            requestStatus = CorpoRequestStatus.INITIATED;
+        }
+        if (isUrgent == null) {
+            isUrgent = UrgencyFlag.NO;
+        }
+        if (denominations == null) {
+            denominations = new ArrayList&lt;&gt;();
+        }
+        denominations.forEach(line -&gt; {
+            if (line.getQuantity() == null) {
+                line.setQuantity(0); // defaut Jira
+            }
+        });
+
+        if (requestType == CorpoRequestType.ALIMENTATION) {
+            BigDecimal total = BigDecimal.ZERO;
+            for (CorpoRequestDenomination line : denominations) {
+                BigDecimal faceValue = faceValuesByCode.get(line.getDenominationCode());
+                if (faceValue == null) {
+                    throw new CorpoValidationException(
+                            &quot;Coupure inconnue : &quot; + line.getDenominationCode());
+                }
+                total = total.add(faceValue.multiply(BigDecimal.valueOf(line.getQuantity())));
+            }
+            this.amount = total;
+        } else if (this.amount == null) {
+            this.amount = BigDecimal.ZERO; // defaut Jira, &quot;alimente en direct&quot; sinon
+        }
+    }
+}</code></pre>
+<h2 id="s2"><span class="num">3</span>Étape B — Couche service (fund-management-application-service)</h2>
+<p>DTO typés enums + contraintes Bean Validation (messages FR explicites, remontés champ par champ dans le 400). Le web mapper devient une interface MapStruct : supprime l'ancienne classe, la génération produit <code>CorpoCashRequestWebMapperImpl</code> annotée @Component. Le use case perd ses try/catch (voir encadré section 1) — chemin conforme à ton déplacement dans <code>ports</code>.</p>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\dto\CorpoRequestDenominationDTO.java</span></div><pre><code>package com.bmci.workflow.fund.management.service.domain.corpo.dto;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+/**
+ * Ligne de ventilation. En entree : denominationCode + quantity ;
+ * label / itemType / faceValue sont renseignes par le serveur.
+ */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class CorpoRequestDenominationDTO {
+
+    private UUID id;
+
+    @NotBlank(message = &quot;Le code coupure est obligatoire&quot;)
+    private String denominationCode;
+
+    private String denominationLabel;
+    private String itemType;
+    private BigDecimal faceValue;
+
+    @Min(value = 0, message = &quot;La quantité d&#x27;une coupure ne peut pas être négative&quot;)
+    private Integer quantity;
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\dto\CorpoCashRequestDTO.java</span></div><pre><code>package com.bmci.workflow.fund.management.service.domain.corpo.dto;
+
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.enums.UrgencyFlag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * DTO des demandes Corporate — Jira AER_LM-257.
+ * Types surs (enums) + Bean Validation activee par @Valid cote controller.
+ * uniqueRequestRef, requestStatus, createdAt, updatedAt sont geres serveur.
+ */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class CorpoCashRequestDTO {
+
+    private UUID id;
+
+    private String uniqueRequestRef;
+
+    @NotNull(message = &quot;Le type de demande (ALIMENTATION/RAMASSAGE) est obligatoire&quot;)
+    private CorpoRequestType requestType;
+
+    private CorpoRequestStatus requestStatus;
+
+    private String clientRef;
+
+    private String city;
+
+    private String addressComplement;
+
+    private String accountNumber;
+
+    @Valid
+    private List&lt;CorpoRequestDenominationDTO&gt; denominations;
+
+    @DecimalMin(value = &quot;0.00&quot;, message = &quot;Le montant ne peut pas être négatif&quot;)
+    private BigDecimal amount;
+
+    private UrgencyFlag isUrgent;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\mapper\CorpoCashRequestWebMapper.java</span><span class="fh-note">La classe devient une INTERFACE MapStruct — remplacer tout le contenu du fichier</span></div><pre><code>package com.bmci.workflow.fund.management.service.domain.corpo.mapper;
+
+import com.bmci.q360.domain.corpo.CorpoCashRequest;
+import com.bmci.q360.domain.corpo.CorpoRequestDenomination;
+import com.bmci.q360.domain.corpo.valueobjects.CorpoCashRequestId;
+import com.bmci.q360.domain.corpo.valueobjects.CorpoRequestDenominationId;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoCashRequestDTO;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoRequestDenominationDTO;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+import java.util.UUID;
+
+/**
+ * Mapper web corpo — FULL MapStruct : l&#x27;implementation est generee a la
+ * compilation (target/generated-sources) et exposee comme bean Spring
+ * (componentModel = &quot;spring&quot;). Seule la conversion UUID &lt;-&gt; value objects
+ * est fournie en methodes default.
+ * En entree, les champs serveur (reference, statut, dates) sont ignores.
+ */
+@Mapper(componentModel = &quot;spring&quot;)
+public interface CorpoCashRequestWebMapper {
+
+    @Mapping(target = &quot;uniqueRequestRef&quot;, ignore = true)
+    @Mapping(target = &quot;requestStatus&quot;, ignore = true)
+    @Mapping(target = &quot;createdAt&quot;, ignore = true)
+    @Mapping(target = &quot;updatedAt&quot;, ignore = true)
+    CorpoCashRequest toDomain(CorpoCashRequestDTO dto);
+
+    CorpoCashRequestDTO toResponseDTO(CorpoCashRequest domain);
+
+    @Mapping(target = &quot;denominationLabel&quot;, ignore = true)
+    @Mapping(target = &quot;itemType&quot;, ignore = true)
+    @Mapping(target = &quot;faceValue&quot;, ignore = true)
+    CorpoRequestDenomination toDenominationDomain(CorpoRequestDenominationDTO dto);
+
+    // ----- Conversions UUID &lt;-&gt; value objects -----
+
+    default CorpoCashRequestId toCashRequestId(UUID value) {
+        return value == null ? null : new CorpoCashRequestId(value);
+    }
+
+    default UUID fromCashRequestId(CorpoCashRequestId id) {
+        return id == null ? null : id.getValue();
+    }
+
+    default CorpoRequestDenominationId toDenominationId(UUID value) {
+        return value == null ? null : new CorpoRequestDenominationId(value);
+    }
+
+    default UUID fromDenominationId(CorpoRequestDenominationId id) {
+        return id == null ? null : id.getValue();
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\ports\CorpoDemandUseCaseImpl.java</span><span class="fh-note">Plus de try/catch ni SessionServiceException : les exceptions typées remontent au handler</span></div><pre><code>package com.bmci.workflow.fund.management.service.domain.corpo.ports;
+
+import com.bmci.q360.domain.corpo.CorpoCashRequest;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoCashRequestDTO;
+import com.bmci.workflow.fund.management.service.domain.corpo.mapper.CorpoCashRequestWebMapper;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.input.CorpoDemandUseCase;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.output.CorpoDemandRepository;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.output.CorpoDenominationRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Cas d&#x27;usage des demandes Corporate — Jira AER_LM-257.
+ * Plus de try/catch generique ni de SessionServiceException : les exceptions
+ * metier typees (CorpoValidationException, CorpoNotFoundException,
+ * CorpoConflictException) remontent librement jusqu&#x27;au
+ * CorpoDemandExceptionHandler qui les traduit en 422 / 404 / 409 avec un
+ * message metier explicite. Attraper ici les aurait toutes ecrasees en 500.
+ */
+@RequiredArgsConstructor
+@Service
+public class CorpoDemandUseCaseImpl implements CorpoDemandUseCase {
+
+    private final CorpoDemandRepository corpoDemandRepository;
+    private final CorpoDenominationRepository corpoDenominationRepository;
+    private final CorpoCashRequestWebMapper webMapper;
+
+    @Override
+    @Transactional
+    public CorpoCashRequestDTO create(CorpoCashRequestDTO dto) {
+        CorpoCashRequest request = webMapper.toDomain(dto);
+        Map&lt;String, BigDecimal&gt; faceValues = corpoDenominationRepository.findFaceValuesByCode();
+        request.validateAndComputeAmount(faceValues);
+        return webMapper.toResponseDTO(corpoDemandRepository.save(request));
+    }
+
+    @Override
+    public CorpoCashRequestDTO getById(UUID id) {
+        return webMapper.toResponseDTO(corpoDemandRepository.getById(id));
+    }
+
+    @Override
+    public List&lt;CorpoCashRequestDTO&gt; getAll() {
+        return corpoDemandRepository.findAll().stream()
+                .map(webMapper::toResponseDTO)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public CorpoCashRequestDTO update(UUID id, CorpoCashRequestDTO dto) {
+        CorpoCashRequest request = webMapper.toDomain(dto);
+        Map&lt;String, BigDecimal&gt; faceValues = corpoDenominationRepository.findFaceValuesByCode();
+        request.validateAndComputeAmount(faceValues);
+        return webMapper.toResponseDTO(corpoDemandRepository.update(id, request));
+    }
+
+    @Override
+    @Transactional
+    public CorpoCashRequestDTO cancel(UUID id) {
+        return webMapper.toResponseDTO(corpoDemandRepository.cancelById(id));
+    }
+}</code></pre>
+<h2 id="s3"><span class="num">4</span>Étape C — Persistance (fund-management-data-access)</h2>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\mapper\corpo\CorpoCashRequestPersistenceMapper.java</span><span class="fh-note">Devient une classe ABSTRAITE MapStruct hybride : généré + logique manuelle</span></div><pre><code>package com.bmci.workflow.fund.management.dataaccess.mapper.corpo;
+
+import com.bmci.q360.domain.corpo.CorpoCashRequest;
+import com.bmci.q360.domain.corpo.CorpoRequestDenomination;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.q360.domain.corpo.valueobjects.CorpoCashRequestId;
+import com.bmci.q360.domain.corpo.valueobjects.CorpoRequestDenominationId;
+import com.bmci.workflow.fund.management.dataaccess.entity.corpo.CorpoCashRequestEntity;
+import com.bmci.workflow.fund.management.dataaccess.entity.corpo.CorpoDenominationEntity;
+import com.bmci.workflow.fund.management.dataaccess.entity.corpo.CorpoRequestDenominationEntity;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+/**
+ * Mapper de persistance corpo — HYBRIDE MapStruct : les mappings mecaniques
+ * (entite -&gt; domaine, champs d&#x27;entete) sont generes ; la logique qui ne se
+ * genere pas (resolution du referentiel par code, cablage du parent,
+ * generation de l&#x27;arbre a la creation) reste en methodes manuelles.
+ * Enums &lt;-&gt; varchar geres automatiquement par MapStruct (name()/valueOf).
+ */
+@Mapper(componentModel = &quot;spring&quot;)
+public abstract class CorpoCashRequestPersistenceMapper {
+
+    // ================= GENERE PAR MAPSTRUCT =================
+
+    /** ENTITE -&gt; DOMAINE (lecture) : entierement genere. */
+    @Mapping(target = &quot;createdAt&quot;, source = &quot;creationDate&quot;)
+    @Mapping(target = &quot;updatedAt&quot;, source = &quot;modificationDate&quot;)
+    public abstract CorpoCashRequest toDomain(CorpoCashRequestEntity entity);
+
+    /** Ligne de ventilation : aplatit le referentiel dans le domaine. */
+    @Mapping(target = &quot;denominationCode&quot;, source = &quot;denomination.denominationCode&quot;)
+    @Mapping(target = &quot;denominationLabel&quot;, source = &quot;denomination.denominationLabel&quot;)
+    @Mapping(target = &quot;itemType&quot;, source = &quot;denomination.itemType&quot;)
+    @Mapping(target = &quot;faceValue&quot;, source = &quot;denomination.faceValue&quot;)
+    protected abstract CorpoRequestDenomination toDenominationDomain(
+            CorpoRequestDenominationEntity entity);
+
+    /**
+     * Champs d&#x27;entete modifiables (creation ET update) : genere, en ignorant
+     * ce que le client ne pilote pas (id, ref, statut, dates, ventilation).
+     */
+    @Mapping(target = &quot;id&quot;, ignore = true)
+    @Mapping(target = &quot;creationDate&quot;, ignore = true)
+    @Mapping(target = &quot;modificationDate&quot;, ignore = true)
+    @Mapping(target = &quot;uniqueRequestRef&quot;, ignore = true)
+    @Mapping(target = &quot;requestStatus&quot;, ignore = true)
+    @Mapping(target = &quot;denominations&quot;, ignore = true)
+    public abstract void applyHeaderFields(
+            @MappingTarget CorpoCashRequestEntity entity, CorpoCashRequest domain);
+
+    // ================= LOGIQUE MANUELLE =================
+
+    /** DOMAINE -&gt; ENTITE (creation) : orchestration manuelle. */
+    public CorpoCashRequestEntity toPersistence(
+            CorpoCashRequest domain,
+            Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode) {
+        if (domain == null) return null;
+
+        CorpoCashRequestEntity entity = new CorpoCashRequestEntity();
+        if (domain.getId() != null &amp;&amp; domain.getId().getValue() != null) {
+            entity.setId(domain.getId().getValue());
+        }
+        entity.setUniqueRequestRef(domain.getUniqueRequestRef());
+        applyHeaderFields(entity, domain);
+        entity.setRequestStatus(domain.getRequestStatus() != null
+                ? domain.getRequestStatus().name()
+                : CorpoRequestStatus.INITIATED.name());
+        entity.setDenominations(toDenominationEntities(domain, entity, denominationsByCode));
+        return entity;
+    }
+
+    /** Ventilation : resolution referentiel par code + cablage du parent. */
+    public List&lt;CorpoRequestDenominationEntity&gt; toDenominationEntities(
+            CorpoCashRequest domain,
+            CorpoCashRequestEntity parent,
+            Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode) {
+
+        if (domain.getDenominations() == null) {
+            return new ArrayList&lt;&gt;();
+        }
+        return domain.getDenominations().stream()
+                .map(line -&gt; {
+                    CorpoRequestDenominationEntity lineEntity = new CorpoRequestDenominationEntity();
+                    if (line.getId() != null &amp;&amp; line.getId().getValue() != null) {
+                        lineEntity.setId(line.getId().getValue());
+                    }
+                    lineEntity.setCorpoRequest(parent);
+                    lineEntity.setQuantity(line.getQuantity());
+
+                    CorpoDenominationEntity matched =
+                            denominationsByCode.get(line.getDenominationCode());
+                    if (matched == null) {
+                        throw new CorpoValidationException(
+                                &quot;La coupure &#x27;&quot; + line.getDenominationCode()
+                                        + &quot;&#x27; n&#x27;existe pas dans le référentiel corpo&quot;);
+                    }
+                    lineEntity.setDenomination(matched);
+                    return lineEntity;
+                })
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    // ----- Conversions UUID &lt;-&gt; value objects pour le mapping genere -----
+
+    protected CorpoCashRequestId toCashRequestId(UUID value) {
+        return value == null ? null : new CorpoCashRequestId(value);
+    }
+
+    protected CorpoRequestDenominationId toDenominationId(UUID value) {
+        return value == null ? null : new CorpoRequestDenominationId(value);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\adapter\corpo\CorpoDemandRepositoryImpl.java</span><span class="fh-note">Exceptions typées à messages métier + fix flush intégré + comparaison de statut via enum</span></div><pre><code>package com.bmci.workflow.fund.management.dataaccess.adapter.corpo;
+
+import com.bmci.q360.domain.corpo.CorpoCashRequest;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.exceptions.CorpoConflictException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoNotFoundException;
+import com.bmci.workflow.fund.management.dataaccess.entity.corpo.CorpoCashRequestEntity;
+import com.bmci.workflow.fund.management.dataaccess.entity.corpo.CorpoDenominationEntity;
+import com.bmci.workflow.fund.management.dataaccess.mapper.corpo.CorpoCashRequestPersistenceMapper;
+import com.bmci.workflow.fund.management.dataaccess.repository.corpo.CorpoCashRequestJpaRepository;
+import com.bmci.workflow.fund.management.dataaccess.repository.corpo.CorpoDenominationJpaRepository;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.output.CorpoDemandRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Year;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+/**
+ * Adaptateur de persistance des demandes Corporate — Jira AER_LM-257.
+ * Erreurs d&#x27;etat en exceptions typees a message metier explicite
+ * (introuvable -&gt; 404, deja annulee / modification d&#x27;une annulee -&gt; 409).
+ * Le flush() de update force les DELETE de l&#x27;ancienne ventilation avant les
+ * INSERT de la nouvelle (Hibernate insere avant de supprimer, ce qui violait
+ * la contrainte uq_corpo_rd).
+ */
+@Component
+@RequiredArgsConstructor
+public class CorpoDemandRepositoryImpl implements CorpoDemandRepository {
+
+    private final CorpoCashRequestJpaRepository corpoJpaRepository;
+    private final CorpoDenominationJpaRepository corpoDenominationJpaRepository;
+    private final CorpoCashRequestPersistenceMapper mapper;
+
+    @Override
+    @Transactional
+    public CorpoCashRequest save(CorpoCashRequest request) {
+        if (request.getUniqueRequestRef() == null) {
+            Long next = corpoJpaRepository.nextRequestRef();
+            request.setUniqueRequestRef(
+                    &quot;CO-&quot; + Year.now().getValue() + &quot;-&quot; + String.format(&quot;%06d&quot;, next));
+        }
+        CorpoCashRequestEntity entity = mapper.toPersistence(request, denominationsByCode());
+        return mapper.toDomain(corpoJpaRepository.save(entity));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CorpoCashRequest getById(UUID id) {
+        return mapper.toDomain(findEntityOrThrow(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;CorpoCashRequest&gt; findAll() {
+        return corpoJpaRepository.findAllWithDenominations().stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public CorpoCashRequest update(UUID id, CorpoCashRequest request) {
+        CorpoCashRequestEntity existing = findEntityOrThrow(id);
+        if (isCancelled(existing)) {
+            throw new CorpoConflictException(
+                    &quot;Impossible de modifier la demande &quot; + existing.getUniqueRequestRef()
+                            + &quot; : elle est annulée&quot;);
+        }
+        mapper.applyHeaderFields(existing, request);
+        existing.getDenominations().clear();
+        corpoJpaRepository.flush(); // DELETE avant INSERT (contrainte uq_corpo_rd)
+        existing.getDenominations().addAll(
+                mapper.toDenominationEntities(request, existing, denominationsByCode()));
+        return mapper.toDomain(corpoJpaRepository.save(existing));
+    }
+
+    @Override
+    @Transactional
+    public CorpoCashRequest cancelById(UUID id) {
+        CorpoCashRequestEntity existing = findEntityOrThrow(id);
+        if (isCancelled(existing)) {
+            throw new CorpoConflictException(
+                    &quot;La demande &quot; + existing.getUniqueRequestRef() + &quot; est déjà annulée&quot;);
+        }
+        existing.setRequestStatus(CorpoRequestStatus.CANCELLED.name());
+        return mapper.toDomain(corpoJpaRepository.save(existing));
+    }
+
+    private CorpoCashRequestEntity findEntityOrThrow(UUID id) {
+        return corpoJpaRepository.findByIdWithDenominations(id)
+                .orElseThrow(() -&gt; new CorpoNotFoundException(
+                        &quot;La demande corpo &quot; + id + &quot; est introuvable&quot;));
+    }
+
+    private boolean isCancelled(CorpoCashRequestEntity entity) {
+        return CorpoRequestStatus.CANCELLED.name().equals(entity.getRequestStatus());
+    }
+
+    private Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode() {
+        return corpoDenominationJpaRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        CorpoDenominationEntity::getDenominationCode, d -&gt; d));
+    }
+}</code></pre>
+<h2 id="s4"><span class="num">5</span>Étape D — REST (fund-management-application)</h2>
+<p>Le controller gagne <code>@Valid</code> sur les corps de create/update. Le handler vit dans un nouveau sous-paquet <code>rest/error</code>.</p>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\CorpoDemandController.java</span></div><pre><code>package com.bmci.workflow.fund.management.application.rest;
+
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoCashRequestDTO;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.input.CorpoDemandUseCase;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Endpoints des demandes Corporate — Jira AER_LM-257.
+ * @Valid active la Bean Validation des DTO ; les violations partent en 400
+ * via le CorpoDemandExceptionHandler.
+ */
+@RestController
+@RequestMapping(value = &quot;/corpo/cash&quot;, produces = &quot;application/vnd.api.v1+json&quot;)
+@RequiredArgsConstructor
+public class CorpoDemandController {
+
+    private final CorpoDemandUseCase corpoDemandUseCase;
+
+    @PostMapping
+    public ResponseEntity&lt;CorpoCashRequestDTO&gt; create(@Valid @RequestBody CorpoCashRequestDTO request) {
+        return ResponseEntity.ok(corpoDemandUseCase.create(request));
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;CorpoCashRequestDTO&gt; getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(corpoDemandUseCase.getById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;CorpoCashRequestDTO&gt;&gt; getAll() {
+        return ResponseEntity.ok(corpoDemandUseCase.getAll());
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;CorpoCashRequestDTO&gt; update(
+            @PathVariable UUID id,
+            @Valid @RequestBody CorpoCashRequestDTO request) {
+        return ResponseEntity.ok(corpoDemandUseCase.update(id, request));
+    }
+
+    @PatchMapping(&quot;/{id}/cancel&quot;)
+    public ResponseEntity&lt;CorpoCashRequestDTO&gt; cancel(@PathVariable UUID id) {
+        return ResponseEntity.ok(corpoDemandUseCase.cancel(id));
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\error\CorpoDemandExceptionHandler.java</span></div><pre><code>package com.bmci.workflow.fund.management.application.rest.error;
+
+import com.bmci.q360.domain.corpo.exceptions.CorpoConflictException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoNotFoundException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.workflow.fund.management.application.rest.CorpoDemandController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/**
+ * Contrat d&#x27;erreur des endpoints corpo (RFC 7807 / ProblemDetail).
+ * SCOPE VOLONTAIREMENT LIMITE au CorpoDemandController (assignableTypes) :
+ * le comportement du nominal reste strictement inchange en attendant la
+ * generalisation (annexe correctifs).
+ *
+ * Codes API :
+ *   CORPO_BAD_REQUEST       400  corps invalide / champs invalides
+ *   CORPO_NOT_FOUND         404  demande introuvable
+ *   CORPO_CONFLICT          409  etat incompatible (deja annulee...)
+ *   CORPO_VALIDATION_ERROR  422  regle metier violee (type manquant, coupure inconnue)
+ */
+@RestControllerAdvice(assignableTypes = CorpoDemandController.class)
+public class CorpoDemandExceptionHandler {
+
+    @ExceptionHandler(CorpoNotFoundException.class)
+    public ProblemDetail handleNotFound(CorpoNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, &quot;Demande introuvable&quot;, e.getMessage(), &quot;CORPO_NOT_FOUND&quot;);
+    }
+
+    @ExceptionHandler(CorpoConflictException.class)
+    public ProblemDetail handleConflict(CorpoConflictException e) {
+        return problem(HttpStatus.CONFLICT, &quot;Opération non permise&quot;, e.getMessage(), &quot;CORPO_CONFLICT&quot;);
+    }
+
+    @ExceptionHandler(CorpoValidationException.class)
+    public ProblemDetail handleValidation(CorpoValidationException e) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, &quot;Règle métier violée&quot;,
+                e.getMessage(), &quot;CORPO_VALIDATION_ERROR&quot;);
+    }
+
+    /** Violations Bean Validation (@Valid) : détail champ par champ. */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleInvalidBody(MethodArgumentNotValidException e) {
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, &quot;Requête invalide&quot;,
+                &quot;Un ou plusieurs champs sont invalides&quot;, &quot;CORPO_BAD_REQUEST&quot;);
+        Map&lt;String, String&gt; fieldErrors = new LinkedHashMap&lt;&gt;();
+        e.getBindingResult().getFieldErrors().forEach(fieldError -&gt;
+                fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage()));
+        problem.setProperty(&quot;fieldErrors&quot;, fieldErrors);
+        return problem;
+    }
+
+    /** JSON illisible ou valeur d&#x27;enum inconnue (ex. isUrgent: &quot;PEUT-ETRE&quot;). */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleUnreadable(HttpMessageNotReadableException e) {
+        return problem(HttpStatus.BAD_REQUEST, &quot;Requête invalide&quot;,
+                &quot;Corps de requête illisible ou valeur non autorisée &quot;
+                        + &quot;(vérifier requestType, isUrgent et le format JSON)&quot;,
+                &quot;CORPO_BAD_REQUEST&quot;);
+    }
+
+    private ProblemDetail problem(HttpStatus status, String title, String detail, String code) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setTitle(title);
+        problem.setProperty(&quot;code&quot;, code);
+        problem.setProperty(&quot;timestamp&quot;, Instant.now());
+        return problem;
+    }
+}</code></pre>
+<h2 id="s5"><span class="num">6</span>Étape E — Tests mis à jour</h2>
+<p>Les 5 classes de tests évoluent : exceptions typées et enums attendus, contrat d'erreur testé de bout en bout (400 avec fieldErrors, 404, 409, 422 + code API dans le JSON), flush vérifié dans l'update. Notes : le test du web mapper charge l'implémentation générée via <code>Mappers.getMapper(...)</code> (fonctionne sans Spring) ; celui du persistence mapper instancie <code>new CorpoCashRequestPersistenceMapperImpl()</code> — ces classes n'existent qu'après compilation, donc <kbd>mvn compile</kbd> avant de lancer les tests depuis l'IDE.</p>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\test\java\com\bmci\q360\domain\corpo\CorpoCashRequestTest.java</span></div><pre><code>package com.bmci.q360.domain.corpo;
+
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.enums.UrgencyFlag;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
+/** Tests du modele corpo — module fund-management-domain-core. */
+public class CorpoCashRequestTest {
+
+    private static final Map&lt;String, BigDecimal&gt; FACE_VALUES = Map.of(
+            &quot;BILLET_200&quot;, new BigDecimal(&quot;200.00&quot;),
+            &quot;BILLET_100&quot;, new BigDecimal(&quot;100.00&quot;),
+            &quot;PIECE_5&quot;, new BigDecimal(&quot;5.00&quot;),
+            &quot;CENTIME_50&quot;, new BigDecimal(&quot;0.50&quot;));
+
+    private CorpoRequestDenomination line(String code, Integer quantity) {
+        CorpoRequestDenomination l = new CorpoRequestDenomination();
+        l.setDenominationCode(code);
+        l.setQuantity(quantity);
+        return l;
+    }
+
+    @Test
+    void alimentationShouldComputeAmountFromDenominations() {
+        CorpoCashRequest request = new CorpoCashRequest();
+        request.setRequestType(CorpoRequestType.ALIMENTATION);
+        request.setAmount(new BigDecimal(&quot;999.99&quot;)); // remplace par le calcul
+        request.setDenominations(List.of(
+                line(&quot;BILLET_200&quot;, 10),   // 2000.00
+                line(&quot;BILLET_100&quot;, 4),    //  400.00
+                line(&quot;PIECE_5&quot;, 20)));    //  100.00
+
+        request.validateAndComputeAmount(FACE_VALUES);
+
+        Assertions.assertEquals(0, new BigDecimal(&quot;2500.00&quot;).compareTo(request.getAmount()));
+    }
+
+    @Test
+    void ramassageShouldKeepProvidedAmountAndDefaultToZero() {
+        CorpoCashRequest provided = new CorpoCashRequest();
+        provided.setRequestType(CorpoRequestType.RAMASSAGE);
+        provided.setAmount(new BigDecimal(&quot;15000.00&quot;));
+        provided.validateAndComputeAmount(FACE_VALUES);
+        Assertions.assertEquals(0, new BigDecimal(&quot;15000.00&quot;).compareTo(provided.getAmount()));
+
+        CorpoCashRequest empty = new CorpoCashRequest();
+        empty.setRequestType(CorpoRequestType.RAMASSAGE);
+        empty.setAmount(null);
+        empty.validateAndComputeAmount(FACE_VALUES);
+        Assertions.assertEquals(0, BigDecimal.ZERO.compareTo(empty.getAmount()));
+    }
+
+    @Test
+    void unknownDenominationCodeShouldThrowCorpoValidationException() {
+        CorpoCashRequest request = new CorpoCashRequest();
+        request.setRequestType(CorpoRequestType.ALIMENTATION);
+        request.setDenominations(List.of(line(&quot;BILLET_500&quot;, 1)));
+
+        CorpoValidationException exception = Assertions.assertThrows(
+                CorpoValidationException.class,
+                () -&gt; request.validateAndComputeAmount(FACE_VALUES));
+
+        Assertions.assertTrue(exception.getMessage().contains(&quot;BILLET_500&quot;));
+    }
+
+    @Test
+    void missingTypeShouldThrowCorpoValidationException() {
+        CorpoCashRequest request = new CorpoCashRequest();
+
+        CorpoValidationException exception = Assertions.assertThrows(
+                CorpoValidationException.class,
+                () -&gt; request.validateAndComputeAmount(FACE_VALUES));
+
+        Assertions.assertTrue(exception.getMessage().contains(&quot;type de demande&quot;));
+    }
+
+    @Test
+    void jiraDefaultsShouldBeApplied() {
+        CorpoCashRequest request = new CorpoCashRequest();
+        request.setRequestType(CorpoRequestType.ALIMENTATION);
+        request.setRequestStatus(null);
+        request.setIsUrgent(null);
+        request.setDenominations(new java.util.ArrayList&lt;&gt;(List.of(line(&quot;BILLET_200&quot;, null))));
+
+        request.validateAndComputeAmount(FACE_VALUES);
+
+        Assertions.assertEquals(CorpoRequestStatus.INITIATED, request.getRequestStatus());
+        Assertions.assertEquals(UrgencyFlag.NO, request.getIsUrgent());
+        Assertions.assertEquals(0, request.getDenominations().get(0).getQuantity());
+        Assertions.assertEquals(0, BigDecimal.ZERO.compareTo(request.getAmount()));
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\corpo\mapper\CorpoCashRequestWebMapperTest.java</span></div><pre><code>package com.bmci.workflow.fund.management.service.domain.corpo.mapper;
+
+import com.bmci.q360.domain.corpo.CorpoCashRequest;
+import com.bmci.q360.domain.corpo.CorpoRequestDenomination;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.valueobjects.CorpoCashRequestId;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoCashRequestDTO;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoRequestDenominationDTO;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Tests du mapper web (implementation MapStruct generee) — module
+ * fund-management-application-service. Mappers.getMapper charge directement
+ * la classe generee CorpoCashRequestWebMapperImpl, sans contexte Spring.
+ */
+public class CorpoCashRequestWebMapperTest {
+
+    private CorpoCashRequestWebMapper mapper;
+
+    @BeforeEach
+    void setUp() {
+        mapper = Mappers.getMapper(CorpoCashRequestWebMapper.class);
+    }
+
+    @Test
+    void toDomainShouldMapDenominationsAndIgnoreServerFields() {
+        CorpoCashRequestDTO dto = CorpoCashRequestDTO.builder()
+                .requestType(CorpoRequestType.ALIMENTATION)
+                .clientRef(&quot;CORP-00042&quot;)
+                .city(&quot;Casablanca&quot;)
+                .uniqueRequestRef(&quot;CO-2026-999999&quot;)            // serveur : ignore
+                .requestStatus(CorpoRequestStatus.VALIDATED)   // serveur : ignore
+                .denominations(List.of(
+                        CorpoRequestDenominationDTO.builder()
+                                .denominationCode(&quot;BILLET_200&quot;).quantity(10).build()))
+                .build();
+
+        CorpoCashRequest domain = mapper.toDomain(dto);
+
+        Assertions.assertEquals(CorpoRequestType.ALIMENTATION, domain.getRequestType());
+        Assertions.assertEquals(1, domain.getDenominations().size());
+        Assertions.assertEquals(&quot;BILLET_200&quot;, domain.getDenominations().get(0).getDenominationCode());
+        Assertions.assertNull(domain.getUniqueRequestRef());
+        Assertions.assertEquals(CorpoRequestStatus.INITIATED, domain.getRequestStatus()); // defaut conserve
+    }
+
+    @Test
+    void toResponseDtoShouldExposeStatusAndDenominationDetails() {
+        UUID id = UUID.randomUUID();
+        CorpoCashRequest domain = new CorpoCashRequest();
+        domain.setId(new CorpoCashRequestId(id));
+        domain.setUniqueRequestRef(&quot;CO-2026-000007&quot;);
+        domain.setRequestType(CorpoRequestType.ALIMENTATION);
+        domain.setRequestStatus(CorpoRequestStatus.INITIATED);
+        domain.setAmount(new BigDecimal(&quot;2500.00&quot;));
+
+        CorpoRequestDenomination line = new CorpoRequestDenomination();
+        line.setDenominationCode(&quot;BILLET_200&quot;);
+        line.setDenominationLabel(&quot;Billet de 200 DH&quot;);
+        line.setFaceValue(new BigDecimal(&quot;200.00&quot;));
+        line.setQuantity(10);
+        domain.setDenominations(List.of(line));
+
+        CorpoCashRequestDTO dto = mapper.toResponseDTO(domain);
+
+        Assertions.assertEquals(id, dto.getId());
+        Assertions.assertEquals(CorpoRequestStatus.INITIATED, dto.getRequestStatus());
+        Assertions.assertEquals(&quot;Billet de 200 DH&quot;, dto.getDenominations().get(0).getDenominationLabel());
+        Assertions.assertEquals(0, new BigDecimal(&quot;200.00&quot;)
+                .compareTo(dto.getDenominations().get(0).getFaceValue()));
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-data-access\src\test\java\com\bmci\workflow\fund\management\dataaccess\mapper\corpo\CorpoCashRequestPersistenceMapperTest.java</span></div><pre><code>package com.bmci.workflow.fund.management.dataaccess.mapper.corpo;
+
+import com.bmci.q360.domain.corpo.CorpoCashRequest;
+import com.bmci.q360.domain.corpo.CorpoRequestDenomination;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.workflow.fund.management.dataaccess.entity.corpo.CorpoCashRequestEntity;
+import com.bmci.workflow.fund.management.dataaccess.entity.corpo.CorpoDenominationEntity;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Tests du mapper hybride (implementation MapStruct generee + logique
+ * manuelle) — module fund-management-data-access. On instancie directement
+ * la classe generee CorpoCashRequestPersistenceMapperImpl.
+ */
+public class CorpoCashRequestPersistenceMapperTest {
+
+    private CorpoCashRequestPersistenceMapper mapper;
+    private Map&lt;String, CorpoDenominationEntity&gt; referential;
+
+    @BeforeEach
+    void setUp() {
+        mapper = new CorpoCashRequestPersistenceMapperImpl();
+        CorpoDenominationEntity billet200 = new CorpoDenominationEntity();
+        billet200.setId(UUID.randomUUID());
+        billet200.setDenominationCode(&quot;BILLET_200&quot;);
+        billet200.setItemType(&quot;BANKNOTE&quot;);
+        billet200.setFaceValue(new BigDecimal(&quot;200.00&quot;));
+        billet200.setDenominationLabel(&quot;Billet de 200 DH&quot;);
+        referential = Map.of(&quot;BILLET_200&quot;, billet200);
+    }
+
+    private CorpoCashRequest sampleDomain(String code) {
+        CorpoCashRequest domain = new CorpoCashRequest();
+        domain.setRequestType(CorpoRequestType.ALIMENTATION);
+        domain.setClientRef(&quot;CORP-00042&quot;);
+        domain.setAmount(new BigDecimal(&quot;2000.00&quot;));
+        CorpoRequestDenomination line = new CorpoRequestDenomination();
+        line.setDenominationCode(code);
+        line.setQuantity(10);
+        domain.setDenominations(List.of(line));
+        return domain;
+    }
+
+    @Test
+    void toPersistenceShouldResolveDenominationsAndDefaultStatus() {
+        CorpoCashRequestEntity entity = mapper.toPersistence(sampleDomain(&quot;BILLET_200&quot;), referential);
+
+        Assertions.assertEquals(&quot;ALIMENTATION&quot;, entity.getRequestType());
+        Assertions.assertEquals(&quot;INITIATED&quot;, entity.getRequestStatus());
+        Assertions.assertEquals(&quot;BILLET_200&quot;,
+                entity.getDenominations().get(0).getDenomination().getDenominationCode());
+        Assertions.assertSame(entity, entity.getDenominations().get(0).getCorpoRequest());
+    }
+
+    @Test
+    void unknownCodeShouldThrowCorpoValidationException() {
+        CorpoValidationException exception = Assertions.assertThrows(
+                CorpoValidationException.class,
+                () -&gt; mapper.toPersistence(sampleDomain(&quot;BILLET_500&quot;), referential));
+
+        Assertions.assertTrue(exception.getMessage().contains(&quot;BILLET_500&quot;));
+    }
+
+    @Test
+    void toDomainShouldMapEnumsDatesAndReferentialDetails() {
+        CorpoCashRequestEntity entity = mapper.toPersistence(sampleDomain(&quot;BILLET_200&quot;), referential);
+        entity.setId(UUID.randomUUID());
+        entity.setUniqueRequestRef(&quot;CO-2026-000001&quot;);
+        entity.setRequestStatus(&quot;CANCELLED&quot;);
+        entity.setIsUrgent(&quot;NO&quot;);
+        entity.setCreationDate(java.time.LocalDateTime.of(2026, 7, 20, 9, 0));
+        entity.setModificationDate(java.time.LocalDateTime.of(2026, 7, 20, 11, 30));
+
+        CorpoCashRequest domain = mapper.toDomain(entity);
+
+        Assertions.assertEquals(CorpoRequestStatus.CANCELLED, domain.getRequestStatus()); // varchar -&gt; enum
+        Assertions.assertEquals(&quot;Billet de 200 DH&quot;,
+                domain.getDenominations().get(0).getDenominationLabel());
+        Assertions.assertEquals(entity.getCreationDate(), domain.getCreatedAt());
+        Assertions.assertEquals(entity.getModificationDate(), domain.getUpdatedAt());
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-container\src\test\java\com\bmci\workflow\fund\management\CorpoDemandControllerTest.java</span></div><pre><code>package com.bmci.workflow.fund.management;
+
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.exceptions.CorpoConflictException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoNotFoundException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.workflow.fund.management.application.rest.CorpoDemandController;
+import com.bmci.workflow.fund.management.application.rest.error.CorpoDemandExceptionHandler;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoCashRequestDTO;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoRequestDenominationDTO;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.input.CorpoDemandUseCase;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Tests du controller corpo + contrat d&#x27;erreur — module
+ * fund-management-container. Le handler est branche sur le MockMvc
+ * standalone (setControllerAdvice) pour tester les statuts 400/404/409/422.
+ */
+@ExtendWith(MockitoExtension.class)
+public class CorpoDemandControllerTest {
+
+    private MockMvc mockMvc;
+
+    @Mock
+    private CorpoDemandUseCase corpoDemandUseCase;
+
+    private ObjectMapper objectMapper;
+
+    @InjectMocks
+    private CorpoDemandController corpoDemandController;
+
+    @BeforeEach
+    void setUp() {
+        objectMapper = new ObjectMapper();
+        mockMvc = MockMvcBuilders.standaloneSetup(corpoDemandController)
+                .setControllerAdvice(new CorpoDemandExceptionHandler())
+                .build();
+    }
+
+    private CorpoCashRequestDTO sampleRequest() {
+        return CorpoCashRequestDTO.builder()
+                .requestType(CorpoRequestType.ALIMENTATION)
+                .clientRef(&quot;CORP-00042&quot;)
+                .denominations(List.of(CorpoRequestDenominationDTO.builder()
+                        .denominationCode(&quot;BILLET_200&quot;).quantity(10).build()))
+                .build();
+    }
+
+    @Test
+    void shouldCreateCorpoDemand() throws Exception {
+        Mockito.when(corpoDemandUseCase.create(Mockito.any(CorpoCashRequestDTO.class)))
+                .thenReturn(new CorpoCashRequestDTO());
+
+        mockMvc.perform(MockMvcRequestBuilders.post(&quot;/corpo/cash&quot;)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(corpoDemandUseCase).create(Mockito.any(CorpoCashRequestDTO.class));
+    }
+
+    @Test
+    void missingRequestTypeShouldReturn400WithFieldError() throws Exception {
+        CorpoCashRequestDTO invalid = CorpoCashRequestDTO.builder()
+                .clientRef(&quot;CORP-00042&quot;) // pas de requestType
+                .build();
+
+        mockMvc.perform(MockMvcRequestBuilders.post(&quot;/corpo/cash&quot;)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath(&quot;$.code&quot;).value(&quot;CORPO_BAD_REQUEST&quot;))
+                .andExpect(MockMvcResultMatchers.jsonPath(&quot;$.fieldErrors.requestType&quot;).exists());
+
+        Mockito.verify(corpoDemandUseCase, Mockito.never()).create(Mockito.any());
+    }
+
+    @Test
+    void negativeQuantityShouldReturn400() throws Exception {
+        CorpoCashRequestDTO invalid = CorpoCashRequestDTO.builder()
+                .requestType(CorpoRequestType.ALIMENTATION)
+                .denominations(List.of(CorpoRequestDenominationDTO.builder()
+                        .denominationCode(&quot;BILLET_200&quot;).quantity(-3).build()))
+                .build();
+
+        mockMvc.perform(MockMvcRequestBuilders.post(&quot;/corpo/cash&quot;)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath(&quot;$.code&quot;).value(&quot;CORPO_BAD_REQUEST&quot;));
+    }
+
+    @Test
+    void unknownIdShouldReturn404() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        Mockito.when(corpoDemandUseCase.getById(requestId))
+                .thenThrow(new CorpoNotFoundException(&quot;La demande corpo &quot; + requestId + &quot; est introuvable&quot;));
+
+        mockMvc.perform(MockMvcRequestBuilders.get(&quot;/corpo/cash/&quot; + requestId))
+                .andExpect(MockMvcResultMatchers.status().isNotFound())
+                .andExpect(MockMvcResultMatchers.jsonPath(&quot;$.code&quot;).value(&quot;CORPO_NOT_FOUND&quot;));
+    }
+
+    @Test
+    void cancelAlreadyCancelledShouldReturn409() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        Mockito.when(corpoDemandUseCase.cancel(requestId))
+                .thenThrow(new CorpoConflictException(&quot;La demande CO-2026-000001 est déjà annulée&quot;));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(&quot;/corpo/cash/&quot; + requestId + &quot;/cancel&quot;))
+                .andExpect(MockMvcResultMatchers.status().isConflict())
+                .andExpect(MockMvcResultMatchers.jsonPath(&quot;$.code&quot;).value(&quot;CORPO_CONFLICT&quot;));
+    }
+
+    @Test
+    void unknownDenominationShouldReturn422() throws Exception {
+        Mockito.when(corpoDemandUseCase.create(Mockito.any(CorpoCashRequestDTO.class)))
+                .thenThrow(new CorpoValidationException(&quot;Coupure inconnue : BILLET_500&quot;));
+
+        mockMvc.perform(MockMvcRequestBuilders.post(&quot;/corpo/cash&quot;)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(MockMvcResultMatchers.status().isUnprocessableEntity())
+                .andExpect(MockMvcResultMatchers.jsonPath(&quot;$.code&quot;).value(&quot;CORPO_VALIDATION_ERROR&quot;));
+    }
+
+    @Test
+    void shouldUpdateCorpoDemand() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        Mockito.when(corpoDemandUseCase.update(Mockito.eq(requestId), Mockito.any(CorpoCashRequestDTO.class)))
+                .thenReturn(new CorpoCashRequestDTO());
+
+        mockMvc.perform(MockMvcRequestBuilders.put(&quot;/corpo/cash/&quot; + requestId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    void shouldCancelCorpoDemand() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        Mockito.when(corpoDemandUseCase.cancel(requestId)).thenReturn(new CorpoCashRequestDTO());
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(&quot;/corpo/cash/&quot; + requestId + &quot;/cancel&quot;))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-container\src\test\java\com\bmci\workflow\fund\management\dataaccess\CorpoDemandRepositoryTest.java</span></div><pre><code>package com.bmci.workflow.fund.management.dataaccess;
+
+import com.bmci.q360.domain.corpo.CorpoCashRequest;
+import com.bmci.q360.domain.corpo.exceptions.CorpoConflictException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoNotFoundException;
+import com.bmci.workflow.fund.management.dataaccess.adapter.corpo.CorpoDemandRepositoryImpl;
+import com.bmci.workflow.fund.management.dataaccess.entity.corpo.CorpoCashRequestEntity;
+import com.bmci.workflow.fund.management.dataaccess.mapper.corpo.CorpoCashRequestPersistenceMapper;
+import com.bmci.workflow.fund.management.dataaccess.repository.corpo.CorpoCashRequestJpaRepository;
+import com.bmci.workflow.fund.management.dataaccess.repository.corpo.CorpoDenominationJpaRepository;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.Year;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/** Tests de l&#x27;adaptateur corpo — module fund-management-container. */
+@ExtendWith(MockitoExtension.class)
+public class CorpoDemandRepositoryTest {
+
+    @Mock
+    private CorpoCashRequestJpaRepository corpoJpaRepository;
+
+    @Mock
+    private CorpoDenominationJpaRepository corpoDenominationJpaRepository;
+
+    @Mock
+    private CorpoCashRequestPersistenceMapper mapper;
+
+    @InjectMocks
+    private CorpoDemandRepositoryImpl corpoDemandRepository;
+
+    private UUID requestId;
+
+    @BeforeEach
+    void setUp() {
+        requestId = UUID.randomUUID();
+    }
+
+    @Test
+    void saveShouldGenerateReadableReferenceWhenAbsent() {
+        CorpoCashRequest domain = new CorpoCashRequest();
+        CorpoCashRequestEntity entity = new CorpoCashRequestEntity();
+
+        Mockito.when(corpoJpaRepository.nextRequestRef()).thenReturn(42L);
+        Mockito.when(corpoDenominationJpaRepository.findAll()).thenReturn(List.of());
+        Mockito.when(mapper.toPersistence(Mockito.eq(domain), Mockito.anyMap())).thenReturn(entity);
+        Mockito.when(corpoJpaRepository.save(entity)).thenReturn(entity);
+        Mockito.when(mapper.toDomain(entity)).thenReturn(domain);
+
+        corpoDemandRepository.save(domain);
+
+        Assertions.assertEquals(
+                &quot;CO-&quot; + Year.now().getValue() + &quot;-000042&quot;, domain.getUniqueRequestRef());
+    }
+
+    @Test
+    void getByIdShouldThrowCorpoNotFound() {
+        Mockito.when(corpoJpaRepository.findByIdWithDenominations(requestId))
+                .thenReturn(Optional.empty());
+
+        CorpoNotFoundException exception = Assertions.assertThrows(
+                CorpoNotFoundException.class,
+                () -&gt; corpoDemandRepository.getById(requestId));
+
+        Assertions.assertTrue(exception.getMessage().contains(&quot;introuvable&quot;));
+    }
+
+    @Test
+    void updateShouldFlushDeletesBeforeInsertingNewDenominations() {
+        CorpoCashRequestEntity entity = new CorpoCashRequestEntity();
+        entity.setId(requestId);
+        entity.setRequestStatus(&quot;INITIATED&quot;);
+        CorpoCashRequest incoming = new CorpoCashRequest();
+        CorpoCashRequest expected = new CorpoCashRequest();
+
+        Mockito.when(corpoJpaRepository.findByIdWithDenominations(requestId))
+                .thenReturn(Optional.of(entity));
+        Mockito.when(corpoDenominationJpaRepository.findAll()).thenReturn(List.of());
+        Mockito.when(mapper.toDenominationEntities(Mockito.eq(incoming), Mockito.eq(entity), Mockito.anyMap()))
+                .thenReturn(new java.util.ArrayList&lt;&gt;());
+        Mockito.when(corpoJpaRepository.save(entity)).thenReturn(entity);
+        Mockito.when(mapper.toDomain(entity)).thenReturn(expected);
+
+        CorpoCashRequest result = corpoDemandRepository.update(requestId, incoming);
+
+        Mockito.verify(mapper).applyHeaderFields(entity, incoming);
+        Mockito.verify(corpoJpaRepository).flush(); // DELETE avant INSERT (uq_corpo_rd)
+        Assertions.assertSame(expected, result);
+    }
+
+    @Test
+    void updateCancelledShouldThrowCorpoConflict() {
+        CorpoCashRequestEntity entity = new CorpoCashRequestEntity();
+        entity.setUniqueRequestRef(&quot;CO-2026-000001&quot;);
+        entity.setRequestStatus(&quot;CANCELLED&quot;);
+        Mockito.when(corpoJpaRepository.findByIdWithDenominations(requestId))
+                .thenReturn(Optional.of(entity));
+
+        CorpoConflictException exception = Assertions.assertThrows(
+                CorpoConflictException.class,
+                () -&gt; corpoDemandRepository.update(requestId, new CorpoCashRequest()));
+
+        Assertions.assertTrue(exception.getMessage().contains(&quot;annulée&quot;));
+        Mockito.verify(corpoJpaRepository, Mockito.never()).save(Mockito.any());
+    }
+
+    @Test
+    void cancelShouldSetStatusAndRejectDoubleCancel() {
+        CorpoCashRequestEntity entity = new CorpoCashRequestEntity();
+        entity.setId(requestId);
+        entity.setUniqueRequestRef(&quot;CO-2026-000001&quot;);
+        entity.setRequestStatus(&quot;INITIATED&quot;);
+
+        Mockito.when(corpoJpaRepository.findByIdWithDenominations(requestId))
+                .thenReturn(Optional.of(entity));
+        Mockito.when(corpoJpaRepository.save(entity)).thenReturn(entity);
+        Mockito.when(mapper.toDomain(entity)).thenReturn(new CorpoCashRequest());
+
+        corpoDemandRepository.cancelById(requestId);
+        Assertions.assertEquals(&quot;CANCELLED&quot;, entity.getRequestStatus());
+
+        CorpoConflictException exception = Assertions.assertThrows(
+                CorpoConflictException.class,
+                () -&gt; corpoDemandRepository.cancelById(requestId));
+        Assertions.assertTrue(exception.getMessage().contains(&quot;déjà annulée&quot;));
+    }
+}</code></pre>
+<h2 id="s6"><span class="num">7</span>Étape F — Build &amp; smoke test du contrat d'erreur</h2>
+<ol>
+<li><kbd>mvn clean install -DskipTests</kbd> → vérifie dans les logs la génération MapStruct (les Impl dans target/generated-sources).</li>
+<li><kbd>mvn test</kbd> → tout vert.</li>
+<li>Relancer l'app — aucun script BDD à jouer (colonnes inchangées).</li>
+</ol>
+<h3>Smoke test Postman (les nominaux d'abord, puis chaque erreur)</h3>
+<table>
+<tr><th>Appel</th><th>Attendu</th></tr>
+<tr><td>POST alimentation valide (payload habituel)</td><td>200, montant 2500.00, statut INITIATED — comportement inchangé</td></tr>
+<tr><td>POST sans <code>requestType</code></td><td><strong>400</strong>, <code>code=CORPO_BAD_REQUEST</code>, <code>fieldErrors.requestType</code> = « Le type de demande (ALIMENTATION/RAMASSAGE) est obligatoire »</td></tr>
+<tr><td>POST quantité -3</td><td><strong>400</strong> avec fieldErrors sur la quantité</td></tr>
+<tr><td>POST <code>"isUrgent": "PEUT-ETRE"</code></td><td><strong>400</strong> (valeur d'enum inconnue, rejetée à la désérialisation)</td></tr>
+<tr><td>POST coupure <code>BILLET_500</code></td><td><strong>422</strong>, <code>code=CORPO_VALIDATION_ERROR</code>, « Coupure inconnue : BILLET_500 »</td></tr>
+<tr><td>GET id inconnu</td><td><strong>404</strong>, <code>code=CORPO_NOT_FOUND</code></td></tr>
+<tr><td>PATCH cancel deux fois</td><td>200 puis <strong>409</strong>, « La demande CO-… est déjà annulée »</td></tr>
+<tr><td>PUT sur demande annulée</td><td><strong>409</strong>, « Impossible de modifier la demande CO-… : elle est annulée »</td></tr>
+<tr><td>GET <code>/cash</code> (nominal) et POST nominal</td><td><strong>Comportement strictement inchangé</strong> (advice scopé corpo)</td></tr>
+</table>
+
+<h2 id="s7"><span class="num">8</span>Checklist &amp; suites</h2>
+<table>
+<tr><th>✔</th><th>Point de contrôle</th></tr>
+<tr><td>☐</td><td>Build vert, Impl MapStruct générées, tests verts</td></tr>
+<tr><td>☐</td><td>Smoke test : les 4 codes d'erreur observés (400/404/409/422) + nominal inchangé</td></tr>
+<tr><td>☐</td><td>SessionServiceException n'apparaît plus dans le paquet corpo (elle reste pour le nominal)</td></tr>
+<tr><td>☐</td><td>Commit : <code>[EVO][AER_LM-257] Corpo : contrat d'erreur, Bean Validation, enums, MapStruct</code></td></tr>
+</table>
+<h3>Questions / suites</h3>
+<ol>
+<li><strong>isUrgent</strong> : enum YES/NO conservé (contrat et BDD intacts). Passage à un <code>Boolean urgent</code> plus idiomatique ? → impact contrat front, à trancher avec le tech lead.</li>
+<li><strong>Généralisation au nominal</strong> : ce lot est le prototype exact de ce que l'annexe correctifs appliquera au /cash (advice global, exceptions typées, validation). Le jour venu, ces classes corpo deviendront les premières candidates du module common.</li>
+<li><strong>Restent en backlog</strong> (points 6-7 de la liste) : pagination sur GET /corpo/cash, tests d'intégration JPA (Testcontainers) pour couvrir le flush en conditions réelles.</li>
+</ol>
+</div></body></html>
