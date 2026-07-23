@@ -1,0 +1,2763 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corpo aligné 100% retail — modèle miroir + ajouts Jira (AER_LM-257)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.65;font-size:15.5px;}
+.wrap{max-width:1060px;margin:0 auto;padding:0 28px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:52px 28px 44px;margin-bottom:40px;}
+header.hero .inner{max-width:1060px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:12px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:31px;line-height:1.15;}
+.hero p.sub{margin-top:14px;max-width:840px;color:#DCEBE3;font-size:15.5px;}
+.badge-v{display:inline-block;margin-top:16px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:24px;color:var(--vertF);margin:56px 0 6px;padding-top:18px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:19px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:17.5px;color:var(--vert);margin:32px 0 8px;}
+p{margin:10px 0;}
+ul,ol{margin:10px 0 10px 26px;}
+li{margin:5px 0;}
+strong{color:var(--vertF);}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:13px 17px;margin:16px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:13px 17px;margin:16px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.danger{background:#FCEFEC;border-left:4px solid #B3402A;padding:13px 17px;margin:16px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.filehead{display:flex;align-items:center;gap:12px;background:var(--vertF);color:#fff;padding:9px 16px;border-radius:8px 8px 0 0;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;flex-wrap:wrap;}
+div.filehead:not(:has(+ pre)){border-radius:8px;}
+.fh-act{font-weight:600;padding:2px 10px;border-radius:3px;letter-spacing:1px;font-size:11px;}
+.act-rep{background:var(--or);color:#fff;}
+.act-new{background:#178A5E;color:#fff;}
+.act-del{background:#B3402A;color:#fff;}
+.fh-path{word-break:break-all;color:#CBE3D8;}
+.fh-note{color:#F2D9A0;font-size:11.5px;width:100%;}
+button.copybtn{margin-left:auto;background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 12px;border-radius:4px;cursor:pointer;letter-spacing:.5px;}
+button.copybtn:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:20px 22px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:13px;line-height:1.55;margin-bottom:8px;}
+code{font-family:'IBM Plex Mono',monospace;}
+p code,li code,td code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-size:13px;}
+table{width:100%;border-collapse:collapse;margin:18px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:14px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:10px 14px;font-family:'Archivo',sans-serif;font-size:13px;letter-spacing:.5px;}
+td{padding:9px 14px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.toc{background:var(--carte);border:1px solid var(--ligne);border-radius:10px;padding:22px 28px;margin:6px 0 10px;}
+.toc a{color:var(--vert);text-decoration:none;font-weight:600;}
+.toc ol{margin-left:20px;}
+.tree{background:#10231C;color:#CBE3D8;padding:20px 22px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.5;overflow-x:auto;white-space:pre;margin:14px 0;}
+.tree .hl{color:#7FDCAB;font-weight:600;}
+kbd{background:var(--vertF);color:#fff;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · AER_LM-257 · Alignement 100% retail</div>
+<h1>Le corpo aligné à 100% sur le modèle retail<br>+ les ajouts spécifiques de la Jira</h1>
+<p class="sub">Correction complète de l'implémentation corpo : <strong>même modèle de données que retail à toutes les couches</strong> — agrégat → opérations → détails par devise → coupures, mêmes value objects, DTOs arborescents, même mécanique de persistance (référentiels chargés, arbre construit, cascade) — et <strong>uniquement</strong> les ajouts de la Jira par-dessus (réf demande, réf client, ville, complément d'adresse, n° de compte, code coupure). <code>establishment</code> et <code>uidUser</code> suivent le pattern de ton collègue : String dans le domaine, résolus en FK et sauvegardés par le data-access. Pas-à-pas depuis ton état actuel exact.</p>
+<div class="badge-v">IMPLÉMENTATION ALIGNÉE · REMPLACE LES VERSIONS PRÉCÉDENTES · 21/07/2026</div>
+</div></header>
+<div class="wrap">
+
+<div class="toc"><strong>Sommaire</strong>
+<ol>
+<li><a href="#s1">Le principe : miroir retail + ajouts Jira (et le breaking change API)</a></li>
+<li><a href="#arbo">L'arborescence cible complète, module par module</a></li>
+<li><a href="#s2">Étape 0 — Finir les déplacements retail restants (F6)</a></li>
+<li><a href="#s3">Étape 1 — domain-core : le domaine corpo miroir</a></li>
+<li><a href="#s4">Étape 2 — application-service : DTOs arborescents, web mapper, ports, use case</a></li>
+<li><a href="#s5">Étape 3 — data-access : entités, repositories, mapper, adapters</a></li>
+<li><a href="#s6">Étape 4 — application : controller &amp; handler</a></li>
+<li><a href="#s7">Étape 5 — Flyway V2 (si pas encore fait)</a></li>
+<li><a href="#s8">Étape 6 — Tests, build &amp; smoke test</a></li>
+<li><a href="#s9">Checklist finale &amp; points à signaler</a></li>
+</ol></div>
+
+<h2 id="s1"><span class="num">1</span>Le principe : miroir retail + ajouts Jira</h2>
+<p>Le modèle corpo reprend <strong>exactement</strong> la structure retail, couche par couche :</p>
+<div class="tree">RETAIL (existant)                          CORPO (miroir + ajouts Jira)
+CashRequest                                CorpoCashRequest
+ ├─ branchCode, requestStatus              ├─ branchCode, requestStatus
+ ├─ establishment (String→FK), uidUser     ├─ establishment (String→FK), uidUser
+ │                                         ├─ <span class="hl">+ uniqueRequestRef, clientRef, city,</span>
+ │                                         │  <span class="hl">addressComplement, accountNumber (Jira)</span>
+ └─ operations: List&lt;CashOperation&gt;        └─ operations: List&lt;CorpoCashOperation&gt;
+     ├─ operationSens (SUPPLY/COLLECTION)      ├─ operationSens (<span class="hl">ALIMENTATION/RAMASSAGE</span>)
+     ├─ isUrgent, totalAmount, statut…         ├─ isUrgent, totalAmount, statut…
+     └─ currencyDetails                        └─ currencyDetails
+         ├─ currency (isoCode)                     ├─ currency (isoCode)
+         ├─ totalAmountByCurrency                  ├─ totalAmountByCurrency
+         └─ operationDenominations                 └─ operationDenominations
+             ├─ denomination (par label)               ├─ denomination (<span class="hl">par CODE stable</span>)
+             └─ quantity                               └─ quantity</div>
+<table>
+<tr><th>Donnée Jira</th><th>Où elle se loge dans le modèle miroir</th></tr>
+<tr><td>Type demande (Alimentation/Ramassage)</td><td><code>operationSens</code> de l'opération — l'équivalent exact du SUPPLY/COLLECTION retail</td></tr>
+<tr><td>Montant de la demande</td><td><code>totalAmount</code> de l'opération (retail ne porte pas de montant sur l'entête non plus) — calculé et contrôlé serveur</td></tr>
+<tr><td>Urgence, statuts, dates, quantités par coupure</td><td>Champs retail existants, à l'identique</td></tr>
+<tr><td>Réf demande, réf client, ville, complément adresse, n° compte</td><td><strong>Colonnes additionnelles</strong> sur l'entête corpo (n'existent pas chez retail)</td></tr>
+<tr><td>Code coupure (BILLET_200…)</td><td><strong>Colonne additionnelle</strong> sur le référentiel coupures corpo — résolution fiable là où retail résout par label</td></tr>
+</table>
+<div class="ok"><strong>Décision actée (ta consigne) — factorisation des VOs et DTOs communs</strong> : les 6 value objects d'identité (CashRequestId, CashOperationId, CurrencyId, DenominationId, OperationCurrencyDetailId, OperationDenominationId) et les DTOs communs (ResponseDTO, ResponsibleDTO, CurrencyDTO) vivent en <strong>un seul exemplaire dans le module common</strong>, partagés par retail et corpo. <strong>DenominationDTO est unifié lui aussi, au format corpo</strong> (ta décision) : denominationCode + itemType + faceValue + denominationLabel. Plus aucune classe Corpo*Id, CorpoCurrencyDTO ni CorpoDenominationDTO n'existe. Conséquence pour retail, dite ouvertement : ses réponses JSON exposent désormais <code>denominationCode</code> et <code>faceValue</code> à <code>null</code> tant que le modèle retail ne les alimente pas — changement <strong>additif</strong>, non cassant ; le <code>@NotBlank</code> sur le code ne s'applique qu'au corpo (seul à valider ses payloads avec <code>@Valid</code>).</div>
+<div class="danger"><strong>Breaking change API assumé</strong> : le contrat corpo devient <strong>arborescent</strong> (operations → currencyDetails → operationDenominations), comme retail. C'est la conséquence directe de l'alignement 100% — l'ancien payload plat ne passera plus. À signaler au front avec l'exemple de payload de l'étape 6. Ce qui est conservé des lots précédents : enums, exceptions typées + handler (provisoire en attendant le pattern BFF), MapStruct sur le web mapper, flush() sur l'update, Flyway.</div>
+
+<h2 id="arbo"><span class="num">★</span>L'arborescence cible complète, module par module</h2>
+<p>La carte de destination finale — chaque classe à sa place exacte une fois toutes les étapes exécutées. Légende : <span style="color:#178A5E;font-weight:700">[C]</span> module common (partagé) · [R] retail (déplacé par F6) · <span style="color:#B8892C;font-weight:700">[N]</span> corpo (nouveau) · [T] transverse (inchangé).</p>
+
+<h3>fund-management-common — tout ce qui est partagé, et rien d'autre</h3>
+<div class="tree">fund-management-common/src/main/java
+├─ com.bmci.q360.domain
+│  ├─ entity.common
+│  │  ├─ <span class="hl">[C] BaseEntity</span>            (socle domaine : id générique + equals/hashCode)
+│  │  └─ <span class="hl">[C] AggregateRoot</span>
+│  └─ valueobjects
+│     ├─ <span class="hl">[C] BaseId</span>
+│     ├─ <span class="hl">[C] CashRequestId</span>          ┐
+│     ├─ <span class="hl">[C] CashOperationId</span>        │ les 6 VOs d'identité partagés
+│     ├─ <span class="hl">[C] CurrencyId</span>             │ retail + corpo (noms métier,
+│     ├─ <span class="hl">[C] DenominationId</span>         │ sans préfixe de modèle)
+│     ├─ <span class="hl">[C] OperationCurrencyDetailId</span> │
+│     └─ <span class="hl">[C] OperationDenominationId</span>┘
+└─ com.bmci.workflow.fund.management
+   ├─ common.dto
+   │  ├─ <span class="hl">[C] ResponseDTO</span>            (enveloppe générique)
+   │  ├─ <span class="hl">[C] ResponsibleDTO</span>         (référentiel transverse)
+   │  ├─ <span class="hl">[C] CurrencyDTO</span>            (contrat devise, identique aux 2 modèles)
+   │  └─ <span class="hl">[C] DenominationDTO</span>         (format corpo adopté par les 2 modèles)
+   └─ dataaccess.common.entity
+      └─ <span class="hl">[C] BaseEntity</span>             (socle JPA : @Id UUID + timestamps — racine common, même logique)</div>
+
+<h3>fund-management-domain / fund-management-domain-core</h3>
+<div class="tree">com.bmci.q360.domain
+├─ retail                                    ← le nominal, déplacé (F6), AUCUN contenu modifié
+│  ├─ entity
+│  │  ├─ [R] CashRequest · CashOperation · Currency · Denomination
+│  │  ├─ [R] OperationCurrencyDetail · OperationDenomination
+│  │  ├─ enums:    [R] OperationType · RequestType
+│  │  ├─ constant: [R] IdentificationMethod · QlickeerEventName · RegistrationReason
+│  │  └─ step:     [R] Status
+│  └─ valueobjects
+│     └─ resources: [R] BaseResource · Country · Currency · DocumentType · Gender ·
+│                       IdentityDocumentType · OperationType · Typology
+│        <em>(les 6 VOs d'identité sont REMONTÉS dans common — plus rien d'autre ici)</em>
+└─ corpo                                     ← le miroir, entièrement nouveau
+   ├─ entity
+   │  ├─ <span class="hl">[N] CorpoCashRequest</span>       (extends AggregateRoot&lt;CashRequestId&gt; du common)
+   │  ├─ <span class="hl">[N] CorpoCashOperation · CorpoCurrency · CorpoDenomination</span>
+   │  └─ <span class="hl">[N] CorpoOperationCurrencyDetail · CorpoOperationDenomination</span>
+   ├─ enums:      <span class="hl">[N] CorpoRequestStatus · CorpoRequestType · UrgencyFlag</span>
+   └─ exceptions: <span class="hl">[N] CorpoValidationException · CorpoNotFoundException · CorpoConflictException</span>
+      <em>(PAS de paquet valueobjects côté corpo : il utilise ceux du common)</em></div>
+
+<h3>fund-management-domain / fund-management-application-service</h3>
+<div class="tree">com.bmci.workflow.fund.management.service.domain
+├─ retail
+│  ├─ dto:        [R] CashRequestDTO · CashOperationDTO · OperationCurrencyDetailDTO ·
+│  │                  OperationDenominationDTO · enums (CashDemandDTO · IdentityMessage)
+│  │              <em>(CurrencyDTO, DenominationDTO, ResponseDTO, ResponsibleDTO → common.dto)</em>
+│  ├─ mapper:     [R] CashRequestManualMapper
+│  ├─ mapperTemp1:[R] CashRequestWebMapper
+│  └─ ports
+│     ├─ inputs.service:    [R] CashDemandUseCase
+│     ├─ output.repository: [R] CashDemandRepository · DenominationRepository
+│     └─ [R] CashDemandUseCaseImpl
+├─ corpo
+│  ├─ dto:    <span class="hl">[N] CorpoCashRequestDTO · CorpoCashOperationDTO ·
+│  │              CorpoOperationCurrencyDetailDTO · CorpoOperationDenominationDTO</span>
+│  ├─ mapper: <span class="hl">[N] CorpoCashRequestWebMapper</span>  (interface MapStruct)
+│  └─ ports
+│     ├─ input:  <span class="hl">[N] CorpoDemandUseCase</span>
+│     ├─ output: <span class="hl">[N] CorpoDemandRepository · CorpoDenominationRepository</span>
+│     └─ <span class="hl">[N] CorpoDemandUseCaseImpl</span>          (même emplacement que le retail)
+├─ config.security: [T] ConfigHash
+└─ exceptions:      [T] SessionServiceException</div>
+
+<h3>fund-management-data-access</h3>
+<div class="tree">com.bmci.workflow.fund.management.dataaccess
+├─ retail                                    ← racine du MODÈLE, les couches à l'intérieur
+│  ├─ entity:      [R] CashRequestEntity · CashOperationEntity · CurrencyEntity · DenominationEntity ·
+│  │                  EstablishmentEntity · OperationCurrencyDetailEntity · OperationDenominationEntity ·
+│  │                  UserProfileEntity   (+ constant si présent)
+│  ├─ repository:  [R] CashDemandJpaRepository · CurrencyJpaRepository · DenominationJpaRepository ·
+│  │                  EstablishmentJpaRepository · UserProfileJpaRepository
+│  ├─ mapper:      [R] CashOperationDataAccessMapper · CashRequestDataAccessMapper · DenominationDataAccessMapper
+│  ├─ mapperTemp1: [R] CashRequestDataAccessMappers
+│  └─ adapter:     [R] CashDemandRepositoryImpl · DenominationRepositoryImpl
+├─ corpo
+│  ├─ entity:     <span class="hl">[N] CorpoCashRequestEntity · CorpoCashOperationEntity · CorpoCurrencyEntity ·
+│  │                 CorpoDenominationEntity · CorpoEstablishmentEntity ·
+│  │                 CorpoOperationCurrencyDetailEntity · CorpoOperationDenominationEntity ·
+│  │                 CorpoUserProfileEntity</span>       (toutes @Table(schema = "corpo"))
+│  ├─ repository: <span class="hl">[N] CorpoCashRequestJpaRepository · CorpoCurrencyJpaRepository ·
+│  │                 CorpoDenominationJpaRepository · CorpoEstablishmentJpaRepository ·
+│  │                 CorpoUserProfileJpaRepository</span>
+│  ├─ mapper:     <span class="hl">[N] CorpoCashRequestPersistenceMapper</span>   (MapStruct hybride)
+│  └─ adapter:    <span class="hl">[N] CorpoDemandRepositoryImpl · CorpoDenominationRepositoryImpl</span>
+└─ exception: [T] IdentityHistoryFoundException
+   <em>(socle JPA BaseEntity → module common, paquet dataaccess.common.entity)</em></div>
+
+<h3>fund-management-application</h3>
+<div class="tree">com.bmci.workflow.fund.management.application.rest
+├─ retail: [R] CashDemandController                (/cash — inchangé)
+└─ corpo:  <span class="hl">[N] CorpoDemandController</span>            (/corpo/cash)
+   └─ error: <span class="hl">[N] CorpoDemandExceptionHandler</span>    (provisoire, en attente pattern BFF)</div>
+
+<h3>fund-management-container (+ les tests, chacun dans le module de la classe testée)</h3>
+<div class="tree">fund-management-container
+├─ src/main/java:      WorkFlowFundManagementApplication   (modifiée UNE fois : scans élargis à la racine dataaccess)
+├─ src/main/resources: application.yaml (+ Flyway) · db/migration/<span class="hl">V2__create_corpo_schema.sql</span>
+└─ src/test/java:      [R] CashDemandControllerTest · [T] ResourcePersistenceJpaRepositoryTest ·
+                       <span class="hl">[N] CorpoDemandControllerTest · [N] CorpoDemandIntegrationTest</span>
+
+fund-management-domain-core/src/test:          <span class="hl">[N] CorpoCashRequestTest</span>                (…q360.domain.corpo)
+fund-management-application-service/src/test:  <span class="hl">[N] CorpoCashRequestWebMapperTest</span>       (…corpo.mapper)
+                                               <span class="hl">[N] CorpoDemandUseCaseImplTest</span>          (…corpo.ports)
+fund-management-data-access/src/test:          <span class="hl">[N] CorpoCashRequestPersistenceMapperTest</span> (…corpo.mapper)
+                                               <span class="hl">[N] CorpoDemandRepositoryImplTest</span>       (…corpo.adapter)
+                                               [R] CashDemandRepositoryTest              (suit adapter.retail)</div>
+<div class="ok"><strong>Comment lire cette carte</strong> : si une classe est utilisée par les deux modèles → common. Si elle appartient au nominal → sous-paquet retail de sa couche. Si elle appartient au corpo → sous-paquet corpo de sa couche. Si elle ne dépend d'aucun des deux modèles (sécurité, exceptions techniques) → transverse, elle ne bouge pas. Chaque bloc de code du document indique déjà le chemin exact conforme à cette carte.</div>
+
+<h2 id="s2"><span class="num">2</span>Étape 0 — Finir les déplacements retail restants (F6)</h2>
+<p>D'après ton projet actuel : domain-core est fait ✓, il reste <strong>application-service</strong>, <strong>data-access</strong> et <strong>application</strong>. Même procédure : sélection → <kbd>F6</kbd> → paquet cible → Search for references → Preview → Do Refactor → <kbd>Ctrl+Alt+O</kbd> → Rebuild.</p>
+<table>
+<tr><th>Module</th><th>À déplacer (racine actuelle)</th><th>Paquet cible</th></tr>
+<tr><td rowspan="4">application-service</td><td>service.domain.dto — <strong>uniquement les DTOs métier retail</strong> : CashRequestDTO, CashOperationDTO, OperationCurrencyDetailDTO, OperationDenominationDTO, dto.enums (CashDemandDTO, IdentityMessage)</td><td>service.domain.retail.dto — ⚠ ResponseDTO, ResponsibleDTO, <strong>CurrencyDTO</strong> et <strong>DenominationDTO</strong> n'y vont PAS : DTOs communs → module common (blocs ci-dessous)</td></tr>
+<tr><td>service.domain.mapper (CashRequestManualMapper)</td><td>service.domain.retail.mapper</td></tr>
+<tr><td>service.domain.mapperTemp1 (CashRequestWebMapper)</td><td>service.domain.retail.mapperTemp1</td></tr>
+<tr><td>service.domain.ports (inputs.service, output.repository, CashDemandUseCaseImpl)</td><td>service.domain.retail.ports (mêmes sous-paquets)</td></tr>
+<tr><td rowspan="5">data-access</td><td>dataaccess.entity : CashOperationEntity, CashRequestEntity, CurrencyEntity, DenominationEntity, EstablishmentEntity, OperationCurrencyDetailEntity, OperationDenominationEntity, UserProfileEntity + entity.constant</td><td><strong>dataaccess.retail.entity</strong> — la racine est le MODÈLE (retail/corpo), les couches à l'intérieur, comme dans tous les autres modules. ⚠ entity.corpo (ancienne structure) sera remplacé à l'étape 3</td></tr>
+<tr><td>dataaccess.repository : CashDemandJpaRepository, CurrencyJpaRepository, DenominationJpaRepository, EstablishmentJpaRepository, UserProfileJpaRepository</td><td><strong>dataaccess.retail.repository</strong></td></tr>
+<tr><td>dataaccess.mapper : CashOperationDataAccessMapper, CashRequestDataAccessMapper, DenominationDataAccessMapper</td><td><strong>dataaccess.retail.mapper</strong></td></tr>
+<tr><td>dataaccess.mapperTemp1 : CashRequestDataAccessMappers</td><td><strong>dataaccess.retail.mapperTemp1</strong></td></tr>
+<tr><td>dataaccess.adapter : CashDemandRepositoryImpl, DenominationRepositoryImpl</td><td><strong>dataaccess.retail.adapter</strong></td></tr>
+<tr><td>application</td><td>rest.CashDemandController</td><td>rest.retail — le corpo arrive en rest.corpo à l'étape 4</td></tr>
+</table>
+<h3>Factorisation dans le module common : VOs d'identité et DTOs communs (décision actée)</h3>
+<p>Même logique que les socles (AggregateRoot, BaseEntity, BaseId) déjà dans common : <strong>un seul exemplaire partagé par retail et corpo</strong>. Côté VOs, le package est conservé (<code>com.bmci.q360.domain.valueobjects</code>, à côté de BaseId — nom neutre, sans référence de couche) → les imports retail ne changent pas. Côté DTOs en revanche, le package devient <strong><code>com.bmci.workflow.fund.management.common.dto</code></strong> : un package nommé « service.domain » dans le module common aurait été un mensonge sémantique. Marche à suivre : crée les fichiers ci-dessous dans common, supprime <strong>les 6 VOs de <code>domain.retail.valueobjects</code></strong> (ils remontent d'un cran — seuls <code>valueobjects.resources</code> et les VOs propres restent côté retail) et <strong>CurrencyDTO, DenominationDTO, ResponseDTO, ResponsibleDTO d'application-service</strong>. Puis mets à jour les imports retail en une passe : <kbd>Ctrl+Shift+R</kbd> (Replace in Files) sur tout le projet — remplacer <code>import com.bmci.workflow.fund.management.service.domain.dto.</code> par <code>import com.bmci.workflow.fund.management.common.dto.</code> — puis Rebuild.</p>
+<div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\q360\domain\valueobjects\CashRequestId.java</span><button class="copybtn" onclick="copyCode(1, this)">Copier</button><span class="fh-note">SUPPRIMER ensuite l'exemplaire de domain.retail.valueobjects</span></div><pre><code id="code-1">package com.bmci.q360.domain.valueobjects;
+
+import java.util.UUID;
+
+/**
+ * VO d&#x27;identite partage retail/corpo — module fund-management-common
+ * (factorisation actee : un seul exemplaire pour les deux modeles).
+ */
+public class CashRequestId extends BaseId&lt;UUID&gt; {
+    public CashRequestId(UUID value) {
+        super(value);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\q360\domain\valueobjects\CashOperationId.java</span><button class="copybtn" onclick="copyCode(2, this)">Copier</button><span class="fh-note">SUPPRIMER l'exemplaire retail</span></div><pre><code id="code-2">package com.bmci.q360.domain.valueobjects;
+
+import java.util.UUID;
+
+/**
+ * VO d&#x27;identite partage retail/corpo — module fund-management-common
+ * (factorisation actee : un seul exemplaire pour les deux modeles).
+ */
+public class CashOperationId extends BaseId&lt;UUID&gt; {
+    public CashOperationId(UUID value) {
+        super(value);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\q360\domain\valueobjects\CurrencyId.java</span><button class="copybtn" onclick="copyCode(3, this)">Copier</button><span class="fh-note">SUPPRIMER l'exemplaire retail</span></div><pre><code id="code-3">package com.bmci.q360.domain.valueobjects;
+
+import java.util.UUID;
+
+/**
+ * VO d&#x27;identite partage retail/corpo — module fund-management-common
+ * (factorisation actee : un seul exemplaire pour les deux modeles).
+ */
+public class CurrencyId extends BaseId&lt;UUID&gt; {
+    public CurrencyId(UUID value) {
+        super(value);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\q360\domain\valueobjects\DenominationId.java</span><button class="copybtn" onclick="copyCode(4, this)">Copier</button><span class="fh-note">SUPPRIMER l'exemplaire retail</span></div><pre><code id="code-4">package com.bmci.q360.domain.valueobjects;
+
+import java.util.UUID;
+
+/**
+ * VO d&#x27;identite partage retail/corpo — module fund-management-common
+ * (factorisation actee : un seul exemplaire pour les deux modeles).
+ */
+public class DenominationId extends BaseId&lt;UUID&gt; {
+    public DenominationId(UUID value) {
+        super(value);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\q360\domain\valueobjects\OperationCurrencyDetailId.java</span><button class="copybtn" onclick="copyCode(5, this)">Copier</button><span class="fh-note">SUPPRIMER l'exemplaire retail</span></div><pre><code id="code-5">package com.bmci.q360.domain.valueobjects;
+
+import java.util.UUID;
+
+/**
+ * VO d&#x27;identite partage retail/corpo — module fund-management-common
+ * (factorisation actee : un seul exemplaire pour les deux modeles).
+ */
+public class OperationCurrencyDetailId extends BaseId&lt;UUID&gt; {
+    public OperationCurrencyDetailId(UUID value) {
+        super(value);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\q360\domain\valueobjects\OperationDenominationId.java</span><button class="copybtn" onclick="copyCode(6, this)">Copier</button><span class="fh-note">SUPPRIMER l'exemplaire retail</span></div><pre><code id="code-6">package com.bmci.q360.domain.valueobjects;
+
+import java.util.UUID;
+
+/**
+ * VO d&#x27;identite partage retail/corpo — module fund-management-common
+ * (factorisation actee : un seul exemplaire pour les deux modeles).
+ */
+public class OperationDenominationId extends BaseId&lt;UUID&gt; {
+    public OperationDenominationId(UUID value) {
+        super(value);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\workflow\fund\management\common\dto\CurrencyDTO.java</span><button class="copybtn" onclick="copyCode(7, this)">Copier</button><span class="fh-note">SUPPRIMER l'exemplaire CurrencyDTO d'application-service — les imports retail passent sur common.dto (Replace in Files ci-dessus)</span></div><pre><code id="code-7">package com.bmci.workflow.fund.management.common.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+/** DTO devise partage retail/corpo — module fund-management-common (contrats identiques). */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class CurrencyDTO {
+    private UUID id;
+    private String isoCode;
+    private String currencyName;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\workflow\fund\management\common\dto\DenominationDTO.java</span><button class="copybtn" onclick="copyCode(8, this)">Copier</button><span class="fh-note">Format corpo adopté par les deux modèles — SUPPRIMER l'exemplaire DenominationDTO d'application-service (imports retail via Replace in Files ci-dessus)</span></div><pre><code id="code-8">package com.bmci.workflow.fund.management.common.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+/**
+ * DTO coupure partage retail/corpo — module fund-management-common.
+ * Format corpo adopte par les deux modeles (decision actee) :
+ * denominationCode = cle stable d&#x27;entree (obligatoire cote corpo via @Valid ;
+ * inerte cote retail qui ne valide pas encore ses payloads), itemType,
+ * faceValue et denominationLabel en lecture. Cote retail, denominationCode
+ * et faceValue restent null tant que le modele retail ne les alimente pas
+ * (changement additif du contrat, non cassant).
+ */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class DenominationDTO {
+    private UUID id;
+
+    @NotBlank(message = &quot;Le code coupure est obligatoire&quot;)
+    private String denominationCode;
+
+    private String itemType;          // lecture
+    private BigDecimal faceValue;     // lecture
+    private String denominationLabel; // lecture
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\workflow\fund\management\common\dto\ResponseDTO.java</span><button class="copybtn" onclick="copyCode(9, this)">Copier</button><span class="fh-note">SUPPRIMER l'original dans fund-management-application-service</span></div><pre><code id="code-9">package com.bmci.workflow.fund.management.common.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/** Enveloppe de reponse generique — module fund-management-common (partagee retail/corpo). */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ResponseDTO&lt;D, C&gt; {
+    private D message;
+    private C data;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\workflow\fund\management\common\dto\ResponsibleDTO.java</span><button class="copybtn" onclick="copyCode(10, this)">Copier</button><span class="fh-note">SUPPRIMER l'original dans fund-management-application-service</span></div><pre><code id="code-10">package com.bmci.workflow.fund.management.common.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+/** Responsable (referentiel transverse) — module fund-management-common (partage retail/corpo). */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class ResponsibleDTO {
+    private UUID id;
+    private String responsibleUid;
+    private String email;
+    private String lastName;
+    private String firstName;
+    private String codeResponsible;
+}</code></pre>
+<div class="note">Vérifie que <code>fund-management-application-service</code> voit le module common (dépendance directe dans son pom, ou transitive via domain-core). Sans elle, CurrencyDTO/ResponseDTO ne se résoudront pas.</div>
+<div class="danger"><strong>Modification REQUISE de la classe main (dite ouvertement — c'est la seule)</strong> : avec la structure racine, les entités vivent dans <code>dataaccess.retail.entity</code> / <code>dataaccess.corpo.entity</code> — qui ne sont PLUS des sous-paquets de <code>dataaccess.entity</code>. Les scans <code>@EntityScan</code> / <code>@EnableJpaRepositories</code> doivent être élargis à la racine <code>dataaccess</code> — sans risque, on inclut simplement plus de paquets du même module :</div>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-container\src\main\java\com\bmci\workflow\fund\management\WorkFlowFundManagementApplication.java</span><button class="copybtn" onclick="copyCode(11, this)">Copier</button><span class="fh-note">Scans élargis à la racine dataaccess — requis par la structure corpo/retail racine</span></div><pre><code id="code-11">package com.bmci.workflow.fund.management;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+/**
+ * MODIFICATION REQUISE par la structure racine corpo/retail du data-access :
+ * les entites vivent desormais dans dataaccess.retail.entity et
+ * dataaccess.corpo.entity (idem repositories). Les scans sont donc elargis a
+ * la racine dataaccess — ils couvrent les deux modeles et le socle common.
+ * Elargir un scan est sans risque : Spring ne fait qu&#x27;inclure davantage de
+ * paquets du meme module.
+ */
+@EntityScan(basePackages = &quot;com.bmci.workflow.fund.management.dataaccess&quot;)
+@EnableJpaRepositories(basePackages = {&quot;com.bmci.workflow.fund.management.dataaccess&quot;})
+@SpringBootApplication(scanBasePackages = {
+        &quot;com.bmci.workflow.fund.management&quot;
+})
+public class WorkFlowFundManagementApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(WorkFlowFundManagementApplication.class, args);
+    }
+}</code></pre>
+<div class="note">Dernier réglage de cohérence dans le module common : le socle JPA passe de <code>dataaccess.entity.common</code> à <strong><code>dataaccess.common.entity</code></strong> (même logique racine). F6 sur la classe BaseEntity du common vers ce paquet, puis <kbd>Ctrl+Shift+R</kbd> dans tout le projet : <code>import com.bmci.workflow.fund.management.dataaccess.entity.common.BaseEntity;</code> → <code>import com.bmci.workflow.fund.management.dataaccess.common.entity.BaseEntity;</code> (toutes les entités retail l'utilisent).</div>
+<div class="ok">Rebuild vert obligatoire avant de continuer. Commit conseillé : <code>[REFACTO] Packages racine corpo/retail + factorisation common</code>.</div>
+
+<h2 id="s3"><span class="num">3</span>Étape 1 — domain-core : le domaine corpo miroir</h2>
+<p>On remplace le modèle plat (mon design précédent, qui ne respectait pas l'alignement) par le miroir exact du domaine retail — <strong>héritages compris</strong> : CorpoCashRequest étend <code>AggregateRoot</code> du module common (comme CashRequest), CorpoDenomination et CorpoOperationCurrencyDetail étendent le <code>BaseEntity</code> du common (comme leurs homologues retail), et les identités utilisent <strong>directement les VOs partagés du module common</strong> (CashRequestId, CashOperationId, CurrencyId, DenominationId, OperationCurrencyDetailId, OperationDenominationId) — aucune classe Corpo*Id n'existe. Les <strong>enums</strong> (CorpoRequestStatus, CorpoRequestType, UrgencyFlag) et les <strong>exceptions</strong> (CorpoValidationException, CorpoNotFoundException, CorpoConflictException) que tu as déjà <strong>ne changent pas</strong>.</p>
+<div class="filehead"><span class="fh-act act-del">SUPPRIMER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\CorpoRequestDenomination.java</span><span class="fh-note">Mon ancien design plat — remplacé par le miroir retail</span></div><div class="filehead"><span class="fh-act act-del">SUPPRIMER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\CorpoCashRequest.java</span><span class="fh-note">L'ancienne version plate — la nouvelle va dans le sous-paquet entity (comme retail)</span></div><div class="filehead"><span class="fh-act act-del">SUPPRIMER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\valueobjects\  (paquet ENTIER : CorpoCashRequestId, CorpoRequestDenominationId et tout autre VO corpo)</span><span class="fh-note">Les VOs corpo n'existent plus — le corpo utilise les VOs partagés du module common</span></div><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\entity\CorpoCashRequest.java</span><button class="copybtn" onclick="copyCode(12, this)">Copier</button><span class="fh-note">Agrégat racine miroir de CashRequest + champs Jira + validateAndCompute</span></div><pre><code id="code-12">package com.bmci.q360.domain.corpo.entity;
+
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.q360.domain.valueobjects.CashRequestId;
+import com.bmci.q360.domain.entity.common.AggregateRoot;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Agregat corpo — MIROIR de retail CashRequest (branchCode, statut,
+ * establishment, uidUser, operations) + AJOUTS JIRA : reference lisible et
+ * identite client (zones libres). L&#x27;etablissement est conserve en String
+ * (code) comme retail et resolu/persiste par la couche data-access.
+ */
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+public class CorpoCashRequest extends AggregateRoot&lt;CashRequestId&gt; {
+
+    private String uniqueRequestRef;               // AJOUT Jira (&quot;Ref demande&quot;)
+    private String branchCode;                     // aligne retail
+    private CorpoRequestStatus requestStatus = CorpoRequestStatus.INITIATED;
+    private String establishment;                  // aligne retail (code, resolu en FK)
+    private String uidUser;                        // aligne retail
+    private String clientRef;                      // AJOUT Jira
+    private String city;                           // AJOUT Jira
+    private String addressComplement;              // AJOUT Jira
+    private String accountNumber;                  // AJOUT Jira
+    private List&lt;CorpoCashOperation&gt; operations = new ArrayList&lt;&gt;();
+    private LocalDateTime createdAt;               // &quot;Date demande&quot; (Jira)
+    private LocalDateTime updatedAt;               // &quot;Date mise a jour&quot; (Jira)
+
+    /** Aligne sur retail validateRequest + calcul par operation (map code -&gt; faciale). */
+    public void validateAndCompute(Map&lt;String, BigDecimal&gt; faceValuesByCode) {
+        if (requestStatus == null) requestStatus = CorpoRequestStatus.INITIATED;
+        if (operations == null || operations.isEmpty()) {
+            throw new CorpoValidationException(
+                    &quot;Une demande corpo doit contenir au moins une opération&quot;);
+        }
+        operations.forEach(operation -&gt; operation.validateAndComputeTotal(faceValuesByCode));
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\entity\CorpoCashOperation.java</span><button class="copybtn" onclick="copyCode(13, this)">Copier</button><span class="fh-note">Miroir de CashOperation — validateAndComputeTotal corrigé (résolution par code, contrôle montant)</span></div><pre><code id="code-13">package com.bmci.q360.domain.corpo.entity;
+
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.UrgencyFlag;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.q360.domain.valueobjects.CashOperationId;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Miroir corpo de retail CashOperation. operationSens = ALIMENTATION/RAMASSAGE
+ * (equivalent du SUPPLY/COLLECTION retail). Le &quot;Montant de la demande&quot; (Jira)
+ * est porte par totalAmount, comme retail porte le montant au niveau operation.
+ */
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+public class CorpoCashOperation {
+
+    private CashOperationId id;
+    private CorpoRequestType operationSens;
+    private Integer institutionCode = 1;
+    private String cashDeskNumber = &quot;001&quot;;
+    private UrgencyFlag isUrgent = UrgencyFlag.NO;
+    private String targetCashDeskNumber;
+    private BigDecimal totalAmount = BigDecimal.ZERO;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private CorpoRequestStatus operationStatus = CorpoRequestStatus.INITIATED;
+    private String establishment;
+    private List&lt;CorpoOperationCurrencyDetail&gt; currencyDetails = new ArrayList&lt;&gt;();
+
+    /**
+     * Version corrigee du validateAndCalculateTotal retail : resolution des
+     * faciales par CODE (cle fiable, la map par objet du retail etait boguee).
+     * ALIMENTATION : total calcule depuis la ventilation (et coherence si un
+     * montant est fourni). RAMASSAGE : montant pris tel quel, defaut 0.
+     */
+    public void validateAndComputeTotal(Map&lt;String, BigDecimal&gt; faceValuesByCode) {
+        if (operationSens == null) {
+            throw new CorpoValidationException(
+                    &quot;Le sens de l&#x27;opération (ALIMENTATION/RAMASSAGE) est obligatoire&quot;);
+        }
+        if (isUrgent == null) isUrgent = UrgencyFlag.NO;
+        if (operationStatus == null) operationStatus = CorpoRequestStatus.INITIATED;
+        if (currencyDetails == null) currencyDetails = new ArrayList&lt;&gt;();
+
+        BigDecimal computed = BigDecimal.ZERO;
+        for (CorpoOperationCurrencyDetail detail : currencyDetails) {
+            BigDecimal detailTotal = BigDecimal.ZERO;
+            if (detail.getOperationDenominations() == null) {
+                detail.setOperationDenominations(new ArrayList&lt;&gt;());
+            }
+            for (CorpoOperationDenomination line : detail.getOperationDenominations()) {
+                if (line.getQuantity() == null) line.setQuantity(0); // defaut Jira
+                String code = line.getDenomination() != null
+                        ? line.getDenomination().getDenominationCode() : null;
+                BigDecimal faceValue = faceValuesByCode.get(code);
+                if (faceValue == null) {
+                    throw new CorpoValidationException(&quot;Coupure inconnue : &quot; + code);
+                }
+                detailTotal = detailTotal.add(
+                        faceValue.multiply(BigDecimal.valueOf(line.getQuantity())));
+            }
+            detail.setTotalAmountByCurrency(detailTotal);
+            computed = computed.add(detailTotal);
+        }
+
+        if (operationSens == CorpoRequestType.ALIMENTATION) {
+            if (totalAmount != null &amp;&amp; totalAmount.compareTo(BigDecimal.ZERO) != 0
+                    &amp;&amp; totalAmount.compareTo(computed) != 0) {
+                throw new CorpoValidationException(&quot;Le montant fourni (&quot; + totalAmount
+                        + &quot;) ne correspond pas à la ventilation (&quot; + computed + &quot;)&quot;);
+            }
+            this.totalAmount = computed;
+        } else if (this.totalAmount == null) {
+            this.totalAmount = BigDecimal.ZERO; // RAMASSAGE &quot;alimente en direct&quot;, defaut 0
+        }
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\entity\CorpoOperationCurrencyDetail.java</span><button class="copybtn" onclick="copyCode(14, this)">Copier</button></div><pre><code id="code-14">package com.bmci.q360.domain.corpo.entity;
+
+import com.bmci.q360.domain.valueobjects.OperationCurrencyDetailId;
+import com.bmci.q360.domain.entity.common.BaseEntity;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+/** Miroir corpo de retail OperationCurrencyDetail : ventilation par devise. */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class CorpoOperationCurrencyDetail extends BaseEntity {
+    private OperationCurrencyDetailId id;
+    private CorpoCurrency currency;
+    private BigDecimal totalAmountByCurrency;
+    private List&lt;CorpoOperationDenomination&gt; operationDenominations = new ArrayList&lt;&gt;();
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\entity\CorpoOperationDenomination.java</span><button class="copybtn" onclick="copyCode(15, this)">Copier</button></div><pre><code id="code-15">package com.bmci.q360.domain.corpo.entity;
+
+import com.bmci.q360.domain.valueobjects.OperationDenominationId;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/** Miroir corpo de retail OperationDenomination : (coupure, quantite). */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class CorpoOperationDenomination {
+    private OperationDenominationId id;
+    private CorpoDenomination denomination;
+    private Integer quantity = 0;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\entity\CorpoCurrency.java</span><button class="copybtn" onclick="copyCode(16, this)">Copier</button></div><pre><code id="code-16">package com.bmci.q360.domain.corpo.entity;
+
+import com.bmci.q360.domain.valueobjects.CurrencyId;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/** Miroir corpo de retail Currency. */
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+public class CorpoCurrency {
+    private CurrencyId id;
+    private String isoCode;
+    private String currencyName;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\corpo\entity\CorpoDenomination.java</span><button class="copybtn" onclick="copyCode(17, this)">Copier</button></div><pre><code id="code-17">package com.bmci.q360.domain.corpo.entity;
+
+import com.bmci.q360.domain.valueobjects.DenominationId;
+import com.bmci.q360.domain.entity.common.BaseEntity;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+
+/** Miroir corpo de retail Denomination + AJOUT JIRA : denominationCode (cle stable). */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class CorpoDenomination extends BaseEntity {
+    private DenominationId id;
+    private String denominationCode;   // AJOUT corpo
+    private String itemType;
+    private BigDecimal faceValue;
+    private String denominationLabel;
+}</code></pre>
+<h2 id="s4"><span class="num">4</span>Étape 2 — application-service : DTOs arborescents, web mapper, ports, use case</h2>
+<p>Supprime d'abord les anciens DTO plats du paquet <code>corpo.dto</code> et l'ancien web mapper, puis crée les fichiers ci-dessous. Les DTOs sont le miroir des DTOs retail (mêmes noms de champs : <code>user</code>, <code>establishment</code>, <code>operationSens</code>…) + champs Jira. La devise et la coupure utilisent les <strong>DTOs partagés du common</strong> (CurrencyDTO, DenominationDTO au format corpo) — pas de CorpoCurrencyDTO ni CorpoDenominationDTO. Le use case garde la mécanique retail (chargement du référentiel, validation domaine, save) — sans try/catch, les exceptions typées partent au handler.</p>
+<div class="filehead"><span class="fh-act act-del">SUPPRIMER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\dto\*  (anciens DTO plats : CorpoCashRequestDTO, CorpoRequestDenominationDTO…)</span><span class="fh-note">Tout le contenu actuel du paquet dto</span></div><div class="filehead"><span class="fh-act act-del">SUPPRIMER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\CorpoCashRequestWebMapper.java</span><span class="fh-note">L'ancien mapper plat (à la racine corpo) — le nouveau va dans corpo.mapper</span></div><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\dto\CorpoCashRequestDTO.java</span><button class="copybtn" onclick="copyCode(18, this)">Copier</button></div><pre><code id="code-18">package com.bmci.workflow.fund.management.service.domain.corpo.dto;
+
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Miroir retail CashRequestDTO (branchCode, establishment, user, operations)
+ * + AJOUTS JIRA : clientRef, city, addressComplement, accountNumber.
+ * uniqueRequestRef, requestStatus et dates : geres serveur.
+ */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class CorpoCashRequestDTO {
+
+    private UUID id;
+    private String uniqueRequestRef;
+    private CorpoRequestStatus requestStatus;
+    private String branchCode;
+    private String establishment;
+    private String user;
+    private String clientRef;
+    private String city;
+    private String addressComplement;
+    private String accountNumber;
+
+    @NotEmpty(message = &quot;Une demande corpo doit contenir au moins une opération&quot;)
+    @Valid
+    private List&lt;CorpoCashOperationDTO&gt; operations;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\dto\CorpoCashOperationDTO.java</span><button class="copybtn" onclick="copyCode(19, this)">Copier</button></div><pre><code id="code-19">package com.bmci.workflow.fund.management.service.domain.corpo.dto;
+
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.enums.UrgencyFlag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+/** Miroir retail CashOperationDTO (sens, urgent, montant, statut, details devises). */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class CorpoCashOperationDTO {
+
+    private UUID id;
+
+    @NotNull(message = &quot;Le sens de l&#x27;opération (ALIMENTATION/RAMASSAGE) est obligatoire&quot;)
+    private CorpoRequestType operationSens;
+
+    private Integer institutionCode;
+    private String cashDeskNumber;
+    private UrgencyFlag isUrgent;
+    private String targetCashDeskNumber;
+    private BigDecimal totalAmount;                 // &quot;Montant de la demande&quot; (Jira)
+    private CorpoRequestStatus operationStatus;     // serveur
+    private String establishment;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    @Valid
+    private List&lt;CorpoOperationCurrencyDetailDTO&gt; currencyDetails;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\dto\CorpoOperationCurrencyDetailDTO.java</span><button class="copybtn" onclick="copyCode(20, this)">Copier</button></div><pre><code id="code-20">package com.bmci.workflow.fund.management.service.domain.corpo.dto;
+
+import com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+/** Miroir retail OperationCurrencyDetailDTO. */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class CorpoOperationCurrencyDetailDTO {
+    private UUID id;
+    private CurrencyDTO currency;
+    private BigDecimal totalAmountByCurrency; // calcule serveur
+    @Valid
+    private List&lt;CorpoOperationDenominationDTO&gt; operationDenominations;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\dto\CorpoOperationDenominationDTO.java</span><button class="copybtn" onclick="copyCode(21, this)">Copier</button></div><pre><code id="code-21">package com.bmci.workflow.fund.management.service.domain.corpo.dto;
+
+import com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+/** Miroir retail OperationDenominationDTO. */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class CorpoOperationDenominationDTO {
+    private UUID id;
+
+    @NotNull(message = &quot;La coupure est obligatoire&quot;)
+    @Valid
+    private DenominationDTO denomination;
+
+    @Min(value = 0, message = &quot;La quantité d&#x27;une coupure ne peut pas être négative&quot;)
+    private Integer quantity;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\mapper\CorpoCashRequestWebMapper.java</span><button class="copybtn" onclick="copyCode(22, this)">Copier</button><span class="fh-note">MapStruct — Impl générée au build dans target/generated-sources</span></div><pre><code id="code-22">package com.bmci.workflow.fund.management.service.domain.corpo.mapper;
+
+import com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+import com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+import com.bmci.q360.domain.corpo.entity.*;
+import com.bmci.q360.domain.valueobjects.*;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+import java.util.UUID;
+
+/**
+ * Mapper web corpo — MapStruct, arbre complet (miroir du CashRequestWebMapper
+ * retail, genere au lieu d&#x27;ecrit a la main). Champs serveur ignores en entree.
+ */
+@Mapper(componentModel = &quot;spring&quot;)
+public interface CorpoCashRequestWebMapper {
+
+    @Mapping(target = &quot;uniqueRequestRef&quot;, ignore = true)
+    @Mapping(target = &quot;requestStatus&quot;, ignore = true)
+    @Mapping(target = &quot;createdAt&quot;, ignore = true)
+    @Mapping(target = &quot;updatedAt&quot;, ignore = true)
+    @Mapping(target = &quot;uidUser&quot;, source = &quot;user&quot;)
+    CorpoCashRequest toDomain(CorpoCashRequestDTO dto);
+
+    @Mapping(target = &quot;operationStatus&quot;, ignore = true)
+    @Mapping(target = &quot;createdAt&quot;, ignore = true)
+    @Mapping(target = &quot;updatedAt&quot;, ignore = true)
+    CorpoCashOperation toOperationDomain(CorpoCashOperationDTO dto);
+
+    @Mapping(target = &quot;user&quot;, source = &quot;uidUser&quot;)
+    CorpoCashRequestDTO toResponseDTO(CorpoCashRequest domain);
+
+    // ----- Conversions UUID &lt;-&gt; value objects -----
+    default CashRequestId toRequestId(UUID v) { return v == null ? null : new CashRequestId(v); }
+    default UUID fromRequestId(CashRequestId id) { return id == null ? null : id.getValue(); }
+    default CashOperationId toOperationId(UUID v) { return v == null ? null : new CashOperationId(v); }
+    default UUID fromOperationId(CashOperationId id) { return id == null ? null : id.getValue(); }
+    default CurrencyId toCurrencyId(UUID v) { return v == null ? null : new CurrencyId(v); }
+    default UUID fromCurrencyId(CurrencyId id) { return id == null ? null : id.getValue(); }
+    default DenominationId toDenominationId(UUID v) { return v == null ? null : new DenominationId(v); }
+    default UUID fromDenominationId(DenominationId id) { return id == null ? null : id.getValue(); }
+    default OperationCurrencyDetailId toDetailId(UUID v) { return v == null ? null : new OperationCurrencyDetailId(v); }
+    default UUID fromDetailId(OperationCurrencyDetailId id) { return id == null ? null : id.getValue(); }
+    default OperationDenominationId toOpDenomId(UUID v) { return v == null ? null : new OperationDenominationId(v); }
+    default UUID fromOpDenomId(OperationDenominationId id) { return id == null ? null : id.getValue(); }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\ports\input\CorpoDemandUseCase.java</span><button class="copybtn" onclick="copyCode(23, this)">Copier</button></div><pre><code id="code-23">package com.bmci.workflow.fund.management.service.domain.corpo.ports.input;
+
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoCashRequestDTO;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface CorpoDemandUseCase {
+    CorpoCashRequestDTO create(CorpoCashRequestDTO dto);
+    CorpoCashRequestDTO getById(UUID id);
+    List&lt;CorpoCashRequestDTO&gt; getAll();
+    CorpoCashRequestDTO update(UUID id, CorpoCashRequestDTO dto);
+    CorpoCashRequestDTO cancel(UUID id);
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\ports\output\CorpoDemandRepository.java</span><button class="copybtn" onclick="copyCode(24, this)">Copier</button></div><pre><code id="code-24">package com.bmci.workflow.fund.management.service.domain.corpo.ports.output;
+
+import com.bmci.q360.domain.corpo.entity.CorpoCashRequest;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface CorpoDemandRepository {
+    CorpoCashRequest save(CorpoCashRequest request);
+    CorpoCashRequest getById(UUID id);
+    List&lt;CorpoCashRequest&gt; findAll();
+    CorpoCashRequest update(UUID id, CorpoCashRequest request);
+    CorpoCashRequest cancelById(UUID id);
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\ports\output\CorpoDenominationRepository.java</span><button class="copybtn" onclick="copyCode(25, this)">Copier</button></div><pre><code id="code-25">package com.bmci.workflow.fund.management.service.domain.corpo.ports.output;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
+/** Referentiel coupures corpo : map code -&gt; valeur faciale (miroir du DenominationRepository retail, en fiable). */
+public interface CorpoDenominationRepository {
+    Map&lt;String, BigDecimal&gt; findFaceValuesByCode();
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\corpo\ports\CorpoDemandUseCaseImpl.java</span><button class="copybtn" onclick="copyCode(26, this)">Copier</button><span class="fh-note">Même emplacement que CashDemandUseCaseImpl retail (dans ports)</span></div><pre><code id="code-26">package com.bmci.workflow.fund.management.service.domain.corpo.ports;
+
+import com.bmci.q360.domain.corpo.entity.CorpoCashRequest;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoCashRequestDTO;
+import com.bmci.workflow.fund.management.service.domain.corpo.mapper.CorpoCashRequestWebMapper;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.input.CorpoDemandUseCase;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.output.CorpoDemandRepository;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.output.CorpoDenominationRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/** Miroir du CashDemandUseCaseImpl retail, sans try/catch (exceptions typees -&gt; handler). */
+@RequiredArgsConstructor
+@Service
+public class CorpoDemandUseCaseImpl implements CorpoDemandUseCase {
+
+    private final CorpoDemandRepository corpoDemandRepository;
+    private final CorpoDenominationRepository corpoDenominationRepository;
+    private final CorpoCashRequestWebMapper webMapper;
+
+    @Override
+    @Transactional
+    public CorpoCashRequestDTO create(CorpoCashRequestDTO dto) {
+        CorpoCashRequest request = webMapper.toDomain(dto);
+        Map&lt;String, BigDecimal&gt; faceValues = corpoDenominationRepository.findFaceValuesByCode();
+        request.validateAndCompute(faceValues);
+        return webMapper.toResponseDTO(corpoDemandRepository.save(request));
+    }
+
+    @Override
+    public CorpoCashRequestDTO getById(UUID id) {
+        return webMapper.toResponseDTO(corpoDemandRepository.getById(id));
+    }
+
+    @Override
+    public List&lt;CorpoCashRequestDTO&gt; getAll() {
+        return corpoDemandRepository.findAll().stream().map(webMapper::toResponseDTO).toList();
+    }
+
+    @Override
+    @Transactional
+    public CorpoCashRequestDTO update(UUID id, CorpoCashRequestDTO dto) {
+        CorpoCashRequest request = webMapper.toDomain(dto);
+        Map&lt;String, BigDecimal&gt; faceValues = corpoDenominationRepository.findFaceValuesByCode();
+        request.validateAndCompute(faceValues);
+        return webMapper.toResponseDTO(corpoDemandRepository.update(id, request));
+    }
+
+    @Override
+    @Transactional
+    public CorpoCashRequestDTO cancel(UUID id) {
+        return webMapper.toResponseDTO(corpoDemandRepository.cancelById(id));
+    }
+}</code></pre>
+<h2 id="s5"><span class="num">5</span>Étape 3 — data-access : entités, repositories, mapper, adapters</h2>
+<p>Supprime les anciens paquets corpo du data-access (entity.corpo, repository.corpo, mapper.corpo, adapter.corpo — la structure racine les remplace intégralement), puis crée le miroir complet sous <code>dataaccess.corpo.*</code>. La mécanique de persistance est <strong>celle du save() retail</strong> : l'adapter charge les référentiels (coupures par code, devises par ISO, établissement par code, user par uid), le mapper — désormais <strong>MapStruct hybride</strong>, cohérent avec le web mapper — construit l'arbre : structure générée, résolutions par référentiels en méthodes default + @Context, liens parents et références en @AfterMapping. Un save() cascade tout.</p>
+<div class="filehead"><span class="fh-act act-del">SUPPRIMER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\entity.corpo + repository.corpo + mapper.corpo + adapter.corpo  (paquets ENTIERS de l'ancienne structure couche-d'abord)</span><span class="fh-note">Modèle v1 compris — remplacés par dataaccess.corpo.{entity, repository, mapper, adapter}</span></div><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\entity\CorpoCashRequestEntity.java</span><button class="copybtn" onclick="copyCode(27, this)">Copier</button><span class="fh-note">Structure retail (user_profile/establishment en OneToOne NULLABLES) + colonnes Jira</span></div><pre><code id="code-27">package com.bmci.workflow.fund.management.dataaccess.corpo.entity;
+
+import com.bmci.workflow.fund.management.dataaccess.common.entity.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Entete de demande corpo — table cash_request du schema corpo, structure
+ * ALIGNEE SUR RETAIL (branch_code, statut, operations, user_profile et
+ * establishment conserves mais NULLABLES — la Jira identifie par le client)
+ * + colonnes additionnelles Jira (reference lisible, identite client).
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = &quot;cash_request&quot;, schema = &quot;corpo&quot;)
+public class CorpoCashRequestEntity extends BaseEntity {
+
+    @Column(name = &quot;branch_code&quot;, length = 100)
+    private String branchCode;
+
+    @Column(name = &quot;request_status&quot;, nullable = false, length = 30)
+    private String requestStatus = &quot;INITIATED&quot;;
+
+    // Alignement retail — nullables, non alimentes par la Jira actuelle
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;user_profile_id&quot;)
+    private CorpoUserProfileEntity userProfile;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;establishment_id&quot;)
+    private CorpoEstablishmentEntity establishment;
+
+    // Additionnel corpo (Jira)
+    @Column(name = &quot;unique_request_ref&quot;, unique = true, length = 30)
+    private String uniqueRequestRef;
+
+    @Column(name = &quot;client_ref&quot;, length = 50)
+    private String clientRef;
+
+    @Column(name = &quot;city&quot;, length = 100)
+    private String city;
+
+    @Column(name = &quot;address_complement&quot;, length = 255)
+    private String addressComplement;
+
+    @Column(name = &quot;account_number&quot;, length = 34)
+    private String accountNumber;
+
+    @OneToMany(mappedBy = &quot;cashRequest&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List&lt;CorpoCashOperationEntity&gt; operations = new ArrayList&lt;&gt;();
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\entity\CorpoCashOperationEntity.java</span><button class="copybtn" onclick="copyCode(28, this)">Copier</button></div><pre><code id="code-28">package com.bmci.workflow.fund.management.dataaccess.corpo.entity;
+
+import com.bmci.workflow.fund.management.dataaccess.common.entity.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Operation d&#x27;une demande corpo — table cash_operation du schema corpo,
+ * structure dupliquee du nominal. Une demande corpo (Jira) porte une
+ * operation unique : operation_sens = ALIMENTATION / RAMASSAGE.
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = &quot;cash_operation&quot;, schema = &quot;corpo&quot;)
+public class CorpoCashOperationEntity extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;cash_request_id&quot;, nullable = false)
+    private CorpoCashRequestEntity cashRequest;
+
+    @Column(name = &quot;operation_type&quot;, length = 20)
+    private String operationType;
+
+    @Column(name = &quot;operation_sens&quot;, nullable = false, length = 50)
+    private String operationSens; // ALIMENTATION / RAMASSAGE
+
+    @Column(name = &quot;institution_code&quot;, nullable = false)
+    private Integer institutionCode = 1;
+
+    @Column(name = &quot;cash_desk_number&quot;, nullable = false, length = 3)
+    private String cashDeskNumber = &quot;001&quot;;
+
+    @Column(name = &quot;is_urgent&quot;, nullable = false, length = 3)
+    private String isUrgent = &quot;NO&quot;;
+
+    @Column(name = &quot;target_cash_desk_number&quot;, length = 3)
+    private String targetCashDeskNumber;
+
+    @Column(name = &quot;total_amount&quot;, nullable = false, precision = 15, scale = 2)
+    private BigDecimal totalAmount = BigDecimal.ZERO;
+
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = &quot;updated_at&quot;, nullable = false)
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @Column(name = &quot;operation_status&quot;, nullable = false, length = 30)
+    private String operationStatus = &quot;INITIATED&quot;;
+
+    @Column(name = &quot;establishment&quot;, length = 100)
+    private String establishment;
+
+    @OneToMany(mappedBy = &quot;cashOperation&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List&lt;CorpoOperationCurrencyDetailEntity&gt; currencyDetails = new ArrayList&lt;&gt;();
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\entity\CorpoOperationCurrencyDetailEntity.java</span><button class="copybtn" onclick="copyCode(29, this)">Copier</button><span class="fh-note">Colonne total_amount_by_curerency conservée telle quelle (alignement retail, typo comprise)</span></div><pre><code id="code-29">package com.bmci.workflow.fund.management.dataaccess.corpo.entity;
+
+import com.bmci.workflow.fund.management.dataaccess.common.entity.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Ventilation par devise — table operation_currency du schema corpo,
+ * dupliquee du nominal (nom de colonne total_amount_by_curerency conserve
+ * tel quel). Corpo : une ligne unique, devise MAD.
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = &quot;operation_currency&quot;, schema = &quot;corpo&quot;)
+public class CorpoOperationCurrencyDetailEntity extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;cash_operation_id&quot;)
+    private CorpoCashOperationEntity cashOperation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;currency_id&quot;, nullable = false)
+    private CorpoCurrencyEntity currency;
+
+    @Column(name = &quot;total_amount_by_curerency&quot;, nullable = false, precision = 18, scale = 2)
+    private BigDecimal totalAmountByCurrency;
+
+    @OneToMany(mappedBy = &quot;operationCurrencyDetail&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List&lt;CorpoOperationDenominationEntity&gt; operationDenominations = new ArrayList&lt;&gt;();
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\entity\CorpoOperationDenominationEntity.java</span><button class="copybtn" onclick="copyCode(30, this)">Copier</button></div><pre><code id="code-30">package com.bmci.workflow.fund.management.dataaccess.corpo.entity;
+
+import com.bmci.workflow.fund.management.dataaccess.common.entity.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * Ligne coupure/quantite — table operation_denomination du schema corpo,
+ * dupliquee du nominal (+ contrainte d&#x27;unicite detail/coupure en base).
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = &quot;operation_denomination&quot;, schema = &quot;corpo&quot;)
+public class CorpoOperationDenominationEntity extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;operation_currency_detail_id&quot;)
+    private CorpoOperationCurrencyDetailEntity operationCurrencyDetail;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;denomination_id&quot;)
+    private CorpoDenominationEntity denomination;
+
+    @Column(name = &quot;quantity&quot;, nullable = false)
+    private Integer quantity = 0;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\entity\CorpoCurrencyEntity.java</span><button class="copybtn" onclick="copyCode(31, this)">Copier</button></div><pre><code id="code-31">package com.bmci.workflow.fund.management.dataaccess.corpo.entity;
+
+import com.bmci.workflow.fund.management.dataaccess.common.entity.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/** Referentiel devises du schema corpo (duplique du nominal, seed: MAD). */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = &quot;currency&quot;, schema = &quot;corpo&quot;)
+public class CorpoCurrencyEntity extends BaseEntity {
+
+    @Column(name = &quot;iso_code&quot;, nullable = false, unique = true, length = 3)
+    private String isoCode;
+
+    @Column(name = &quot;currency_name&quot;, nullable = false, length = 100)
+    private String currencyName;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\entity\CorpoDenominationEntity.java</span><button class="copybtn" onclick="copyCode(32, this)">Copier</button><span class="fh-note">Miroir retail + denomination_code (ajout Jira)</span></div><pre><code id="code-32">package com.bmci.workflow.fund.management.dataaccess.corpo.entity;
+
+import com.bmci.workflow.fund.management.dataaccess.common.entity.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+
+/**
+ * Referentiel coupures du schema corpo — structure dupliquee du nominal
+ * + colonne additionnelle denomination_code (cle stable de l&#x27;API corpo).
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = &quot;denomination&quot;, schema = &quot;corpo&quot;)
+public class CorpoDenominationEntity extends BaseEntity {
+
+    @Column(name = &quot;denomination_code&quot;, nullable = false, unique = true, length = 20)
+    private String denominationCode;
+
+    @Column(name = &quot;item_type&quot;, nullable = false, length = 10)
+    private String itemType;
+
+    @Column(name = &quot;face_value&quot;, nullable = false, precision = 10, scale = 2)
+    private BigDecimal faceValue;
+
+    @Column(name = &quot;denomination_label&quot;, nullable = false, length = 100)
+    private String denominationLabel;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\entity\CorpoEstablishmentEntity.java</span><button class="copybtn" onclick="copyCode(33, this)">Copier</button></div><pre><code id="code-33">package com.bmci.workflow.fund.management.dataaccess.corpo.entity;
+
+import com.bmci.workflow.fund.management.dataaccess.common.entity.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/** Referentiel etablissements du schema corpo (duplique du retail, vide pour l&#x27;instant). */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = &quot;establishment&quot;, schema = &quot;corpo&quot;)
+public class CorpoEstablishmentEntity extends BaseEntity {
+
+    @Column(name = &quot;establishment_code&quot;, nullable = false, unique = true, length = 3)
+    private String establishmentCode;
+
+    @Column(name = &quot;establishment_name&quot;, nullable = false, length = 100)
+    private String establishmentName;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\entity\CorpoUserProfileEntity.java</span><button class="copybtn" onclick="copyCode(34, this)">Copier</button></div><pre><code id="code-34">package com.bmci.workflow.fund.management.dataaccess.corpo.entity;
+
+import com.bmci.workflow.fund.management.dataaccess.common.entity.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/** Referentiel profils utilisateurs du schema corpo (duplique du retail, vide pour l&#x27;instant). */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = &quot;user_profile&quot;, schema = &quot;corpo&quot;)
+public class CorpoUserProfileEntity extends BaseEntity {
+
+    @Column
+    private String uid;
+
+    @Column(name = &quot;profile_code&quot;, length = 50)
+    private String profileCode;
+
+    @Column(name = &quot;profile_label&quot;, length = 100)
+    private String profileLabel;
+
+    @Column(name = &quot;profile_type&quot;, length = 10)
+    private String profileType;
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\repository\CorpoCashRequestJpaRepository.java</span><button class="copybtn" onclick="copyCode(35, this)">Copier</button><span class="fh-note">Fetch join sur l'arbre complet + séquence de la référence (comme findByIdWithOperation retail, en complet)</span></div><pre><code id="code-35">package com.bmci.workflow.fund.management.dataaccess.corpo.repository;
+
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.CorpoCashRequestEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/** Fetch join sur tout l&#x27;arbre (operations -&gt; devise -&gt; coupures). */
+@Repository
+public interface CorpoCashRequestJpaRepository extends JpaRepository&lt;CorpoCashRequestEntity, UUID&gt; {
+
+    @Query(&quot;&quot;&quot;
+            select distinct cr from CorpoCashRequestEntity cr
+            left join fetch cr.operations op
+            left join fetch op.currencyDetails cd
+            left join fetch cd.currency
+            left join fetch cd.operationDenominations od
+            left join fetch od.denomination
+            where cr.id = :id
+            &quot;&quot;&quot;)
+    Optional&lt;CorpoCashRequestEntity&gt; findByIdWithTree(UUID id);
+
+    @Query(&quot;&quot;&quot;
+            select distinct cr from CorpoCashRequestEntity cr
+            left join fetch cr.operations op
+            left join fetch op.currencyDetails cd
+            left join fetch cd.currency
+            left join fetch cd.operationDenominations od
+            left join fetch od.denomination
+            &quot;&quot;&quot;)
+    List&lt;CorpoCashRequestEntity&gt; findAllWithTree();
+
+    @Query(value = &quot;select nextval(&#x27;corpo.corpo_request_ref_seq&#x27;)&quot;, nativeQuery = true)
+    Long nextRequestRef();
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\repository\CorpoDenominationJpaRepository.java</span><button class="copybtn" onclick="copyCode(36, this)">Copier</button></div><pre><code id="code-36">package com.bmci.workflow.fund.management.dataaccess.corpo.repository;
+
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.CorpoDenominationEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
+
+@Repository
+public interface CorpoDenominationJpaRepository extends JpaRepository&lt;CorpoDenominationEntity, UUID&gt; {
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\repository\CorpoCurrencyJpaRepository.java</span><button class="copybtn" onclick="copyCode(37, this)">Copier</button></div><pre><code id="code-37">package com.bmci.workflow.fund.management.dataaccess.corpo.repository;
+
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.CorpoCurrencyEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
+
+@Repository
+public interface CorpoCurrencyJpaRepository extends JpaRepository&lt;CorpoCurrencyEntity, UUID&gt; {
+
+    CorpoCurrencyEntity findByIsoCode(String isoCode);
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\repository\CorpoEstablishmentJpaRepository.java</span><button class="copybtn" onclick="copyCode(38, this)">Copier</button><span class="fh-note">findByEstablishmentCode — miroir du repo retail</span></div><pre><code id="code-38">package com.bmci.workflow.fund.management.dataaccess.corpo.repository;
+
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.CorpoEstablishmentEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
+
+@Repository
+public interface CorpoEstablishmentJpaRepository extends JpaRepository&lt;CorpoEstablishmentEntity, UUID&gt; {
+    CorpoEstablishmentEntity findByEstablishmentCode(String establishmentCode);
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\repository\CorpoUserProfileJpaRepository.java</span><button class="copybtn" onclick="copyCode(39, this)">Copier</button><span class="fh-note">findByUid — miroir du repo retail</span></div><pre><code id="code-39">package com.bmci.workflow.fund.management.dataaccess.corpo.repository;
+
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.CorpoUserProfileEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
+
+@Repository
+public interface CorpoUserProfileJpaRepository extends JpaRepository&lt;CorpoUserProfileEntity, UUID&gt; {
+    CorpoUserProfileEntity findByUid(String uid);
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\mapper\CorpoCashRequestPersistenceMapper.java</span><button class="copybtn" onclick="copyCode(40, this)">Copier</button><span class="fh-note">MapStruct HYBRIDE : structure générée ; résolutions (@Context + default), liens parents et références en @AfterMapping — Impl générée au build</span></div><pre><code id="code-40">package com.bmci.workflow.fund.management.dataaccess.corpo.mapper;
+
+import com.bmci.q360.domain.corpo.entity.*;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.q360.domain.valueobjects.*;
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.*;
+import org.mapstruct.AfterMapping;
+import org.mapstruct.Context;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Mapper de persistance corpo — MapStruct HYBRIDE, miroir du mapping retail :
+ * la STRUCTURE de l&#x27;arbre (champs, listes, enums&lt;-&gt;String, VO&lt;-&gt;UUID) est
+ * GENEREE ; seules les parties non generables restent ecrites a la main :
+ * resolutions par referentiels (coupure par CODE, devise par isoCode) via
+ * methodes default + @Context, liens parents bidirectionnels et references
+ * establishment/userProfile via @AfterMapping.
+ * L&#x27;Impl est generee au build dans target/generated-sources.
+ */
+@Mapper(componentModel = &quot;spring&quot;)
+public interface CorpoCashRequestPersistenceMapper {
+
+    // ==================== DOMAINE -&gt; ENTITES ====================
+
+    @Mapping(target = &quot;creationDate&quot;, ignore = true)      // timestamps Hibernate
+    @Mapping(target = &quot;modificationDate&quot;, ignore = true)
+    @Mapping(target = &quot;userProfile&quot;, ignore = true)       // poses en @AfterMapping (contexte)
+    @Mapping(target = &quot;establishment&quot;, ignore = true)
+    CorpoCashRequestEntity toPersistence(CorpoCashRequest domain,
+            @Context Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode,
+            @Context Map&lt;String, CorpoCurrencyEntity&gt; currenciesByIso,
+            @Context CorpoEstablishmentEntity establishmentEntity,
+            @Context CorpoUserProfileEntity userProfileEntity);
+
+    @Mapping(target = &quot;creationDate&quot;, ignore = true)
+    @Mapping(target = &quot;modificationDate&quot;, ignore = true)
+    @Mapping(target = &quot;cashRequest&quot;, ignore = true)       // backref pose en @AfterMapping racine
+    @Mapping(target = &quot;createdAt&quot;, ignore = true)         // defauts de l&#x27;entite conserves
+    @Mapping(target = &quot;updatedAt&quot;, ignore = true)
+    @Mapping(target = &quot;operationType&quot;, ignore = true)     // non porte par le domaine corpo
+    CorpoCashOperationEntity toOperationEntity(CorpoCashOperation domain,
+            @Context Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode,
+            @Context Map&lt;String, CorpoCurrencyEntity&gt; currenciesByIso);
+
+    /** Utilisee aussi par l&#x27;adaptateur pour l&#x27;update (clear + flush + re-add). */
+    List&lt;CorpoCashOperationEntity&gt; toOperationEntities(List&lt;CorpoCashOperation&gt; operations,
+            @Context Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode,
+            @Context Map&lt;String, CorpoCurrencyEntity&gt; currenciesByIso);
+
+    @Mapping(target = &quot;creationDate&quot;, ignore = true)
+    @Mapping(target = &quot;modificationDate&quot;, ignore = true)
+    @Mapping(target = &quot;cashOperation&quot;, ignore = true)     // backref pose en @AfterMapping
+    CorpoOperationCurrencyDetailEntity toDetailEntity(CorpoOperationCurrencyDetail domain,
+            @Context Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode,
+            @Context Map&lt;String, CorpoCurrencyEntity&gt; currenciesByIso);
+
+    @Mapping(target = &quot;creationDate&quot;, ignore = true)
+    @Mapping(target = &quot;modificationDate&quot;, ignore = true)
+    @Mapping(target = &quot;operationCurrencyDetail&quot;, ignore = true) // backref @AfterMapping
+    CorpoOperationDenominationEntity toLineEntity(CorpoOperationDenomination domain,
+            @Context Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode);
+
+    // ---------- Resolutions par referentiels (parties manuelles assumees) ----------
+
+    default CorpoCurrencyEntity resolveCurrency(CorpoCurrency domain,
+            @Context Map&lt;String, CorpoCurrencyEntity&gt; currenciesByIso) {
+        if (domain == null || domain.getIsoCode() == null) {
+            throw new CorpoValidationException(&quot;La devise est obligatoire&quot;);
+        }
+        CorpoCurrencyEntity matched = currenciesByIso.get(domain.getIsoCode());
+        if (matched == null) {
+            throw new CorpoValidationException(
+                    &quot;La devise &quot; + domain.getIsoCode() + &quot; n&#x27;existe pas dans le référentiel corpo&quot;);
+        }
+        return matched;
+    }
+
+    default CorpoDenominationEntity resolveDenomination(CorpoDenomination domain,
+            @Context Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode) {
+        if (domain == null || domain.getDenominationCode() == null) {
+            throw new CorpoValidationException(&quot;Le code coupure est obligatoire&quot;);
+        }
+        CorpoDenominationEntity matched = denominationsByCode.get(domain.getDenominationCode());
+        if (matched == null) {
+            throw new CorpoValidationException(
+                    &quot;La coupure &#x27;&quot; + domain.getDenominationCode() + &quot;&#x27; n&#x27;existe pas dans le référentiel corpo&quot;);
+        }
+        return matched;
+    }
+
+    // ---------- Liens parents + references (parties manuelles assumees) ----------
+
+    @AfterMapping
+    default void applyReferencesAndParentLinks(@MappingTarget CorpoCashRequestEntity entity,
+            @Context CorpoEstablishmentEntity establishmentEntity,
+            @Context CorpoUserProfileEntity userProfileEntity) {
+        entity.setEstablishment(establishmentEntity);
+        entity.setUserProfile(userProfileEntity);
+        if (entity.getOperations() != null) {
+            entity.getOperations().forEach(operation -&gt; operation.setCashRequest(entity));
+        }
+    }
+
+    @AfterMapping
+    default void linkOperationChildren(@MappingTarget CorpoCashOperationEntity operation) {
+        if (operation.getCurrencyDetails() == null) return;
+        operation.getCurrencyDetails().forEach(detail -&gt; {
+            detail.setCashOperation(operation);
+            if (detail.getOperationDenominations() != null) {
+                detail.getOperationDenominations()
+                        .forEach(line -&gt; line.setOperationCurrencyDetail(detail));
+            }
+        });
+    }
+
+    /** Update de l&#x27;entete uniquement — ref/statut/operations/references geres par l&#x27;adaptateur. */
+    @Mapping(target = &quot;id&quot;, ignore = true)
+    @Mapping(target = &quot;creationDate&quot;, ignore = true)
+    @Mapping(target = &quot;modificationDate&quot;, ignore = true)
+    @Mapping(target = &quot;uniqueRequestRef&quot;, ignore = true)
+    @Mapping(target = &quot;requestStatus&quot;, ignore = true)
+    @Mapping(target = &quot;operations&quot;, ignore = true)
+    @Mapping(target = &quot;userProfile&quot;, ignore = true)
+    @Mapping(target = &quot;establishment&quot;, ignore = true)
+    void updateHeader(@MappingTarget CorpoCashRequestEntity entity, CorpoCashRequest domain);
+
+    // ==================== ENTITES -&gt; DOMAINE ====================
+
+    @Mapping(target = &quot;establishment&quot;, source = &quot;establishment.establishmentCode&quot;)
+    @Mapping(target = &quot;uidUser&quot;, source = &quot;userProfile.uid&quot;)
+    @Mapping(target = &quot;createdAt&quot;, source = &quot;creationDate&quot;)
+    @Mapping(target = &quot;updatedAt&quot;, source = &quot;modificationDate&quot;)
+    CorpoCashRequest toDomain(CorpoCashRequestEntity entity);
+
+    CorpoCashOperation toOperationDomain(CorpoCashOperationEntity entity);
+
+    CorpoOperationCurrencyDetail toDetailDomain(CorpoOperationCurrencyDetailEntity entity);
+
+    CorpoCurrency toCurrencyDomain(CorpoCurrencyEntity entity);
+
+    CorpoOperationDenomination toLineDomain(CorpoOperationDenominationEntity entity);
+
+    CorpoDenomination toDenominationDomain(CorpoDenominationEntity entity);
+
+    // ---------- VO &lt;-&gt; UUID (partages du module common) ----------
+
+    default UUID fromCashRequestId(CashRequestId id) { return id == null ? null : id.getValue(); }
+    default CashRequestId toCashRequestId(UUID id) { return id == null ? null : new CashRequestId(id); }
+    default UUID fromCashOperationId(CashOperationId id) { return id == null ? null : id.getValue(); }
+    default CashOperationId toCashOperationId(UUID id) { return id == null ? null : new CashOperationId(id); }
+    default UUID fromCurrencyId(CurrencyId id) { return id == null ? null : id.getValue(); }
+    default CurrencyId toCurrencyId(UUID id) { return id == null ? null : new CurrencyId(id); }
+    default UUID fromDenominationId(DenominationId id) { return id == null ? null : id.getValue(); }
+    default DenominationId toDenominationId(UUID id) { return id == null ? null : new DenominationId(id); }
+    default UUID fromDetailId(OperationCurrencyDetailId id) { return id == null ? null : id.getValue(); }
+    default OperationCurrencyDetailId toDetailId(UUID id) { return id == null ? null : new OperationCurrencyDetailId(id); }
+    default UUID fromLineId(OperationDenominationId id) { return id == null ? null : id.getValue(); }
+    default OperationDenominationId toLineId(UUID id) { return id == null ? null : new OperationDenominationId(id); }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\adapter\CorpoDemandRepositoryImpl.java</span><button class="copybtn" onclick="copyCode(41, this)">Copier</button><span class="fh-note">Mécanique save() retail + réf CO-AAAA-NNNNNN + update clear/flush/re-add + cancel propagé</span></div><pre><code id="code-41">package com.bmci.workflow.fund.management.dataaccess.corpo.adapter;
+
+import com.bmci.q360.domain.corpo.entity.CorpoCashRequest;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.exceptions.CorpoConflictException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoNotFoundException;
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.*;
+import com.bmci.workflow.fund.management.dataaccess.corpo.mapper.CorpoCashRequestPersistenceMapper;
+import com.bmci.workflow.fund.management.dataaccess.corpo.repository.*;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.output.CorpoDemandRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Year;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+/**
+ * Adaptateur de persistance corpo — MEME MECANIQUE que le save() retail :
+ * chargement des referentiels, mapper (MapStruct) qui construit l&#x27;arbre,
+ * save() en cascade. Update : clear + flush + re-add (contrainte d&#x27;unicite).
+ * Annulation propagee a la demande ET aux operations, comme retail.
+ */
+@Component
+@RequiredArgsConstructor
+public class CorpoDemandRepositoryImpl implements CorpoDemandRepository {
+
+    private final CorpoCashRequestJpaRepository corpoJpaRepository;
+    private final CorpoDenominationJpaRepository corpoDenominationJpaRepository;
+    private final CorpoCurrencyJpaRepository corpoCurrencyJpaRepository;
+    private final CorpoEstablishmentJpaRepository corpoEstablishmentJpaRepository;
+    private final CorpoUserProfileJpaRepository corpoUserProfileJpaRepository;
+    private final CorpoCashRequestPersistenceMapper mapper;
+
+    @Override
+    @Transactional
+    public CorpoCashRequest save(CorpoCashRequest request) {
+        if (request.getUniqueRequestRef() == null) {
+            Long next = corpoJpaRepository.nextRequestRef();
+            request.setUniqueRequestRef(
+                    &quot;CO-&quot; + Year.now().getValue() + &quot;-&quot; + String.format(&quot;%06d&quot;, next));
+        }
+        CorpoCashRequestEntity entity = mapper.toPersistence(request,
+                denominationsByCode(), currenciesByIso(),
+                establishmentOf(request), userProfileOf(request));
+        return mapper.toDomain(corpoJpaRepository.save(entity));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CorpoCashRequest getById(UUID id) {
+        return mapper.toDomain(findEntityOrThrow(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;CorpoCashRequest&gt; findAll() {
+        return corpoJpaRepository.findAllWithTree().stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public CorpoCashRequest update(UUID id, CorpoCashRequest request) {
+        CorpoCashRequestEntity existing = findEntityOrThrow(id);
+        if (isCancelled(existing)) {
+            throw new CorpoConflictException(
+                    &quot;Impossible de modifier la demande &quot; + existing.getUniqueRequestRef()
+                            + &quot; : elle est annulée&quot;);
+        }
+        mapper.updateHeader(existing, request);
+        existing.setEstablishment(establishmentOf(request));
+        existing.setUserProfile(userProfileOf(request));
+
+        existing.getOperations().clear();
+        corpoJpaRepository.flush(); // DELETE de l&#x27;ancien arbre avant les INSERT
+        List&lt;CorpoCashOperationEntity&gt; newOperations = mapper.toOperationEntities(
+                request.getOperations(), denominationsByCode(), currenciesByIso());
+        newOperations.forEach(operation -&gt; operation.setCashRequest(existing));
+        existing.getOperations().addAll(newOperations);
+
+        return mapper.toDomain(corpoJpaRepository.save(existing));
+    }
+
+    @Override
+    @Transactional
+    public CorpoCashRequest cancelById(UUID id) {
+        CorpoCashRequestEntity existing = findEntityOrThrow(id);
+        if (isCancelled(existing)) {
+            throw new CorpoConflictException(
+                    &quot;La demande &quot; + existing.getUniqueRequestRef() + &quot; est déjà annulée&quot;);
+        }
+        existing.setRequestStatus(CorpoRequestStatus.CANCELLED.name());
+        existing.getOperations().forEach(operation -&gt;
+                operation.setOperationStatus(CorpoRequestStatus.CANCELLED.name()));
+        return mapper.toDomain(corpoJpaRepository.save(existing));
+    }
+
+    private CorpoCashRequestEntity findEntityOrThrow(UUID id) {
+        return corpoJpaRepository.findByIdWithTree(id)
+                .orElseThrow(() -&gt; new CorpoNotFoundException(
+                        &quot;La demande corpo &quot; + id + &quot; est introuvable&quot;));
+    }
+
+    private boolean isCancelled(CorpoCashRequestEntity entity) {
+        return CorpoRequestStatus.CANCELLED.name().equals(entity.getRequestStatus());
+    }
+
+    private Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode() {
+        return corpoDenominationJpaRepository.findAll().stream()
+                .collect(Collectors.toMap(CorpoDenominationEntity::getDenominationCode, d -&gt; d));
+    }
+
+    private Map&lt;String, CorpoCurrencyEntity&gt; currenciesByIso() {
+        return corpoCurrencyJpaRepository.findAll().stream()
+                .collect(Collectors.toMap(CorpoCurrencyEntity::getIsoCode, c -&gt; c));
+    }
+
+    private CorpoEstablishmentEntity establishmentOf(CorpoCashRequest request) {
+        if (request.getEstablishment() == null) return null;
+        return corpoEstablishmentJpaRepository.findByEstablishmentCode(request.getEstablishment());
+    }
+
+    private CorpoUserProfileEntity userProfileOf(CorpoCashRequest request) {
+        if (request.getUidUser() == null) return null;
+        return corpoUserProfileJpaRepository.findByUid(request.getUidUser());
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\corpo\adapter\CorpoDenominationRepositoryImpl.java</span><button class="copybtn" onclick="copyCode(42, this)">Copier</button></div><pre><code id="code-42">package com.bmci.workflow.fund.management.dataaccess.corpo.adapter;
+
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.CorpoDenominationEntity;
+import com.bmci.workflow.fund.management.dataaccess.corpo.repository.CorpoDenominationJpaRepository;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.output.CorpoDenominationRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Component
+@RequiredArgsConstructor
+public class CorpoDenominationRepositoryImpl implements CorpoDenominationRepository {
+
+    private final CorpoDenominationJpaRepository corpoDenominationJpaRepository;
+
+    @Override
+    public Map&lt;String, BigDecimal&gt; findFaceValuesByCode() {
+        return corpoDenominationJpaRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        CorpoDenominationEntity::getDenominationCode,
+                        CorpoDenominationEntity::getFaceValue));
+    }
+}</code></pre>
+<h2 id="s6"><span class="num">6</span>Étape 4 — application : controller &amp; handler</h2>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\corpo\CorpoDemandController.java</span><button class="copybtn" onclick="copyCode(43, this)">Copier</button><span class="fh-note">Payload arborescent + @Valid — mêmes 5 endpoints</span></div><pre><code id="code-43">package com.bmci.workflow.fund.management.application.rest.corpo;
+
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoCashRequestDTO;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.input.CorpoDemandUseCase;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Endpoints des demandes corpo — miroir du controller retail (/cash), meme
+ * media type versionne, payload ARBORESCENT aligne retail :
+ * demande -&gt; operations -&gt; currencyDetails -&gt; operationDenominations.
+ */
+@RestController
+@RequestMapping(value = &quot;/corpo/cash&quot;, produces = &quot;application/vnd.api.v1+json&quot;)
+@RequiredArgsConstructor
+public class CorpoDemandController {
+
+    private final CorpoDemandUseCase corpoDemandUseCase;
+
+    @PostMapping
+    public ResponseEntity&lt;CorpoCashRequestDTO&gt; create(@Valid @RequestBody CorpoCashRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(corpoDemandUseCase.create(request));
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;CorpoCashRequestDTO&gt; getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(corpoDemandUseCase.getById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;CorpoCashRequestDTO&gt;&gt; getAll() {
+        return ResponseEntity.ok(corpoDemandUseCase.getAll());
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;CorpoCashRequestDTO&gt; update(
+            @PathVariable UUID id,
+            @Valid @RequestBody CorpoCashRequestDTO request) {
+        return ResponseEntity.ok(corpoDemandUseCase.update(id, request));
+    }
+
+    @PatchMapping(&quot;/{id}/cancel&quot;)
+    public ResponseEntity&lt;CorpoCashRequestDTO&gt; cancel(@PathVariable UUID id) {
+        return ResponseEntity.ok(corpoDemandUseCase.cancel(id));
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\corpo\error\CorpoDemandExceptionHandler.java</span><button class="copybtn" onclick="copyCode(44, this)">Copier</button><span class="fh-note">Provisoire — sera réaligné sur le pattern BFF (note 5 du tech lead)</span></div><pre><code id="code-44">package com.bmci.workflow.fund.management.application.rest.corpo.error;
+
+import com.bmci.q360.domain.corpo.exceptions.CorpoConflictException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoNotFoundException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.workflow.fund.management.application.rest.corpo.CorpoDemandController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Contrat d&#x27;erreur des endpoints corpo (scope: CorpoDemandController
+ * uniquement — le retail garde son comportement actuel).
+ * PROVISOIRE : sera realigne sur le pattern d&#x27;exceptions du projet
+ * orchestrator-bff des reception des elements (note tech lead n°5).
+ */
+@RestControllerAdvice(assignableTypes = CorpoDemandController.class)
+public class CorpoDemandExceptionHandler {
+
+    @ExceptionHandler(CorpoValidationException.class)
+    public ProblemDetail handleValidation(CorpoValidationException ex) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, &quot;CORPO_VALIDATION_ERROR&quot;, ex.getMessage());
+    }
+
+    @ExceptionHandler(CorpoNotFoundException.class)
+    public ProblemDetail handleNotFound(CorpoNotFoundException ex) {
+        return problem(HttpStatus.NOT_FOUND, &quot;CORPO_NOT_FOUND&quot;, ex.getMessage());
+    }
+
+    @ExceptionHandler(CorpoConflictException.class)
+    public ProblemDetail handleConflict(CorpoConflictException ex) {
+        return problem(HttpStatus.CONFLICT, &quot;CORPO_CONFLICT&quot;, ex.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleBeanValidation(MethodArgumentNotValidException ex) {
+        ProblemDetail detail = problem(HttpStatus.BAD_REQUEST, &quot;CORPO_BAD_REQUEST&quot;,
+                &quot;La requête contient des champs invalides&quot;);
+        Map&lt;String, String&gt; fieldErrors = new HashMap&lt;&gt;();
+        ex.getBindingResult().getFieldErrors().forEach(err -&gt;
+                fieldErrors.put(err.getField(), err.getDefaultMessage()));
+        detail.setProperty(&quot;fieldErrors&quot;, fieldErrors);
+        return detail;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleUnreadable(HttpMessageNotReadableException ex) {
+        return problem(HttpStatus.BAD_REQUEST, &quot;CORPO_BAD_REQUEST&quot;,
+                &quot;Le corps de la requête est illisible ou mal formé&quot;);
+    }
+
+    private ProblemDetail problem(HttpStatus status, String code, String message) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(status, message);
+        detail.setProperty(&quot;code&quot;, code);
+        detail.setProperty(&quot;timestamp&quot;, OffsetDateTime.now().toString());
+        return detail;
+    }
+}</code></pre>
+<h2 id="s7"><span class="num">7</span>Étape 5 — Flyway V2 (si pas encore appliqué)</h2>
+<p>Si tu as déjà fait l'intégration Flyway du document précédent, remplace juste le contenu de ta V2 par celui-ci (elle n'a pas encore été appliquée en base tant que l'app n'a pas démarré avec Flyway — sinon, règle du checksum : supprime la ligne V2 de <code>flyway_schema_history</code> + DROP SCHEMA corpo, puis relance). Le schéma corpo = tables retail dupliquées + colonnes Jira + seed MAD/11 coupures.</p>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-container\pom.xml (extrait — si pas déjà fait)</span><button class="copybtn" onclick="copyCode(45, this)">Copier</button></div><pre><code id="code-45">&lt;!-- Ajouter dans fund-management-container/pom.xml (bloc &lt;dependencies&gt;) --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.flywaydb&lt;/groupId&gt;
+    &lt;artifactId&gt;flyway-core&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.flywaydb&lt;/groupId&gt;
+    &lt;artifactId&gt;flyway-database-postgresql&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;!-- Versions gerees par spring-boot-starter-parent 3.3.1 (Flyway 10.x :
+     le support PostgreSQL est un artefact separe, d&#x27;ou la 2e dependance) --&gt;</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-container\src\main\resources\application.yaml</span><button class="copybtn" onclick="copyCode(46, this)">Copier</button><span class="fh-note">Remets l'IP de ta base (10.74.234.132) à la place de localhost si tu es sur la base partagée</span></div><pre><code id="code-46">server:
+  port: 8300
+spring:
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+    show-sql: true
+    hibernate:
+      ddl-auto: none   # la base est desormais pilotee par Flyway, plus par Hibernate
+  datasource:
+    url: jdbc:postgresql://localhost:5432/qlick_flow?binaryTransfer=true&amp;reWriteBatchedInserts=true
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    schemas: public, corpo
+    baseline-on-migrate: true   # marque la base EXISTANTE comme V1 sans la toucher
+    baseline-version: 1
+  sql:
+    init:
+      mode: NEVER
+      platform: postgres
+  cloud:
+    compatibility-verifier:
+      enabled: false</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-container\src\main\resources\db\migration\V2__create_corpo_schema.sql</span><button class="copybtn" onclick="copyCode(47, this)">Copier</button><span class="fh-note">Drop l'ancien schéma corpo v1 (3 tables de test perdues, assumé) puis crée le miroir</span></div><pre><code id="code-47">-- ============================================================================
+-- V2 — Schema corpo : DUPLICATION du schema retail tel qu&#x27;il est (note tech
+-- lead), ADAPTE aux nouvelles donnees de la Jira AER_LM-257 :
+--   + colonnes identite client sur cash_request (ref client, ville,
+--     complement adresse, num compte = zones libres Jira) + unique_request_ref
+--   + colonne denomination_code sur denomination (cle stable de l&#x27;API)
+--   ~ user_profile_id / establishment_id conserves (alignement retail) mais
+--     NULLABLES : la Jira identifie par le client, pas par un user/agence
+-- La base existante (retail) est baselinee V1 et n&#x27;est pas touchee.
+-- ============================================================================
+
+DROP SCHEMA IF EXISTS corpo CASCADE;  -- remplace l&#x27;ancien modele corpo v1
+CREATE SCHEMA corpo;
+
+-- ============ REFERENTIELS (dupliques du retail) ============
+
+CREATE TABLE corpo.currency (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    iso_code           varchar(3) NOT NULL UNIQUE,
+    currency_name      varchar(100) NOT NULL
+);
+
+CREATE TABLE corpo.denomination (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    item_type          varchar(10) NOT NULL,
+    face_value         numeric(10,2) NOT NULL,
+    denomination_label varchar(100) NOT NULL,
+    denomination_code  varchar(20) NOT NULL UNIQUE,  -- ADDITIONNEL corpo (cle API)
+    CONSTRAINT chk_corpo_item_type CHECK (item_type IN (&#x27;BANKNOTE&#x27;, &#x27;COIN&#x27;))
+);
+
+CREATE TABLE corpo.establishment (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    establishment_code varchar(3) NOT NULL UNIQUE,
+    establishment_name varchar(100) NOT NULL
+);
+
+CREATE TABLE corpo.user_profile (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    uid                varchar(255),
+    profile_code       varchar(50),
+    profile_label      varchar(100),
+    profile_type       varchar(10)
+);
+
+-- ============ STRUCTURE DEMANDE (dupliquee du retail) ============
+
+CREATE TABLE corpo.cash_request (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    branch_code        varchar(100),
+    request_status     varchar(30) NOT NULL DEFAULT &#x27;INITIATED&#x27;,
+    -- Alignement retail : FKs conservees, mais NULLABLES (adaptation Jira :
+    -- pas de user/etablissement dans une demande corpo, le client remplace)
+    user_profile_id    uuid,
+    establishment_id   uuid,
+    -- ADDITIONNEL corpo : reference lisible + identite client (zones libres)
+    unique_request_ref varchar(30) UNIQUE,
+    client_ref         varchar(50),
+    city               varchar(100),
+    address_complement varchar(255),
+    account_number     varchar(34),
+    CONSTRAINT fk_corpo_req_user FOREIGN KEY (user_profile_id)
+        REFERENCES corpo.user_profile(id),
+    CONSTRAINT fk_corpo_req_establishment FOREIGN KEY (establishment_id)
+        REFERENCES corpo.establishment(id),
+    CONSTRAINT chk_corpo_request_status
+        CHECK (request_status IN (&#x27;INITIATED&#x27;, &#x27;VALIDATED&#x27;, &#x27;CANCELLED&#x27;))
+);
+
+CREATE TABLE corpo.cash_operation (
+    id                      uuid PRIMARY KEY,
+    creation_date           timestamp,
+    modification_date       timestamp,
+    cash_request_id         uuid NOT NULL,
+    operation_type          varchar(20),
+    operation_sens          varchar(50) NOT NULL,   -- ALIMENTATION / RAMASSAGE
+    institution_code        integer NOT NULL DEFAULT 1,
+    cash_desk_number        varchar(3) NOT NULL DEFAULT &#x27;001&#x27;,
+    is_urgent               varchar(3) NOT NULL DEFAULT &#x27;NO&#x27;,
+    target_cash_desk_number varchar(3),
+    total_amount            numeric(15,2) NOT NULL DEFAULT 0.00,
+    created_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    operation_status        varchar(30) NOT NULL DEFAULT &#x27;INITIATED&#x27;,
+    establishment           varchar(100),
+    CONSTRAINT fk_corpo_op_request FOREIGN KEY (cash_request_id)
+        REFERENCES corpo.cash_request(id) ON DELETE CASCADE,
+    CONSTRAINT chk_corpo_op_sens CHECK (operation_sens IN (&#x27;ALIMENTATION&#x27;, &#x27;RAMASSAGE&#x27;)),
+    CONSTRAINT chk_corpo_op_urgent CHECK (is_urgent IN (&#x27;YES&#x27;, &#x27;NO&#x27;))
+);
+
+CREATE TABLE corpo.operation_currency (
+    id                        uuid PRIMARY KEY,
+    creation_date             timestamp,
+    modification_date         timestamp,
+    cash_operation_id         uuid,
+    currency_id               uuid NOT NULL,
+    total_amount_by_curerency numeric(18,2) NOT NULL,  -- nom conserve (retail)
+    CONSTRAINT fk_corpo_oc_operation FOREIGN KEY (cash_operation_id)
+        REFERENCES corpo.cash_operation(id) ON DELETE CASCADE,
+    CONSTRAINT fk_corpo_oc_currency FOREIGN KEY (currency_id)
+        REFERENCES corpo.currency(id)
+);
+
+CREATE TABLE corpo.operation_denomination (
+    id                           uuid PRIMARY KEY,
+    creation_date                timestamp,
+    modification_date            timestamp,
+    operation_currency_detail_id uuid,
+    denomination_id              uuid,
+    quantity                     integer NOT NULL DEFAULT 0,
+    CONSTRAINT fk_corpo_od_detail FOREIGN KEY (operation_currency_detail_id)
+        REFERENCES corpo.operation_currency(id) ON DELETE CASCADE,
+    CONSTRAINT fk_corpo_od_denomination FOREIGN KEY (denomination_id)
+        REFERENCES corpo.denomination(id) ON DELETE RESTRICT,
+    CONSTRAINT uq_corpo_od UNIQUE (operation_currency_detail_id, denomination_id),
+    CONSTRAINT chk_corpo_od_quantity CHECK (quantity &gt;= 0)
+);
+
+-- ============ SEQUENCE + SEED ============
+
+CREATE SEQUENCE corpo.corpo_request_ref_seq START WITH 1 INCREMENT BY 1;
+
+INSERT INTO corpo.currency (id, iso_code, currency_name) VALUES
+(&#x27;c1000000-0000-0000-0000-000000000001&#x27;, &#x27;MAD&#x27;, &#x27;Dirham marocain&#x27;);
+
+INSERT INTO corpo.denomination (id, denomination_code, item_type, face_value, denomination_label) VALUES
+(&#x27;c0000000-0000-0000-0000-000000000001&#x27;, &#x27;BILLET_200&#x27;, &#x27;BANKNOTE&#x27;, 200.00, &#x27;Billet de 200 DH&#x27;),
+(&#x27;c0000000-0000-0000-0000-000000000002&#x27;, &#x27;BILLET_100&#x27;, &#x27;BANKNOTE&#x27;, 100.00, &#x27;Billet de 100 DH&#x27;),
+(&#x27;c0000000-0000-0000-0000-000000000003&#x27;, &#x27;BILLET_50&#x27;,  &#x27;BANKNOTE&#x27;,  50.00, &#x27;Billet de 50 DH&#x27;),
+(&#x27;c0000000-0000-0000-0000-000000000004&#x27;, &#x27;BILLET_20&#x27;,  &#x27;BANKNOTE&#x27;,  20.00, &#x27;Billet de 20 DH&#x27;),
+(&#x27;c0000000-0000-0000-0000-000000000005&#x27;, &#x27;PIECE_10&#x27;,   &#x27;COIN&#x27;,      10.00, &#x27;Piece de 10 DH&#x27;),
+(&#x27;c0000000-0000-0000-0000-000000000006&#x27;, &#x27;PIECE_5&#x27;,    &#x27;COIN&#x27;,       5.00, &#x27;Piece de 5 DH&#x27;),
+(&#x27;c0000000-0000-0000-0000-000000000007&#x27;, &#x27;PIECE_1&#x27;,    &#x27;COIN&#x27;,       1.00, &#x27;Piece de 1 DH&#x27;),
+(&#x27;c0000000-0000-0000-0000-000000000008&#x27;, &#x27;CENTIME_50&#x27;, &#x27;COIN&#x27;,       0.50, &#x27;Piece de 50 centimes&#x27;),
+(&#x27;c0000000-0000-0000-0000-000000000009&#x27;, &#x27;CENTIME_20&#x27;, &#x27;COIN&#x27;,       0.20, &#x27;Piece de 20 centimes&#x27;),
+(&#x27;c0000000-0000-0000-0000-00000000000a&#x27;, &#x27;CENTIME_10&#x27;, &#x27;COIN&#x27;,       0.10, &#x27;Piece de 10 centimes&#x27;),
+(&#x27;c0000000-0000-0000-0000-00000000000b&#x27;, &#x27;CENTIME_5&#x27;,  &#x27;COIN&#x27;,       0.05, &#x27;Piece de 5 centimes&#x27;);</code></pre>
+<h2 id="s8"><span class="num">8</span>Étape 6 — Stratégie de tests, couverture, build &amp; smoke test</h2>
+<p>La pyramide de tests couvre chaque couche avec le bon outil — c'est l'argument « tests réglo » à présenter en revue. Les 3 premières classes remplacent les précédentes, les 4 suivantes sont nouvelles :</p>
+<table>
+<tr><th>Niveau</th><th>Classe</th><th>Ce qui est couvert</th><th>Outil</th></tr>
+<tr><td>Unitaire — domaine</td><td>CorpoCashRequestTest</td><td>Règles métier pures : calcul du montant, cohérence montant fourni/calculé, coupure inconnue, ≥1 opération, ramassage</td><td>JUnit 5, aucun mock</td></tr>
+<tr><td>Unitaire — mapper web</td><td>CorpoCashRequestWebMapperTest</td><td>Aller-retour DTO↔domaine, champs serveur ignorés en entrée, VOs partagés</td><td>Mappers.getMapper (Impl MapStruct)</td></tr>
+<tr><td>Unitaire — use case</td><td>CorpoDemandUseCaseImplTest</td><td>Orchestration : validation déclenchée avant save, rejet code inconnu sans toucher la persistance</td><td>Mockito</td></tr>
+<tr><td>Unitaire — mapper persistance</td><td>CorpoCashRequestPersistenceMapperTest</td><td>Arbre domaine↔entités (structure générée), résolutions par référentiels, liens parents, références</td><td>Mappers.getMapper (Impl MapStruct)</td></tr>
+<tr><td>Unitaire — adaptateur</td><td>CorpoDemandRepositoryImplTest</td><td>Réf CO- générée, cancel propagé, 404/409 — vraie Impl MapStruct en @Spy, JPA mocké (miroir du CashDemandRepositoryTest retail)</td><td>Mockito</td></tr>
+<tr><td>Web slice</td><td>CorpoDemandControllerTest</td><td>Contrat HTTP + handler : payload arborescent, 201/200, 400 Bean Validation, 404, 422</td><td>MockMvc standalone</td></tr>
+<tr><td>Intégration</td><td>CorpoDemandIntegrationTest</td><td>Contexte Spring complet + Flyway + base réelle : create → getById → cancel à travers toutes les couches, rollback automatique</td><td>@SpringBootTest + @Transactional</td></tr>
+</table>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-domain\fund-management-domain-core\src\test\java\com\bmci\q360\domain\corpo\CorpoCashRequestTest.java</span><button class="copybtn" onclick="copyCode(48, this)">Copier</button><span class="fh-note">Validation domaine : arbre, montant contrôlé, ramassage, coupure inconnue, ≥1 opération</span></div><pre><code id="code-48">package com.bmci.q360.domain.corpo;
+
+import com.bmci.q360.domain.corpo.entity.*;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.enums.UrgencyFlag;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/** Tests du modele corpo aligne retail — module fund-management-domain-core. */
+public class CorpoCashRequestTest {
+
+    private static final Map&lt;String, BigDecimal&gt; FACE_VALUES = Map.of(
+            &quot;BILLET_200&quot;, new BigDecimal(&quot;200.00&quot;),
+            &quot;BILLET_100&quot;, new BigDecimal(&quot;100.00&quot;),
+            &quot;PIECE_5&quot;, new BigDecimal(&quot;5.00&quot;));
+
+    private CorpoOperationDenomination line(String code, Integer quantity) {
+        CorpoDenomination denomination = new CorpoDenomination();
+        denomination.setDenominationCode(code);
+        CorpoOperationDenomination l = new CorpoOperationDenomination();
+        l.setDenomination(denomination);
+        l.setQuantity(quantity);
+        return l;
+    }
+
+    private CorpoCashRequest requestWith(CorpoRequestType sens, List&lt;CorpoOperationDenomination&gt; lines) {
+        CorpoOperationCurrencyDetail detail = new CorpoOperationCurrencyDetail();
+        CorpoCurrency mad = new CorpoCurrency();
+        mad.setIsoCode(&quot;MAD&quot;);
+        detail.setCurrency(mad);
+        detail.setOperationDenominations(new ArrayList&lt;&gt;(lines));
+
+        CorpoCashOperation operation = new CorpoCashOperation();
+        operation.setOperationSens(sens);
+        operation.setCurrencyDetails(new ArrayList&lt;&gt;(List.of(detail)));
+
+        CorpoCashRequest request = new CorpoCashRequest();
+        request.setOperations(new ArrayList&lt;&gt;(List.of(operation)));
+        return request;
+    }
+
+    @Test
+    void alimentationShouldComputeTotalsFromTree() {
+        CorpoCashRequest request = requestWith(CorpoRequestType.ALIMENTATION,
+                List.of(line(&quot;BILLET_200&quot;, 10), line(&quot;BILLET_100&quot;, 4), line(&quot;PIECE_5&quot;, 20)));
+
+        request.validateAndCompute(FACE_VALUES);
+
+        CorpoCashOperation operation = request.getOperations().get(0);
+        Assertions.assertEquals(0, new BigDecimal(&quot;2500.00&quot;).compareTo(operation.getTotalAmount()));
+        Assertions.assertEquals(0, new BigDecimal(&quot;2500.00&quot;).compareTo(
+                operation.getCurrencyDetails().get(0).getTotalAmountByCurrency()));
+        Assertions.assertEquals(CorpoRequestStatus.INITIATED, request.getRequestStatus());
+        Assertions.assertEquals(UrgencyFlag.NO, operation.getIsUrgent());
+    }
+
+    @Test
+    void inconsistentProvidedAmountShouldBeRejected() {
+        CorpoCashRequest request = requestWith(CorpoRequestType.ALIMENTATION,
+                List.of(line(&quot;BILLET_200&quot;, 10)));
+        request.getOperations().get(0).setTotalAmount(new BigDecimal(&quot;999.99&quot;));
+
+        CorpoValidationException exception = Assertions.assertThrows(
+                CorpoValidationException.class,
+                () -&gt; request.validateAndCompute(FACE_VALUES));
+
+        Assertions.assertTrue(exception.getMessage().contains(&quot;999.99&quot;));
+    }
+
+    @Test
+    void ramassageShouldKeepProvidedAmountAndDefaultToZero() {
+        CorpoCashRequest provided = requestWith(CorpoRequestType.RAMASSAGE, List.of());
+        provided.getOperations().get(0).setTotalAmount(new BigDecimal(&quot;15000.00&quot;));
+        provided.validateAndCompute(FACE_VALUES);
+        Assertions.assertEquals(0, new BigDecimal(&quot;15000.00&quot;)
+                .compareTo(provided.getOperations().get(0).getTotalAmount()));
+
+        CorpoCashRequest empty = requestWith(CorpoRequestType.RAMASSAGE, List.of());
+        empty.getOperations().get(0).setTotalAmount(null);
+        empty.validateAndCompute(FACE_VALUES);
+        Assertions.assertEquals(0, BigDecimal.ZERO
+                .compareTo(empty.getOperations().get(0).getTotalAmount()));
+    }
+
+    @Test
+    void unknownDenominationAndMissingOperationShouldBeRejected() {
+        CorpoCashRequest badCode = requestWith(CorpoRequestType.ALIMENTATION,
+                List.of(line(&quot;BILLET_500&quot;, 1)));
+        Assertions.assertThrows(CorpoValidationException.class,
+                () -&gt; badCode.validateAndCompute(FACE_VALUES));
+
+        CorpoCashRequest noOperations = new CorpoCashRequest();
+        noOperations.setOperations(new ArrayList&lt;&gt;());
+        Assertions.assertThrows(CorpoValidationException.class,
+                () -&gt; noOperations.validateAndCompute(FACE_VALUES));
+    }
+
+    @Test
+    void nullQuantityShouldDefaultToZero() {
+        CorpoCashRequest request = requestWith(CorpoRequestType.ALIMENTATION,
+                List.of(line(&quot;BILLET_200&quot;, null)));
+
+        request.validateAndCompute(FACE_VALUES);
+
+        Assertions.assertEquals(0, request.getOperations().get(0)
+                .getCurrencyDetails().get(0).getOperationDenominations().get(0).getQuantity());
+        Assertions.assertEquals(0, BigDecimal.ZERO
+                .compareTo(request.getOperations().get(0).getTotalAmount()));
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-data-access\src\test\java\com\bmci\workflow\fund\management\dataaccess\corpo\mapper\CorpoCashRequestPersistenceMapperTest.java</span><button class="copybtn" onclick="copyCode(49, this)">Copier</button></div><pre><code id="code-49">package com.bmci.workflow.fund.management.dataaccess.corpo.mapper;
+
+import com.bmci.q360.domain.corpo.entity.*;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.enums.UrgencyFlag;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.*;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Test du mapper de persistance MapStruct (Impl generee — build prealable) :
+ * structure generee + parties manuelles (resolutions, liens parents, refs).
+ */
+public class CorpoCashRequestPersistenceMapperTest {
+
+    private final CorpoCashRequestPersistenceMapper mapper =
+            Mappers.getMapper(CorpoCashRequestPersistenceMapper.class);
+
+    private Map&lt;String, CorpoDenominationEntity&gt; denominationsByCode;
+    private Map&lt;String, CorpoCurrencyEntity&gt; currenciesByIso;
+    private CorpoEstablishmentEntity establishment;
+    private CorpoUserProfileEntity userProfile;
+
+    @BeforeEach
+    void setUp() {
+        CorpoDenominationEntity billet200 = new CorpoDenominationEntity();
+        billet200.setId(UUID.randomUUID());
+        billet200.setDenominationCode(&quot;BILLET_200&quot;);
+        billet200.setItemType(&quot;BANKNOTE&quot;);
+        billet200.setFaceValue(new BigDecimal(&quot;200.00&quot;));
+        billet200.setDenominationLabel(&quot;Billet de 200 DH&quot;);
+        denominationsByCode = Map.of(&quot;BILLET_200&quot;, billet200);
+
+        CorpoCurrencyEntity mad = new CorpoCurrencyEntity();
+        mad.setId(UUID.randomUUID());
+        mad.setIsoCode(&quot;MAD&quot;);
+        currenciesByIso = Map.of(&quot;MAD&quot;, mad);
+
+        establishment = new CorpoEstablishmentEntity();
+        establishment.setEstablishmentCode(&quot;001&quot;);
+        userProfile = new CorpoUserProfileEntity();
+        userProfile.setUid(&quot;j43709&quot;);
+    }
+
+    private CorpoCashRequest sampleDomain() {
+        CorpoDenomination denomination = new CorpoDenomination();
+        denomination.setDenominationCode(&quot;BILLET_200&quot;);
+        CorpoOperationDenomination line = new CorpoOperationDenomination();
+        line.setDenomination(denomination);
+        line.setQuantity(10);
+        CorpoCurrency mad = new CorpoCurrency();
+        mad.setIsoCode(&quot;MAD&quot;);
+        CorpoOperationCurrencyDetail detail = new CorpoOperationCurrencyDetail();
+        detail.setCurrency(mad);
+        detail.setTotalAmountByCurrency(new BigDecimal(&quot;2000.00&quot;));
+        detail.setOperationDenominations(List.of(line));
+        CorpoCashOperation operation = new CorpoCashOperation();
+        operation.setOperationSens(CorpoRequestType.ALIMENTATION);
+        operation.setIsUrgent(UrgencyFlag.YES);
+        operation.setTotalAmount(new BigDecimal(&quot;2000.00&quot;));
+        operation.setCurrencyDetails(List.of(detail));
+        CorpoCashRequest request = new CorpoCashRequest();
+        request.setEstablishment(&quot;001&quot;);
+        request.setUidUser(&quot;j43709&quot;);
+        request.setClientRef(&quot;CORP-00042&quot;);
+        request.setOperations(List.of(operation));
+        return request;
+    }
+
+    @Test
+    void toPersistenceShouldBuildLinkedTreeWithResolvedReferences() {
+        CorpoCashRequestEntity entity = mapper.toPersistence(
+                sampleDomain(), denominationsByCode, currenciesByIso, establishment, userProfile);
+
+        Assertions.assertEquals(&quot;INITIATED&quot;, entity.getRequestStatus());
+        Assertions.assertSame(establishment, entity.getEstablishment());
+        Assertions.assertSame(userProfile, entity.getUserProfile());
+
+        CorpoCashOperationEntity operation = entity.getOperations().get(0);
+        Assertions.assertEquals(&quot;ALIMENTATION&quot;, operation.getOperationSens());
+        Assertions.assertEquals(&quot;YES&quot;, operation.getIsUrgent());
+        Assertions.assertSame(entity, operation.getCashRequest());
+
+        CorpoOperationCurrencyDetailEntity detail = operation.getCurrencyDetails().get(0);
+        Assertions.assertEquals(&quot;MAD&quot;, detail.getCurrency().getIsoCode());
+        Assertions.assertSame(operation, detail.getCashOperation());
+        Assertions.assertEquals(&quot;BILLET_200&quot;,
+                detail.getOperationDenominations().get(0).getDenomination().getDenominationCode());
+        Assertions.assertSame(detail,
+                detail.getOperationDenominations().get(0).getOperationCurrencyDetail());
+    }
+
+    @Test
+    void unknownReferencesShouldThrowValidation() {
+        CorpoCashRequest badCode = sampleDomain();
+        badCode.getOperations().get(0).getCurrencyDetails().get(0)
+                .getOperationDenominations().get(0).getDenomination().setDenominationCode(&quot;BILLET_500&quot;);
+        Assertions.assertThrows(CorpoValidationException.class, () -&gt; mapper.toPersistence(
+                badCode, denominationsByCode, currenciesByIso, establishment, userProfile));
+
+        CorpoCashRequest badCurrency = sampleDomain();
+        badCurrency.getOperations().get(0).getCurrencyDetails().get(0)
+                .getCurrency().setIsoCode(&quot;EUR&quot;);
+        Assertions.assertThrows(CorpoValidationException.class, () -&gt; mapper.toPersistence(
+                badCurrency, denominationsByCode, currenciesByIso, establishment, userProfile));
+    }
+
+    @Test
+    void toDomainShouldMapTreeBackWithEstablishmentCodeAndUid() {
+        CorpoCashRequestEntity entity = mapper.toPersistence(
+                sampleDomain(), denominationsByCode, currenciesByIso, establishment, userProfile);
+        entity.setId(UUID.randomUUID());
+        entity.setUniqueRequestRef(&quot;CO-2026-000001&quot;);
+        entity.setRequestStatus(&quot;CANCELLED&quot;);
+
+        CorpoCashRequest domain = mapper.toDomain(entity);
+
+        Assertions.assertEquals(CorpoRequestStatus.CANCELLED, domain.getRequestStatus());
+        Assertions.assertEquals(&quot;001&quot;, domain.getEstablishment());
+        Assertions.assertEquals(&quot;j43709&quot;, domain.getUidUser());
+        Assertions.assertEquals(CorpoRequestType.ALIMENTATION,
+                domain.getOperations().get(0).getOperationSens());
+        Assertions.assertEquals(&quot;Billet de 200 DH&quot;,
+                domain.getOperations().get(0).getCurrencyDetails().get(0)
+                        .getOperationDenominations().get(0).getDenomination().getDenominationLabel());
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-container\src\test\java\com\bmci\workflow\fund\management\CorpoDemandControllerTest.java</span><button class="copybtn" onclick="copyCode(50, this)">Copier</button><span class="fh-note">Payload arborescent, 400/404/422, update, cancel</span></div><pre><code id="code-50">package com.bmci.workflow.fund.management;
+
+import com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+import com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.exceptions.CorpoNotFoundException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.workflow.fund.management.application.rest.corpo.CorpoDemandController;
+import com.bmci.workflow.fund.management.application.rest.corpo.error.CorpoDemandExceptionHandler;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.*;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.input.CorpoDemandUseCase;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.List;
+import java.util.UUID;
+
+/** Tests controller corpo (payload arborescent aligne retail) + contrat d&#x27;erreur. */
+@ExtendWith(MockitoExtension.class)
+public class CorpoDemandControllerTest {
+
+    private MockMvc mockMvc;
+
+    @Mock
+    private CorpoDemandUseCase corpoDemandUseCase;
+
+    private ObjectMapper objectMapper;
+
+    @InjectMocks
+    private CorpoDemandController corpoDemandController;
+
+    @BeforeEach
+    void setUp() {
+        objectMapper = new ObjectMapper();
+        mockMvc = MockMvcBuilders.standaloneSetup(corpoDemandController)
+                .setControllerAdvice(new CorpoDemandExceptionHandler())
+                .build();
+    }
+
+    private CorpoCashRequestDTO sampleRequest() {
+        return CorpoCashRequestDTO.builder()
+                .clientRef(&quot;CORP-00042&quot;)
+                .city(&quot;Casablanca&quot;)
+                .accountNumber(&quot;011780000012345678901234&quot;)
+                .operations(List.of(CorpoCashOperationDTO.builder()
+                        .operationSens(CorpoRequestType.ALIMENTATION)
+                        .currencyDetails(List.of(CorpoOperationCurrencyDetailDTO.builder()
+                                .currency(CurrencyDTO.builder().isoCode(&quot;MAD&quot;).build())
+                                .operationDenominations(List.of(CorpoOperationDenominationDTO.builder()
+                                        .denomination(DenominationDTO.builder()
+                                                .denominationCode(&quot;BILLET_200&quot;).build())
+                                        .quantity(10).build()))
+                                .build()))
+                        .build()))
+                .build();
+    }
+
+    @Test
+    void shouldCreateCorpoDemand() throws Exception {
+        Mockito.when(corpoDemandUseCase.create(Mockito.any(CorpoCashRequestDTO.class)))
+                .thenReturn(new CorpoCashRequestDTO());
+
+        mockMvc.perform(MockMvcRequestBuilders.post(&quot;/corpo/cash&quot;)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    void missingOperationsShouldReturn400() throws Exception {
+        CorpoCashRequestDTO invalid = CorpoCashRequestDTO.builder().clientRef(&quot;CORP-00042&quot;).build();
+
+        mockMvc.perform(MockMvcRequestBuilders.post(&quot;/corpo/cash&quot;)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath(&quot;$.code&quot;).value(&quot;CORPO_BAD_REQUEST&quot;))
+                .andExpect(MockMvcResultMatchers.jsonPath(&quot;$.fieldErrors.operations&quot;).exists());
+    }
+
+    @Test
+    void unknownIdShouldReturn404() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        Mockito.when(corpoDemandUseCase.getById(requestId))
+                .thenThrow(new CorpoNotFoundException(&quot;La demande corpo &quot; + requestId + &quot; est introuvable&quot;));
+
+        mockMvc.perform(MockMvcRequestBuilders.get(&quot;/corpo/cash/&quot; + requestId))
+                .andExpect(MockMvcResultMatchers.status().isNotFound())
+                .andExpect(MockMvcResultMatchers.jsonPath(&quot;$.code&quot;).value(&quot;CORPO_NOT_FOUND&quot;));
+    }
+
+    @Test
+    void businessRuleViolationShouldReturn422() throws Exception {
+        Mockito.when(corpoDemandUseCase.create(Mockito.any(CorpoCashRequestDTO.class)))
+                .thenThrow(new CorpoValidationException(&quot;Coupure inconnue : BILLET_500&quot;));
+
+        mockMvc.perform(MockMvcRequestBuilders.post(&quot;/corpo/cash&quot;)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(MockMvcResultMatchers.status().isUnprocessableEntity())
+                .andExpect(MockMvcResultMatchers.jsonPath(&quot;$.code&quot;).value(&quot;CORPO_VALIDATION_ERROR&quot;));
+    }
+
+    @Test
+    void shouldUpdateAndCancel() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        Mockito.when(corpoDemandUseCase.update(Mockito.eq(requestId), Mockito.any()))
+                .thenReturn(new CorpoCashRequestDTO());
+        Mockito.when(corpoDemandUseCase.cancel(requestId)).thenReturn(new CorpoCashRequestDTO());
+
+        mockMvc.perform(MockMvcRequestBuilders.put(&quot;/corpo/cash/&quot; + requestId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(&quot;/corpo/cash/&quot; + requestId + &quot;/cancel&quot;))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\corpo\mapper\CorpoCashRequestWebMapperTest.java</span><button class="copybtn" onclick="copyCode(51, this)">Copier</button><span class="fh-note">Lancer après un premier build (l'Impl MapStruct doit exister)</span></div><pre><code id="code-51">package com.bmci.workflow.fund.management.service.domain.corpo.mapper;
+
+import com.bmci.q360.domain.corpo.entity.CorpoCashRequest;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.enums.UrgencyFlag;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.*;
+import com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+import com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Test unitaire du mapper web MapStruct (aller-retour DTO &lt;-&gt; domaine).
+ * Mappers.getMapper charge l&#x27;Impl generee — necessite un build prealable.
+ */
+public class CorpoCashRequestWebMapperTest {
+
+    private final CorpoCashRequestWebMapper mapper = Mappers.getMapper(CorpoCashRequestWebMapper.class);
+
+    private CorpoCashRequestDTO sampleDto() {
+        DenominationDTO denomination = DenominationDTO.builder()
+                .denominationCode(&quot;BILLET_200&quot;).build();
+        CorpoOperationDenominationDTO line = CorpoOperationDenominationDTO.builder()
+                .denomination(denomination).quantity(10).build();
+        CorpoOperationCurrencyDetailDTO detail = CorpoOperationCurrencyDetailDTO.builder()
+                .currency(CurrencyDTO.builder().isoCode(&quot;MAD&quot;).build())
+                .operationDenominations(List.of(line)).build();
+        CorpoCashOperationDTO operation = CorpoCashOperationDTO.builder()
+                .operationSens(CorpoRequestType.ALIMENTATION)
+                .isUrgent(UrgencyFlag.YES)
+                .currencyDetails(List.of(detail)).build();
+        return CorpoCashRequestDTO.builder()
+                .branchCode(&quot;AG-CASA-01&quot;).establishment(&quot;001&quot;).user(&quot;j43709&quot;)
+                .clientRef(&quot;CORP-00042&quot;).city(&quot;Casablanca&quot;)
+                .operations(List.of(operation)).build();
+    }
+
+    @Test
+    void toDomainShouldMapTreeAndUserAndIgnoreServerFields() {
+        CorpoCashRequestDTO dto = sampleDto();
+        dto.setUniqueRequestRef(&quot;HACK-001&quot;);           // champ serveur : doit etre ignore
+        dto.setRequestStatus(CorpoRequestStatus.VALIDATED);
+
+        CorpoCashRequest domain = mapper.toDomain(dto);
+
+        Assertions.assertNull(domain.getUniqueRequestRef());
+        Assertions.assertEquals(&quot;j43709&quot;, domain.getUidUser());
+        Assertions.assertEquals(&quot;001&quot;, domain.getEstablishment());
+        Assertions.assertEquals(&quot;CORP-00042&quot;, domain.getClientRef());
+        Assertions.assertEquals(CorpoRequestType.ALIMENTATION,
+                domain.getOperations().get(0).getOperationSens());
+        Assertions.assertEquals(&quot;MAD&quot;, domain.getOperations().get(0)
+                .getCurrencyDetails().get(0).getCurrency().getIsoCode());
+        Assertions.assertEquals(&quot;BILLET_200&quot;, domain.getOperations().get(0)
+                .getCurrencyDetails().get(0).getOperationDenominations().get(0)
+                .getDenomination().getDenominationCode());
+    }
+
+    @Test
+    void toResponseDtoShouldMapBackWithUuidFromValueObject() {
+        CorpoCashRequest domain = mapper.toDomain(sampleDto());
+        domain.setId(new com.bmci.q360.domain.valueobjects.CashRequestId(UUID.randomUUID()));
+        domain.setUniqueRequestRef(&quot;CO-2026-000001&quot;);
+        domain.setRequestStatus(CorpoRequestStatus.INITIATED);
+        domain.getOperations().get(0).setTotalAmount(new BigDecimal(&quot;2000.00&quot;));
+
+        CorpoCashRequestDTO out = mapper.toResponseDTO(domain);
+
+        Assertions.assertEquals(domain.getId().getValue(), out.getId());
+        Assertions.assertEquals(&quot;CO-2026-000001&quot;, out.getUniqueRequestRef());
+        Assertions.assertEquals(&quot;j43709&quot;, out.getUser());
+        Assertions.assertEquals(0, new BigDecimal(&quot;2000.00&quot;)
+                .compareTo(out.getOperations().get(0).getTotalAmount()));
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\corpo\ports\CorpoDemandUseCaseImplTest.java</span><button class="copybtn" onclick="copyCode(52, this)">Copier</button></div><pre><code id="code-52">package com.bmci.workflow.fund.management.service.domain.corpo.ports;
+
+import com.bmci.q360.domain.corpo.entity.*;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.CorpoCashRequestDTO;
+import com.bmci.workflow.fund.management.service.domain.corpo.mapper.CorpoCashRequestWebMapper;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.output.CorpoDemandRepository;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.output.CorpoDenominationRepository;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/** Test unitaire du use case : orchestration + validation domaine declenchee. */
+@ExtendWith(MockitoExtension.class)
+public class CorpoDemandUseCaseImplTest {
+
+    @Mock private CorpoDemandRepository corpoDemandRepository;
+    @Mock private CorpoDenominationRepository corpoDenominationRepository;
+    @Mock private CorpoCashRequestWebMapper webMapper;
+    @InjectMocks private CorpoDemandUseCaseImpl useCase;
+
+    private CorpoCashRequest domainTree(String code, int quantity) {
+        CorpoOperationDenomination line = new CorpoOperationDenomination();
+        CorpoDenomination denomination = new CorpoDenomination();
+        denomination.setDenominationCode(code);
+        line.setDenomination(denomination);
+        line.setQuantity(quantity);
+        CorpoOperationCurrencyDetail detail = new CorpoOperationCurrencyDetail();
+        CorpoCurrency mad = new CorpoCurrency();
+        mad.setIsoCode(&quot;MAD&quot;);
+        detail.setCurrency(mad);
+        detail.setOperationDenominations(List.of(line));
+        CorpoCashOperation operation = new CorpoCashOperation();
+        operation.setOperationSens(CorpoRequestType.ALIMENTATION);
+        operation.setCurrencyDetails(List.of(detail));
+        CorpoCashRequest request = new CorpoCashRequest();
+        request.setOperations(List.of(operation));
+        return request;
+    }
+
+    @Test
+    void createShouldValidateComputeAndSave() {
+        CorpoCashRequestDTO dto = new CorpoCashRequestDTO();
+        CorpoCashRequest domain = domainTree(&quot;BILLET_200&quot;, 10);
+        CorpoCashRequest saved = new CorpoCashRequest();
+        CorpoCashRequestDTO response = new CorpoCashRequestDTO();
+
+        Mockito.when(webMapper.toDomain(dto)).thenReturn(domain);
+        Mockito.when(corpoDenominationRepository.findFaceValuesByCode())
+                .thenReturn(Map.of(&quot;BILLET_200&quot;, new BigDecimal(&quot;200.00&quot;)));
+        Mockito.when(corpoDemandRepository.save(domain)).thenReturn(saved);
+        Mockito.when(webMapper.toResponseDTO(saved)).thenReturn(response);
+
+        CorpoCashRequestDTO result = useCase.create(dto);
+
+        Assertions.assertSame(response, result);
+        // La validation domaine a bien tourne : montant calcule sur l&#x27;operation
+        Assertions.assertEquals(0, new BigDecimal(&quot;2000.00&quot;)
+                .compareTo(domain.getOperations().get(0).getTotalAmount()));
+        Mockito.verify(corpoDemandRepository).save(domain);
+    }
+
+    @Test
+    void createShouldRejectUnknownDenominationCode() {
+        CorpoCashRequestDTO dto = new CorpoCashRequestDTO();
+        Mockito.when(webMapper.toDomain(dto)).thenReturn(domainTree(&quot;BILLET_500&quot;, 1));
+        Mockito.when(corpoDenominationRepository.findFaceValuesByCode())
+                .thenReturn(Map.of(&quot;BILLET_200&quot;, new BigDecimal(&quot;200.00&quot;)));
+
+        Assertions.assertThrows(CorpoValidationException.class, () -&gt; useCase.create(dto));
+        Mockito.verify(corpoDemandRepository, Mockito.never()).save(Mockito.any());
+    }
+
+    @Test
+    void cancelShouldDelegateToRepository() {
+        UUID id = UUID.randomUUID();
+        CorpoCashRequest cancelled = new CorpoCashRequest();
+        CorpoCashRequestDTO response = new CorpoCashRequestDTO();
+        Mockito.when(corpoDemandRepository.cancelById(id)).thenReturn(cancelled);
+        Mockito.when(webMapper.toResponseDTO(cancelled)).thenReturn(response);
+
+        Assertions.assertSame(response, useCase.cancel(id));
+        Mockito.verify(corpoDemandRepository).cancelById(id);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-data-access\src\test\java\com\bmci\workflow\fund\management\dataaccess\corpo\adapter\CorpoDemandRepositoryImplTest.java</span><button class="copybtn" onclick="copyCode(53, this)">Copier</button></div><pre><code id="code-53">package com.bmci.workflow.fund.management.dataaccess.corpo.adapter;
+
+import com.bmci.q360.domain.corpo.entity.CorpoCashRequest;
+import com.bmci.q360.domain.corpo.exceptions.CorpoConflictException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoNotFoundException;
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.CorpoCashOperationEntity;
+import com.bmci.workflow.fund.management.dataaccess.corpo.entity.CorpoCashRequestEntity;
+import com.bmci.workflow.fund.management.dataaccess.corpo.mapper.CorpoCashRequestPersistenceMapper;
+import com.bmci.workflow.fund.management.dataaccess.corpo.repository.*;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Test unitaire de l&#x27;adaptateur : mocks des JpaRepositories, VRAI mapper de
+ * persistance (@Spy) — on teste la mecanique reelle, miroir du
+ * CashDemandRepositoryTest retail.
+ */
+@ExtendWith(MockitoExtension.class)
+public class CorpoDemandRepositoryImplTest {
+
+    @Mock private CorpoCashRequestJpaRepository corpoJpaRepository;
+    @Mock private CorpoDenominationJpaRepository corpoDenominationJpaRepository;
+    @Mock private CorpoCurrencyJpaRepository corpoCurrencyJpaRepository;
+    @Mock private CorpoEstablishmentJpaRepository corpoEstablishmentJpaRepository;
+    @Mock private CorpoUserProfileJpaRepository corpoUserProfileJpaRepository;
+    @Spy  private CorpoCashRequestPersistenceMapper mapper =
+            Mappers.getMapper(CorpoCashRequestPersistenceMapper.class); // Impl generee : build prealable
+    @InjectMocks private CorpoDemandRepositoryImpl adapter;
+
+    private CorpoCashRequestEntity entityWithOperation(String requestStatus, String operationStatus) {
+        CorpoCashOperationEntity operation = new CorpoCashOperationEntity();
+        operation.setId(UUID.randomUUID());
+        operation.setOperationStatus(operationStatus);
+        CorpoCashRequestEntity entity = new CorpoCashRequestEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setUniqueRequestRef(&quot;CO-2026-000042&quot;);
+        entity.setRequestStatus(requestStatus);
+        entity.setOperations(new ArrayList&lt;&gt;(List.of(operation)));
+        return entity;
+    }
+
+    @Test
+    void saveShouldGenerateReadableReferenceFromSequence() {
+        Mockito.when(corpoJpaRepository.nextRequestRef()).thenReturn(7L);
+        Mockito.when(corpoDenominationJpaRepository.findAll()).thenReturn(List.of());
+        Mockito.when(corpoCurrencyJpaRepository.findAll()).thenReturn(List.of());
+        Mockito.when(corpoJpaRepository.save(Mockito.any(CorpoCashRequestEntity.class)))
+                .thenAnswer(invocation -&gt; invocation.getArgument(0));
+
+        CorpoCashRequest domain = new CorpoCashRequest();
+        adapter.save(domain);
+
+        Assertions.assertTrue(domain.getUniqueRequestRef().matches(&quot;CO-\\d{4}-000007&quot;));
+    }
+
+    @Test
+    void cancelShouldPropagateStatusToRequestAndOperations() {
+        CorpoCashRequestEntity entity = entityWithOperation(&quot;INITIATED&quot;, &quot;INITIATED&quot;);
+        Mockito.when(corpoJpaRepository.findByIdWithTree(entity.getId()))
+                .thenReturn(Optional.of(entity));
+        Mockito.when(corpoJpaRepository.save(entity)).thenReturn(entity);
+
+        adapter.cancelById(entity.getId());
+
+        Assertions.assertEquals(&quot;CANCELLED&quot;, entity.getRequestStatus());
+        Assertions.assertTrue(entity.getOperations().stream()
+                .allMatch(op -&gt; &quot;CANCELLED&quot;.equals(op.getOperationStatus())));
+    }
+
+    @Test
+    void cancelTwiceShouldConflict() {
+        CorpoCashRequestEntity entity = entityWithOperation(&quot;CANCELLED&quot;, &quot;CANCELLED&quot;);
+        Mockito.when(corpoJpaRepository.findByIdWithTree(entity.getId()))
+                .thenReturn(Optional.of(entity));
+
+        Assertions.assertThrows(CorpoConflictException.class,
+                () -&gt; adapter.cancelById(entity.getId()));
+        Mockito.verify(corpoJpaRepository, Mockito.never()).save(Mockito.any());
+    }
+
+    @Test
+    void updateCancelledShouldConflictAndUnknownIdShouldNotFound() {
+        CorpoCashRequestEntity cancelled = entityWithOperation(&quot;CANCELLED&quot;, &quot;CANCELLED&quot;);
+        Mockito.when(corpoJpaRepository.findByIdWithTree(cancelled.getId()))
+                .thenReturn(Optional.of(cancelled));
+        Assertions.assertThrows(CorpoConflictException.class,
+                () -&gt; adapter.update(cancelled.getId(), new CorpoCashRequest()));
+
+        UUID unknown = UUID.randomUUID();
+        Mockito.when(corpoJpaRepository.findByIdWithTree(unknown)).thenReturn(Optional.empty());
+        Assertions.assertThrows(CorpoNotFoundException.class, () -&gt; adapter.getById(unknown));
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-container\src\test\java\com\bmci\workflow\fund\management\CorpoDemandIntegrationTest.java</span><button class="copybtn" onclick="copyCode(54, this)">Copier</button><span class="fh-note">Nécessite la base PostgreSQL accessible — sinon exclure : mvn install -Dtest='!CorpoDemandIntegrationTest'</span></div><pre><code id="code-54">package com.bmci.workflow.fund.management;
+
+import com.bmci.q360.domain.corpo.enums.CorpoRequestStatus;
+import com.bmci.q360.domain.corpo.enums.CorpoRequestType;
+import com.bmci.q360.domain.corpo.enums.UrgencyFlag;
+import com.bmci.workflow.fund.management.service.domain.corpo.dto.*;
+import com.bmci.workflow.fund.management.service.domain.corpo.ports.input.CorpoDemandUseCase;
+import com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+import com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/**
+ * TEST D&#x27;INTEGRATION : demarre le contexte Spring complet + Flyway contre la
+ * base configuree (application.yaml) et traverse toutes les couches reelles
+ * (use case -&gt; mapper MapStruct -&gt; adapter -&gt; JPA -&gt; schema corpo).
+ * @Transactional : chaque test est rollback, la base reste propre.
+ * Necessite la base PostgreSQL accessible (a exclure du build si offline :
+ * mvn install -Dtest=&#x27;!CorpoDemandIntegrationTest&#x27;).
+ */
+@SpringBootTest(classes = WorkFlowFundManagementApplication.class)
+@Transactional
+public class CorpoDemandIntegrationTest {
+
+    @Autowired
+    private CorpoDemandUseCase corpoDemandUseCase;
+
+    private CorpoCashRequestDTO alimentationRequest() {
+        DenominationDTO billet200 = DenominationDTO.builder().denominationCode(&quot;BILLET_200&quot;).build();
+        DenominationDTO billet100 = DenominationDTO.builder().denominationCode(&quot;BILLET_100&quot;).build();
+        CorpoOperationCurrencyDetailDTO detail = CorpoOperationCurrencyDetailDTO.builder()
+                .currency(CurrencyDTO.builder().isoCode(&quot;MAD&quot;).build())
+                .operationDenominations(List.of(
+                        CorpoOperationDenominationDTO.builder().denomination(billet200).quantity(10).build(),
+                        CorpoOperationDenominationDTO.builder().denomination(billet100).quantity(5).build()))
+                .build();
+        CorpoCashOperationDTO operation = CorpoCashOperationDTO.builder()
+                .operationSens(CorpoRequestType.ALIMENTATION)
+                .isUrgent(UrgencyFlag.YES)
+                .currencyDetails(List.of(detail)).build();
+        return CorpoCashRequestDTO.builder()
+                .branchCode(&quot;AG-CASA-01&quot;).clientRef(&quot;CORP-00042&quot;).city(&quot;Casablanca&quot;)
+                .operations(List.of(operation)).build();
+    }
+
+    @Test
+    void fullLifecycleCreateReadCancel() {
+        CorpoCashRequestDTO created = corpoDemandUseCase.create(alimentationRequest());
+
+        Assertions.assertNotNull(created.getId());
+        Assertions.assertTrue(created.getUniqueRequestRef().startsWith(&quot;CO-&quot;));
+        Assertions.assertEquals(CorpoRequestStatus.INITIATED, created.getRequestStatus());
+        Assertions.assertEquals(0, new BigDecimal(&quot;2500.00&quot;)
+                .compareTo(created.getOperations().get(0).getTotalAmount()));
+        Assertions.assertEquals(&quot;Billet de 200 DH&quot;, created.getOperations().get(0)
+                .getCurrencyDetails().get(0).getOperationDenominations().get(0)
+                .getDenomination().getDenominationLabel());
+
+        CorpoCashRequestDTO read = corpoDemandUseCase.getById(created.getId());
+        Assertions.assertEquals(created.getUniqueRequestRef(), read.getUniqueRequestRef());
+
+        CorpoCashRequestDTO cancelled = corpoDemandUseCase.cancel(created.getId());
+        Assertions.assertEquals(CorpoRequestStatus.CANCELLED, cancelled.getRequestStatus());
+        Assertions.assertEquals(CorpoRequestStatus.CANCELLED,
+                cancelled.getOperations().get(0).getOperationStatus());
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">microservice-fund-management\pom.xml (extrait à intégrer)</span><button class="copybtn" onclick="copyCode(55, this)">Copier</button><span class="fh-note">Couverture JaCoCo — rapport HTML par module après mvn clean verify</span></div><pre><code id="code-55">&lt;!-- Ajouter dans microservice-fund-management/pom.xml (bloc &lt;build&gt;&lt;plugins&gt;),
+     a cote du maven-compiler-plugin : rapport de couverture JaCoCo --&gt;
+&lt;plugin&gt;
+    &lt;groupId&gt;org.jacoco&lt;/groupId&gt;
+    &lt;artifactId&gt;jacoco-maven-plugin&lt;/artifactId&gt;
+    &lt;version&gt;0.8.12&lt;/version&gt;
+    &lt;executions&gt;
+        &lt;execution&gt;
+            &lt;goals&gt;&lt;goal&gt;prepare-agent&lt;/goal&gt;&lt;/goals&gt;
+        &lt;/execution&gt;
+        &lt;execution&gt;
+            &lt;id&gt;report&lt;/id&gt;
+            &lt;phase&gt;verify&lt;/phase&gt;
+            &lt;goals&gt;&lt;goal&gt;report&lt;/goal&gt;&lt;/goals&gt;
+        &lt;/execution&gt;
+    &lt;/executions&gt;
+&lt;/plugin&gt;
+&lt;!-- Usage : mvn clean verify  -&gt;  rapport HTML par module dans
+     target/site/jacoco/index.html (ex. fund-management-data-access/target/...) --&gt;</code></pre>
+<h3>Build, couverture &amp; démarrage</h3>
+<ol>
+<li><kbd>mvn clean install</kbd> à la racine — tout vert (compilation MapStruct comprise). Base inaccessible ? <kbd>mvn clean install -Dtest='!CorpoDemandIntegrationTest'</kbd>.</li>
+<li><kbd>mvn clean verify</kbd> → rapports de couverture JaCoCo dans <code>&lt;module&gt;/target/site/jacoco/index.html</code> — vise en priorité le vert sur le domaine corpo, les 2 mappers et l'adaptateur.</li>
+<li>Démarrer l'app : logs Flyway (« baselined … version: 1 » si première fois, puis « Migrating … version "2" ») ; pgAdmin → schéma corpo avec 8 tables + seed (1 devise, 11 coupures).</li>
+</ol>
+<h3>Smoke test Postman — POST /corpo/cash</h3>
+<div class="tree">{
+  "branchCode": "AG-CASA-01",
+  "establishment": "001",
+  "user": "j43709",
+  "clientRef": "CORP-00042",
+  "city": "Casablanca",
+  "addressComplement": "Zone industrielle Ain Sebaa, lot 12",
+  "accountNumber": "011780000012345678901234",
+  "operations": [
+    {
+      "operationSens": "ALIMENTATION",
+      "isUrgent": "YES",
+      "currencyDetails": [
+        {
+          "currency": { "isoCode": "MAD" },
+          "operationDenominations": [
+            { "denomination": { "denominationCode": "BILLET_200" }, "quantity": 10 },
+            { "denomination": { "denominationCode": "BILLET_100" }, "quantity": 5 }
+          ]
+        }
+      ]
+    }
+  ]
+}</div>
+<p>Attendu : <strong>201</strong>, <code>uniqueRequestRef</code> = CO-2026-000001, <code>requestStatus</code> = INITIATED, l'opération avec <code>totalAmount</code> = 2500.00 et <code>totalAmountByCurrency</code> = 2500.00, labels et valeurs faciales des coupures renvoyés. <em>Si establishment "001" ou user "j43709" n'existent pas dans corpo.establishment / corpo.user_profile, ils repartent à null — c'est accepté (FKs nullables) : insère-les si tu veux la FK remplie.</em></p>
+<h3>Vérifications SQL &amp; cas d'erreur</h3>
+<ul>
+<li><code>SELECT unique_request_ref, request_status, client_ref, city FROM corpo.cash_request;</code></li>
+<li><code>SELECT operation_sens, is_urgent, total_amount, operation_status FROM corpo.cash_operation;</code> → 1 ligne ALIMENTATION</li>
+<li><code>SELECT total_amount_by_curerency FROM corpo.operation_currency;</code> → 2500.00 ; <code>SELECT quantity FROM corpo.operation_denomination;</code> → 2 lignes</li>
+<li>POST sans operations → <strong>400</strong> fieldErrors ; denominationCode "BILLET_500" → <strong>422</strong> ; totalAmount fourni ≠ calculé → <strong>422</strong> ; GET id inconnu → <strong>404</strong> ; cancel deux fois → <strong>409</strong> ; PUT sur annulée → <strong>409</strong>.</li>
+<li>Non-régression retail : POST/GET <code>/cash</code> inchangés.</li>
+</ul>
+
+<h2 id="s9"><span class="num">9</span>Checklist finale &amp; points à signaler</h2>
+<table>
+<tr><th>✔</th><th>Point</th></tr>
+<tr><td>☐</td><td>Étape 0 : plus aucune classe retail hors paquets retail ; build vert</td></tr>
+<tr><td>☐</td><td>Anciennes classes corpo v1 toutes supprimées (domaine plat, DTOs plats, 3 entités, ancien mapper/adapter) — recherche <kbd>Ctrl+Shift+F</kbd> « CorpoRequestDenomination » → 0 résultat</td></tr>
+<tr><td>☐</td><td>mvn clean install vert ; Flyway V2 appliquée ; smoke test complet OK</td></tr>
+<tr><td>☐</td><td><strong>Front prévenu du breaking change</strong> (payload arborescent — fournir l'exemple ci-dessus)</td></tr>
+<tr><td>☐</td><td>Commits séparés : fin packages retail / modèle corpo aligné / flyway V2</td></tr>
+</table>
+<h3>À dire à Yassin (3 phrases)</h3>
+<p>« Le corpo est aligné à 100% sur le modèle retail à toutes les couches — mêmes agrégats, mêmes DTOs arborescents, même mécanique de persistance — avec uniquement les ajouts de la Jira : identité client et réf sur l'entête, code stable sur les coupures. Le schéma corpo est la duplication du schéma retail via Flyway V2, user_profile/establishment conservés en nullable. Le handler d'erreurs corpo reste provisoire en attendant les éléments du pattern BFF. »</p>
+<script>
+function copyCode(i, btn) {
+  const el = document.getElementById('code-' + i);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const old = btn.textContent;
+    btn.textContent = 'Copié !';
+    setTimeout(() => btn.textContent = old, 1800);
+  });
+}
+</script></div></body></html>
