@@ -1,0 +1,245 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cahier de tests API — Demandes corpo (AER_LM-257)</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;--rouge:#B3402A;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.6;font-size:15px;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 26px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:48px 26px 40px;margin-bottom:36px;}
+header.hero .inner{max-width:1080px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:10px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:30px;line-height:1.15;}
+.hero p.sub{margin-top:12px;max-width:860px;color:#DCEBE3;font-size:15px;}
+.badge-v{display:inline-block;margin-top:14px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:23px;color:var(--vertF);margin:52px 0 8px;padding-top:16px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:18px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;color:var(--vert);margin:26px 0 8px;}
+p{margin:9px 0;} ul,ol{margin:8px 0 8px 24px;} li{margin:4px 0;} strong{color:var(--vertF);}
+table{width:100%;border-collapse:collapse;margin:14px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:13.5px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:9px 13px;font-family:'Archivo',sans-serif;font-size:12.5px;letter-spacing:.5px;}
+td{padding:8px 13px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+td code,p code,li code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+.toc{background:var(--carte);border:1px solid var(--ligne);border-radius:10px;padding:20px 26px;margin:6px 0;}
+.toc a{color:var(--vert);text-decoration:none;font-weight:600;}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.5px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.5px;}
+.danger{background:#FCEFEC;border-left:4px solid var(--rouge);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.5px;}
+.case{background:var(--carte);border:1px solid var(--ligne);border-left:5px solid var(--vert);border-radius:10px;padding:18px 22px 14px;margin:22px 0;box-shadow:0 1px 5px rgba(28,35,33,.07);}
+.case-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+.cid{font-family:'IBM Plex Mono',monospace;font-weight:600;background:var(--vertF);color:#fff;padding:3px 10px;border-radius:4px;font-size:12.5px;}
+.method{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--or);font-size:13.5px;}
+.path{font-family:'IBM Plex Mono',monospace;font-size:13.5px;color:var(--vertF);}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;padding:2px 10px;border-radius:10px;color:#fff;}
+.b2xx{background:#178A5E;} .b4xx{background:var(--or);} .b5xx{background:var(--rouge);}
+.ctitle{font-family:'Archivo',sans-serif;font-weight:700;font-size:15.5px;color:var(--encre);width:100%;}
+.regle{font-size:13.5px;color:#4A544F;margin:4px 0 10px;}
+.sec{font-family:'Archivo',sans-serif;font-weight:700;color:var(--vert);font-size:13px;letter-spacing:.8px;text-transform:uppercase;margin:14px 0 4px;}
+.codehead{display:flex;align-items:center;background:var(--vertF);color:#CBE3D8;padding:7px 14px;border-radius:8px 8px 0 0;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.copybtn{margin-left:auto;background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:3px 12px;border-radius:4px;cursor:pointer;}
+.copybtn:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:15px 18px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:12.5px;line-height:1.5;margin-bottom:6px;}
+code{font-family:'IBM Plex Mono',monospace;}
+table.bdd td:first-child{white-space:nowrap;}
+kbd{background:var(--vertF);color:#fff;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · AER_LM-257 · Cahier de tests API</div>
+<h1>Cahier de tests API — Demandes corpo<br>Cas nominaux · Règles métier · Edge cases · Attendus en base</h1>
+<p class="sub">Chaque cas donne : le payload prêt à coller dans Postman, la réponse HTTP attendue, <strong>ce que tu dois voir dans chaque table du schéma corpo</strong>, et la requête SQL de vérification. À dérouler dans l'ordre : les cas s'enchaînent (le CN-01 crée la demande utilisée par les suivants).</p>
+<div class="badge-v">CAHIER DE TESTS · 23/07/2026</div>
+</div></header><div class="wrap">
+
+<div class="toc"><strong>Sommaire</strong>
+<ol>
+<li><a href="#prereq">Prérequis &amp; référentiels</a></li>
+<li><a href="#contrat">Le contrat en bref (endpoints &amp; format d'erreur)</a></li>
+<li><a href="#nominaux">Cas nominaux (CN-01 → CN-08)</a></li>
+<li><a href="#erreurs">Cas d'erreur &amp; edge cases (ER-01 → ER-13)</a></li>
+<li><a href="#trace">Traçabilité règles métier ↔ cas de test</a></li>
+</ol></div>
+
+<h2 id="prereq"><span class="num">1</span>Prérequis &amp; référentiels</h2>
+<ul>
+<li>Application démarrée (port 8300), migration Flyway V2 appliquée : dans pgAdmin, <code>corpo.flyway_schema_history</code> contient la ligne version 2 (success = true).</li>
+<li>Seed en place : <code>SELECT iso_code FROM corpo.currency;</code> → MAD · <code>SELECT count(*) FROM corpo.denomination;</code> → 11.</li>
+<li>Optionnel (pour tester les FKs) : insérer un établissement et un user dans <code>corpo.establishment</code> / <code>corpo.user_profile</code> — sinon les colonnes restent à null, c'est accepté (nullables).</li>
+</ul>
+<div class="codehead"><span class="ch-label">Seed optionnel establishment + user (pgAdmin)</span><button class="copybtn" onclick="copyCode(1, this)">Copier</button></div><pre><code id="code-1">INSERT INTO corpo.establishment (id, establishment_code, establishment_name)
+VALUES (&#x27;e0000000-0000-0000-0000-000000000001&#x27;, &#x27;001&#x27;, &#x27;BMCI Casablanca Centre&#x27;);
+
+INSERT INTO corpo.user_profile (id, uid, profile_code, profile_label, profile_type)
+VALUES (&#x27;a0000000-0000-0000-0000-000000000001&#x27;, &#x27;j43709&#x27;, &#x27;AGT&#x27;, &#x27;Agent Caisse Centrale&#x27;, &#x27;AGENT&#x27;);</code></pre>
+<h3>Rappel des codes coupures (référentiel corpo.denomination)</h3>
+<table><tr><th>Code</th><th>Valeur faciale</th><th>Type</th></tr>
+<tr><td><code>BILLET_200</code> / <code>BILLET_100</code> / <code>BILLET_50</code> / <code>BILLET_20</code></td><td>200 / 100 / 50 / 20 DH</td><td>BANKNOTE</td></tr>
+<tr><td><code>PIECE_10</code> / <code>PIECE_5</code> / <code>PIECE_1</code></td><td>10 / 5 / 1 DH</td><td>COIN</td></tr>
+<tr><td><code>CENTIME_50</code> / <code>CENTIME_20</code> / <code>CENTIME_10</code> / <code>CENTIME_5</code></td><td>0.50 / 0.20 / 0.10 / 0.05 DH</td><td>COIN</td></tr></table>
+
+<h2 id="contrat"><span class="num">2</span>Le contrat en bref</h2>
+<table><tr><th>Endpoint</th><th>Succès</th><th>Erreurs possibles</th></tr>
+<tr><td><code>POST /corpo/cash</code></td><td><strong>201 Created</strong> (contrat explicite — divergence assumée avec retail qui renvoie 200)</td><td>400 · 422</td></tr>
+<tr><td><code>GET /corpo/cash/{id}</code></td><td>200</td><td>404</td></tr>
+<tr><td><code>GET /corpo/cash</code></td><td>200 (liste)</td><td>—</td></tr>
+<tr><td><code>PUT /corpo/cash/{id}</code></td><td>200</td><td>400 · 404 · 409 · 422</td></tr>
+<tr><td><code>PATCH /corpo/cash/{id}/cancel</code></td><td>200</td><td>404 · 409</td></tr></table>
+<p>Format d'erreur (ProblemDetail, handler provisoire en attendant le pattern BFF) : <code>status</code>, <code>detail</code>, <code>code</code> (CORPO_BAD_REQUEST · CORPO_NOT_FOUND · CORPO_CONFLICT · CORPO_VALIDATION_ERROR), <code>timestamp</code>, et <code>fieldErrors</code> sur les 400 de validation.</p>
+
+<h2 id="nominaux"><span class="num">3</span>Cas nominaux</h2>
+<div class="case" id="CN-01"><div class="case-head"><span class="cid">CN-01</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b2xx">201</span><span class="ctitle">Création d'une demande ALIMENTATION avec ventilation (le cas de référence)</span></div><p class="regle"><strong>Règle vérifiée :</strong> Montant CALCULÉ serveur (200×10 + 100×5 = 2500.00), référence lisible générée CO-AAAA-NNNNNN, statut INITIATED, défauts serveur appliqués (institution_code=1, cash_desk_number='001').</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(2, this)">Copier</button></div><pre><code id="code-2">{
+  &quot;branchCode&quot;: &quot;AG-CASA-01&quot;,
+  &quot;establishment&quot;: &quot;001&quot;,
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;clientRef&quot;: &quot;CORP-00042&quot;,
+  &quot;city&quot;: &quot;Casablanca&quot;,
+  &quot;addressComplement&quot;: &quot;Zone industrielle Ain Sebaa, lot 12&quot;,
+  &quot;accountNumber&quot;: &quot;011780000012345678901234&quot;,
+  &quot;operations&quot;: [
+    {
+      &quot;operationSens&quot;: &quot;ALIMENTATION&quot;,
+      &quot;isUrgent&quot;: &quot;YES&quot;,
+      &quot;currencyDetails&quot;: [
+        {
+          &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+          &quot;operationDenominations&quot;: [
+            { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_200&quot; }, &quot;quantity&quot;: 10 },
+            { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_100&quot; }, &quot;quantity&quot;: 5 }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>201</strong> ; <code>id</code> (UUID) et <code>uniqueRequestRef</code> = CO-2026-000001 (ou N suivant) présents</li><li><code>requestStatus</code> = INITIATED ; l'opération porte <code>totalAmount</code> = 2500.00 et <code>operationStatus</code> = INITIATED</li><li>Chaque coupure revient enrichie : <code>denominationLabel</code> (« Billet de 200 DH »), <code>faceValue</code>, <code>itemType</code></li><li><strong>Noter l'id retourné</strong> → utilisé par CN-04/CN-06/CN-07</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>corpo.cash_request</code></td><td>1 ligne : unique_request_ref = CO-2026-000001, request_status = INITIATED, client_ref = CORP-00042, city = Casablanca, account_number rempli, branch_code = AG-CASA-01 ; establishment_id / user_profile_id remplis si le seed optionnel a été inséré, sinon NULL</td></tr><tr><td><code>corpo.cash_operation</code></td><td>1 ligne : operation_sens = ALIMENTATION, is_urgent = YES, total_amount = 2500.00, operation_status = INITIATED, institution_code = 1, cash_desk_number = 001</td></tr><tr><td><code>corpo.operation_currency</code></td><td>1 ligne : currency_id → MAD, total_amount_by_curerency = 2500.00</td></tr><tr><td><code>corpo.operation_denomination</code></td><td>2 lignes : (BILLET_200, quantity 10) et (BILLET_100, quantity 5)</td></tr></table><div class="codehead"><span class="ch-label">Vérification SQL (pgAdmin)</span><button class="copybtn" onclick="copyCode(3, this)">Copier</button></div><pre><code id="code-3">SELECT cr.unique_request_ref, cr.request_status, cr.client_ref,
+       op.operation_sens, op.is_urgent, op.total_amount, op.institution_code, op.cash_desk_number,
+       oc.total_amount_by_curerency, d.denomination_code, od.quantity
+FROM corpo.cash_request cr
+JOIN corpo.cash_operation op        ON op.cash_request_id = cr.id
+JOIN corpo.operation_currency oc    ON oc.cash_operation_id = op.id
+JOIN corpo.operation_denomination od ON od.operation_currency_detail_id = oc.id
+JOIN corpo.denomination d           ON d.id = od.denomination_id
+ORDER BY cr.creation_date DESC;</code></pre></div><div class="case" id="CN-02"><div class="case-head"><span class="cid">CN-02</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b2xx">201</span><span class="ctitle">Création d'une demande RAMASSAGE sans ventilation</span></div><p class="regle"><strong>Règle vérifiée :</strong> Le ramassage n'exige pas de détail de coupures : montant à 0 par défaut, aucune ligne de ventilation créée.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(4, this)">Copier</button></div><pre><code id="code-4">{
+  &quot;branchCode&quot;: &quot;AG-CASA-01&quot;,
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;clientRef&quot;: &quot;CORP-00099&quot;,
+  &quot;city&quot;: &quot;Rabat&quot;,
+  &quot;operations&quot;: [
+    { &quot;operationSens&quot;: &quot;RAMASSAGE&quot;, &quot;isUrgent&quot;: &quot;NO&quot;, &quot;currencyDetails&quot;: [] }
+  ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>201</strong> ; nouvelle référence CO- (séquence incrémentée : N+1 par rapport à CN-01 — <strong>preuve de la séquence</strong>)</li><li>Opération RAMASSAGE, <code>totalAmount</code> = 0</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>corpo.cash_request</code></td><td>1 nouvelle ligne (2 au total), client_ref = CORP-00099</td></tr><tr><td><code>corpo.cash_operation</code></td><td>1 nouvelle ligne : operation_sens = RAMASSAGE, is_urgent = NO, total_amount = 0.00</td></tr><tr><td><code>corpo.operation_currency / operation_denomination</code></td><td>AUCUNE nouvelle ligne pour cette demande</td></tr></table><div class="codehead"><span class="ch-label">Vérification SQL (pgAdmin)</span><button class="copybtn" onclick="copyCode(5, this)">Copier</button></div><pre><code id="code-5">SELECT cr.unique_request_ref, op.operation_sens, op.total_amount,
+       (SELECT count(*) FROM corpo.operation_currency oc WHERE oc.cash_operation_id = op.id) AS nb_details
+FROM corpo.cash_request cr JOIN corpo.cash_operation op ON op.cash_request_id = cr.id
+WHERE cr.client_ref = &#x27;CORP-00099&#x27;;</code></pre></div><div class="case" id="CN-03"><div class="case-head"><span class="cid">CN-03</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b2xx">201</span><span class="ctitle">Création avec montants FOURNIS et cohérents (contrôle de cohérence OK)</span></div><p class="regle"><strong>Règle vérifiée :</strong> Si le client fournit totalAmount / totalAmountByCurrency, le serveur recalcule et accepte uniquement si ça matche (sinon 422 — voir ER-09). Ici : 20 × 50 DH = 1000.00 fourni = calculé.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(6, this)">Copier</button></div><pre><code id="code-6">{
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;clientRef&quot;: &quot;CORP-00100&quot;,
+  &quot;operations&quot;: [
+    {
+      &quot;operationSens&quot;: &quot;ALIMENTATION&quot;,
+      &quot;totalAmount&quot;: 1000.00,
+      &quot;currencyDetails&quot;: [
+        {
+          &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+          &quot;totalAmountByCurrency&quot;: 1000.00,
+          &quot;operationDenominations&quot;: [
+            { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_50&quot; }, &quot;quantity&quot;: 20 }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>201</strong>, totalAmount = 1000.00 (recalculé et confirmé)</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>corpo.cash_operation</code></td><td>total_amount = 1000.00</td></tr><tr><td><code>corpo.operation_denomination</code></td><td>1 ligne BILLET_50 × 20</td></tr></table></div><div class="case" id="CN-04"><div class="case-head"><span class="cid">CN-04</span><span class="method">GET</span><span class="path">/corpo/cash/{id}</span><span class="badge b2xx">200</span><span class="ctitle">Lecture d'une demande — l'arbre complet revient enrichi</span></div><p class="regle"><strong>Règle vérifiée :</strong> La lecture renvoie l'arbre entier avec les données du référentiel (labels, valeurs faciales) — le front n'a pas à les connaître.</p><p class="sec">Réponse attendue</p><ul><li>Utiliser l'id du CN-01 ; statut <strong>200</strong></li><li>L'arbre complet : demande (réf, statut, client) → opération (sens, urgent, montant, dates) → détail MAD → 2 coupures avec label/faceValue/itemType</li></ul></div><div class="case" id="CN-05"><div class="case-head"><span class="cid">CN-05</span><span class="method">GET</span><span class="path">/corpo/cash</span><span class="badge b2xx">200</span><span class="ctitle">Liste de toutes les demandes</span></div><p class="regle"><strong>Règle vérifiée :</strong> Chaque élément de la liste porte son arbre (même structure que le GET unitaire).</p><p class="sec">Réponse attendue</p><ul><li>Statut <strong>200</strong>, 3 demandes (CN-01, CN-02, CN-03), chacune avec ses opérations</li></ul></div><div class="case" id="CN-06"><div class="case-head"><span class="cid">CN-06</span><span class="method">PUT</span><span class="path">/corpo/cash/{id}</span><span class="badge b2xx">200</span><span class="ctitle">Modification : la ventilation est REMPLACÉE, la référence ne change jamais</span></div><p class="regle"><strong>Règle vérifiée :</strong> L'update remplace l'arbre d'opérations (clear + flush + re-add) et met à jour l'entête client ; unique_request_ref et statut sont immuables par ce canal.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(7, this)">Copier</button></div><pre><code id="code-7">{
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;clientRef&quot;: &quot;CORP-00042-MODIF&quot;,
+  &quot;city&quot;: &quot;Casablanca&quot;,
+  &quot;operations&quot;: [
+    {
+      &quot;operationSens&quot;: &quot;ALIMENTATION&quot;,
+      &quot;isUrgent&quot;: &quot;NO&quot;,
+      &quot;currencyDetails&quot;: [
+        {
+          &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+          &quot;operationDenominations&quot;: [
+            { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_100&quot; }, &quot;quantity&quot;: 20 }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Sur l'id du CN-01 ; statut <strong>200</strong></li><li><code>uniqueRequestRef</code> INCHANGÉE (toujours CO-2026-000001) — preuve d'immutabilité</li><li>isUrgent = NO, totalAmount = 2000.00, une seule coupure BILLET_100 × 20</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>corpo.cash_request</code></td><td>client_ref = CORP-00042-MODIF ; unique_request_ref inchangée ; modification_date > creation_date</td></tr><tr><td><code>corpo.cash_operation</code></td><td>1 ligne (la nouvelle) : is_urgent = NO, total_amount = 2000.00 — l'ancienne opération a disparu</td></tr><tr><td><code>corpo.operation_denomination</code></td><td>1 seule ligne (BILLET_100 × 20) — les 2 anciennes lignes du CN-01 ont été SUPPRIMÉES (orphanRemoval)</td></tr></table><div class="codehead"><span class="ch-label">Vérification SQL (pgAdmin)</span><button class="copybtn" onclick="copyCode(8, this)">Copier</button></div><pre><code id="code-8">-- Il ne doit rester qu&#x27;UNE opération et UNE ligne de coupure pour cette demande
+SELECT (SELECT count(*) FROM corpo.cash_operation op WHERE op.cash_request_id = cr.id)  AS nb_operations,
+       (SELECT count(*) FROM corpo.operation_denomination od
+         JOIN corpo.operation_currency oc ON od.operation_currency_detail_id = oc.id
+         JOIN corpo.cash_operation op2 ON oc.cash_operation_id = op2.id
+        WHERE op2.cash_request_id = cr.id) AS nb_lignes_coupures,
+       cr.unique_request_ref, cr.client_ref
+FROM corpo.cash_request cr WHERE cr.unique_request_ref = &#x27;CO-2026-000001&#x27;;</code></pre></div><div class="case" id="CN-07"><div class="case-head"><span class="cid">CN-07</span><span class="method">PATCH</span><span class="path">/corpo/cash/{id}/cancel</span><span class="badge b2xx">200</span><span class="ctitle">Annulation : le statut se propage à la demande ET à ses opérations</span></div><p class="regle"><strong>Règle vérifiée :</strong> Annuler la demande annule tout l'arbre d'exécution (même comportement que retail).</p><p class="sec">Réponse attendue</p><ul><li>Sur l'id du CN-01 ; statut <strong>200</strong></li><li><code>requestStatus</code> = CANCELLED et <code>operationStatus</code> = CANCELLED sur l'opération</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>corpo.cash_request</code></td><td>request_status = CANCELLED</td></tr><tr><td><code>corpo.cash_operation</code></td><td>operation_status = CANCELLED sur toutes les opérations de la demande</td></tr></table><div class="codehead"><span class="ch-label">Vérification SQL (pgAdmin)</span><button class="copybtn" onclick="copyCode(9, this)">Copier</button></div><pre><code id="code-9">SELECT cr.request_status, op.operation_status
+FROM corpo.cash_request cr JOIN corpo.cash_operation op ON op.cash_request_id = cr.id
+WHERE cr.unique_request_ref = &#x27;CO-2026-000001&#x27;;</code></pre></div><div class="case" id="CN-08"><div class="case-head"><span class="cid">CN-08</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b2xx">201</span><span class="ctitle">FKs client optionnelles : establishment/user inconnus du référentiel → colonnes NULL, création acceptée</span></div><p class="regle"><strong>Règle vérifiée :</strong> user_profile_id et establishment_id sont NULLABLES (adaptation Jira de la structure retail) : un code inconnu ne bloque pas, la colonne reste vide.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(10, this)">Copier</button></div><pre><code id="code-10">{
+  &quot;establishment&quot;: &quot;999&quot;,
+  &quot;user&quot;: &quot;inconnu-uid&quot;,
+  &quot;clientRef&quot;: &quot;CORP-00777&quot;,
+  &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;RAMASSAGE&quot;, &quot;currencyDetails&quot;: [] } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>201</strong> — pas d'erreur malgré les codes inconnus</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>corpo.cash_request</code></td><td>establishment_id = NULL et user_profile_id = NULL sur cette ligne</td></tr></table><div class="codehead"><span class="ch-label">Vérification SQL (pgAdmin)</span><button class="copybtn" onclick="copyCode(11, this)">Copier</button></div><pre><code id="code-11">SELECT client_ref, establishment_id, user_profile_id
+FROM corpo.cash_request WHERE client_ref = &#x27;CORP-00777&#x27;;</code></pre></div><h2 id="erreurs"><span class="num">4</span>Cas d'erreur &amp; edge cases</h2>
+<div class="ok"><strong>Vérification transverse à faire après CHAQUE cas d'erreur</strong> : aucune écriture ne doit s'être produite (transaction rollback). Garde ce compteur sous la main et vérifie qu'il ne bouge pas : <code>SELECT (SELECT count(*) FROM corpo.cash_request) AS demandes, (SELECT count(*) FROM corpo.cash_operation) AS operations, (SELECT count(*) FROM corpo.operation_denomination) AS lignes;</code></div>
+<div class="case" id="ER-01"><div class="case-head"><span class="cid">ER-01</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b4xx">400</span><span class="ctitle">Bean Validation : operations manquantes</span></div><p class="regle"><strong>Règle vérifiée :</strong> @NotEmpty sur operations — une demande sans opération est refusée AVANT toute logique métier.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(12, this)">Copier</button></div><pre><code id="code-12">{ &quot;user&quot;: &quot;j43709&quot;, &quot;clientRef&quot;: &quot;CORP-00500&quot; }</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, code = CORPO_BAD_REQUEST</li><li><code>fieldErrors.operations</code> présent avec le message de contrainte</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>(toutes)</code></td><td>Aucune écriture — compteur transverse inchangé</td></tr></table></div><div class="case" id="ER-02"><div class="case-head"><span class="cid">ER-02</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b4xx">400</span><span class="ctitle">Bean Validation : user manquant</span></div><p class="regle"><strong>Règle vérifiée :</strong> Le demandeur (uid) est obligatoire dans le contrat.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(13, this)">Copier</button></div><pre><code id="code-13">{ &quot;clientRef&quot;: &quot;CORP-00501&quot;, &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;RAMASSAGE&quot; } ] }</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, <code>fieldErrors.user</code> présent</li></ul></div><div class="case" id="ER-03"><div class="case-head"><span class="cid">ER-03</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b4xx">400</span><span class="ctitle">Bean Validation : operationSens manquant</span></div><p class="regle"><strong>Règle vérifiée :</strong> @NotNull sur le sens de l'opération.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(14, this)">Copier</button></div><pre><code id="code-14">{ &quot;user&quot;: &quot;j43709&quot;, &quot;operations&quot;: [ { &quot;isUrgent&quot;: &quot;NO&quot; } ] }</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, <code>fieldErrors['operations[0].operationSens']</code> présent</li></ul></div><div class="case" id="ER-04"><div class="case-head"><span class="cid">ER-04</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b4xx">400</span><span class="ctitle">Bean Validation : quantité négative</span></div><p class="regle"><strong>Règle vérifiée :</strong> @Min(0) sur quantity — la validation en cascade (@Valid) descend jusqu'aux lignes de coupures.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(15, this)">Copier</button></div><pre><code id="code-15">{
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;ALIMENTATION&quot;, &quot;currencyDetails&quot;: [ {
+    &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+    &quot;operationDenominations&quot;: [ { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_200&quot; }, &quot;quantity&quot;: -5 } ]
+  } ] } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, fieldErrors sur <code>...quantity</code></li></ul></div><div class="case" id="ER-05"><div class="case-head"><span class="cid">ER-05</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b4xx">400</span><span class="ctitle">Bean Validation : denominationCode vide</span></div><p class="regle"><strong>Règle vérifiée :</strong> @NotBlank sur le code coupure (DTO partagé common — la contrainte ne mord que côté corpo, seul à valider avec @Valid).</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(16, this)">Copier</button></div><pre><code id="code-16">{
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;ALIMENTATION&quot;, &quot;currencyDetails&quot;: [ {
+    &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+    &quot;operationDenominations&quot;: [ { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;&quot; }, &quot;quantity&quot;: 5 } ]
+  } ] } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, fieldErrors sur <code>...denominationCode</code></li></ul></div><div class="case" id="ER-06"><div class="case-head"><span class="cid">ER-06</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b4xx">400</span><span class="ctitle">JSON malformé</span></div><p class="regle"><strong>Règle vérifiée :</strong> HttpMessageNotReadableException interceptée par le handler → message propre, pas de stacktrace.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(17, this)">Copier</button></div><pre><code id="code-17">{ &quot;user&quot;: &quot;j43709&quot;, &quot;operations&quot;: [</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, code = CORPO_BAD_REQUEST, detail « corps illisible ou mal formé »</li></ul></div><div class="case" id="ER-07"><div class="case-head"><span class="cid">ER-07</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b4xx">422</span><span class="ctitle">Règle métier : coupure inconnue du référentiel</span></div><p class="regle"><strong>Règle vérifiée :</strong> Résolution par code contre corpo.denomination — BILLET_500 n'existe pas → CorpoValidationException.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(18, this)">Copier</button></div><pre><code id="code-18">{
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;ALIMENTATION&quot;, &quot;currencyDetails&quot;: [ {
+    &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+    &quot;operationDenominations&quot;: [ { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_500&quot; }, &quot;quantity&quot;: 1 } ]
+  } ] } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>422</strong>, code = CORPO_VALIDATION_ERROR</li><li>detail : « La coupure 'BILLET_500' n'existe pas dans le référentiel corpo »</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>(toutes)</code></td><td>Aucune écriture (rollback)</td></tr></table></div><div class="case" id="ER-08"><div class="case-head"><span class="cid">ER-08</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b4xx">422</span><span class="ctitle">Règle métier : devise inconnue du référentiel corpo</span></div><p class="regle"><strong>Règle vérifiée :</strong> Seul MAD est seedé — EUR est rejeté par la résolution devise.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(19, this)">Copier</button></div><pre><code id="code-19">{
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;ALIMENTATION&quot;, &quot;currencyDetails&quot;: [ {
+    &quot;currency&quot;: { &quot;isoCode&quot;: &quot;EUR&quot; },
+    &quot;operationDenominations&quot;: [ { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_200&quot; }, &quot;quantity&quot;: 1 } ]
+  } ] } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>422</strong>, detail : « La devise EUR n'existe pas dans le référentiel corpo »</li></ul></div><div class="case" id="ER-09"><div class="case-head"><span class="cid">ER-09</span><span class="method">POST</span><span class="path">/corpo/cash</span><span class="badge b4xx">422</span><span class="ctitle">Règle métier : montant fourni INCOHÉRENT avec la ventilation</span></div><p class="regle"><strong>Règle vérifiée :</strong> Le serveur recalcule : 200×10 = 2000.00 ≠ 9999.99 fourni → rejet (protection anti-erreur de saisie / anti-fraude).</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(20, this)">Copier</button></div><pre><code id="code-20">{
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;operations&quot;: [ {
+    &quot;operationSens&quot;: &quot;ALIMENTATION&quot;,
+    &quot;totalAmount&quot;: 9999.99,
+    &quot;currencyDetails&quot;: [ {
+      &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+      &quot;operationDenominations&quot;: [ { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_200&quot; }, &quot;quantity&quot;: 10 } ]
+    } ]
+  } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>422</strong>, detail mentionnant montant fourni vs calculé (2000.00)</li></ul></div><div class="case" id="ER-10"><div class="case-head"><span class="cid">ER-10</span><span class="method">GET</span><span class="path">/corpo/cash/{id}</span><span class="badge b4xx">404</span><span class="ctitle">Lecture d'un id inexistant</span></div><p class="regle"><strong>Règle vérifiée :</strong> CorpoNotFoundException → 404 propre.</p><p class="sec">Réponse attendue</p><ul><li>Avec un UUID au hasard (ex. <code>00000000-0000-0000-0000-000000000000</code>) : statut <strong>404</strong>, code = CORPO_NOT_FOUND</li></ul></div><div class="case" id="ER-11"><div class="case-head"><span class="cid">ER-11</span><span class="method">PUT</span><span class="path">/corpo/cash/{id}</span><span class="badge b4xx">404</span><span class="ctitle">Update / cancel d'un id inexistant</span></div><p class="regle"><strong>Règle vérifiée :</strong> Même garde 404 sur PUT et PATCH cancel.</p><p class="sec">Réponse attendue</p><ul><li>PUT et PATCH …/cancel sur un UUID inconnu : statut <strong>404</strong> dans les deux cas</li></ul></div><div class="case" id="ER-12"><div class="case-head"><span class="cid">ER-12</span><span class="method">PATCH</span><span class="path">/corpo/cash/{id}/cancel</span><span class="badge b4xx">409</span><span class="ctitle">Double annulation</span></div><p class="regle"><strong>Règle vérifiée :</strong> Une demande déjà CANCELLED ne peut pas être ré-annulée → conflit d'état.</p><p class="sec">Réponse attendue</p><ul><li>Rejouer le cancel sur l'id du CN-07 : statut <strong>409</strong>, code = CORPO_CONFLICT, detail « déjà annulée »</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>corpo.cash_request</code></td><td>request_status reste CANCELLED, modification_date inchangée</td></tr></table></div><div class="case" id="ER-13"><div class="case-head"><span class="cid">ER-13</span><span class="method">PUT</span><span class="path">/corpo/cash/{id}</span><span class="badge b4xx">409</span><span class="ctitle">Modification d'une demande annulée</span></div><p class="regle"><strong>Règle vérifiée :</strong> Une demande CANCELLED est figée — l'update est refusé.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(21, this)">Copier</button></div><pre><code id="code-21">{ &quot;user&quot;: &quot;j43709&quot;, &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;RAMASSAGE&quot;, &quot;currencyDetails&quot;: [] } ] }</code></pre><p class="sec">Réponse attendue</p><ul><li>Sur l'id du CN-07 (annulé) : statut <strong>409</strong>, detail « Impossible de modifier … annulée »</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>corpo.cash_operation</code></td><td>L'arbre de la demande annulée est INTACT (aucune opération remplacée)</td></tr></table></div>
+<div class="danger"><strong>Comportement connu à discuter (pas un cas de test, une limite)</strong> : envoyer <em>deux fois la même coupure</em> dans une même ventilation viole la contrainte d'unicité <code>uq_corpo_od</code> en base → erreur 500 aujourd'hui (pas de handler pour ce cas). Deux options à trancher avec Yassin : dédupliquer/additionner côté serveur, ou rejeter en 422 avec un message clair. À noter au backlog.</div>
+
+<h2 id="trace"><span class="num">5</span>Traçabilité règles métier ↔ cas de test</h2>
+<table><tr><th>Règle métier</th><th>Cas qui la prouve</th></tr>
+<tr><td>Référence lisible générée par séquence (CO-AAAA-NNNNNN), unique et immuable</td><td>CN-01 (génération) · CN-02 (incrément) · CN-06 (immutabilité)</td></tr>
+<tr><td>Montant TOUJOURS calculé serveur ; montant fourni contrôlé (checksum)</td><td>CN-01 · CN-03 (cohérent accepté) · ER-09 (incohérent rejeté)</td></tr>
+<tr><td>Défauts serveur : institution_code = 1, cash_desk_number = 001, isUrgent = NO, statut INITIATED</td><td>CN-01 · CN-02 (colonnes en base)</td></tr>
+<tr><td>RAMASSAGE sans ventilation autorisé (montant 0)</td><td>CN-02</td></tr>
+<tr><td>Résolution par référentiels : coupure par CODE, devise par ISO — inconnues rejetées en 422</td><td>ER-07 · ER-08</td></tr>
+<tr><td>Update = remplacement complet de la ventilation (orphanRemoval), entête client modifiable</td><td>CN-06 (comptages SQL)</td></tr>
+<tr><td>Annulation propagée demande + opérations ; demande annulée figée</td><td>CN-07 · ER-12 · ER-13</td></tr>
+<tr><td>FKs establishment/user nullables (identité client Jira prime)</td><td>CN-08</td></tr>
+<tr><td>Validation de surface en 400 avec fieldErrors, AVANT la logique métier</td><td>ER-01 → ER-06</td></tr>
+<tr><td>Aucune écriture partielle en cas d'erreur (transactions)</td><td>Compteur transverse, tous les ER</td></tr></table>
+
+<div class="ok"><strong>Fin de campagne</strong> : état final attendu = 4 demandes (CN-01 annulée/modifiée, CN-02, CN-03, CN-08), compteurs stables sur tous les ER, et le retail (<code>GET /cash</code>, schéma public) strictement inchangé — vérifie une non-régression rapide.</div>
+<script>
+function copyCode(i, btn) {
+  const el = document.getElementById('code-' + i);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copié !';
+    setTimeout(() => btn.textContent = old, 1600);
+  });
+}
+</script></div></body></html>
