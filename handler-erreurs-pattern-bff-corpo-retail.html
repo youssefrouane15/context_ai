@@ -1,0 +1,329 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Handler d'erreurs aligné pattern BFF — le meilleur des deux (corpo + guide retail)</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;--rouge:#B3402A;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.65;font-size:15.5px;}
+.wrap{max-width:1060px;margin:0 auto;padding:0 28px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:50px 28px 42px;margin-bottom:38px;}
+header.hero .inner{max-width:1060px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:12px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:31px;line-height:1.15;}
+.hero p.sub{margin-top:13px;max-width:840px;color:#DCEBE3;font-size:15.5px;}
+.badge-v{display:inline-block;margin-top:15px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:24px;color:var(--vertF);margin:54px 0 6px;padding-top:18px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:19px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:17.5px;color:var(--vert);margin:30px 0 8px;}
+p{margin:10px 0;} ul,ol{margin:10px 0 10px 26px;} li{margin:5px 0;} strong{color:var(--vertF);}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:12px 16px;margin:15px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:12px 16px;margin:15px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.danger{background:#FCEFEC;border-left:4px solid var(--rouge);padding:12px 16px;margin:15px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.filehead{display:flex;align-items:center;gap:12px;background:var(--vertF);color:#fff;padding:9px 16px;border-radius:8px 8px 0 0;margin-top:24px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;flex-wrap:wrap;}
+.fh-act{font-weight:600;padding:2px 10px;border-radius:3px;letter-spacing:1px;font-size:11px;}
+.act-rep{background:var(--or);color:#fff;} .act-new{background:#178A5E;color:#fff;} .act-del{background:var(--rouge);color:#fff;}
+.fh-path{word-break:break-all;color:#CBE3D8;}
+.fh-note{color:#F2D9A0;font-size:11.5px;width:100%;}
+.copybtn{margin-left:auto;background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 12px;border-radius:4px;cursor:pointer;}
+.copybtn:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:19px 22px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:13px;line-height:1.55;margin-bottom:8px;}
+code{font-family:'IBM Plex Mono',monospace;}
+p code,li code,td code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-size:13px;}
+table{width:100%;border-collapse:collapse;margin:16px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:14px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:10px 14px;font-family:'Archivo',sans-serif;font-size:13px;}
+td{padding:9px 14px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.toc{background:var(--carte);border:1px solid var(--ligne);border-radius:10px;padding:20px 26px;margin:6px 0;}
+.toc a{color:var(--vert);text-decoration:none;font-weight:600;}
+kbd{background:var(--vertF);color:#fff;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · Note 5 du tech lead · Gestion des exceptions</div>
+<h1>Handler d'erreurs aligné sur le pattern BFF orchestrator<br>La synthèse « meilleur des deux » — corpo + guide de réplication retail</h1>
+<p class="sub">Application de la note 5 de Yassin (« suivre l'existant : même pattern que le projet BFF ») : on adopte la <strong>structure</strong> du socle BFF — contrat ErrorDTO, MessageSource, registre de statuts, advice scopé — et on l'adapte au contexte <strong>microservice producteur d'erreurs</strong> : résolution par type d'exception (pas de regex), fieldErrors conservés, filet 500 jamais silencieux. Avec l'argumentaire de défense, les étapes, et le guide pour que ton collègue fasse pareil côté retail.</p>
+<div class="badge-v">GESTION DES EXCEPTIONS · REMPLACE LE HANDLER PROVISOIRE · 24/07/2026</div>
+</div></header><div class="wrap">
+
+<div class="toc"><strong>Sommaire</strong>
+<ol>
+<li><a href="#s1">La décision : ce qu'on prend du BFF, ce qu'on adapte, pourquoi</a></li>
+<li><a href="#s2">L'argumentaire pour Yassin (défense point par point + Q&amp;A)</a></li>
+<li><a href="#s3">Implémentation corpo — les 5 fichiers</a></li>
+<li><a href="#s4">Étapes d'exécution &amp; impacts sur les tests</a></li>
+<li><a href="#s5">Guide de réplication retail (pour ton collègue)</a></li>
+</ol></div>
+
+<h2 id="s1"><span class="num">1</span>La décision : ce qu'on prend du BFF, ce qu'on adapte</h2>
+<table>
+<tr><th>Élément du socle BFF</th><th>Décision</th><th>Pourquoi</th></tr>
+<tr><td>Contrat de réponse <code>ErrorDTO {code, message}</code></td><td><strong>REPRIS à l'identique</strong> (copie conforme, placée dans le module common)</td><td>Le front voit exactement la même forme d'erreur sur tout Q360 — c'est le cœur de la note « suivre l'existant »</td></tr>
+<tr><td>Libellés externalisés via <code>MessageSource</code> + locale</td><td><strong>REPRIS</strong></td><td>Messages modifiables sans recompiler, i18n prête, plus aucun texte en dur</td></tr>
+<tr><td>Registre <code>CustomHttpStatus</code> (code ↔ statut ↔ clé de message)</td><td><strong>REPRIS</strong> sous la forme <code>CorpoHttpStatus</code></td><td>Une seule table de vérité ; ajouter une erreur = 1 ligne d'enum + 1 clé properties</td></tr>
+<tr><td>Advice scopé par <code>assignableTypes</code></td><td><strong>REPRIS</strong> (déjà en place)</td><td>Le retail garde son comportement tant qu'il n'a pas migré</td></tr>
+<tr><td>Extraction du code par regex <code>[NNN]</code> sur le message d'exception</td><td><strong>ADAPTÉ</strong> : le code vient du TYPE de l'exception via l'enum</td><td>La regex a du sens dans le BFF (il repêche les codes des erreurs des services aval). Un microservice, lui, PRODUIT ses erreurs : il connaît le type, source fiable — le parsing de chaîne est fragile (message reformulé = code perdu = fallback 999)</td></tr>
+<tr><td>Catch-all unique <code>Exception.class</code></td><td><strong>ADAPTÉ</strong> : handlers typés + filet final avec <code>log.error</code> obligatoire</td><td>Un bug (NPE) et une erreur métier attendue ne doivent pas emprunter le même chemin ni sortir habillés pareil ; et un bug sans trace = incident invisible</td></tr>
+<tr><td>(absent du BFF) fieldErrors sur la Bean Validation</td><td><strong>CONSERVÉ</strong> via <code>FieldErrorsDTO extends ErrorDTO</code></td><td>Extension ADDITIVE : un client qui ne lit que {code, message} fonctionne ; le front des formulaires garde le détail champ par champ</td></tr>
+<tr><td>(bonus compatibilité)</td><td>Nos messages sont préfixés <code>[code]</code> dans messages.properties</td><td>La regex du BFF repêche nos codes sans effort quand l'orchestrator propage nos erreurs — on est un « bon citoyen » de son socle</td></tr>
+</table>
+
+<h2 id="s2"><span class="num">2</span>L'argumentaire pour Yassin</h2>
+<div class="ok"><strong>Le pitch en 3 phrases</strong> : « J'ai repris le pattern du BFF : même contrat ErrorDTO, même mécanique MessageSource + registre de codes, même scoping. J'ai adapté un seul point au contexte : nous sommes un microservice <em>producteur</em> d'erreurs, donc le code sort du type de l'exception plutôt que d'une regex sur le message — plus fiable, et nos messages restent préfixés [code] pour que TON handler BFF les repêche tel quel. J'ai aussi gardé les fieldErrors sur les 400 en étendant ErrorDTO sans le casser. »</div>
+<h3>Q&amp;A anticipées</h3>
+<table>
+<tr><th>Question probable</th><th>Réponse</th></tr>
+<tr><td>« Pourquoi pas la regex comme chez nous ? »</td><td>Elle résout un problème que le BFF a (retrouver un code dans le message d'un service aval) et que nous n'avons pas (nous créons l'exception, le type EST le code). En prime, notre préfixe [code] alimente précisément ta regex quand tu propages nos erreurs.</td></tr>
+<tr><td>« Pourquoi plusieurs @ExceptionHandler au lieu d'un seul ? »</td><td>Pour distinguer erreur métier attendue (4xx propre, pas de log d'erreur) et bug technique (500 + log.error avec stacktrace). Un catch-all unique déguise les bugs en erreurs fonctionnelles et les rend invisibles en supervision.</td></tr>
+<tr><td>« FieldErrorsDTO, ce n'est pas une divergence de contrat ? »</td><td>Non : héritage additif. code et message sont toujours là, au même endroit — un champ en plus sur un seul cas (400 de validation). Si tu la refuses, la retirer = 3 lignes.</td></tr>
+<tr><td>« Et le 999 ? »</td><td>Remplacé par un vrai 500 : 999 n'est pas un statut HTTP, certains clients/proxys le gèrent mal. Le fallback est CORPO_TECHNICAL_ERROR(500).</td></tr>
+<tr><td>« Pourquoi ErrorDTO dans le module common ? »</td><td>Pour que le retail réutilise le même fichier lors de sa migration (guide fourni au collègue) — un seul contrat d'erreur pour tout le microservice.</td></tr>
+</table>
+
+<h2 id="s3"><span class="num">3</span>Implémentation corpo — les 5 fichiers</h2>
+<div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\workflow\fund\management\common\dto\ErrorDTO.java</span><button class="copybtn" onclick="copyCode(1, this)">Copier</button><span class="fh-note">Copie conforme du contrat BFF — style accesseurs manuels conservé volontairement</span></div><pre><code id="code-1">package com.bmci.workflow.fund.management.common.dto;
+
+/**
+ * Contrat d&#x27;erreur unifie — COPIE CONFORME de l&#x27;ErrorDTO du socle BFF
+ * orchestrator (meme forme {code, message}, memes accesseurs manuels) :
+ * le front recoit exactement la meme structure d&#x27;erreur partout.
+ * Place dans le module common : partage retail / corpo.
+ */
+public class ErrorDTO {
+
+    private String code;
+    private String message;
+
+    public ErrorDTO() {
+    }
+
+    public ErrorDTO(String code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-common\src\main\java\com\bmci\workflow\fund\management\common\dto\FieldErrorsDTO.java</span><button class="copybtn" onclick="copyCode(2, this)">Copier</button></div><pre><code id="code-2">package com.bmci.workflow.fund.management.common.dto;
+
+import java.util.Map;
+
+/**
+ * Extension ADDITIVE du contrat BFF pour les erreurs de validation de
+ * surface (400) : ajoute le detail champ par champ SANS casser le contrat
+ * — un client qui ne lit que {code, message} continue de fonctionner.
+ */
+public class FieldErrorsDTO extends ErrorDTO {
+
+    private Map&lt;String, String&gt; fieldErrors;
+
+    public FieldErrorsDTO() {
+    }
+
+    public FieldErrorsDTO(String code, String message, Map&lt;String, String&gt; fieldErrors) {
+        super(code, message);
+        this.fieldErrors = fieldErrors;
+    }
+
+    public Map&lt;String, String&gt; getFieldErrors() {
+        return fieldErrors;
+    }
+
+    public void setFieldErrors(Map&lt;String, String&gt; fieldErrors) {
+        this.fieldErrors = fieldErrors;
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\corpo\error\CorpoHttpStatus.java</span><button class="copybtn" onclick="copyCode(3, this)">Copier</button></div><pre><code id="code-3">package com.bmci.workflow.fund.management.application.rest.corpo.error;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
+
+/**
+ * Registre des erreurs corpo — meme role que le CustomHttpStatus du BFF :
+ * UNE seule table qui relie code metier &lt;-&gt; statut HTTP &lt;-&gt; cle de message.
+ * Ajouter une erreur = ajouter une ligne ici + une cle dans
+ * messages.properties, rien d&#x27;autre.
+ */
+@Getter
+@AllArgsConstructor
+public enum CorpoHttpStatus {
+
+    CORPO_BAD_REQUEST(400, HttpStatus.BAD_REQUEST, &quot;corpo.error.badrequest&quot;),
+    CORPO_NOT_FOUND(404, HttpStatus.NOT_FOUND, &quot;corpo.error.notfound&quot;),
+    CORPO_CONFLICT(409, HttpStatus.CONFLICT, &quot;corpo.error.conflict&quot;),
+    CORPO_VALIDATION_ERROR(422, HttpStatus.UNPROCESSABLE_ENTITY, &quot;corpo.error.validation&quot;),
+    CORPO_TECHNICAL_ERROR(500, HttpStatus.INTERNAL_SERVER_ERROR, &quot;corpo.error.technical&quot;);
+
+    private final int code;
+    private final HttpStatus httpStatus;
+    private final String messageKey;
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">fund-management-container\src\main\resources\messages.properties</span><button class="copybtn" onclick="copyCode(4, this)">Copier</button><span class="fh-note">Basename par défaut de Spring Boot (auto-configuré, encodage UTF-8 par défaut) — si le fichier existe déjà, AJOUTER les clés corpo.error.*</span></div><pre><code id="code-4"># ============================================================================
+# Libelles d&#x27;erreur corpo — externalises (pattern BFF : MessageSource).
+# {0} = detail metier fourni par l&#x27;exception. Le prefixe [code] rend nos
+# messages directement lisibles par la regex du handler BFF orchestrator
+# quand il propage nos erreurs.
+# ============================================================================
+corpo.error.badrequest=[400] La requ\u00eate est invalide : {0}
+corpo.error.notfound=[404] {0}
+corpo.error.conflict=[409] {0}
+corpo.error.validation=[422] {0}
+corpo.error.technical=[500] Une erreur technique est survenue. Si elle persiste, contactez le support.</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\corpo\error\CorpoDemandExceptionHandler.java</span><button class="copybtn" onclick="copyCode(5, this)">Copier</button><span class="fh-note">Remplace le handler provisoire ProblemDetail — les exceptions typées, le use case et le controller ne changent PAS</span></div><pre><code id="code-5">package com.bmci.workflow.fund.management.application.rest.corpo.error;
+
+import com.bmci.q360.domain.corpo.exceptions.CorpoConflictException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoNotFoundException;
+import com.bmci.q360.domain.corpo.exceptions.CorpoValidationException;
+import com.bmci.workflow.fund.management.application.rest.corpo.CorpoDemandController;
+import com.bmci.workflow.fund.management.common.dto.ErrorDTO;
+import com.bmci.workflow.fund.management.common.dto.FieldErrorsDTO;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSource;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Handler d&#x27;erreurs corpo ALIGNE sur le pattern du socle BFF orchestrator :
+ * meme contrat de reponse (ErrorDTO {code, message}), meme mecanique
+ * MessageSource + registre de statuts (CorpoHttpStatus ~ CustomHttpStatus),
+ * meme scoping par assignableTypes.
+ * Adaptation assumee au contexte &quot;microservice producteur d&#x27;erreurs&quot; :
+ * resolution par TYPE d&#x27;exception (pas de regex sur les messages — le code
+ * vient du type, source fiable), fieldErrors conserves sur les 400 de
+ * validation (extension additive du contrat), et filet final Exception.class
+ * avec log.error systematique (un bug reste visible, jamais silencieux).
+ */
+@Slf4j
+@RestControllerAdvice(assignableTypes = CorpoDemandController.class)
+@RequiredArgsConstructor
+public class CorpoDemandExceptionHandler {
+
+    private final MessageSource messageSource;
+
+    // ==================== Erreurs metier (exceptions typees) ====================
+
+    @ExceptionHandler(CorpoValidationException.class)
+    public ResponseEntity&lt;ErrorDTO&gt; handleValidation(CorpoValidationException exception) {
+        return build(CorpoHttpStatus.CORPO_VALIDATION_ERROR, exception.getMessage());
+    }
+
+    @ExceptionHandler(CorpoNotFoundException.class)
+    public ResponseEntity&lt;ErrorDTO&gt; handleNotFound(CorpoNotFoundException exception) {
+        return build(CorpoHttpStatus.CORPO_NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(CorpoConflictException.class)
+    public ResponseEntity&lt;ErrorDTO&gt; handleConflict(CorpoConflictException exception) {
+        return build(CorpoHttpStatus.CORPO_CONFLICT, exception.getMessage());
+    }
+
+    // ==================== Erreurs de surface (contrat HTTP) ====================
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;ErrorDTO&gt; handleBeanValidation(MethodArgumentNotValidException exception) {
+        Map&lt;String, String&gt; fieldErrors = new HashMap&lt;&gt;();
+        exception.getBindingResult().getFieldErrors().forEach(fieldError -&gt;
+                fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage()));
+
+        CorpoHttpStatus status = CorpoHttpStatus.CORPO_BAD_REQUEST;
+        String message = resolveMessage(status, &quot;des champs sont invalides&quot;);
+        return ResponseEntity.status(status.getHttpStatus())
+                .body(new FieldErrorsDTO(String.valueOf(status.getCode()), message, fieldErrors));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity&lt;ErrorDTO&gt; handleUnreadable(HttpMessageNotReadableException exception) {
+        return build(CorpoHttpStatus.CORPO_BAD_REQUEST, &quot;le corps de la requête est illisible ou mal formé&quot;);
+    }
+
+    // ==================== Filet final : jamais silencieux ====================
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;ErrorDTO&gt; handleUnexpected(Exception exception) {
+        log.error(&quot;Erreur non prévue sur un endpoint corpo&quot;, exception); // trace complete obligatoire
+        return build(CorpoHttpStatus.CORPO_TECHNICAL_ERROR, null);
+    }
+
+    // ==================== Fabrique commune ====================
+
+    private ResponseEntity&lt;ErrorDTO&gt; build(CorpoHttpStatus status, String detail) {
+        return ResponseEntity.status(status.getHttpStatus())
+                .body(new ErrorDTO(String.valueOf(status.getCode()), resolveMessage(status, detail)));
+    }
+
+    private String resolveMessage(CorpoHttpStatus status, String detail) {
+        return messageSource.getMessage(status.getMessageKey(),
+                new Object[]{detail == null ? &quot;&quot; : detail}, Locale.FRANCE);
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-container\src\test\java\...\CorpoDemandControllerTest.java (extraits à adapter)</span><button class="copybtn" onclick="copyCode(6, this)">Copier</button><span class="fh-note">2 adaptations : MessageSource réel dans le setUp + assertions ErrorDTO au lieu de ProblemDetail</span></div><pre><code id="code-6">// ============================================================================
+// ADAPTATIONS du CorpoDemandControllerTest (MockMvc standalone) — 2 choses :
+// ============================================================================
+
+// 1. Le setUp doit fournir un MessageSource reel au handler :
+@BeforeEach
+void setUp() {
+    objectMapper = new ObjectMapper();
+    ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+    messageSource.setBasename(&quot;messages&quot;);          // lit le vrai messages.properties
+    messageSource.setDefaultEncoding(&quot;UTF-8&quot;);
+    mockMvc = MockMvcBuilders.standaloneSetup(corpoDemandController)
+            .setControllerAdvice(new CorpoDemandExceptionHandler(messageSource))
+            .build();
+}
+
+// 2. Les assertions d&#x27;erreur passent de ProblemDetail a ErrorDTO :
+//    AVANT : jsonPath(&quot;$.code&quot;).value(&quot;CORPO_NOT_FOUND&quot;)  /  $.detail  /  $.status
+//    APRES :
+.andExpect(MockMvcResultMatchers.status().isNotFound())
+.andExpect(MockMvcResultMatchers.jsonPath(&quot;$.code&quot;).value(&quot;404&quot;))
+.andExpect(MockMvcResultMatchers.jsonPath(&quot;$.message&quot;).isNotEmpty());
+
+//    Et pour le 400 de validation, fieldErrors est toujours la :
+.andExpect(MockMvcResultMatchers.jsonPath(&quot;$.code&quot;).value(&quot;400&quot;))
+.andExpect(MockMvcResultMatchers.jsonPath(&quot;$.fieldErrors.user&quot;).isNotEmpty());</code></pre>
+<h2 id="s4"><span class="num">4</span>Étapes d'exécution &amp; impacts</h2>
+<ol>
+<li>Créer <code>ErrorDTO</code> et <code>FieldErrorsDTO</code> dans le module common (le pom du common n'a besoin de rien de plus).</li>
+<li>Créer <code>CorpoHttpStatus</code> et <code>messages.properties</code>.</li>
+<li>Remplacer <code>CorpoDemandExceptionHandler</code>. Supprimer l'import ProblemDetail devenu inutile — rien d'autre ne bouge (c'est le bénéfice d'avoir isolé le contrat d'erreur dans l'advice).</li>
+<li>Adapter le <code>CorpoDemandControllerTest</code> (extrait ci-dessus) → <kbd>mvn clean install</kbd> vert.</li>
+<li>Rejouer les cas d'erreur du cahier de tests (ER-01 → ER-13) : <strong>les statuts HTTP ne changent pas</strong>, seul le corps change — <code>{"code":"422","message":"[422] La coupure…"}</code> au lieu du ProblemDetail, et <code>fieldErrors</code> toujours présent sur les 400. Bonus nouveau : le cas « même coupure en double » (uq_corpo_od) sort maintenant en <strong>500 propre</strong> {code:"500", message:"[500] Une erreur technique…"} avec stacktrace dans les logs — plus de page d'erreur brute.</li>
+</ol>
+<div class="danger"><strong>Impact à signaler (rien en silencieux)</strong> : le format du corps d'erreur change (ProblemDetail → ErrorDTO). Si le front a déjà branché les erreurs corpo, le prévenir : <code>detail</code> devient <code>message</code>, <code>status</code> devient <code>code</code> (chaîne), les codes CORPO_* textuels deviennent numériques ("400", "404"…) — la granularité métier reste portée par le libellé. C'est LE format cible validé par la note du tech lead, autant basculer avant que le front ne branche.</div>
+
+<h2 id="s5"><span class="num">5</span>Guide de réplication retail (à transmettre à ton collègue)</h2>
+<p>Le gros du travail est déjà mutualisé : <strong>ErrorDTO et FieldErrorsDTO sont dans le common</strong>, il les importe tel quel. Il lui reste 4 étapes, sans big-bang :</p>
+<ol>
+<li><strong>Son registre</strong> : créer <code>RetailHttpStatus</code> dans <code>rest.retail.error</code> — copier CorpoHttpStatus, renommer les constantes (RETAIL_BAD_REQUEST 400, RETAIL_NOT_FOUND 404, RETAIL_CONFLICT 409, RETAIL_VALIDATION_ERROR 422, RETAIL_TECHNICAL_ERROR 500) et les clés (<code>retail.error.*</code>).</li>
+<li><strong>Ses libellés</strong> : ajouter les clés <code>retail.error.*</code> dans le MÊME <code>messages.properties</code> (fichier partagé du container).</li>
+<li><strong>Son advice</strong> : créer <code>RetailDemandExceptionHandler</code> dans <code>rest.retail.error</code>, scopé <code>assignableTypes = CashDemandController.class</code> — même squelette que le corpo. Particularité retail : pas encore d'exceptions typées, tout sort en <code>SessionServiceException</code> → dans un premier temps, un handler <code>SessionServiceException</code> → 500 (comportement actuel préservé, mais au format ErrorDTO) + le filet Exception.class avec log.error. <strong>Zéro régression fonctionnelle, contrat unifié immédiatement.</strong></li>
+<li><strong>Phase 2 (progressive, à son rythme)</strong> : créer ses exceptions typées (RetailNotFoundException…) dans domain.retail, remplacer les <code>RuntimeException("Cash demand not found")</code> de l'adapter par les typées, retirer les try/catch des use cases méthode par méthode — chaque méthode migrée gagne son vrai statut (404/409/422) au lieu du 500. Le corpo lui sert de modèle ligne à ligne.</li>
+</ol>
+<div class="ok"><strong>Résultat final pour le microservice</strong> : un seul contrat d'erreur (celui du BFF), deux registres par périmètre, un fichier de messages, deux advices scopés — et une migration retail sans big-bang. C'est l'application complète de la note 5, défendable en une démo de 5 minutes.</div>
+<script>
+function copyCode(i, btn) {
+  const el = document.getElementById('code-' + i);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copié !';
+    setTimeout(() => btn.textContent = old, 1600);
+  });
+}
+</script></div></body></html>
