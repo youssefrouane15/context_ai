@@ -1,0 +1,202 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Livraison — PR corpo alignement retail : commandes git, description, README</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;--rouge:#B3402A;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.65;font-size:15.5px;}
+.wrap{max-width:1060px;margin:0 auto;padding:0 28px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:48px 28px 40px;margin-bottom:36px;}
+header.hero .inner{max-width:1060px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:11px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:30px;line-height:1.15;}
+.hero p.sub{margin-top:12px;max-width:840px;color:#DCEBE3;font-size:15px;}
+.badge-v{display:inline-block;margin-top:14px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:23px;color:var(--vertF);margin:50px 0 6px;padding-top:16px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:18px;}
+p{margin:10px 0;} ul,ol{margin:10px 0 10px 26px;} li{margin:5px 0;} strong{color:var(--vertF);}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:12px 16px;margin:14px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:12px 16px;margin:14px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+p code,li code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:13px;}
+.codehead{display:flex;align-items:center;gap:12px;background:var(--vertF);color:#CBE3D8;padding:8px 15px;border-radius:8px 8px 0 0;margin-top:18px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;flex-wrap:wrap;}
+.fh-note{color:#F2D9A0;font-size:11.5px;width:100%;}
+.copybtn{margin-left:auto;background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 12px;border-radius:4px;cursor:pointer;}
+.copybtn:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:17px 20px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:12.8px;line-height:1.5;margin-bottom:6px;}
+code{font-family:'IBM Plex Mono',monospace;}
+kbd{background:var(--vertF);color:#fff;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · AER_LM-257 · Livraison</div>
+<h1>Pousser le refactoring : commandes git,<br>description de PR et README</h1>
+<p class="sub">Tout pour livrer proprement sur la branche <code>feature/AER_LM-257-demandes-corpo</code> (déjà suivie sur origin, la PR existante vers develop se mettra à jour au push) : la checklist d'avant-push, deux stratégies de commits, la description de PR complète à coller dans GitHub, et le README du périmètre.</p>
+<div class="badge-v">LIVRAISON · 24/07/2026</div>
+</div></header><div class="wrap">
+
+<h2><span class="num">1</span>Checklist d'avant-push</h2>
+<div class="codehead"><span>Vérifications (terminal à la racine du repo)</span><button class="copybtn" onclick="copyCode(1, this)">Copier</button></div><pre><code id="code-1"># ============================================================
+# AVANT DE POUSSER — la checklist qui evite les allers-retours
+# ============================================================
+mvn clean verify                       # build + tests + rapports JaCoCo — tout vert
+# Base inaccessible ? exclure l&#x27;integration :
+# mvn clean verify -Dtest=&#x27;!CorpoDemandIntegrationTest&#x27;
+
+git status                             # verifier qu&#x27;AUCUN fichier parasite ne part :
+                                       # .idea/, target/, *.iml doivent etre ignores (.gitignore)
+git diff --stat develop                # vue d&#x27;ensemble du volume de changements</code></pre>
+<div class="note"><strong>Point .gitignore</strong> : si <code>git status</code> montre <code>.idea/</code>, <code>target/</code> ou des <code>*.iml</code>, NE PAS les ajouter — complète le .gitignore d'abord. Le nouveau module common doit apparaître en entier (pom + sources), c'est normal.</div>
+
+<h2><span class="num">2</span>Les commits — deux stratégies</h2>
+<p><strong>Recommandée : 5 commits thématiques</strong> — l'historique raconte le refactoring et Yassin peut reviewer commit par commit (common → packages → Flyway → modèle+handler → tests). Les <code>git add</code> par chemins font le tri même si tout est modifié en vrac dans ton working tree ; entre les commits 2 et 4, git ne reprend que ce qui reste modifié dans ces dossiers.</p>
+<div class="codehead"><span>Stratégie A — commits thématiques (recommandée)</span><button class="copybtn" onclick="copyCode(2, this)">Copier</button></div><pre><code id="code-2"># ============================================================
+# COMMITS THEMATIQUES (recommande : l&#x27;historique raconte le
+# refactoring, la review se fait commit par commit)
+# Branche courante : feature/AER_LM-257-demandes-corpo
+# ============================================================
+
+# --- 1. Module common + factorisation (socles, VOs, DTOs partages) ---
+git add fund-management-common/ pom.xml
+git add fund-management-domain/fund-management-domain-core/pom.xml \
+        fund-management-data-access/pom.xml \
+        fund-management-domain/fund-management-application-service/pom.xml
+git commit -m &quot;[REFACTO][AER_LM-257] Module common : socles, VOs d&#x27;identite et DTOs partages factorises&quot;
+
+# --- 2. Packages racine retail/corpo + scans de la main ---
+git add fund-management-domain/ fund-management-application/ fund-management-data-access/ \
+        fund-management-container/src/main/java/
+git commit -m &quot;[REFACTO][AER_LM-257] Packages racine retail/corpo sur toutes les couches + scans dataaccess elargis&quot;
+
+# --- 3. Flyway + schema corpo V2 ---
+git add fund-management-container/pom.xml \
+        fund-management-container/src/main/resources/application.yaml \
+        fund-management-container/src/main/resources/db/migration/
+git commit -m &quot;[FEAT][AER_LM-257] Flyway : schema corpo duplique du retail + colonnes Jira + seed (V2)&quot;
+
+# --- 4. Modele corpo aligne + handler pattern BFF ---
+git add fund-management-domain/ fund-management-data-access/ fund-management-application/
+git commit -m &quot;[FEAT][AER_LM-257] Modele corpo aligne 100% retail (domaine, DTOs, persistance MapStruct) + handler erreurs pattern BFF&quot;
+
+# --- 5. Tests ---
+git add &#x27;*/src/test/*&#x27;
+git commit -m &quot;[TEST][AER_LM-257] Pyramide corpo : domaine, mappers, use case, adapter, web slice, integration + JaCoCo&quot;
+
+# --- Verification finale puis push ---
+git log --oneline develop..HEAD        # relire l&#x27;histoire qu&#x27;on raconte
+git push                                # la branche suit deja origin</code></pre><div class="codehead"><span>Stratégie B — un seul commit (si l'équipe squash au merge)</span><button class="copybtn" onclick="copyCode(3, this)">Copier</button></div><pre><code id="code-3"># ============================================================
+# ALTERNATIVE RAPIDE — un seul commit (si l&#x27;equipe squash de
+# toute facon au merge)
+# ============================================================
+git add -A
+git status                             # relire ce qui part !
+git commit -m &quot;[FEAT][AER_LM-257] Corpo aligne 100% retail : common, packages racine, Flyway V2, MapStruct, handler BFF, tests&quot;
+git push</code></pre>
+<h2><span class="num">3</span>La description de PR (à coller dans GitHub)</h2>
+<p>Mets à jour le titre et la description de la PR existante (base <code>develop</code> ← <code>feature/AER_LM-257-demandes-corpo</code>) avec ce markdown — il couvre le mapping notes du TL → réalisations, les points d'attention reviewers (divergences assumées incluses, rien de silencieux), le pré-requis BDD, les tests et le backlog :</p>
+<div class="codehead"><span>Description de PR (markdown GitHub)</span><button class="copybtn" onclick="copyCode(4, this)">Copier</button></div><pre><code id="code-4">## [FEAT][AER_LM-257] Demandes Corpo — alignement 100% retail, module common, Flyway, handler pattern BFF
+
+### Ce que fait cette PR
+Implémente le périmètre **Demandes Corpo** en application des directives d&#x27;architecture :
+
+| Directive | Application |
+|---|---|
+| Dupliquer le schéma tel qu&#x27;il est | Schéma PostgreSQL `corpo` = tables retail répliquées + colonnes Jira (identité client, `denomination_code`) — livré par **Flyway V2** |
+| Flyway pour les migrations | Base existante baselinée V1 (non touchée), V2 versionnée, historique `public.flyway_schema_history` |
+| Séparer les modèles et couches | Racines `retail/` et `corpo/` dans chaque module, couches à l&#x27;intérieur |
+| Module common | `fund-management-common` : socles (BaseId, BaseEntity, AggregateRoot), 6 VOs d&#x27;identité, DTOs partagés (Currency, Denomination, Response, Responsible, Error) |
+| Exceptions pattern BFF | Contrat `ErrorDTO {code, message}` + `MessageSource` + registre `CorpoHttpStatus`, résolution par type d&#x27;exception, messages préfixés `[code]` compatibles avec la regex du BFF |
+
+Le modèle corpo est le **miroir exact du retail** (agrégat → opérations → détails devise → coupures, mêmes VOs, DTOs arborescents, même mécanique de persistance) + uniquement les ajouts Jira : réf demande CO-AAAA-NNNNNN (séquence), réf client, ville, complément d&#x27;adresse, n° de compte, code coupure stable.
+
+### Règles métier
+- Montant **calculé serveur** (Σ quantité × valeur faciale) ; montant fourni contrôlé → 422 si incohérent
+- Défauts serveur : urgent NO, statut INITIATED, institution 1, caisse 001
+- Référence unique immuable ; annulation propagée demande + opérations ; demande annulée figée (409)
+- Résolution par référentiels : coupure par CODE, devise par ISO → 422 si inconnues
+
+### Points d&#x27;attention reviewers
+- **Seule modification de la main class** : scans `@EntityScan`/`@EnableJpaRepositories` élargis à la racine `dataaccess` (requis par la structure racine — élargir un scan est sans risque)
+- **Divergences retail assumées** : create → **201** (retail : 200, sémantique HTTP explicite) ; FKs `user_profile_id`/`establishment_id` **nullables** (l&#x27;identité client remplace) ; `DenominationDTO` unifié au format corpo (retail expose `denominationCode`/`faceValue` à null — additif, non cassant)
+- Mapper de persistance **MapStruct hybride** : structure générée, résolutions en `default`+`@Context`, liens parents en `@AfterMapping`
+- Fetch join limité au 1er niveau (MultipleBagFetchException) — comme retail
+- Handler d&#x27;erreurs : **pas de regex** (nous produisons nos erreurs, le type est la source du code) — argumentaire détaillé dispo
+
+### Base de données
+Pré-requis une fois avant le premier démarrage : `DROP SCHEMA IF EXISTS corpo CASCADE;` (ancien prototype). Flyway crée le schéma, applique V2 (8 tables + séquence + seed MAD/11 coupures). Le schéma `public` (retail) n&#x27;est pas modifié ; le futur V1 retail restera sous baseline sur cette base.
+
+### Tests
+7 classes (domaine, mapper web, use case, mapper persistance, adapter, web slice MockMvc, intégration `@SpringBootTest+@Transactional`) — `mvn clean verify` → rapports JaCoCo. Campagne API : 21 cas (nominaux, règles métier, edge cases) avec attendus en base, tous passés.
+
+### Breaking change à signaler au front
+Contrat corpo **arborescent** (aligné retail) + corps d&#x27;erreur **ErrorDTO** `{code, message}` (+ `fieldErrors` sur les 400). Exemples de payloads dans le cahier de tests.
+
+### Reste ouvert (backlog assumé)
+Coupure en double dans une ventilation (500 propre → à trancher : dédup ou 422) · pagination GET all · Testcontainers · migration retail vers le handler (guide fourni) · `ddl-auto: none` (décision d&#x27;équipe) · endpoint VALIDATED (attend le workflow Camunda).</code></pre>
+<h2><span class="num">4</span>Le README du périmètre</h2>
+<p>À créer à la racine du repo (<code>README-corpo.md</code>), ou à fusionner dans le README principal si Yassin préfère un seul fichier — il documente l'architecture, la règle de placement, le contrat d'API, Flyway et les tests pour toute personne qui rejoint le projet :</p>
+<div class="codehead"><span>README-corpo.md (à la racine du repo)</span><button class="copybtn" onclick="copyCode(5, this)">Copier</button></div><pre><code id="code-5"># Fund Management — Périmètre Corpo (AER_LM-257)
+
+Demandes d&#x27;**alimentation** / **ramassage** d&#x27;espèces pour les clients corporate,
+implémentées en miroir du modèle retail (architecture hexagonale) + spécificités Jira.
+
+## Architecture
+
+| Module | Rôle |
+|---|---|
+| `fund-management-common` | Socle partagé retail/corpo : `BaseId`, `BaseEntity` (domaine &amp; JPA), `AggregateRoot`, VOs d&#x27;identité, DTOs communs (`CurrencyDTO`, `DenominationDTO`, `ErrorDTO`…) |
+| `fund-management-domain-core` | Métier pur — `domain.retail.*` / `domain.corpo.*` (agrégats, enums, exceptions typées) |
+| `fund-management-application-service` | DTOs, mappers web MapStruct, ports &amp; use cases — `service.domain.{retail,corpo}.*` |
+| `fund-management-data-access` | Entités JPA, repositories, mappers de persistance, adaptateurs — `dataaccess.{retail,corpo}.*` |
+| `fund-management-application` | REST — `rest.retail` / `rest.corpo` (+ handler d&#x27;erreurs) |
+| `fund-management-container` | Main, configuration, migrations Flyway, tests d&#x27;intégration |
+
+**Règle de placement** : partagé par les deux modèles → `common` · nominal → `retail` · corpo → `corpo` · indépendant → transverse.
+
+## API Corpo — `/corpo/cash` (media type `application/vnd.api.v1+json`)
+
+| Méthode | Endpoint | Succès | Erreurs |
+|---|---|---|---|
+| POST | `/corpo/cash` | **201** | 400, 422 |
+| GET | `/corpo/cash/{id}` | 200 | 404 |
+| GET | `/corpo/cash` | 200 | — |
+| PUT | `/corpo/cash/{id}` | 200 | 400, 404, 409, 422 |
+| PATCH | `/corpo/cash/{id}/cancel` | 200 | 404, 409 |
+
+Payload **arborescent** (aligné retail) : `operations[] → currencyDetails[] → operationDenominations[]`,
+coupures référencées par **code stable** (`BILLET_200`, `PIECE_10`, `CENTIME_50`…).
+Erreurs au contrat BFF : `{&quot;code&quot;:&quot;422&quot;,&quot;message&quot;:&quot;[422] …&quot;}` (+ `fieldErrors` sur les 400).
+
+Règles clés : montant **calculé serveur** et contrôlé · référence `CO-AAAA-NNNNNN`
+générée par séquence, immuable · annulation propagée · demande annulée figée.
+
+## Base de données &amp; Flyway
+
+- Schéma dédié **`corpo`** (duplication du schéma retail + colonnes Jira), livré par `V2__create_corpo_schema.sql`
+- Historique : `public.flyway_schema_history` — base existante baselinée V1
+- Un script appliqué ne se modifie **jamais** (checksum) : toute évolution = `V3`, `V4`…
+- Reset des données de test : voir `docs/` (TRUNCATE des 4 tables transactionnelles + RESTART de la séquence)
+
+## Lancer les tests
+
+```bash
+mvn clean verify                                         # build + tests + JaCoCo
+mvn clean verify -Dtest=&#x27;!CorpoDemandIntegrationTest&#x27;    # sans la base
+# Rapports : &lt;module&gt;/target/site/jacoco/index.html
+```
+
+Pyramide : domaine (règles pures) → mappers (MapStruct réel) → use case &amp; adapter (Mockito)
+→ web slice (MockMvc + handler) → intégration (`@SpringBootTest` + Flyway + rollback).
+
+## Contacts
+Périmètre corpo : Youssef ROUANE · Périmètre retail : (collègue) · Tech lead : Yassin EL MALYH</code></pre>
+<div class="ok"><strong>Après le push</strong> : vérifie sur GitHub que la PR affiche bien les nouveaux commits, colle la description, ajoute Yassin en reviewer, et poste le lien sur le canal Squad QlickFlow avec une ligne : « Corpo aligné 100% retail + common + Flyway + handler BFF — cahier de tests 21 cas passé, dossier de synthèse dispo. » Les documents HTML (implémentation, cahier de tests, dossier de maîtrise, handler BFF) restent hors du repo — partage-les sur Teams si demandé.</div>
+</div>
+<script>
+function copyCode(i, btn) {{
+  const el = document.getElementById('code-' + i);
+  navigator.clipboard.writeText(el.innerText).then(() => {{
+    const old = btn.textContent; btn.textContent = 'Copié !';
+    setTimeout(() => btn.textContent = old, 1600);
+  }});
+}}
+</script></body></html>
