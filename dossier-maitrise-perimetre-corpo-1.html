@@ -1,0 +1,312 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dossier de maîtrise — Périmètre corpo AER_LM-257 (fonctionnel → technique)</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;--rouge:#B3402A;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.65;font-size:15.5px;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:50px 28px 42px;margin-bottom:38px;}
+header.hero .inner{max-width:1080px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:12px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:31px;line-height:1.15;}
+.hero p.sub{margin-top:13px;max-width:860px;color:#DCEBE3;font-size:15.5px;}
+.badge-v{display:inline-block;margin-top:15px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:24px;color:var(--vertF);margin:54px 0 6px;padding-top:18px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:19px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:17.5px;color:var(--vert);margin:30px 0 8px;}
+p{margin:10px 0;} ul,ol{margin:10px 0 10px 26px;} li{margin:5px 0;} strong{color:var(--vertF);}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:12px 16px;margin:15px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:12px 16px;margin:15px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.danger{background:#FCEFEC;border-left:4px solid var(--rouge);padding:12px 16px;margin:15px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+table{width:100%;border-collapse:collapse;margin:16px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:14px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:10px 14px;font-family:'Archivo',sans-serif;font-size:13px;}
+td{padding:9px 14px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+p code,li code,td code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:13px;}
+.toc{background:var(--carte);border:1px solid var(--ligne);border-radius:10px;padding:20px 26px;margin:6px 0;column-count:2;column-gap:36px;}
+.toc a{color:var(--vert);text-decoration:none;font-weight:600;}
+.toc ol{margin-left:20px;}
+.codehead{display:flex;align-items:center;background:var(--vertF);color:#CBE3D8;padding:7px 14px;border-radius:8px 8px 0 0;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.copybtn{margin-left:auto;background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:3px 12px;border-radius:4px;cursor:pointer;}
+.copybtn:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:16px 19px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:12.5px;line-height:1.5;margin-bottom:6px;}
+code{font-family:'IBM Plex Mono',monospace;}
+.tree{background:#10231C;color:#CBE3D8;padding:18px 20px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.5;overflow-x:auto;white-space:pre;margin:14px 0;}
+.tree .hl{color:#7FDCAB;font-weight:600;}
+kbd{background:var(--vertF);color:#fff;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · AER_LM-257 · Dossier de maîtrise du périmètre</div>
+<h1>Les demandes corpo, de A à Z<br>Comprendre, expliquer et défendre chaque choix</h1>
+<p class="sub">Ton document de référence : le fonctionnel de la Jira, le parcours d'une demande à travers chaque couche, chaque décision d'architecture avec sa justification, le journal des incidents résolus, les scripts d'exploitation, et le Q&amp;A de défense. Tout ce qui a été construit, et surtout <strong>pourquoi</strong>.</p>
+<div class="badge-v">DOSSIER DE MAÎTRISE · 24/07/2026</div>
+</div></header><div class="wrap">
+
+<div class="toc"><strong>Sommaire</strong>
+<ol>
+<li><a href="#s1">Le fonctionnel : ce que demande la Jira</a></li>
+<li><a href="#s2">La vision d'ensemble : les 5 notes du tech lead → le système</a></li>
+<li><a href="#s3">Le parcours d'une demande (le fil rouge à raconter)</a></li>
+<li><a href="#s4">L'architecture : modules &amp; packages</a></li>
+<li><a href="#s5">La base de données &amp; Flyway</a></li>
+<li><a href="#sdec">Les choix techniques : alternatives, décision, lien fonctionnel</a></li>
+<li><a href="#s6">Le domaine : là où vivent les règles métier</a></li>
+<li><a href="#s7">Application-service : DTOs, mapper web, use case</a></li>
+<li><a href="#s8">Data-access : la mécanique de persistance</a></li>
+<li><a href="#s9">REST : controller &amp; handler pattern BFF</a></li>
+<li><a href="#s10">La stratégie de tests</a></li>
+<li><a href="#s11">Exploitation : nettoyer la base avant une campagne</a></li>
+<li><a href="#s12">Journal des incidents résolus (et leurs leçons)</a></li>
+<li><a href="#s13">Q&amp;A de défense</a></li>
+</ol></div>
+
+<h2 id="s1"><span class="num">1</span>Le fonctionnel : ce que demande la Jira AER_LM-257</h2>
+<p>Le périmètre « Demandes Corpo » permet à un client <strong>entreprise</strong> (corporate) de demander à la Caisse Centrale soit une <strong>ALIMENTATION</strong> (livraison d'espèces, avec une ventilation précise par coupures : tant de billets de 200, tant de pièces de 10…), soit un <strong>RAMASSAGE</strong> (collecte d'espèces, sans ventilation préalable). Contrairement au retail — où le demandeur est une <em>agence</em> identifiée par son user/établissement — le corpo est identifié par son <strong>identité client</strong> : référence client, ville, complément d'adresse, numéro de compte (les « zones libres » de la Jira).</p>
+<table><tr><th>Donnée Jira</th><th>Traduction dans le système</th></tr>
+<tr><td>Type de demande (Alimentation/Ramassage)</td><td><code>operationSens</code> de l'opération — l'équivalent exact du SUPPLY/COLLECTION retail</td></tr>
+<tr><td>Montant</td><td><code>totalAmount</code> de l'opération, <strong>toujours calculé serveur</strong> (Σ quantité × valeur faciale) ; un montant fourni est contrôlé (422 si incohérent)</td></tr>
+<tr><td>Urgence, statut, dates</td><td>Champs retail existants (YES/NO ; INITIATED→VALIDATED/CANCELLED ; timestamps auto)</td></tr>
+<tr><td>Réf demande</td><td><code>uniqueRequestRef</code> lisible CO-AAAA-NNNNNN, générée par séquence PostgreSQL, unique et immuable</td></tr>
+<tr><td>Identité client (4 zones libres)</td><td>Colonnes additionnelles sur l'entête corpo — n'existent nulle part chez retail</td></tr>
+<tr><td>Ventilation par coupures</td><td>Arbre opération → détail devise (MAD) → lignes coupure/quantité, résolues par un <strong>code stable</strong> (BILLET_200…) contre le référentiel</td></tr></table>
+
+<h2 id="s2"><span class="num">2</span>La vision d'ensemble : les 5 notes du tech lead → le système</h2>
+<table><tr><th>Note</th><th>Application</th></tr>
+<tr><td>1. « Dupliquer le schéma tel qu'il est pour corpo »</td><td>Schéma PostgreSQL <code>corpo</code> = les 8 tables retail répliquées + colonnes additionnelles Jira. Un seul écart structurel assumé : FKs user_profile/establishment <strong>nullables</strong> (l'identité client remplace)</td></tr>
+<tr><td>2. « Flyway pour les migrations »</td><td>Base existante baselinée V1 (jamais touchée, le V1 retail du collègue restera ignoré ici), notre V2 versionnée dans le repo, historique dans <code>public.flyway_schema_history</code></td></tr>
+<tr><td>3. « Séparer les deux modèles et couches »</td><td>Racines <code>retail/</code> et <code>corpo/</code> dans CHAQUE module, couches à l'intérieur — deux modèles étanches qui ne s'importent jamais</td></tr>
+<tr><td>4. « Module common pour le partagé »</td><td><code>fund-management-common</code> : socles (BaseId, BaseEntity×2, AggregateRoot), 6 VOs d'identité, 5 DTOs partagés (Currency, Denomination, Response, Responsible, Error+FieldErrors)</td></tr>
+<tr><td>5. « Exceptions : pattern BFF »</td><td>Contrat ErrorDTO + MessageSource + registre CorpoHttpStatus, adapté au contexte producteur (résolution par type, pas par regex) — messages préfixés [code] pour la regex du BFF</td></tr></table>
+
+<h2 id="s3"><span class="num">3</span>Le parcours d'une demande — le fil rouge à raconter en démo</h2>
+<div class="tree">POST /corpo/cash  (payload arborescent aligné retail)
+  │
+  ▼ <span class="hl">CorpoDemandController</span> (@Valid)
+  │   400 FieldErrorsDTO si contrat violé : user @NotBlank, operations @NotEmpty,
+  │   operationSens @NotNull, quantity @Min(0), denominationCode @NotBlank (cascade @Valid)
+  ▼ <span class="hl">CorpoCashRequestWebMapper</span> (MapStruct)  DTO → domaine
+  │   champs SERVEUR ignorés en entrée : id, uniqueRequestRef, requestStatus, dates
+  ▼ <span class="hl">CorpoDemandUseCaseImpl</span> (sans try/catch — les exceptions typées filent au handler)
+  │   charge le référentiel {code → valeur faciale} via le port CorpoDenominationRepository
+  ▼ <span class="hl">CorpoCashRequest.validateAndCompute()</span>  ← LES RÈGLES MÉTIER (domaine pur)
+  │   ≥1 opération · défauts serveur · calcul du montant · cohérence montant fourni
+  │   coupure inconnue → CorpoValidationException → 422
+  ▼ <span class="hl">CorpoDemandRepositoryImpl</span> (adapter @Transactional)
+  │   réf CO-2026-NNNNNN (séquence) · charge coupures par code + devises par ISO
+  │   + establishment par code + user par uid (nullables)
+  ▼ <span class="hl">CorpoCashRequestPersistenceMapper</span> (MapStruct hybride)
+  │   structure de l'arbre GÉNÉRÉE · résolutions en default+@Context
+  │   liens parents & références en @AfterMapping
+  ▼ save() → cascade JPA sur les 4 tables du schéma corpo
+  ▼ toDomain → toResponseDTO → <span class="hl">201 Created</span> (réf, statut, montants, labels)</div>
+<p>Chaque flèche = une responsabilité unique, remplaçable et testée isolément — c'est la définition de l'architecture hexagonale : le domaine au centre ne connaît ni HTTP ni JPA ; les ports (interfaces) sont implémentés par les adaptateurs aux bords.</p>
+
+<h2 id="s4"><span class="num">4</span>L'architecture : modules &amp; packages</h2>
+<table><tr><th>Module</th><th>Rôle</th><th>Dépend de</th></tr>
+<tr><td>fund-management-common</td><td>Le socle partagé, rien d'autre : ce qui est réellement importé par les deux modèles</td><td>—</td></tr>
+<tr><td>fund-management-domain-core</td><td>Le métier pur (agrégats, VOs, enums, exceptions) — zéro Spring, zéro JPA</td><td>common</td></tr>
+<tr><td>fund-management-application-service</td><td>Orchestration : DTOs, mappers web, ports, use cases</td><td>domain-core, common</td></tr>
+<tr><td>fund-management-data-access</td><td>Persistance : entités JPA, repositories, mappers de persistance, adaptateurs</td><td>domain-core, application-service, common</td></tr>
+<tr><td>fund-management-application</td><td>Exposition REST : controllers, handlers d'erreurs</td><td>application-service</td></tr>
+<tr><td>fund-management-container</td><td>Assemblage : main class, yaml, Flyway, tests d'intégration</td><td>tous</td></tr></table>
+<p><strong>La règle de placement</strong> (à réciter) : utilisé par les deux modèles → common · nominal → sous-paquet <code>retail</code> de sa couche · corpo → sous-paquet <code>corpo</code> · indépendant des modèles → transverse. La racine des paquets est le <strong>MODÈLE</strong>, les couches dedans (<code>dataaccess.corpo.entity</code>, pas <code>entity.corpo</code>) — conséquence assumée : les scans de la main class élargis à la racine <code>dataaccess</code> (seule modification jamais faite à cette classe).</p>
+<div class="ok"><strong>Factorisation actée dans common</strong> : les 6 VOs d'identité (CashRequestId…) et les DTOs référentiels (CurrencyDTO, DenominationDTO au format corpo) sont en UN exemplaire, noms métier sans préfixe de modèle. Justification : concepts identiques, schémas de stockage séparés — la séparation des modèles porte sur le métier et les contrats, pas sur des types d'identité triviaux. DenominationDTO unifié = le contrat retail gagne denominationCode/faceValue nullables (additif, non cassant, signalé).</div>
+
+<h2 id="s5"><span class="num">5</span>La base de données &amp; Flyway</h2>
+<p><strong>Le schéma corpo</strong> : 8 tables miroir de retail (cash_request, cash_operation, operation_currency — typo <code>total_amount_by_curerency</code> conservée volontairement, alignement oblige —, operation_denomination, currency, denomination, establishment, user_profile) + la séquence <code>corpo_request_ref_seq</code> + le seed (MAD, 11 coupures avec codes stables). Colonnes additionnelles : identité client + unique_request_ref sur l'entête, denomination_code sur le référentiel coupures. Contraintes ajoutées : CHECK sur operation_sens (ALIMENTATION/RAMASSAGE) et request_status, unicité (détail, coupure).</p>
+<p><strong>Flyway, le mécanisme à savoir expliquer</strong> : sa mémoire est la table <code>public.flyway_schema_history</code> (dans public car premier de <code>schemas: public, corpo</code> — convention du schéma socle, partagée avec le futur V1 retail). Au premier démarrage sur base non vide, <code>baseline-on-migrate</code> la marque V1 sans rien exécuter → tout script ≤ V1 est ignoré à jamais (le V1 du collègue ne s'appliquera pas ici — c'est voulu), seul V2+ s'exécute. Un script appliqué ne se modifie JAMAIS (checksum) ; évolution = V3, V4… <code>ddl-auto</code> reste à <code>update</code> pour ne pas changer le comportement retail (compromis transitoire acté ; cible <code>none</code> = décision d'équipe).</p>
+
+
+<h2 id="sdec"><span class="num">6</span>Les choix techniques : alternatives, décision, lien fonctionnel</h2>
+<p>La méthode à retenir (et à énoncer en soutenance) : <strong>aucun choix technique n'est un goût personnel — chacun remonte soit à un besoin fonctionnel de la Jira, soit à une directive du tech lead, soit à une contrainte vécue</strong> (incident du journal). Pour chaque décision : le besoin, les options réellement sur la table, le verdict, et le prix payé — car un bon choix assume toujours son coût.</p>
+
+<h3>D-01 · La référence de demande par séquence PostgreSQL</h3>
+<table><tr><th>Besoin fonctionnel</th><td>La Jira exige une « réf demande » : un identifiant que le métier peut lire, dicter au téléphone, retrouver dans un litige — un UUID ne remplit pas ce rôle. Elle doit être unique et ne jamais changer.</td></tr>
+<tr><th>Options envisagées</th><td>(a) UUID seul — illisible pour le métier, rejeté. (b) <code>SELECT max(ref)+1</code> — <strong>race condition</strong> : deux créations simultanées lisent le même max et produisent un doublon ; il faudrait verrouiller la table. (c) Table de compteurs maison — réinventer la séquence, avec les mêmes locks à gérer. (d) <strong>Séquence PostgreSQL native</strong> — <code>nextval()</code> est atomique par conception : deux transactions concurrentes reçoivent deux valeurs distinctes, garanti par le moteur, zéro code de synchronisation.</td></tr>
+<tr><th>Verdict &amp; prix payé</th><td>(d), formatée <code>CO-AAAA-NNNNNN</code> côté adapter. On garde <strong>deux identités</strong> : l'UUID reste la clé technique (PK, FKs, URLs) ; la référence est l'identité <em>métier</em> (unique, affichée, immuable — le PUT l'ignore). Prix : des « trous » possibles dans la numérotation (une transaction rollbackée consomme son numéro) — acceptable, la référence identifie, elle ne compte pas.</td></tr></table>
+
+<h3>D-02 · Handler d'erreurs SCOPÉ (assignableTypes) et non global</h3>
+<table><tr><th>Besoin</th><td>Le corpo doit avoir un contrat d'erreur propre (400/404/409/422 typés) SANS modifier le comportement du retail, qui est en recette et appartient à un autre développeur.</td></tr>
+<tr><th>Options</th><td>(a) <strong>@RestControllerAdvice global</strong> — élégant sur le papier, mais il intercepterait aussi les exceptions retail : or le retail fonctionne aujourd'hui en try/catch → SessionServiceException → 500 ; un advice global changerait ses réponses HTTP <em>du jour au lendemain, sans que son développeur l'ait décidé</em> — régression de contrat imposée à autrui. (b) <strong>Advice scopé par assignableTypes</strong> — rayon d'impact strictement limité aux controllers listés.</td></tr>
+<tr><th>Verdict &amp; prix payé</th><td>(b) : chaque périmètre possède son advice et migre à son rythme (le guide retail livré au collègue suit exactement ce chemin). Le prix : deux advices à maintenir transitoirement, et une cible avouée — <strong>quand le retail aura migré, fusionner en un advice global sera un refactoring trivial</strong> (les deux partagent déjà ErrorDTO et messages.properties). Le scoping n'est pas une fin, c'est un sas de migration.</td></tr></table>
+
+<h3>D-03 · Packages : la racine est le MODÈLE, pas la couche</h3>
+<table><tr><th>Besoin</th><td>Note 3 du TL (« séparer les deux modèles et couches ») + réalité d'équipe : deux périmètres métier, deux développeurs, deux cycles de livraison.</td></tr>
+<tr><th>Options</th><td>(a) Couche-d'abord (<code>entity.corpo</code>, <code>entity.retail</code>…) — ma première version : les classes d'un même périmètre sont éparpillées dans N paquets de couche. (b) <strong>Modèle-d'abord</strong> (<code>dataaccess.corpo.entity</code>, <code>dataaccess.retail.entity</code>) : TOUT le corpo d'un module vit sous une seule racine.</td></tr>
+<tr><th>Verdict &amp; prix payé</th><td>(b) — recadré par toi, à raison. Trois bénéfices : la <strong>cohésion</strong> (revoir/livrer un périmètre = ouvrir un dossier) ; les <strong>imports révélateurs</strong> (un <code>import ...retail...</code> dans une classe corpo saute aux yeux en review — la frontière entre modèles devient visible dans le code) ; la <strong>symétrie</strong> avec domain-core et application-service qui étaient déjà modèle-d'abord. Le prix, assumé et documenté : les paquets corpo/retail ne sont plus des sous-paquets de <code>dataaccess.entity</code> → l'unique modification de la classe main (scans élargis à la racine <code>dataaccess</code>).</td></tr></table>
+
+<h3>D-04 · Schéma PostgreSQL séparé (et non des colonnes discriminantes)</h3>
+<table><tr><th>Besoin</th><td>Note 1 du TL + fonctionnel : deux populations de demandes aux identités différentes (agence interne vs client externe), aux référentiels différents (le corpo a des centimes), aux cycles d'évolution indépendants.</td></tr>
+<tr><th>Options</th><td>(a) Colonnes discriminantes dans les tables retail (un flag <code>request_type</code> + colonnes nullables client) — chaque requête retail devrait filtrer le flag, chaque évolution corpo toucherait les tables du collègue, les contraintes NOT NULL deviendraient toutes conditionnelles. (b) Base séparée — surdimensionné : double connexion, transactions distribuées pour rien. (c) <strong>Schéma dédié dans la même base</strong>.</td></tr>
+<tr><th>Verdict &amp; prix payé</th><td>(c) : isolation complète (contraintes propres, CHECK ALIMENTATION/RAMASSAGE impossibles dans une table partagée avec SUPPLY/COLLECTION), migrations Flyway indépendantes, zéro risque de régression croisée — dans une seule base (une connexion, un backup). Prix : les référentiels devise/coupure existent en double ; si le métier exige un jour un référentiel unique, c'est une décision d'équipe (Q&amp;A).</td></tr></table>
+
+<h3>D-05 · Module Maven common (et pas des copies, ni des imports croisés)</h3>
+<table><tr><th>Besoin</th><td>Note 4 du TL : les deux modèles partagent un socle (identité, timestamps, contrats génériques) sans se coupler entre eux.</td></tr>
+<tr><th>Options</th><td>(a) Copier les classes socle dans chaque périmètre — dérive garantie (deux BaseEntity qui divergent silencieusement). (b) Le corpo importe depuis les paquets retail — couplage direct, la pire option : une évolution retail casserait le corpo. (c) <strong>Module Maven dédié</strong> dont les deux dépendent.</td></tr>
+<tr><th>Verdict &amp; prix payé</th><td>(c) : la règle « retail et corpo ne s'importent JAMAIS » devient <strong>vérifiable par le build</strong> — la flèche de dépendance ne va que vers common. Critère d'admission strict : une classe entre dans common si elle est réellement importée par les deux (les VOs et DTOs référentiels y sont passés sur ta décision — concepts identiques, stockages séparés) ; le métier homonyme reste chez lui. Prix : un module de plus dans le reactor, négligeable.</td></tr></table>
+
+<h3>D-06 · Codes stables de coupures (vs la résolution par label du retail)</h3>
+<table><tr><th>Besoin</th><td>Le front envoie une ventilation : il faut désigner chaque coupure de façon <strong>fiable</strong> dans le contrat d'API. Chez retail, la résolution se fait par <code>denomination_label</code> — « Billet de 200 DH » : corriger une majuscule ou un espace dans le libellé <strong>casse l'API</strong>.</td></tr>
+<tr><th>Options</th><td>(a) Reproduire la résolution par label (alignement littéral) — reproduire une fragilité connue. (b) Résoudre par UUID — fiable mais illisible et pénible côté front. (c) <strong>Code métier stable</strong> (BILLET_200, CENTIME_50) : colonne additionnelle UNIQUE sur le référentiel corpo.</td></tr>
+<tr><th>Verdict &amp; prix payé</th><td>(c) — l'exemple parfait de la ligne du projet : <em>l'alignement porte sur le modèle, pas sur les à-peu-près</em> (même logique que le 201). Le label redevient ce qu'il doit être : de l'affichage. Prix : une colonne hors duplication stricte, tracée dans le tableau des écarts ; et le retail pourra adopter le même code (la colonne DTO existe déjà, nullable chez lui).</td></tr></table>
+
+<h3>D-07 · Le montant : calculé serveur, jamais cru</h3>
+<table><tr><th>Besoin</th><td>Fonctionnel pur : une demande d'espèces engage un transport de <strong>cash réel</strong>. Le montant doit être exact par construction — pas « probablement juste ».</td></tr>
+<tr><th>Options</th><td>(a) Faire confiance au montant du front — erreur de saisie ou fraude passent en base. (b) Calculer ET ignorer silencieusement le montant fourni — le front ne saura jamais qu'il se trompe. (c) <strong>Calculer, et si un montant est fourni, le CONTRÔLER</strong> : différent du calculé → 422.</td></tr>
+<tr><th>Verdict &amp; prix payé</th><td>(c), implémenté dans le domaine PUR (<code>validateAndComputeTotal</code>) et pas dans le use case ni le mapper : la règle est testable sans Spring, et elle s'applique quel que soit le chemin d'entrée (create, update, demain un batch). C'est LE principe hexagonal rendu concret : la ventilation est la source de vérité, le montant en est une projection.</td></tr></table>
+
+<h3>D-08 · Récapitulatif : chaque choix, son origine</h3>
+<table><tr><th>Choix</th><th>Origine fonctionnelle / directive</th><th>Origine technique</th></tr>
+<tr><td>Séquence pour la réf</td><td>Réf lisible métier (Jira)</td><td>Atomicité nextval — pas de race condition</td></tr>
+<tr><td>Handler scopé</td><td>Ne pas changer le contrat retail sans son propriétaire</td><td>Rayon d'impact maîtrisé, fusion globale possible après migration</td></tr>
+<tr><td>Packages modèle-d'abord</td><td>Note 3 TL + deux périmètres, deux devs</td><td>Cohésion, imports révélateurs, symétrie inter-modules</td></tr>
+<tr><td>Schéma dédié</td><td>Note 1 TL + identités et référentiels différents</td><td>Contraintes propres, Flyway isolé, zéro régression croisée</td></tr>
+<tr><td>Module common</td><td>Note 4 TL</td><td>Dépendance dirigée vérifiée par le build</td></tr>
+<tr><td>Codes coupures stables</td><td>Contrat de ventilation fiable</td><td>Résolution par clé UNIQUE, label = affichage</td></tr>
+<tr><td>Montant serveur + contrôle</td><td>Espèces réelles — anti-erreur/anti-fraude</td><td>Règle dans le domaine pur, testable, tous chemins</td></tr>
+<tr><td>DTOs arborescents</td><td>Un seul modèle d'intégration front (alignement 100%)</td><td>Mappers miroir, breaking change assumé et signalé</td></tr>
+<tr><td>FKs nullables</td><td>L'identité client remplace l'identité agence (Jira)</td><td>Structure retail préservée, prête pour le workflow</td></tr>
+<tr><td>MapStruct hybride</td><td>—</td><td>Le générable est généré (zéro drift), l'ingénérable isolé (@Context/@AfterMapping)</td></tr>
+<tr><td>Fetch 1er niveau</td><td>Volumes corpo modestes</td><td>Incident MultipleBagFetch — lazy dans la transaction, comme retail</td></tr>
+<tr><td>Flyway baseline + V2</td><td>Deux devs, deux périmètres de migration</td><td>Historique auditable, V1 collègue ignoré ici par construction</td></tr></table>
+<div class="ok"><strong>La phrase qui résume la section</strong> (à placer si on te demande « pourquoi tu as fait comme ça ? ») : « Chaque choix a été fait en comparant les alternatives contre le besoin fonctionnel, en assumant son prix, et en le documentant — quand une meilleure option existait chez retail je l'ai reprise, quand retail portait une fragilité connue je l'ai corrigée en le signalant, et quand la décision dépassait mon périmètre je l'ai remontée. »</div>
+
+<h2 id="s6"><span class="num">7</span>Le domaine : là où vivent les règles métier</h2>
+<p>Miroir exact du domaine retail, héritages compris : <code>CorpoCashRequest extends AggregateRoot&lt;CashRequestId&gt;</code> (l'agrégat est LA porte d'entrée : on ne modifie jamais une opération sans passer par sa demande), opérations → détails devise → lignes coupures. Les identités sont les VOs partagés du common — sécurité de typage (impossible de passer un id là où un autre est attendu).</p>
+<div class="codehead"><span>Les règles métier concentrées dans validateAndComputeTotal (extrait commenté)</span><button class="copybtn" onclick="copyCode(1, this)">Copier</button></div><pre><code id="code-1">// Le coeur des regles metier — CorpoCashOperation.validateAndComputeTotal
+// (appele par CorpoCashRequest.validateAndCompute AVANT toute persistance)
+
+if (operationSens == null) throw new CorpoValidationException(&quot;Le sens ... est obligatoire&quot;);
+
+// Defauts SERVEUR — indispensables car @Builder (Lombok) ignore les
+// initialiseurs de champs : un DTO construit par builder() arrive avec null
+if (isUrgent == null) isUrgent = UrgencyFlag.NO;
+if (operationStatus == null) operationStatus = CorpoRequestStatus.INITIATED;
+if (institutionCode == null) institutionCode = 1;
+if (cashDeskNumber == null) cashDeskNumber = &quot;001&quot;;
+
+// Calcul du montant par detail (somme quantite x valeur faciale par code)
+// + controle de coherence : montant FOURNI different du CALCULE -&gt; 422
+// (protection anti-erreur de saisie / anti-fraude)</code></pre>
+<table><tr><th>Règle</th><th>Où</th><th>Sanction</th></tr>
+<tr><td>≥ 1 opération par demande</td><td>CorpoCashRequest.validateAndCompute</td><td>422</td></tr>
+<tr><td>Sens obligatoire ; défauts serveur (urgent NO, statut INITIATED, institution 1, caisse 001)</td><td>CorpoCashOperation</td><td>422 / auto</td></tr>
+<tr><td>Montant = Σ quantité × valeur faciale, par détail puis total ; montant fourni ≠ calculé rejeté</td><td>CorpoCashOperation</td><td>422</td></tr>
+<tr><td>Coupure résolue par CODE, devise par ISO — inconnues rejetées</td><td>domaine (calcul) + mapper persistance (résolution)</td><td>422</td></tr>
+<tr><td>Demande annulée figée ; annulation propagée aux opérations ; réf immuable</td><td>adapter (gardes d'état)</td><td>409</td></tr></table>
+<p>Les 3 exceptions typées (<code>CorpoValidationException</code>, <code>CorpoNotFoundException</code>, <code>CorpoConflictException</code>) vivent dans le domaine : c'est LUI qui qualifie l'erreur ; le handler ne fait que la traduire en HTTP.</p>
+
+<h2 id="s7"><span class="num">8</span>Application-service : DTOs, mapper web, use case</h2>
+<p><strong>DTOs arborescents</strong> miroir retail (breaking change assumé de l'API corpo v1, signalé au front) + Bean Validation en cascade (<code>@Valid</code> sur chaque liste imbriquée — sans lui, seuls les champs d'entête seraient contrôlés). <strong>Web mapper MapStruct</strong> (interface, Impl générée au build dans target/generated-sources) : les champs pilotés serveur sont <code>@Mapping(ignore)</code> en entrée — un client qui envoie sa propre réf ou son statut est ignoré. <strong>Use case sans try/catch</strong> : il orchestre (mapper → référentiel → validation domaine → save) et laisse les exceptions typées remonter au handler — le contraste avec le retail (try/catch + SessionServiceException → tout en 500) est un argument de démo.</p>
+<div class="codehead"><span>Le payload de référence (CN-01 du cahier de tests) — 201, montant 2500.00, réf CO-2026-000001</span><button class="copybtn" onclick="copyCode(2, this)">Copier</button></div><pre><code id="code-2">{
+  &quot;branchCode&quot;: &quot;AG-CASA-01&quot;,
+  &quot;establishment&quot;: &quot;001&quot;,
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;clientRef&quot;: &quot;CORP-00042&quot;,
+  &quot;city&quot;: &quot;Casablanca&quot;,
+  &quot;addressComplement&quot;: &quot;Zone industrielle Ain Sebaa, lot 12&quot;,
+  &quot;accountNumber&quot;: &quot;011780000012345678901234&quot;,
+  &quot;operations&quot;: [
+    {
+      &quot;operationSens&quot;: &quot;ALIMENTATION&quot;,
+      &quot;isUrgent&quot;: &quot;YES&quot;,
+      &quot;currencyDetails&quot;: [
+        {
+          &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+          &quot;operationDenominations&quot;: [
+            { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_200&quot; }, &quot;quantity&quot;: 10 },
+            { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_100&quot; }, &quot;quantity&quot;: 5 }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre>
+<h2 id="s8"><span class="num">9</span>Data-access : la mécanique de persistance</h2>
+<p>La <strong>même mécanique que le save() retail</strong>, en version outillée : l'adapter (@Transactional) charge les référentiels en maps (coupures par code, devises par ISO) et résout establishment/user (nullables) ; le <strong>mapper MapStruct hybride</strong> construit l'arbre — structure générée ; résolutions par référentiels en méthodes <code>default</code> + <code>@Context</code> (les maps voyagent dans le contexte de mapping) ; liens parents bidirectionnels et références en <code>@AfterMapping</code> ; VO↔UUID en 12 méthodes default. Un <code>save()</code> unique cascade les 4 tables.</p>
+<ul>
+<li><strong>Lecture</strong> : fetch join sur le 1er niveau seulement (operations) — les niveaux profonds se chargent en lazy DANS la transaction (leçon du MultipleBagFetchException, cf. journal). Comme retail.</li>
+<li><strong>Update</strong> : <code>updateHeader</code> (@MappingTarget, réf/statut/opérations ignorés) + remplacement de l'arbre en <code>clear() → flush() → addAll()</code> — le flush force les DELETE avant les INSERT (contrainte d'unicité).</li>
+<li><strong>Référence</strong> : <code>nextval('corpo.corpo_request_ref_seq')</code> en nativeQuery → CO-2026-000042 — atomique et sans collision, contrairement à un max()+1.</li>
+</ul>
+
+<h2 id="s9"><span class="num">10</span>REST : controller &amp; handler pattern BFF</h2>
+<p><strong>Controller</strong> <code>/corpo/cash</code>, même media type versionné que retail, 5 endpoints. Le create renvoie <strong>201 Created</strong> — divergence assumée avec retail (200), documentée dans le code : contrat explicite conforme à la sémantique HTTP, harmonisation retail proposée en amélioration.</p>
+<p><strong>Handler aligné BFF</strong> : contrat <code>ErrorDTO {code, message}</code> (copie conforme, dans common), registre <code>CorpoHttpStatus</code> (code↔statut↔clé), libellés dans <code>messages.properties</code> préfixés [code] (compatibles avec la regex du BFF quand il propage nos erreurs). Adaptations au contexte producteur : résolution par TYPE d'exception, <code>FieldErrorsDTO</code> additif sur les 400, filet Exception.class → 500 + <code>log.error</code> systématique (jamais de bug silencieux, jamais de 999).</p>
+
+<h2 id="s10"><span class="num">11</span>La stratégie de tests</h2>
+<table><tr><th>Niveau</th><th>Classe</th><th>Prouve</th></tr>
+<tr><td>Unitaire domaine</td><td>CorpoCashRequestTest</td><td>Les règles métier pures, sans aucun framework</td></tr>
+<tr><td>Unitaire mapper web</td><td>CorpoCashRequestWebMapperTest</td><td>Aller-retour DTO↔domaine, champs serveur ignorés</td></tr>
+<tr><td>Unitaire use case</td><td>CorpoDemandUseCaseImplTest</td><td>Validation déclenchée AVANT le save ; rejet sans toucher la persistance</td></tr>
+<tr><td>Unitaire mapper persistance</td><td>CorpoCashRequestPersistenceMapperTest</td><td>Arbre + résolutions + liens parents (Impl MapStruct réelle)</td></tr>
+<tr><td>Unitaire adapter</td><td>CorpoDemandRepositoryImplTest</td><td>Réf générée, cancel propagé, 404/409 (vraie Impl en @Spy, JPA mocké)</td></tr>
+<tr><td>Web slice</td><td>CorpoDemandControllerTest</td><td>Contrat HTTP + handler (MockMvc standalone + MessageSource réel)</td></tr>
+<tr><td>Intégration</td><td>CorpoDemandIntegrationTest</td><td>Toutes les couches réelles + Flyway + base, rollback @Transactional</td></tr></table>
+<p>+ le <strong>cahier de tests API</strong> (21 cas, attendus HTTP et BDD table par table, compteur transverse de rollback) et <strong>JaCoCo</strong> (<kbd>mvn clean verify</kbd> → target/site/jacoco/index.html par module).</p>
+
+<h2 id="s11"><span class="num">12</span>Exploitation : nettoyer la base avant une campagne</h2>
+<p>L'option A est celle des campagnes de tests (elle préserve schéma, seed et historique Flyway) ; l'option B ne sert QUE si la V2 a été modifiée (règle du checksum). Première vérification gratuite après un reset A : CN-01 doit redonner exactement CO-2026-000001.</p>
+<div class="codehead"><span>OPTION A — Purge des données de test (l'outil du quotidien)</span><button class="copybtn" onclick="copyCode(3, this)">Copier</button></div><pre><code id="code-3">-- ============================================================
+-- OPTION A — Purge des donnees de test (avant une campagne)
+-- Garde : schema, seed devises/coupures, establishment/user,
+-- historique Flyway. Pret a rejouer CN-01 immediatement.
+-- ============================================================
+TRUNCATE TABLE corpo.operation_denomination,
+               corpo.operation_currency,
+               corpo.cash_operation,
+               corpo.cash_request;
+
+-- La numerotation des references repart a CO-2026-000001
+ALTER SEQUENCE corpo.corpo_request_ref_seq RESTART WITH 1;
+
+-- Controle : transactionnel a zero, referentiels intacts
+SELECT (SELECT count(*) FROM corpo.cash_request)           AS demandes,   -- 0
+       (SELECT count(*) FROM corpo.cash_operation)         AS operations, -- 0
+       (SELECT count(*) FROM corpo.operation_currency)     AS details,    -- 0
+       (SELECT count(*) FROM corpo.operation_denomination) AS lignes,     -- 0
+       (SELECT count(*) FROM corpo.currency)               AS devises,    -- 1
+       (SELECT count(*) FROM corpo.denomination)           AS coupures;   -- 11</code></pre><div class="codehead"><span>OPTION B — Reset complet du schéma (uniquement si V2 modifiée)</span><button class="copybtn" onclick="copyCode(4, this)">Copier</button></div><pre><code id="code-4">-- ============================================================
+-- OPTION B — Reset COMPLET du schema (uniquement si la V2 a
+-- ete modifiee et doit etre rejouee — regle du checksum)
+-- ============================================================
+DELETE FROM public.flyway_schema_history WHERE version = &#x27;2&#x27;;
+DROP SCHEMA corpo CASCADE;
+-- Puis REDEMARRER l&#x27;application : Flyway recree le schema,
+-- rejoue V2 (tables + seed). Re-inserer ensuite le seed
+-- optionnel establishment/user_profile si utilise.</code></pre>
+<h2 id="s12"><span class="num">13</span>Journal des incidents résolus — et leurs leçons</h2>
+<table><tr><th>Incident</th><th>Cause racine</th><th>Fix</th><th>Leçon</th></tr>
+<tr><td>UnsatisfiedDependency au démarrage des tests (corpoDemandController)</td><td>Structure racine : dataaccess.corpo.entity n'était plus couvert par @EntityScan("…dataaccess.entity")</td><td>Scans élargis à la racine dataaccess (seule modif de la main)</td><td>Un déplacement de packages se valide toujours par un test qui monte le contexte complet</td></tr>
+<tr><td>MultipleBagFetchException</td><td>Fetch join sur 3 List imbriquées — Hibernate refuse plusieurs « bags » dans une requête</td><td>Fetch join du 1er niveau seul, le reste en lazy dans la transaction (comme retail)</td><td>Fetch join multiple ≠ optimisation ; si le N+1 devient un sujet un jour : @Fetch(SUBSELECT)</td></tr>
+<tr><td>NOT NULL violée sur institution_code</td><td>@Builder Lombok IGNORE les initialiseurs de champs → DTO à null → le mapping écrase le défaut du domaine</td><td>Défauts serveur posés dans validateAndComputeTotal</td><td>Les défauts sont une règle métier : ils se garantissent dans le domaine, pas dans les initialiseurs ni les mappers</td></tr>
+<tr><td>Test create en échec 200≠201</td><td>Ancien test attendait le comportement retail</td><td>Le TEST corrigé (isCreated) — le test vérifie le contrat voulu, il ne fige pas l'héritage</td><td>Statuts explicites assumés ; l'alignement porte sur le modèle, pas sur les à-peu-près</td></tr>
+<tr><td>ER-02 passait (user manquant accepté)</td><td>@NotBlank absent du DTO — écart contrat annoncé / code réel</td><td>@NotBlank ajouté ; cascade @Valid vérifiée</td><td>C'est exactement ce que le cahier de tests sert à attraper</td></tr>
+<tr><td>PUT en violation d'unicité (historique)</td><td>Hibernate ordonne INSERT avant DELETE</td><td>flush() entre clear() et addAll()</td><td>Connaître l'ordre des opérations du flush Hibernate</td></tr></table>
+
+<h2 id="s13"><span class="num">14</span>Q&amp;A de défense</h2>
+<table><tr><th>Question</th><th>Réponse</th></tr>
+<tr><td>Pourquoi un schéma séparé plutôt que des colonnes discriminantes dans les tables retail ?</td><td>Note 1+3 du TL : modèles séparés, cycle de vie et évolutions indépendants, aucun risque de régression croisée ; et Flyway isole proprement les migrations corpo.</td></tr>
+<tr><td>Pourquoi dupliquer les référentiels devise/coupure au lieu de les mutualiser ?</td><td>Séparation stricte des modèles (note 3) : chaque périmètre gère son référentiel (le corpo a d'ailleurs des centimes et des codes que retail n'a pas). Mutualiser = re-coupler ; possible plus tard si le métier l'exige, décision d'équipe.</td></tr>
+<tr><td>Pourquoi le DTO arborescent (breaking change) ?</td><td>Alignement 100% : même contrat que retail. Le front écrit UN seul modèle mental d'intégration pour les deux périmètres. Ancien contrat plat = mon prototype, remplacé avant tout branchement front.</td></tr>
+<tr><td>Pourquoi le montant est-il recalculé serveur ?</td><td>Le montant engage des espèces réelles : la ventilation est LA source de vérité ; un montant client n'est jamais cru, seulement contrôlé (anti-erreur de saisie, anti-fraude).</td></tr>
+<tr><td>Pourquoi une séquence pour la référence ?</td><td>Atomique, sans collision en concurrence (contrairement à max()+1), lisible pour le métier (CO-2026-000042), et l'UUID reste la clé technique.</td></tr>
+<tr><td>Pourquoi MapStruct « hybride » et pas tout manuel / tout généré ?</td><td>Le générable est généré (structure, listes, enums, VOs — zéro code d'écriture de champ à maintenir) ; l'impossible à générer (résolutions contre référentiels, liens parents) est isolé en default/@AfterMapping. Cohérent avec le web mapper.</td></tr>
+<tr><td>Pourquoi les FKs user/establishment nullables ?</td><td>Duplication de structure respectée, adaptation au métier : une demande corpo est identifiée par le CLIENT. Colonnes prêtes pour le jour où le workflow associera un agent.</td></tr>
+<tr><td>Pourquoi le handler ne reprend pas la regex du BFF ?</td><td>La regex résout un problème de CONSOMMATEUR d'erreurs (le BFF repêche les codes des services aval). Nous PRODUISONS nos erreurs : le type est la source fiable. Et nos messages [code] alimentent sa regex — compatibilité totale.</td></tr>
+<tr><td>Le V1 Flyway du collègue va-t-il s'exécuter chez nous ?</td><td>Non : la base est baselinée V1 → tout ≤ V1 est ignoré à jamais ici ; V2 seul s'est exécuté, et flyway_schema_history en est la preuve auditable.</td></tr>
+<tr><td>Qu'est-ce qui reste ouvert ?</td><td>Backlog assumé : coupure en double dans une ventilation (500 propre aujourd'hui → dédupliquer ou 422, à trancher), pagination du GET all, Testcontainers pour l'intégration, migration retail vers le handler (guide fourni au collègue), ddl-auto none (décision d'équipe), endpoint VALIDATED (attend le workflow Camunda).</td></tr></table>
+
+<div class="ok"><strong>Le récit en 60 secondes (à savoir par cœur)</strong> : « J'ai implémenté les demandes corpo en miroir exact du modèle retail — mêmes couches hexagonales, même agrégat, même mécanique de persistance — avec uniquement les ajouts de la Jira : identité client sur l'entête et code stable sur les coupures. Le schéma corpo est la duplication du schéma retail, livrée par Flyway en V2 versionnée. Le partagé est factorisé dans un module common. Les règles métier — montant calculé et contrôlé, défauts serveur, référence séquencée immuable, annulation propagée — vivent dans le domaine pur et sont couvertes par une pyramide de 7 classes de tests plus un cahier API de 21 cas avec attendus en base. Les erreurs suivent le contrat du socle BFF, adapté au contexte producteur, et le guide de migration retail est prêt pour mon collègue. »</div>
+
+<script>
+function copyCode(i, btn) {
+  const el = document.getElementById('code-' + i);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copié !';
+    setTimeout(() => btn.textContent = old, 1600);
+  });
+}
+</script></div></body></html>
