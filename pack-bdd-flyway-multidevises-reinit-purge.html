@@ -1,0 +1,426 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pack BDD — Flyway retail &amp; corpo multi-devises, réinitialisation, purge</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;--rouge:#B3402A;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.65;font-size:15.5px;}
+.wrap{max-width:1060px;margin:0 auto;padding:0 28px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:46px 28px 38px;margin-bottom:34px;}
+header.hero .inner{max-width:1060px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:11px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:29px;line-height:1.15;}
+.hero p.sub{margin-top:12px;max-width:850px;color:#DCEBE3;font-size:15px;}
+.badge-v{display:inline-block;margin-top:14px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:23px;color:var(--vertF);margin:48px 0 6px;padding-top:16px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:18px;}
+p{margin:10px 0;} ul,ol{margin:10px 0 10px 26px;} li{margin:5px 0;} strong{color:var(--vertF);}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:12px 16px;margin:14px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:12px 16px;margin:14px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+.danger{background:#FCEFEC;border-left:4px solid var(--rouge);padding:12px 16px;margin:14px 0;border-radius:0 6px 6px 0;font-size:14.5px;}
+table{width:100%;border-collapse:collapse;margin:15px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:13.8px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:9px 13px;font-family:'Archivo',sans-serif;font-size:12.8px;}
+td{padding:8px 13px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+p code,li code,td code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.8px;}
+.filehead{display:flex;align-items:center;gap:12px;background:var(--vertF);color:#fff;padding:9px 15px;border-radius:8px 8px 0 0;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;flex-wrap:wrap;}
+.fh-act{font-weight:600;padding:2px 10px;border-radius:3px;letter-spacing:1px;font-size:11px;}
+.act-rep{background:var(--or);color:#fff;} .act-new{background:#178A5E;color:#fff;}
+.fh-path{word-break:break-all;color:#CBE3D8;}
+.fh-note{color:#F2D9A0;font-size:11.5px;width:100%;}
+.copybtn{margin-left:auto;background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 12px;border-radius:4px;cursor:pointer;}
+.copybtn:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:17px 20px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:12.4px;line-height:1.48;margin-bottom:6px;}
+code{font-family:'IBM Plex Mono',monospace;}
+kbd{background:var(--vertF);color:#fff;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · Base de données · Multi-devises</div>
+<h1>Pack BDD : les deux scripts Flyway (multi-devises)<br>+ réinitialisation et purge des données</h1>
+<p class="sub">Les 4 scripts de référence : V1 (schéma retail) et V2 (schéma corpo) enrichis du seed <strong>multi-devises</strong> (MAD, EUR, USD — 24 coupures codées par périmètre), la réinitialisation complète (Flyway rejoue tout) et la purge de données (entre deux campagnes). C'est le socle des deux cahiers de tests.</p>
+<div class="badge-v">PACK BDD · 31/07/2026</div>
+</div></header><div class="wrap">
+
+<h2><span class="num">1</span>Le cycle de vie, en une image</h2>
+<table><tr><th>Situation</th><th>Outil</th><th>App</th></tr>
+<tr><td>Un script V1/V2 a changé (ex : ce nouveau seed multi-devises) ou base à certifier propre</td><td><strong>Réinitialisation complète</strong> (section 4) : 2 DROP → redémarrer → Flyway rejoue V1 + V2</td><td>ARRÊTÉE</td></tr>
+<tr><td>Rejouer une campagne de tests API</td><td><strong>Purge des données</strong> (section 5) : TRUNCATE + RESTART des séquences</td><td>démarrée</td></tr></table>
+<div class="danger"><strong>Règle du checksum, toujours en vigueur</strong> : ces V1/V2 modifiés (seed multi-devises) ne peuvent PAS s'appliquer sur un historique existant — Flyway refuserait de démarrer (checksum mismatch). Le chemin est : coller les 2 scripts dans <code>db/migration</code> → réinitialisation complète → redémarrer. Coordonne avec ton collègue : la base et le V1 sont partagés.</div>
+
+<h2><span class="num">2</span>V1 — Schéma retail (multi-devises)</h2>
+<p>Ajouts par rapport à la version précédente : devises <strong>EUR et USD</strong>, 13 coupures supplémentaires (codes préfixés <code>BILLET_EUR_*</code> / <code>BILLET_USD_*</code> — le préfixe évite toute collision avec les codes MAD dans la contrainte d'unicité), une 2ᵉ agence (002) et un 2ᵉ demandeur (j08221) pour les tests de résolution.</p>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-container\\src\\main\\resources\\db\\migration\\V1__add_all_tables.sql</span><button class="copybtn" onclick="copyCode(1, this)">Copier</button><span class="fh-note">3 devises · 24 coupures codées · 2 agences · 2 demandeurs — accord du collègue (son fichier)</span></div><pre><code id="code-1">-- ============================================================================
+-- V1 — Schema RETAIL complet (fresh start) + SEED MULTI-DEVISES.
+-- Structure = entites JPA retail (source de verite) + alignement corpo :
+-- denomination_code (cle stable), unique_request_ref + sequence (ref RT-).
+-- ============================================================================
+
+CREATE SCHEMA IF NOT EXISTS retail;
+
+-- ============ Referentiels ============
+
+CREATE TABLE retail.currency (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    iso_code           varchar(3)   NOT NULL UNIQUE,
+    currency_name      varchar(100) NOT NULL
+);
+
+CREATE TABLE retail.denomination (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    denomination_code  varchar(30)  NOT NULL UNIQUE,
+    item_type          varchar(10)  NOT NULL,
+    face_value         numeric(10,2) NOT NULL,
+    denomination_label varchar(100) NOT NULL,
+    CONSTRAINT chk_retail_item_type CHECK (item_type IN (&#x27;BANKNOTE&#x27;, &#x27;COIN&#x27;))
+);
+
+CREATE TABLE retail.establishment (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    establishment_code varchar(3)   NOT NULL UNIQUE,
+    establishment_name varchar(100) NOT NULL
+);
+
+CREATE TABLE retail.user_profile (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    uid                varchar(255),
+    profile_code       varchar(50),
+    profile_label      varchar(100),
+    profile_type       varchar(10)
+);
+
+-- ============ Transactionnel ============
+
+CREATE TABLE retail.cash_request (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    unique_request_ref varchar(20)  NOT NULL UNIQUE,
+    branch_code        varchar(100) NOT NULL,
+    request_status     varchar(30)  NOT NULL DEFAULT &#x27;INITIATED&#x27;,
+    user_profile_id    uuid         NOT NULL,
+    establishment_id   uuid         NOT NULL,
+    CONSTRAINT fk_retail_request_user FOREIGN KEY (user_profile_id) REFERENCES retail.user_profile (id),
+    CONSTRAINT fk_retail_request_etab FOREIGN KEY (establishment_id) REFERENCES retail.establishment (id),
+    CONSTRAINT chk_retail_request_status CHECK (request_status IN (&#x27;INITIATED&#x27;, &#x27;VALIDATED&#x27;, &#x27;CANCELLED&#x27;))
+);
+
+CREATE TABLE retail.cash_operation (
+    id                      uuid PRIMARY KEY,
+    creation_date           timestamp,
+    modification_date       timestamp,
+    cash_request_id         uuid          NOT NULL,
+    operation_type          varchar(20)   NOT NULL,
+    operation_sens          varchar(50)   NOT NULL,
+    institution_code        integer       NOT NULL DEFAULT 1,
+    cash_desk_number        varchar(3)    NOT NULL DEFAULT &#x27;001&#x27;,
+    is_urgent               varchar(3)    NOT NULL DEFAULT &#x27;NO&#x27;,
+    target_cash_desk_number varchar(3),
+    total_amount            numeric(15,2) NOT NULL DEFAULT 0.00,
+    created_at              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    operation_status        varchar(30)   NOT NULL DEFAULT &#x27;INITIATED&#x27;,
+    establishment           varchar(100)  NOT NULL,
+    CONSTRAINT fk_retail_operation_request FOREIGN KEY (cash_request_id)
+        REFERENCES retail.cash_request (id) ON DELETE CASCADE,
+    CONSTRAINT chk_retail_operation_sens CHECK (operation_sens IN (&#x27;SUPPLY&#x27;, &#x27;COLLECTION&#x27;)),
+    CONSTRAINT chk_retail_is_urgent CHECK (is_urgent IN (&#x27;YES&#x27;, &#x27;NO&#x27;))
+);
+
+CREATE TABLE retail.operation_currency (
+    id                        uuid PRIMARY KEY,
+    creation_date             timestamp,
+    modification_date         timestamp,
+    cash_operation_id         uuid          NOT NULL,
+    currency_id               uuid          NOT NULL,
+    total_amount_by_curerency numeric(18,2) NOT NULL DEFAULT 0.00,
+    CONSTRAINT fk_retail_oc_operation FOREIGN KEY (cash_operation_id)
+        REFERENCES retail.cash_operation (id) ON DELETE CASCADE,
+    CONSTRAINT fk_retail_oc_currency FOREIGN KEY (currency_id) REFERENCES retail.currency (id)
+);
+
+CREATE TABLE retail.operation_denomination (
+    id                           uuid PRIMARY KEY,
+    creation_date                timestamp,
+    modification_date            timestamp,
+    operation_currency_detail_id uuid,
+    denomination_id              uuid,
+    quantity                     integer NOT NULL DEFAULT 0,
+    CONSTRAINT fk_retail_od_detail FOREIGN KEY (operation_currency_detail_id)
+        REFERENCES retail.operation_currency (id) ON DELETE CASCADE,
+    CONSTRAINT fk_retail_od_denomination FOREIGN KEY (denomination_id) REFERENCES retail.denomination (id),
+    CONSTRAINT chk_retail_quantity CHECK (quantity &gt;= 0),
+    CONSTRAINT uq_retail_od UNIQUE (operation_currency_detail_id, denomination_id)
+);
+
+CREATE SEQUENCE retail.request_ref_seq START WITH 1 INCREMENT BY 1;
+
+-- ============ SEED MULTI-DEVISES ============
+
+INSERT INTO retail.currency (id, iso_code, currency_name) VALUES
+    (&#x27;d1000000-0000-0000-0000-000000000001&#x27;, &#x27;MAD&#x27;, &#x27;Dirham marocain&#x27;),
+    (&#x27;d1000000-0000-0000-0000-000000000002&#x27;, &#x27;EUR&#x27;, &#x27;Euro&#x27;),
+    (&#x27;d1000000-0000-0000-0000-000000000003&#x27;, &#x27;USD&#x27;, &#x27;Dollar américain&#x27;);
+
+INSERT INTO retail.denomination (id, denomination_code, item_type, face_value, denomination_label) VALUES
+    -- MAD (11 coupures)
+    (&#x27;d0000000-0000-0000-0000-000000000001&#x27;, &#x27;BILLET_200&#x27;,     &#x27;BANKNOTE&#x27;, 200.00, &#x27;Billet de 200 DH&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000002&#x27;, &#x27;BILLET_100&#x27;,     &#x27;BANKNOTE&#x27;, 100.00, &#x27;Billet de 100 DH&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000003&#x27;, &#x27;BILLET_50&#x27;,      &#x27;BANKNOTE&#x27;,  50.00, &#x27;Billet de 50 DH&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000004&#x27;, &#x27;BILLET_20&#x27;,      &#x27;BANKNOTE&#x27;,  20.00, &#x27;Billet de 20 DH&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000005&#x27;, &#x27;PIECE_10&#x27;,       &#x27;COIN&#x27;,      10.00, &#x27;Pièce de 10 DH&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000006&#x27;, &#x27;PIECE_5&#x27;,        &#x27;COIN&#x27;,       5.00, &#x27;Pièce de 5 DH&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000007&#x27;, &#x27;PIECE_1&#x27;,        &#x27;COIN&#x27;,       1.00, &#x27;Pièce de 1 DH&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000008&#x27;, &#x27;CENTIME_50&#x27;,     &#x27;COIN&#x27;,       0.50, &#x27;Pièce de 50 centimes&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000009&#x27;, &#x27;CENTIME_20&#x27;,     &#x27;COIN&#x27;,       0.20, &#x27;Pièce de 20 centimes&#x27;),
+    (&#x27;d0000000-0000-0000-0000-00000000000a&#x27;, &#x27;CENTIME_10&#x27;,     &#x27;COIN&#x27;,       0.10, &#x27;Pièce de 10 centimes&#x27;),
+    (&#x27;d0000000-0000-0000-0000-00000000000b&#x27;, &#x27;CENTIME_5&#x27;,      &#x27;COIN&#x27;,       0.05, &#x27;Pièce de 5 centimes&#x27;),
+    -- EUR (7 coupures)
+    (&#x27;d0000000-0000-0000-0000-00000000000c&#x27;, &#x27;BILLET_EUR_500&#x27;, &#x27;BANKNOTE&#x27;, 500.00, &#x27;Billet de 500 EUR&#x27;),
+    (&#x27;d0000000-0000-0000-0000-00000000000d&#x27;, &#x27;BILLET_EUR_200&#x27;, &#x27;BANKNOTE&#x27;, 200.00, &#x27;Billet de 200 EUR&#x27;),
+    (&#x27;d0000000-0000-0000-0000-00000000000e&#x27;, &#x27;BILLET_EUR_100&#x27;, &#x27;BANKNOTE&#x27;, 100.00, &#x27;Billet de 100 EUR&#x27;),
+    (&#x27;d0000000-0000-0000-0000-00000000000f&#x27;, &#x27;BILLET_EUR_50&#x27;,  &#x27;BANKNOTE&#x27;,  50.00, &#x27;Billet de 50 EUR&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000010&#x27;, &#x27;BILLET_EUR_20&#x27;,  &#x27;BANKNOTE&#x27;,  20.00, &#x27;Billet de 20 EUR&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000011&#x27;, &#x27;BILLET_EUR_10&#x27;,  &#x27;BANKNOTE&#x27;,  10.00, &#x27;Billet de 10 EUR&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000012&#x27;, &#x27;BILLET_EUR_5&#x27;,   &#x27;BANKNOTE&#x27;,   5.00, &#x27;Billet de 5 EUR&#x27;),
+    -- USD (6 coupures)
+    (&#x27;d0000000-0000-0000-0000-000000000013&#x27;, &#x27;BILLET_USD_100&#x27;, &#x27;BANKNOTE&#x27;, 100.00, &#x27;Billet de 100 USD&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000014&#x27;, &#x27;BILLET_USD_50&#x27;,  &#x27;BANKNOTE&#x27;,  50.00, &#x27;Billet de 50 USD&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000015&#x27;, &#x27;BILLET_USD_20&#x27;,  &#x27;BANKNOTE&#x27;,  20.00, &#x27;Billet de 20 USD&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000016&#x27;, &#x27;BILLET_USD_10&#x27;,  &#x27;BANKNOTE&#x27;,  10.00, &#x27;Billet de 10 USD&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000017&#x27;, &#x27;BILLET_USD_5&#x27;,   &#x27;BANKNOTE&#x27;,   5.00, &#x27;Billet de 5 USD&#x27;),
+    (&#x27;d0000000-0000-0000-0000-000000000018&#x27;, &#x27;BILLET_USD_1&#x27;,   &#x27;BANKNOTE&#x27;,   1.00, &#x27;Billet de 1 USD&#x27;);
+
+INSERT INTO retail.establishment (id, establishment_code, establishment_name) VALUES
+    (&#x27;e1000000-0000-0000-0000-000000000001&#x27;, &#x27;001&#x27;, &#x27;BMCI Casablanca Centre&#x27;),
+    (&#x27;e1000000-0000-0000-0000-000000000002&#x27;, &#x27;002&#x27;, &#x27;BMCI Rabat Agdal&#x27;);
+
+INSERT INTO retail.user_profile (id, uid, profile_code, profile_label, profile_type) VALUES
+    (&#x27;a1000000-0000-0000-0000-000000000001&#x27;, &#x27;j43709&#x27;, &#x27;AGT&#x27;, &#x27;Agent Caisse&#x27;, &#x27;AGENT&#x27;),
+    (&#x27;a1000000-0000-0000-0000-000000000002&#x27;, &#x27;j08221&#x27;, &#x27;RSP&#x27;, &#x27;Responsable Caisse&#x27;, &#x27;RESP&#x27;);</code></pre>
+<h2><span class="num">3</span>V2 — Schéma corpo (multi-devises, miroir + colonnes Jira)</h2>
+<p>Le miroir exact : mêmes 3 devises, mêmes 24 codes de coupures (ids préfixés c-), plus les spécificités corpo — identité client sur l'entête, FKs demandeur/agence NULLABLES, CHECK ALIMENTATION/RAMASSAGE, séquence <code>corpo_request_ref_seq</code>.</p>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">fund-management-container\\src\\main\\resources\\db\\migration\\V2__create_corpo_schema.sql</span><button class="copybtn" onclick="copyCode(2, this)">Copier</button><span class="fh-note">Ton fichier — la structure ne change pas, le seed devient multi-devises ; application via réinit complète UNIQUEMENT</span></div><pre><code id="code-2">-- ============================================================================
+-- V2 — Schema CORPO : duplication du schema retail + colonnes Jira
+-- (identite client sur l&#x27;entete, FKs demandeur/agence NULLABLES) +
+-- SEED MULTI-DEVISES (miroir du seed retail).
+-- ATTENTION : cette V2 remplace la precedente =&gt; uniquement via la
+-- REINITIALISATION COMPLETE (les 2 DROP SCHEMA), jamais sur un historique
+-- existant (regle du checksum).
+-- ============================================================================
+
+CREATE SCHEMA IF NOT EXISTS corpo;
+
+-- ============ Referentiels ============
+
+CREATE TABLE corpo.currency (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    iso_code           varchar(3)   NOT NULL UNIQUE,
+    currency_name      varchar(100) NOT NULL
+);
+
+CREATE TABLE corpo.denomination (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    denomination_code  varchar(30)  NOT NULL UNIQUE,
+    item_type          varchar(10)  NOT NULL,
+    face_value         numeric(10,2) NOT NULL,
+    denomination_label varchar(100) NOT NULL,
+    CONSTRAINT chk_corpo_item_type CHECK (item_type IN (&#x27;BANKNOTE&#x27;, &#x27;COIN&#x27;))
+);
+
+CREATE TABLE corpo.establishment (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    establishment_code varchar(3)   NOT NULL UNIQUE,
+    establishment_name varchar(100) NOT NULL
+);
+
+CREATE TABLE corpo.user_profile (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    uid                varchar(255),
+    profile_code       varchar(50),
+    profile_label      varchar(100),
+    profile_type       varchar(10)
+);
+
+-- ============ Transactionnel ============
+
+CREATE TABLE corpo.cash_request (
+    id                 uuid PRIMARY KEY,
+    creation_date      timestamp,
+    modification_date  timestamp,
+    unique_request_ref varchar(20)  NOT NULL UNIQUE,       -- CO-AAAA-NNNNNN (sequence)
+    branch_code        varchar(100),
+    request_status     varchar(30)  NOT NULL DEFAULT &#x27;INITIATED&#x27;,
+    client_ref         varchar(50),                        -- identite CLIENT (Jira)
+    city               varchar(100),
+    address_complement varchar(255),
+    account_number     varchar(34),
+    user_profile_id    uuid,                               -- NULLABLE : l&#x27;identite client remplace
+    establishment_id   uuid,                               -- NULLABLE
+    CONSTRAINT fk_corpo_request_user FOREIGN KEY (user_profile_id) REFERENCES corpo.user_profile (id),
+    CONSTRAINT fk_corpo_request_etab FOREIGN KEY (establishment_id) REFERENCES corpo.establishment (id),
+    CONSTRAINT chk_corpo_request_status CHECK (request_status IN (&#x27;INITIATED&#x27;, &#x27;VALIDATED&#x27;, &#x27;CANCELLED&#x27;))
+);
+
+CREATE TABLE corpo.cash_operation (
+    id                      uuid PRIMARY KEY,
+    creation_date           timestamp,
+    modification_date       timestamp,
+    cash_request_id         uuid          NOT NULL,
+    operation_type          varchar(20),
+    operation_sens          varchar(50)   NOT NULL,
+    institution_code        integer       NOT NULL DEFAULT 1,
+    cash_desk_number        varchar(3)    NOT NULL DEFAULT &#x27;001&#x27;,
+    is_urgent               varchar(3)    NOT NULL DEFAULT &#x27;NO&#x27;,
+    target_cash_desk_number varchar(3),
+    total_amount            numeric(15,2) NOT NULL DEFAULT 0.00,
+    created_at              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    operation_status        varchar(30)   NOT NULL DEFAULT &#x27;INITIATED&#x27;,
+    establishment           varchar(100),
+    CONSTRAINT fk_corpo_operation_request FOREIGN KEY (cash_request_id)
+        REFERENCES corpo.cash_request (id) ON DELETE CASCADE,
+    CONSTRAINT chk_corpo_operation_sens CHECK (operation_sens IN (&#x27;ALIMENTATION&#x27;, &#x27;RAMASSAGE&#x27;)),
+    CONSTRAINT chk_corpo_is_urgent CHECK (is_urgent IN (&#x27;YES&#x27;, &#x27;NO&#x27;))
+);
+
+CREATE TABLE corpo.operation_currency (
+    id                        uuid PRIMARY KEY,
+    creation_date             timestamp,
+    modification_date         timestamp,
+    cash_operation_id         uuid          NOT NULL,
+    currency_id               uuid          NOT NULL,
+    total_amount_by_curerency numeric(18,2) NOT NULL DEFAULT 0.00,
+    CONSTRAINT fk_corpo_oc_operation FOREIGN KEY (cash_operation_id)
+        REFERENCES corpo.cash_operation (id) ON DELETE CASCADE,
+    CONSTRAINT fk_corpo_oc_currency FOREIGN KEY (currency_id) REFERENCES corpo.currency (id)
+);
+
+CREATE TABLE corpo.operation_denomination (
+    id                           uuid PRIMARY KEY,
+    creation_date                timestamp,
+    modification_date            timestamp,
+    operation_currency_detail_id uuid,
+    denomination_id              uuid,
+    quantity                     integer NOT NULL DEFAULT 0,
+    CONSTRAINT fk_corpo_od_detail FOREIGN KEY (operation_currency_detail_id)
+        REFERENCES corpo.operation_currency (id) ON DELETE CASCADE,
+    CONSTRAINT fk_corpo_od_denomination FOREIGN KEY (denomination_id) REFERENCES corpo.denomination (id),
+    CONSTRAINT chk_corpo_quantity CHECK (quantity &gt;= 0),
+    CONSTRAINT uq_corpo_od UNIQUE (operation_currency_detail_id, denomination_id)
+);
+
+CREATE SEQUENCE corpo.corpo_request_ref_seq START WITH 1 INCREMENT BY 1;
+
+-- ============ SEED MULTI-DEVISES (miroir retail) ============
+
+INSERT INTO corpo.currency (id, iso_code, currency_name) VALUES
+    (&#x27;c1000000-0000-0000-0000-000000000001&#x27;, &#x27;MAD&#x27;, &#x27;Dirham marocain&#x27;),
+    (&#x27;c1000000-0000-0000-0000-000000000002&#x27;, &#x27;EUR&#x27;, &#x27;Euro&#x27;),
+    (&#x27;c1000000-0000-0000-0000-000000000003&#x27;, &#x27;USD&#x27;, &#x27;Dollar américain&#x27;);
+
+INSERT INTO corpo.denomination (id, denomination_code, item_type, face_value, denomination_label) VALUES
+    (&#x27;c0000000-0000-0000-0000-000000000001&#x27;, &#x27;BILLET_200&#x27;,     &#x27;BANKNOTE&#x27;, 200.00, &#x27;Billet de 200 DH&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000002&#x27;, &#x27;BILLET_100&#x27;,     &#x27;BANKNOTE&#x27;, 100.00, &#x27;Billet de 100 DH&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000003&#x27;, &#x27;BILLET_50&#x27;,      &#x27;BANKNOTE&#x27;,  50.00, &#x27;Billet de 50 DH&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000004&#x27;, &#x27;BILLET_20&#x27;,      &#x27;BANKNOTE&#x27;,  20.00, &#x27;Billet de 20 DH&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000005&#x27;, &#x27;PIECE_10&#x27;,       &#x27;COIN&#x27;,      10.00, &#x27;Pièce de 10 DH&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000006&#x27;, &#x27;PIECE_5&#x27;,        &#x27;COIN&#x27;,       5.00, &#x27;Pièce de 5 DH&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000007&#x27;, &#x27;PIECE_1&#x27;,        &#x27;COIN&#x27;,       1.00, &#x27;Pièce de 1 DH&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000008&#x27;, &#x27;CENTIME_50&#x27;,     &#x27;COIN&#x27;,       0.50, &#x27;Pièce de 50 centimes&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000009&#x27;, &#x27;CENTIME_20&#x27;,     &#x27;COIN&#x27;,       0.20, &#x27;Pièce de 20 centimes&#x27;),
+    (&#x27;c0000000-0000-0000-0000-00000000000a&#x27;, &#x27;CENTIME_10&#x27;,     &#x27;COIN&#x27;,       0.10, &#x27;Pièce de 10 centimes&#x27;),
+    (&#x27;c0000000-0000-0000-0000-00000000000b&#x27;, &#x27;CENTIME_5&#x27;,      &#x27;COIN&#x27;,       0.05, &#x27;Pièce de 5 centimes&#x27;),
+    (&#x27;c0000000-0000-0000-0000-00000000000c&#x27;, &#x27;BILLET_EUR_500&#x27;, &#x27;BANKNOTE&#x27;, 500.00, &#x27;Billet de 500 EUR&#x27;),
+    (&#x27;c0000000-0000-0000-0000-00000000000d&#x27;, &#x27;BILLET_EUR_200&#x27;, &#x27;BANKNOTE&#x27;, 200.00, &#x27;Billet de 200 EUR&#x27;),
+    (&#x27;c0000000-0000-0000-0000-00000000000e&#x27;, &#x27;BILLET_EUR_100&#x27;, &#x27;BANKNOTE&#x27;, 100.00, &#x27;Billet de 100 EUR&#x27;),
+    (&#x27;c0000000-0000-0000-0000-00000000000f&#x27;, &#x27;BILLET_EUR_50&#x27;,  &#x27;BANKNOTE&#x27;,  50.00, &#x27;Billet de 50 EUR&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000010&#x27;, &#x27;BILLET_EUR_20&#x27;,  &#x27;BANKNOTE&#x27;,  20.00, &#x27;Billet de 20 EUR&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000011&#x27;, &#x27;BILLET_EUR_10&#x27;,  &#x27;BANKNOTE&#x27;,  10.00, &#x27;Billet de 10 EUR&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000012&#x27;, &#x27;BILLET_EUR_5&#x27;,   &#x27;BANKNOTE&#x27;,   5.00, &#x27;Billet de 5 EUR&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000013&#x27;, &#x27;BILLET_USD_100&#x27;, &#x27;BANKNOTE&#x27;, 100.00, &#x27;Billet de 100 USD&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000014&#x27;, &#x27;BILLET_USD_50&#x27;,  &#x27;BANKNOTE&#x27;,  50.00, &#x27;Billet de 50 USD&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000015&#x27;, &#x27;BILLET_USD_20&#x27;,  &#x27;BANKNOTE&#x27;,  20.00, &#x27;Billet de 20 USD&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000016&#x27;, &#x27;BILLET_USD_10&#x27;,  &#x27;BANKNOTE&#x27;,  10.00, &#x27;Billet de 10 USD&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000017&#x27;, &#x27;BILLET_USD_5&#x27;,   &#x27;BANKNOTE&#x27;,   5.00, &#x27;Billet de 5 USD&#x27;),
+    (&#x27;c0000000-0000-0000-0000-000000000018&#x27;, &#x27;BILLET_USD_1&#x27;,   &#x27;BANKNOTE&#x27;,   1.00, &#x27;Billet de 1 USD&#x27;);
+
+-- Referentiels org (utiles pour tester les FKs nullables cote corpo)
+INSERT INTO corpo.establishment (id, establishment_code, establishment_name) VALUES
+    (&#x27;e2000000-0000-0000-0000-000000000001&#x27;, &#x27;001&#x27;, &#x27;BMCI Casablanca Centre&#x27;);
+INSERT INTO corpo.user_profile (id, uid, profile_code, profile_label, profile_type) VALUES
+    (&#x27;a2000000-0000-0000-0000-000000000001&#x27;, &#x27;j43709&#x27;, &#x27;AGT&#x27;, &#x27;Agent Caisse Centrale&#x27;, &#x27;AGENT&#x27;);</code></pre>
+<h2><span class="num">4</span>Réinitialisation complète (rejouer les migrations)</h2>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">pgAdmin — app ARRÊTÉE, puis redémarrer l'application</span><button class="copybtn" onclick="copyCode(3, this)">Copier</button><span class="fh-note">2 DROP suffisent : l'historique vit dans retail — vérifications incluses (3 devises / 24 coupures par périmètre)</span></div><pre><code id="code-3">-- ============================================================================
+-- REINITIALISATION COMPLETE — app ARRETEE, pgAdmin, puis redemarrer.
+-- L&#x27;historique Flyway vit DANS retail : supprimer les 2 schemas supprime
+-- aussi sa memoire -&gt; au redemarrage il REJOUE V1 (retail) puis V2 (corpo).
+-- C&#x27;est LA procedure quand un script V1/V2 a ete modifie (regle du checksum :
+-- un script applique ne se rejoue jamais autrement).
+-- ============================================================================
+
+DROP SCHEMA IF EXISTS retail CASCADE;   -- emporte flyway_schema_history
+DROP SCHEMA IF EXISTS corpo  CASCADE;
+
+-- Redemarrer l&#x27;application, puis verifier :
+SELECT version, description, success FROM retail.flyway_schema_history ORDER BY installed_rank;
+-- attendu : 2 lignes (1, 2), success = true
+
+SELECT (SELECT count(*) FROM retail.currency)     AS devises_retail,   -- 3 (MAD, EUR, USD)
+       (SELECT count(*) FROM retail.denomination) AS coupures_retail,  -- 24
+       (SELECT count(*) FROM corpo.currency)      AS devises_corpo,    -- 3
+       (SELECT count(*) FROM corpo.denomination)  AS coupures_corpo,   -- 24
+       (SELECT count(*) FROM retail.establishment) AS agences,         -- 2
+       (SELECT count(*) FROM retail.user_profile)  AS demandeurs;      -- 2</code></pre>
+<h2><span class="num">5</span>Purge des données (entre deux campagnes)</h2>
+<div class="filehead"><span class="fh-act act-rep">REMPLACER</span><span class="fh-path">pgAdmin — app démarrée, avant chaque campagne API</span><button class="copybtn" onclick="copyCode(4, this)">Copier</button><span class="fh-note">Le premier POST après purge doit redonner RT-2026-000001 (retail) et CO-2026-000001 (corpo)</span></div><pre><code id="code-4">-- ============================================================================
+-- PURGE DES DONNEES DE TEST — entre deux campagnes API, app DEMARREE.
+-- Vide le transactionnel des DEUX perimetres ; schemas, seed multi-devises
+-- et historique conserves. Les references RT-/CO- repartent a 000001.
+-- ============================================================================
+
+TRUNCATE TABLE retail.operation_denomination,
+               retail.operation_currency,
+               retail.cash_operation,
+               retail.cash_request;
+
+TRUNCATE TABLE corpo.operation_denomination,
+               corpo.operation_currency,
+               corpo.cash_operation,
+               corpo.cash_request;
+
+ALTER SEQUENCE retail.request_ref_seq      RESTART WITH 1;
+ALTER SEQUENCE corpo.corpo_request_ref_seq RESTART WITH 1;
+
+-- Verification : transactionnel a zero, referentiels intacts
+SELECT (SELECT count(*) FROM retail.cash_request) AS demandes_retail,  -- 0
+       (SELECT count(*) FROM corpo.cash_request)  AS demandes_corpo,   -- 0
+       (SELECT count(*) FROM retail.denomination) AS coupures_retail,  -- 24
+       (SELECT count(*) FROM corpo.denomination)  AS coupures_corpo;   -- 24</code></pre>
+<div class="ok"><strong>Ordre d'exécution maintenant</strong> : ① colle V1 et V2 dans <code>db/migration</code> (remplacement des fichiers) → ② réinitialisation complète (section 4) → ③ redémarre : logs « Migrating schema "retail" to version 1 » puis « version 2 » → ④ exécute les requêtes de vérification (3 devises, 24 coupures des deux côtés) → ⑤ ouvre le cahier de tests retail. Entre chaque campagne ensuite : section 5 seule.</div>
+</div>
+<script>
+function copyCode(i, btn) {
+  const el = document.getElementById('code-' + i);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copié !';
+    setTimeout(() => btn.textContent = old, 1600);
+  });
+}
+</script></body></html>

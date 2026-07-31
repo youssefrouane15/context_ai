@@ -1,0 +1,234 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cahier de tests API — Demandes retail (post-migration)</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;--rouge:#B3402A;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.6;font-size:15px;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 26px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:46px 26px 38px;margin-bottom:34px;}
+header.hero .inner{max-width:1080px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:10px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:29px;line-height:1.15;}
+.hero p.sub{margin-top:12px;max-width:860px;color:#DCEBE3;font-size:15px;}
+.badge-v{display:inline-block;margin-top:13px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:23px;color:var(--vertF);margin:50px 0 8px;padding-top:16px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:18px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;color:var(--vert);margin:26px 0 8px;}
+p{margin:9px 0;} ul,ol{margin:8px 0 8px 24px;} li{margin:4px 0;} strong{color:var(--vertF);}
+table{width:100%;border-collapse:collapse;margin:14px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:13.5px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:9px 13px;font-family:'Archivo',sans-serif;font-size:12.5px;letter-spacing:.5px;}
+td{padding:8px 13px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+td code,p code,li code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+.toc{background:var(--carte);border:1px solid var(--ligne);border-radius:10px;padding:20px 26px;margin:6px 0;}
+.toc a{color:var(--vert);text-decoration:none;font-weight:600;}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.5px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.5px;}
+.danger{background:#FCEFEC;border-left:4px solid var(--rouge);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.5px;}
+.case{background:var(--carte);border:1px solid var(--ligne);border-left:5px solid var(--vert);border-radius:10px;padding:18px 22px 14px;margin:22px 0;box-shadow:0 1px 5px rgba(28,35,33,.07);}
+.case-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+.cid{font-family:'IBM Plex Mono',monospace;font-weight:600;background:var(--vertF);color:#fff;padding:3px 10px;border-radius:4px;font-size:12.5px;}
+.method{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--or);font-size:13.5px;}
+.path{font-family:'IBM Plex Mono',monospace;font-size:13.5px;color:var(--vertF);}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;padding:2px 10px;border-radius:10px;color:#fff;}
+.b2xx{background:#178A5E;} .b4xx{background:var(--or);} .b5xx{background:var(--rouge);}
+.ctitle{font-family:'Archivo',sans-serif;font-weight:700;font-size:15.5px;color:var(--encre);width:100%;}
+.regle{font-size:13.5px;color:#4A544F;margin:4px 0 10px;}
+.sec{font-family:'Archivo',sans-serif;font-weight:700;color:var(--vert);font-size:13px;letter-spacing:.8px;text-transform:uppercase;margin:14px 0 4px;}
+.codehead{display:flex;align-items:center;background:var(--vertF);color:#CBE3D8;padding:7px 14px;border-radius:8px 8px 0 0;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.copybtn{margin-left:auto;background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:3px 12px;border-radius:4px;cursor:pointer;}
+.copybtn:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:15px 18px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:12.5px;line-height:1.5;margin-bottom:6px;}
+code{font-family:'IBM Plex Mono',monospace;}
+table.bdd td:first-child{white-space:nowrap;}
+kbd{background:var(--vertF);color:#fff;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · Retail migré · Cahier de tests API</div>
+<h1>Cahier de tests API — Demandes retail<br>Cas nominaux · Règles métier · Multi-devises · Attendus en base</h1>
+<p class="sub">La campagne de validation du retail migré, sur le modèle du cahier corpo : chaque cas donne le payload Postman, la réponse HTTP attendue, <strong>ce que tu dois voir dans chaque table du schéma retail</strong>, et le SQL de vérification. Les cas s'enchaînent dans l'ordre. Spécificités retail par rapport au corpo : agence/demandeur <strong>obligatoires</strong>, règle SUPPLY+CASH_DESK, ventilation <strong>multi-devises</strong>, endpoint legacy.</p>
+<div class="badge-v">CAHIER DE TESTS RETAIL · 31/07/2026</div>
+</div></header><div class="wrap">
+
+<div class="toc"><strong>Sommaire</strong>
+<ol>
+<li><a href="#prereq">Prérequis &amp; référentiels multi-devises</a></li>
+<li><a href="#contrat">Le contrat en bref</a></li>
+<li><a href="#nominaux">Cas nominaux (CN-R-01 → CN-R-08)</a></li>
+<li><a href="#erreurs">Cas d'erreur &amp; edge cases (ER-R-01 → ER-R-15)</a></li>
+<li><a href="#trace">Traçabilité règles métier ↔ cas de test</a></li>
+</ol></div>
+
+<h2 id="prereq"><span class="num">1</span>Prérequis &amp; référentiels multi-devises</h2>
+<ul>
+<li>Migration retail appliquée, <kbd>mvn clean verify</kbd> vert, app démarrée (8300).</li>
+<li>Base réinitialisée avec le <strong>pack BDD</strong> (V1/V2 multi-devises) : <code>SELECT count(*) FROM retail.currency;</code> → 3 · <code>SELECT count(*) FROM retail.denomination;</code> → 24.</li>
+<li>Historique : <code>SELECT version, success FROM retail.flyway_schema_history;</code> → 2 lignes true.</li>
+<li>Purge de données exécutée (les réfs partent de RT-2026-000001).</li>
+</ul>
+<h3>Référentiels utiles aux payloads</h3>
+<table><tr><th>Référentiel</th><th>Valeurs</th></tr>
+<tr><td>Devises</td><td><code>MAD</code> · <code>EUR</code> · <code>USD</code></td></tr>
+<tr><td>Coupures MAD</td><td><code>BILLET_200/100/50/20</code> · <code>PIECE_10/5/1</code> · <code>CENTIME_50/20/10/5</code></td></tr>
+<tr><td>Coupures EUR</td><td><code>BILLET_EUR_500/200/100/50/20/10/5</code></td></tr>
+<tr><td>Coupures USD</td><td><code>BILLET_USD_100/50/20/10/5/1</code></td></tr>
+<tr><td>Agences / demandeurs</td><td><code>001</code>, <code>002</code> / <code>j43709</code>, <code>j08221</code> — <strong>OBLIGATOIRES</strong> côté retail (≠ corpo)</td></tr></table>
+
+<h2 id="contrat"><span class="num">2</span>Le contrat en bref</h2>
+<table><tr><th>Endpoint</th><th>Succès</th><th>Erreurs possibles</th></tr>
+<tr><td><code>POST /cash</code></td><td><strong>201 Created</strong> (aligné corpo)</td><td>400 · 422</td></tr>
+<tr><td><code>GET /cash/{id}</code></td><td>200</td><td>404</td></tr>
+<tr><td><code>GET /cash/getCashDemandById?cashRequestId=</code> (legacy)</td><td>200</td><td>404</td></tr>
+<tr><td><code>GET /cash</code></td><td>200 (liste)</td><td>—</td></tr>
+<tr><td><code>PUT /cash/{id}</code></td><td>200</td><td>400 · 404 · 409 · 422</td></tr>
+<tr><td><code>PATCH /cash/{id}/cancel</code></td><td>200</td><td>404 · 409</td></tr></table>
+<p>Erreurs au contrat BFF : <code>{"code":"422","message":"[422] …"}</code>, <code>fieldErrors</code> sur les 400 de validation (clés <code>retail.error.*</code>).</p>
+
+<h2 id="nominaux"><span class="num">3</span>Cas nominaux</h2>
+<div class="case" id="CN-R-01"><div class="case-head"><span class="cid">CN-R-01</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b2xx">201</span><span class="ctitle">Approvisionnement caisse MULTI-DEVISES (le cas de référence)</span></div><p class="regle"><strong>Règle vérifiée :</strong> Ventilation sur DEUX devises dans une même opération : montant calculé PAR devise (MAD 200×10 = 2000.00 ; EUR 100×5 = 500.00) puis total global (2500.00). Réf RT- générée, défauts serveur, agence/demandeur résolus (obligatoires).</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(1, this)">Copier</button></div><pre><code id="code-1">{
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;establishment&quot;: &quot;001&quot;,
+  &quot;branchCode&quot;: &quot;AG-CASA-01&quot;,
+  &quot;operations&quot;: [
+    {
+      &quot;operationSens&quot;: &quot;SUPPLY&quot;,
+      &quot;operationType&quot;: &quot;CASH_DESK&quot;,
+      &quot;isUrgent&quot;: &quot;YES&quot;,
+      &quot;establishment&quot;: &quot;001&quot;,
+      &quot;currencyDetails&quot;: [
+        {
+          &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+          &quot;operationDenominations&quot;: [
+            { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_200&quot; }, &quot;quantity&quot;: 10 }
+          ]
+        },
+        {
+          &quot;currency&quot;: { &quot;isoCode&quot;: &quot;EUR&quot; },
+          &quot;operationDenominations&quot;: [
+            { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_EUR_100&quot; }, &quot;quantity&quot;: 5 }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>201</strong> ; <code>uniqueRequestRef</code> = RT-2026-000001 ; <code>requestStatus</code> = INITIATED</li><li>Opération : <code>totalAmount</code> = 2500.00, institutionCode 1, cashDeskNumber 001</li><li>2 détails devise : MAD totalAmountByCurrency 2000.00, EUR 500.00 — coupures enrichies (label, faceValue)</li><li><strong>Noter l'id</strong> → utilisé par CN-R-04 à CN-R-08</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>retail.cash_request</code></td><td>1 ligne : unique_request_ref = RT-2026-000001, request_status = INITIATED, user_profile_id et establishment_id REMPLIS (résolus j43709/001)</td></tr><tr><td><code>retail.cash_operation</code></td><td>1 ligne : operation_sens = SUPPLY, operation_type = CASH_DESK, is_urgent = YES, total_amount = 2500.00, institution_code = 1, cash_desk_number = 001</td></tr><tr><td><code>retail.operation_currency</code></td><td>2 lignes : (MAD, 2000.00) et (EUR, 500.00)</td></tr><tr><td><code>retail.operation_denomination</code></td><td>2 lignes : (BILLET_200, 10) et (BILLET_EUR_100, 5)</td></tr></table><div class="codehead"><span class="ch-label">Vérification SQL (pgAdmin)</span><button class="copybtn" onclick="copyCode(2, this)">Copier</button></div><pre><code id="code-2">SELECT cr.unique_request_ref, cr.request_status,
+       op.operation_sens, op.total_amount, op.institution_code,
+       c.iso_code, oc.total_amount_by_curerency, d.denomination_code, od.quantity
+FROM retail.cash_request cr
+JOIN retail.cash_operation op         ON op.cash_request_id = cr.id
+JOIN retail.operation_currency oc     ON oc.cash_operation_id = op.id
+JOIN retail.currency c                ON c.id = oc.currency_id
+JOIN retail.operation_denomination od ON od.operation_currency_detail_id = oc.id
+JOIN retail.denomination d            ON d.id = od.denomination_id
+ORDER BY c.iso_code;</code></pre></div><div class="case" id="CN-R-02"><div class="case-head"><span class="cid">CN-R-02</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b2xx">201</span><span class="ctitle">Collecte (COLLECTION) sans ventilation — la séquence s'incrémente</span></div><p class="regle"><strong>Règle vérifiée :</strong> La collecte n'exige pas de coupures : montant 0. La réf passe à N+1 (preuve de la séquence).</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(3, this)">Copier</button></div><pre><code id="code-3">{
+  &quot;user&quot;: &quot;j08221&quot;,
+  &quot;establishment&quot;: &quot;002&quot;,
+  &quot;branchCode&quot;: &quot;AG-RABAT-02&quot;,
+  &quot;operations&quot;: [
+    { &quot;operationSens&quot;: &quot;COLLECTION&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;002&quot;, &quot;currencyDetails&quot;: [] }
+  ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>201</strong> ; réf = <strong>RT-2026-000002</strong></li><li>totalAmount = 0 ; agence 002 / demandeur j08221 résolus</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>retail.cash_request</code></td><td>2ᵉ ligne, FKs → agence 002 / user j08221</td></tr><tr><td><code>retail.operation_currency / operation_denomination</code></td><td>AUCUNE nouvelle ligne</td></tr></table></div><div class="case" id="CN-R-03"><div class="case-head"><span class="cid">CN-R-03</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b2xx">201</span><span class="ctitle">Montants FOURNIS et cohérents (par devise ET global)</span></div><p class="regle"><strong>Règle vérifiée :</strong> totalAmountByCurrency et totalAmount fournis = recalculés → acceptés (sinon 422, cf. ER-R-08/09). 20 × 50 USD = 1000.00.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(4, this)">Copier</button></div><pre><code id="code-4">{
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;establishment&quot;: &quot;001&quot;,
+  &quot;branchCode&quot;: &quot;AG-CASA-01&quot;,
+  &quot;operations&quot;: [
+    {
+      &quot;operationSens&quot;: &quot;SUPPLY&quot;,
+      &quot;operationType&quot;: &quot;ATM&quot;,
+      &quot;establishment&quot;: &quot;001&quot;,
+      &quot;totalAmount&quot;: 1000.00,
+      &quot;currencyDetails&quot;: [
+        {
+          &quot;currency&quot;: { &quot;isoCode&quot;: &quot;USD&quot; },
+          &quot;totalAmountByCurrency&quot;: 1000.00,
+          &quot;operationDenominations&quot;: [
+            { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_USD_50&quot; }, &quot;quantity&quot;: 20 }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>201</strong>, totalAmount = 1000.00 confirmé (réf RT-2026-000003)</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>retail.operation_currency</code></td><td>1 ligne USD, 1000.00</td></tr><tr><td><code>retail.operation_denomination</code></td><td>BILLET_USD_50 × 20</td></tr></table></div><div class="case" id="CN-R-04"><div class="case-head"><span class="cid">CN-R-04</span><span class="method">GET</span><span class="path">/cash/{id}</span><span class="badge b2xx">200</span><span class="ctitle">Lecture — l'arbre multi-devises revient enrichi</span></div><p class="regle"><strong>Règle vérifiée :</strong> Labels et valeurs faciales renvoyés depuis le référentiel : le front n'a pas à les connaître.</p><p class="sec">Réponse attendue</p><ul><li>Sur l'id du CN-R-01 : statut <strong>200</strong>, 2 currencyDetails (MAD et EUR) avec coupures enrichies</li></ul></div><div class="case" id="CN-R-05"><div class="case-head"><span class="cid">CN-R-05</span><span class="method">GET</span><span class="path">/cash/getCashDemandById?cashRequestId={id}</span><span class="badge b2xx">200</span><span class="ctitle">Endpoint LEGACY — compatibilité front conservée</span></div><p class="regle"><strong>Règle vérifiée :</strong> L'ancien endpoint par query param répond identique au GET REST (même use case derrière).</p><p class="sec">Réponse attendue</p><ul><li>Avec l'id du CN-R-01 en query param : statut <strong>200</strong>, même corps que CN-R-04</li></ul></div><div class="case" id="CN-R-06"><div class="case-head"><span class="cid">CN-R-06</span><span class="method">GET</span><span class="path">/cash</span><span class="badge b2xx">200</span><span class="ctitle">Liste complète</span></div><p class="regle"><strong>Règle vérifiée :</strong> Chaque élément porte son arbre.</p><p class="sec">Réponse attendue</p><ul><li>Statut <strong>200</strong>, 3 demandes (CN-R-01/02/03)</li></ul></div><div class="case" id="CN-R-07"><div class="case-head"><span class="cid">CN-R-07</span><span class="method">PUT</span><span class="path">/cash/{id}</span><span class="badge b2xx">200</span><span class="ctitle">Modification : ventilation REMPLACÉE (EUR → USD), réf immuable</span></div><p class="regle"><strong>Règle vérifiée :</strong> L'update remplace l'arbre (clear + flush + addAll) ; unique_request_ref et statut intacts (updateHeader protégé).</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(5, this)">Copier</button></div><pre><code id="code-5">{
+  &quot;user&quot;: &quot;j43709&quot;,
+  &quot;establishment&quot;: &quot;001&quot;,
+  &quot;branchCode&quot;: &quot;AG-CASA-01-MODIF&quot;,
+  &quot;operations&quot;: [
+    {
+      &quot;operationSens&quot;: &quot;SUPPLY&quot;,
+      &quot;operationType&quot;: &quot;CASH_DESK&quot;,
+      &quot;isUrgent&quot;: &quot;NO&quot;,
+      &quot;establishment&quot;: &quot;001&quot;,
+      &quot;currencyDetails&quot;: [
+        {
+          &quot;currency&quot;: { &quot;isoCode&quot;: &quot;USD&quot; },
+          &quot;operationDenominations&quot;: [
+            { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_USD_100&quot; }, &quot;quantity&quot;: 30 }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Sur l'id du CN-R-01 : statut <strong>200</strong></li><li>Réf INCHANGÉE (RT-2026-000001) ; totalAmount = 3000.00 ; une seule devise USD désormais</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>retail.cash_request</code></td><td>branch_code = AG-CASA-01-MODIF ; unique_request_ref inchangée</td></tr><tr><td><code>retail.operation_currency</code></td><td>1 SEULE ligne (USD 3000.00) — les 2 anciennes (MAD/EUR) SUPPRIMÉES</td></tr><tr><td><code>retail.operation_denomination</code></td><td>1 seule ligne (BILLET_USD_100 × 30)</td></tr></table><div class="codehead"><span class="ch-label">Vérification SQL (pgAdmin)</span><button class="copybtn" onclick="copyCode(6, this)">Copier</button></div><pre><code id="code-6">SELECT cr.unique_request_ref, cr.branch_code,
+       (SELECT count(*) FROM retail.operation_currency oc
+         JOIN retail.cash_operation op2 ON oc.cash_operation_id = op2.id
+        WHERE op2.cash_request_id = cr.id) AS nb_details
+FROM retail.cash_request cr WHERE cr.unique_request_ref = &#x27;RT-2026-000001&#x27;;</code></pre></div><div class="case" id="CN-R-08"><div class="case-head"><span class="cid">CN-R-08</span><span class="method">PATCH</span><span class="path">/cash/{id}/cancel</span><span class="badge b2xx">200</span><span class="ctitle">Annulation propagée demande + opérations</span></div><p class="regle"><strong>Règle vérifiée :</strong> Comme corpo : tout l'arbre d'exécution passe CANCELLED.</p><p class="sec">Réponse attendue</p><ul><li>Sur l'id du CN-R-01 : statut <strong>200</strong>, requestStatus et operationStatus = CANCELLED</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>retail.cash_request</code></td><td>request_status = CANCELLED</td></tr><tr><td><code>retail.cash_operation</code></td><td>operation_status = CANCELLED</td></tr></table><div class="codehead"><span class="ch-label">Vérification SQL (pgAdmin)</span><button class="copybtn" onclick="copyCode(7, this)">Copier</button></div><pre><code id="code-7">SELECT cr.request_status, op.operation_status
+FROM retail.cash_request cr JOIN retail.cash_operation op ON op.cash_request_id = cr.id
+WHERE cr.unique_request_ref = &#x27;RT-2026-000001&#x27;;</code></pre></div><h2 id="erreurs"><span class="num">4</span>Cas d'erreur &amp; edge cases</h2>
+<div class="ok"><strong>Compteur transverse (rollback)</strong> — à vérifier après CHAQUE cas d'erreur, il ne doit pas bouger : <code>SELECT (SELECT count(*) FROM retail.cash_request) AS demandes, (SELECT count(*) FROM retail.cash_operation) AS operations, (SELECT count(*) FROM retail.operation_denomination) AS lignes;</code></div>
+<div class="case" id="ER-R-01"><div class="case-head"><span class="cid">ER-R-01</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">400</span><span class="ctitle">Bean Validation : user manquant</span></div><p class="regle"><strong>Règle vérifiée :</strong> @NotBlank sur user — 400 AVANT toute logique métier.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(8, this)">Copier</button></div><pre><code id="code-8">{ &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;, &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;COLLECTION&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;currencyDetails&quot;: [] } ] }</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, code = 400, <code>fieldErrors.user</code> présent</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>(toutes)</code></td><td>Aucune écriture — compteur transverse inchangé</td></tr></table></div><div class="case" id="ER-R-02"><div class="case-head"><span class="cid">ER-R-02</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">400</span><span class="ctitle">Bean Validation : operations vide</span></div><p class="regle"><strong>Règle vérifiée :</strong> @NotEmpty sur operations.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(9, this)">Copier</button></div><pre><code id="code-9">{ &quot;user&quot;: &quot;j43709&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;, &quot;operations&quot;: [] }</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, <code>fieldErrors.operations</code></li></ul></div><div class="case" id="ER-R-03"><div class="case-head"><span class="cid">ER-R-03</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">400</span><span class="ctitle">Bean Validation : operationSens manquant</span></div><p class="regle"><strong>Règle vérifiée :</strong> @NotNull en cascade (@Valid sur la liste).</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(10, this)">Copier</button></div><pre><code id="code-10">{ &quot;user&quot;: &quot;j43709&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;, &quot;operations&quot;: [ { &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot; } ] }</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, fieldErrors sur <code>operations[0].operationSens</code></li></ul></div><div class="case" id="ER-R-04"><div class="case-head"><span class="cid">ER-R-04</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">400</span><span class="ctitle">Bean Validation : quantité négative</span></div><p class="regle"><strong>Règle vérifiée :</strong> @Min(0) au fond de l'arbre — preuve de la cascade complète.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(11, this)">Copier</button></div><pre><code id="code-11">{
+  &quot;user&quot;: &quot;j43709&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;,
+  &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;SUPPLY&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot;,
+    &quot;currencyDetails&quot;: [ { &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+      &quot;operationDenominations&quot;: [ { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_200&quot; }, &quot;quantity&quot;: -5 } ] } ] } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, fieldErrors sur <code>...quantity</code></li></ul></div><div class="case" id="ER-R-05"><div class="case-head"><span class="cid">ER-R-05</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">400</span><span class="ctitle">JSON malformé</span></div><p class="regle"><strong>Règle vérifiée :</strong> HttpMessageNotReadable → 400 propre, jamais de stacktrace.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(12, this)">Copier</button></div><pre><code id="code-12">{ &quot;user&quot;: &quot;j43709&quot;, &quot;operations&quot;: [</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>400</strong>, message « corps illisible ou mal formé »</li></ul></div><div class="case" id="ER-R-06"><div class="case-head"><span class="cid">ER-R-06</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">422</span><span class="ctitle">Coupure inconnue du référentiel</span></div><p class="regle"><strong>Règle vérifiée :</strong> BILLET_500 n'existe pas côté MAD retail — résolution par code → RetailValidationException.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(13, this)">Copier</button></div><pre><code id="code-13">{
+  &quot;user&quot;: &quot;j43709&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;,
+  &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;SUPPLY&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot;,
+    &quot;currencyDetails&quot;: [ { &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+      &quot;operationDenominations&quot;: [ { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_500&quot; }, &quot;quantity&quot;: 1 } ] } ] } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>422</strong>, message « La coupure 'BILLET_500' n'existe pas… »</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>(toutes)</code></td><td>Aucune écriture (rollback)</td></tr></table></div><div class="case" id="ER-R-07"><div class="case-head"><span class="cid">ER-R-07</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">422</span><span class="ctitle">Devise inconnue — EUR et USD sont désormais VALIDES, JPY non</span></div><p class="regle"><strong>Règle vérifiée :</strong> Le seed multi-devises change la donne : EUR passait en 422 avant, plus maintenant. La devise inconnue de test devient JPY.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(14, this)">Copier</button></div><pre><code id="code-14">{
+  &quot;user&quot;: &quot;j43709&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;,
+  &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;SUPPLY&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot;,
+    &quot;currencyDetails&quot;: [ { &quot;currency&quot;: { &quot;isoCode&quot;: &quot;JPY&quot; },
+      &quot;operationDenominations&quot;: [ { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_200&quot; }, &quot;quantity&quot;: 1 } ] } ] } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>422</strong>, message « La devise JPY n'existe pas… »</li></ul></div><div class="case" id="ER-R-08"><div class="case-head"><span class="cid">ER-R-08</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">422</span><span class="ctitle">Montant GLOBAL incohérent</span></div><p class="regle"><strong>Règle vérifiée :</strong> 200×10 = 2000.00 ≠ 9999.99 fourni.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(15, this)">Copier</button></div><pre><code id="code-15">{
+  &quot;user&quot;: &quot;j43709&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;,
+  &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;SUPPLY&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot;,
+    &quot;totalAmount&quot;: 9999.99,
+    &quot;currencyDetails&quot;: [ { &quot;currency&quot;: { &quot;isoCode&quot;: &quot;MAD&quot; },
+      &quot;operationDenominations&quot;: [ { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_200&quot; }, &quot;quantity&quot;: 10 } ] } ] } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>422</strong>, montant fourni vs calculé (2000.00) dans le message</li></ul></div><div class="case" id="ER-R-09"><div class="case-head"><span class="cid">ER-R-09</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">422</span><span class="ctitle">Montant PAR DEVISE incohérent</span></div><p class="regle"><strong>Règle vérifiée :</strong> Le contrôle est aussi au niveau du détail : EUR fourni 777.00 ≠ calculé 500.00.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(16, this)">Copier</button></div><pre><code id="code-16">{
+  &quot;user&quot;: &quot;j43709&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;,
+  &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;SUPPLY&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot;,
+    &quot;currencyDetails&quot;: [ { &quot;currency&quot;: { &quot;isoCode&quot;: &quot;EUR&quot; }, &quot;totalAmountByCurrency&quot;: 777.00,
+      &quot;operationDenominations&quot;: [ { &quot;denomination&quot;: { &quot;denominationCode&quot;: &quot;BILLET_EUR_100&quot; }, &quot;quantity&quot;: 5 } ] } ] } ]
+}</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>422</strong>, « montant par devise fourni (777.00) ≠ calculé (500.00) »</li></ul></div><div class="case" id="ER-R-10"><div class="case-head"><span class="cid">ER-R-10</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">422</span><span class="ctitle">Règle retail : SUPPLY + CASH_DESK sans ventilation</span></div><p class="regle"><strong>Règle vérifiée :</strong> Alimenter une caisse/GAB EXIGE le détail des coupures (règle reprise du commit du collègue). La même opération en COLLECTION passe (CN-R-02).</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(17, this)">Copier</button></div><pre><code id="code-17">{ &quot;user&quot;: &quot;j43709&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;, &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;SUPPLY&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;currencyDetails&quot;: [] } ] }</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>422</strong>, « Les détails des coupures sont obligatoires pour alimenter un GAB ou une caisse »</li></ul></div><div class="case" id="ER-R-11"><div class="case-head"><span class="cid">ER-R-11</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">422</span><span class="ctitle">Agence INCONNUE — différence assumée avec corpo</span></div><p class="regle"><strong>Règle vérifiée :</strong> Retail : establishment_id NOT NULL, agence obligatoire → 999 rejeté en 422 explicite. (Corpo : FKs nullables, le même cas passe en 201 — c'est le CN-08 corpo.)</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(18, this)">Copier</button></div><pre><code id="code-18">{ &quot;user&quot;: &quot;j43709&quot;, &quot;establishment&quot;: &quot;999&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;, &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;COLLECTION&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;currencyDetails&quot;: [] } ] }</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>422</strong>, « L'établissement '999' n'existe pas dans le référentiel »</li></ul></div><div class="case" id="ER-R-12"><div class="case-head"><span class="cid">ER-R-12</span><span class="method">POST</span><span class="path">/cash</span><span class="badge b4xx">422</span><span class="ctitle">Demandeur INCONNU</span></div><p class="regle"><strong>Règle vérifiée :</strong> Même garde sur l'uid.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(19, this)">Copier</button></div><pre><code id="code-19">{ &quot;user&quot;: &quot;inconnu-uid&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;AG-CASA-01&quot;, &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;COLLECTION&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;currencyDetails&quot;: [] } ] }</code></pre><p class="sec">Réponse attendue</p><ul><li>Statut <strong>422</strong>, « Le demandeur 'inconnu-uid' n'existe pas… »</li></ul></div><div class="case" id="ER-R-13"><div class="case-head"><span class="cid">ER-R-13</span><span class="method">GET</span><span class="path">/cash/{id}</span><span class="badge b4xx">404</span><span class="ctitle">Id inexistant (GET, GET legacy, PUT, cancel)</span></div><p class="regle"><strong>Règle vérifiée :</strong> RetailNotFoundException → 404 sur les 4 canaux.</p><p class="sec">Réponse attendue</p><ul><li>UUID au hasard sur les 4 endpoints : statut <strong>404</strong>, code = 404 à chaque fois</li></ul></div><div class="case" id="ER-R-14"><div class="case-head"><span class="cid">ER-R-14</span><span class="method">PATCH</span><span class="path">/cash/{id}/cancel</span><span class="badge b4xx">409</span><span class="ctitle">Double annulation</span></div><p class="regle"><strong>Règle vérifiée :</strong> Demande déjà CANCELLED → conflit d'état.</p><p class="sec">Réponse attendue</p><ul><li>Rejouer le cancel sur l'id du CN-R-08 : statut <strong>409</strong>, « déjà annulée »</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>retail.cash_request</code></td><td>Statut reste CANCELLED, modification_date inchangée</td></tr></table></div><div class="case" id="ER-R-15"><div class="case-head"><span class="cid">ER-R-15</span><span class="method">PUT</span><span class="path">/cash/{id}</span><span class="badge b4xx">409</span><span class="ctitle">Modification d'une demande annulée</span></div><p class="regle"><strong>Règle vérifiée :</strong> Une demande CANCELLED est figée.</p><div class="codehead"><span class="ch-label">Payload (Body JSON)</span><button class="copybtn" onclick="copyCode(20, this)">Copier</button></div><pre><code id="code-20">{ &quot;user&quot;: &quot;j43709&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;branchCode&quot;: &quot;X&quot;, &quot;operations&quot;: [ { &quot;operationSens&quot;: &quot;COLLECTION&quot;, &quot;operationType&quot;: &quot;CASH_DESK&quot;, &quot;establishment&quot;: &quot;001&quot;, &quot;currencyDetails&quot;: [] } ] }</code></pre><p class="sec">Réponse attendue</p><ul><li>Sur l'id du CN-R-08 : statut <strong>409</strong>, « Impossible de modifier une demande annulée »</li></ul><p class="sec">Attendu en base de données</p><table class="bdd"><tr><th>Table</th><th>Ce que tu dois voir</th></tr><tr><td><code>retail.cash_operation</code></td><td>L'arbre de la demande annulée est INTACT</td></tr></table></div>
+<div class="danger"><strong>Limite connue partagée avec corpo</strong> : la même coupure envoyée deux fois dans une ventilation viole <code>uq_retail_od</code> → 500 propre (ErrorDTO + stacktrace loguée). Backlog commun : dédupliquer ou rejeter en 422 — décision Yassin, une fois pour les deux périmètres.</div>
+
+<h2 id="trace"><span class="num">5</span>Traçabilité règles métier ↔ cas de test</h2>
+<table><tr><th>Règle métier</th><th>Cas qui la prouve</th></tr>
+<tr><td>Réf RT-AAAA-NNNNNN par séquence, unique, immuable</td><td>CN-R-01 · CN-R-02 (incrément) · CN-R-07 (immutabilité)</td></tr>
+<tr><td>Montant calculé PAR DEVISE puis GLOBAL ; montants fournis contrôlés aux deux niveaux</td><td>CN-R-01 · CN-R-03 · ER-R-08 · ER-R-09</td></tr>
+<tr><td>Multi-devises : plusieurs détails par opération, coupures résolues par code préfixé</td><td>CN-R-01 (MAD+EUR) · CN-R-03 (USD) · CN-R-07 (bascule USD)</td></tr>
+<tr><td>Défauts serveur (institution 1, caisse 001, NO, INITIATED)</td><td>CN-R-01/02 (colonnes)</td></tr>
+<tr><td>SUPPLY + CASH_DESK ⇒ ventilation obligatoire (règle retail)</td><td>ER-R-10 (KO) vs CN-R-02 (COLLECTION OK)</td></tr>
+<tr><td>Agence/demandeur OBLIGATOIRES et résolus (≠ corpo nullable)</td><td>CN-R-01/02 (FKs remplies) · ER-R-11 · ER-R-12</td></tr>
+<tr><td>Update = remplacement de l'arbre, entête modifiable, réf/statut protégés</td><td>CN-R-07 (comptages)</td></tr>
+<tr><td>Annulation propagée ; demande annulée figée</td><td>CN-R-08 · ER-R-14 · ER-R-15</td></tr>
+<tr><td>Validation de surface en 400 fieldErrors AVANT le métier ; référentiels inconnus en 422</td><td>ER-R-01→05 · ER-R-06/07</td></tr>
+<tr><td>Compatibilité front : endpoint legacy servi</td><td>CN-R-05</td></tr>
+<tr><td>Aucune écriture partielle (rollback)</td><td>Compteur transverse, tous les ER</td></tr></table>
+
+<div class="ok"><strong>Fin de campagne</strong> : 3 demandes (CN-R-01 annulée/modifiée, CN-R-02, CN-R-03), compteurs stables sur tous les ER — et la <strong>non-régression corpo</strong> à vérifier en miroir : rejoue CN-01 corpo (POST /corpo/cash) → 201, CO-2026-000001 : les deux périmètres cohabitent sur la même app, chacun dans son schéma.</div>
+</div>
+<script>
+function copyCode(i, btn) {
+  const el = document.getElementById('code-' + i);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copié !';
+    setTimeout(() => btn.textContent = old, 1600);
+  });
+}
+</script></body></html>
