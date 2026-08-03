@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bilan de couverture de tests — Corpo &amp; Retail</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;--rouge:#B3402A;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.62;font-size:15px;}
+.wrap{max-width:1100px;margin:0 auto;padding:0 26px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:46px 26px 38px;margin-bottom:34px;}
+header.hero .inner{max-width:1100px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:10px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:28px;line-height:1.15;}
+.hero p.sub{margin-top:12px;max-width:880px;color:#DCEBE3;font-size:15px;}
+.badge-v{display:inline-block;margin-top:13px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:22px;color:var(--vertF);margin:48px 0 8px;padding-top:16px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:17px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:16.5px;color:var(--vert);margin:24px 0 8px;}
+p{margin:9px 0;} ul,ol{margin:8px 0 8px 24px;} li{margin:4px 0;} strong{color:var(--vertF);}
+table{width:100%;border-collapse:collapse;margin:14px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:13.2px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:8px 12px;font-family:'Archivo',sans-serif;font-size:12.3px;}
+td{padding:7px 12px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+td code,p code,li code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.2px;}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.5px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.5px;}
+.danger{background:#FCEFEC;border-left:4px solid var(--rouge);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.5px;}
+.pill{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;padding:1px 9px;border-radius:10px;color:#fff;}
+.p-ok{background:#178A5E;} .p-mid{background:var(--or);} .p-ko{background:var(--rouge);} .p-na{background:#7A837E;}
+.bar{background:#E3DED4;border-radius:6px;height:14px;position:relative;overflow:hidden;min-width:120px;}
+.bar > span{position:absolute;left:0;top:0;bottom:0;border-radius:6px;}
+.bar-ok{background:#178A5E;} .bar-mid{background:#B8892C;} .bar-ko{background:#B3402A;}
+kbd{background:var(--vertF);color:#fff;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+pre{background:#10231C;color:#E8F2EC;padding:14px 17px;overflow-x:auto;border-radius:8px;font-size:12.3px;line-height:1.5;margin:10px 0;}
+code{font-family:'IBM Plex Mono',monospace;}
+.toc{background:var(--carte);border:1px solid var(--ligne);border-radius:10px;padding:18px 24px;margin:6px 0;}
+.toc a{color:var(--vert);text-decoration:none;font-weight:600;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Gestion des fonds · Qualité · Couverture de tests</div>
+<h1>Bilan de couverture — les deux périmètres<br>Inventaire, métriques estimées, trous identifiés, plan</h1>
+<p class="sub">Qui teste quoi, classe par classe, sur corpo et retail migré. Les pourcentages sont des <strong>estimations raisonnées</strong> (calculées depuis ce que chaque test exerce réellement) à confirmer par une exécution JaCoCo — la procédure de mesure réelle est en section 6, avec le tableau à remplir. Les trous sont identifiés précisément, avec le plan chiffré pour les combler.</p>
+<div class="badge-v">BILAN COUVERTURE · 03/08/2026</div>
+</div></header><div class="wrap">
+
+<div class="toc"><strong>Sommaire</strong>
+<ol>
+<li><a href="#methode">Méthode : ce que « couvert » veut dire, et comment j'estime</a></li>
+<li><a href="#retail">Inventaire RETAIL (classe par classe)</a></li>
+<li><a href="#corpo">Inventaire CORPO (classe par classe)</a></li>
+<li><a href="#metriques">Les métriques : calcul par couche et global</a></li>
+<li><a href="#trous">Les trous — ce qui n'est PAS couvert (à traiter)</a></li>
+<li><a href="#mesure">Obtenir les chiffres RÉELS (JaCoCo/IntelliJ) + plan de comblement</a></li>
+</ol></div>
+
+<h2 id="methode"><span class="num">1</span>Méthode</h2>
+<p><strong>Ce qu'on mesure</strong> : la couverture de <em>lignes</em> (une ligne est « couverte » si un test l'exécute) et de <em>branches</em> (chaque côté d'un if/switch). Rappel de la limite qu'on a documentée dans le dossier de maîtrise : <strong>la couverture mesure l'exécuté, pas le vérifié</strong> — une ligne traversée sans assertion compte quand même. Nos tests assertent, donc le chiffre a du sens ici.</p>
+<p><strong>Comment j'estime</strong> : pour chaque classe de production, je liste les méthodes/branches que les tests existants traversent réellement (je connais les deux — je les ai écrits), je rapporte au volume de la classe, et j'arrondis par plage. Les classes générées (Impl MapStruct) et le boilerplate Lombok sont traités comme JaCoCo le fera avec notre <code>lombok.config</code> (<code>addLombokGeneratedAnnotation=true</code> : getters/setters/builders exclus du dénominateur). Les DTOs, entités JPA, enums, exceptions et interfaces sont <strong>hors périmètre de couverture utile</strong> (pas de logique) — les inclure gonflerait ou plomberait artificiellement le chiffre.</p>
+<p><strong>Les cibles qu'on s'est fixées</strong> : domaine ≥ 90 % · mappers ≥ 85 % · adapters ≥ 80 % · handlers 100 % des branches · use cases ≥ 85 %.</p>
+
+<h2 id="retail"><span class="num">2</span>Inventaire RETAIL — 5 classes de test, 24 cas</h2>
+<h3>Couche domaine</h3>
+<table><tr><th>Classe de production</th><th>Testée par</th><th>Statut</th><th>Est. lignes</th><th>Ce qui est exercé / ce qui manque</th></tr><tr><td><code>CashRequest.validateAndCompute</code></td><td>CashRequestTest (6 cas)</td><td><span class="pill p-ok">BON</span></td><td style="white-space:nowrap">~90-95 %</td><td>Défauts serveur, sans-opérations KO, SUPPLY+CASH_DESK sans ventilation KO, code inconnu KO, total incohérent KO, total cohérent OK. Manque : branche multi-devises (2 détails) en unitaire — couverte seulement par le cahier API (CN-R-01).</td></tr><tr><td><code>CashOperation.validateAndComputeTotal</code></td><td>via CashRequestTest</td><td><span class="pill p-ok">BON</span></td><td style="white-space:nowrap">~85-90 %</td><td>Toutes les gardes traversées sauf : quantité null (défaut 0), totalAmountByCurrency fourni-cohérent, liste operationDenominations null. 3 micro-branches.</td></tr><tr><td><code>Entités domaine (5) / enums (2) / exceptions (3)</code></td><td>—</td><td><span class="pill p-na">N/A</span></td><td style="white-space:nowrap">exclu</td><td>Pas de logique (données + héritage socle). À exclure du rapport ou à ignorer dans la lecture.</td></tr></table>
+<h3>Couche application-service</h3>
+<table><tr><th>Classe de production</th><th>Testée par</th><th>Statut</th><th>Est. lignes</th><th>Ce qui est exercé / ce qui manque</th></tr><tr><td><code>CashDemandUseCaseImpl</code></td><td>CashDemandUseCaseImplTest (2 cas)</td><td><span class="pill p-mid">PARTIEL</span></td><td style="white-space:nowrap">~45-55 %</td><td>SEULS les chemins de REJET sont testés (create/update invalides, repository jamais touché). Manquent : les 5 chemins heureux (create, update, getById, getAll, cancel) + la construction de faceValuesByCode. C'est le trou n°1 du retail.</td></tr><tr><td><code>CashRequestWebMapper (interface MapStruct)</code></td><td>AUCUN test dédié</td><td><span class="pill p-ko">NON COUVERT</span></td><td style="white-space:nowrap">~0-10 %</td><td>L'Impl générée n'est exercée qu'indirectement (mockée dans le test du use case !). Les contrats critiques — ignore des champs serveur en entrée, conversions VO↔UUID — ne sont PAS vérifiés. Trou n°2, partagé avec corpo.</td></tr></table>
+<h3>Couche data-access</h3>
+<table><tr><th>Classe de production</th><th>Testée par</th><th>Statut</th><th>Est. lignes</th><th>Ce qui est exercé / ce qui manque</th></tr><tr><td><code>CashRequestPersistenceMapper</code></td><td>CashRequestPersistenceMapperTest (3 cas)</td><td><span class="pill p-ok">BON</span></td><td style="white-space:nowrap">~80-85 %</td><td>Arbre complet, backrefs, résolutions code/ISO, coupure inconnue KO, updateHeader protégé. Manquent : devise inconnue KO, sens lecture toDomain (entité→domaine) non asserté en direct.</td></tr><tr><td><code>CashDemandRepositoryImpl</code></td><td>CashDemandRepositoryImplTest (7 cas)</td><td><span class="pill p-ok">BON</span></td><td style="white-space:nowrap">~80-85 %</td><td>save (réf RT-, résolutions), agence inconnue 422, notFound typé, cancel propagé, double cancel 409, update sur annulée 409, update clear/flush/addAll. Manquent : findAll, user inconnu (miroir de l'agence), getById chemin heureux direct.</td></tr><tr><td><code>DenominationRepositoryImpl</code></td><td>AUCUN test</td><td><span class="pill p-ko">NON COUVERT</span></td><td style="white-space:nowrap">0 %</td><td>4 lignes de délégation — trivial mais à 0. Un test de 10 lignes le règle.</td></tr></table>
+<h3>Couche REST</h3>
+<table><tr><th>Classe de production</th><th>Testée par</th><th>Statut</th><th>Est. lignes</th><th>Ce qui est exercé / ce qui manque</th></tr><tr><td><code>CashDemandController</code></td><td>CashDemandControllerTest (5 cas)</td><td><span class="pill p-mid">PARTIEL</span></td><td style="white-space:nowrap">~60-70 %</td><td>create 201, 400 fieldErrors, 404, 500 SessionService, 400 malformé. Manquent : PUT, GET liste, endpoint LEGACY, PATCH cancel — 4 endpoints jamais appelés par un test.</td></tr><tr><td><code>RetailDemandExceptionHandler</code></td><td>via ControllerTest</td><td><span class="pill p-mid">PARTIEL</span></td><td style="white-space:nowrap">~65-75 % branches</td><td>Branches traversées : Validation? NON (422 jamais déclenché !), NotFound OUI, Conflict NON (409 jamais déclenché), SessionService OUI, BeanValidation OUI, Unreadable OUI, catch-all NON. Cible = 100 % : 3 branches manquent.</td></tr></table>
+
+<h2 id="corpo"><span class="num">3</span>Inventaire CORPO — même pyramide, mêmes forces, mêmes trous</h2>
+<p>Le corpo a servi de modèle : sa pyramide (domaine → use case → mapper persistance → adapter → controller+handler) est structurellement identique. Le diagnostic est donc le même, avec les spécificités suivantes :</p>
+<table><tr><th>Couche</th><th>État corpo</th><th>Différences avec retail</th></tr>
+<tr><td>Domaine (CorpoCashRequest/Operation)</td><td><span class="pill p-ok">BON ~90 %</span></td><td>Mêmes règles testées ; PAS de règle SUPPLY+CASH_DESK (spécifique retail) ; branche centimes (rendu monnaie) couverte.</td></tr>
+<tr><td>CorpoCashDemandUseCaseImpl</td><td><span class="pill p-mid">PARTIEL ~50 %</span></td><td>Même trou : chemins heureux non testés unitairement (validés par la campagne API corpo, mais la couverture ne les voit pas).</td></tr>
+<tr><td>Web mapper corpo (MapStruct)</td><td><span class="pill p-ko">NON COUVERT</span></td><td>Identique : aucun test dédié, mocké dans le test du use case.</td></tr>
+<tr><td>Mapper persistance corpo</td><td><span class="pill p-ok">BON ~80-85 %</span></td><td>Même modèle de test (Mappers.getMapper, backrefs, résolutions).</td></tr>
+<tr><td>CorpoDemandRepositoryImpl</td><td><span class="pill p-ok">BON ~80 %</span></td><td>Réf CO-, FKs NULLABLES (agence inconnue = les FKs restent vides, PAS de 422 — différence de contrat testée).</td></tr>
+<tr><td>Controller + handler corpo</td><td><span class="pill p-mid">PARTIEL ~65 %</span></td><td>201 testé (corrigé lors de l'incident « test attend 200 ») ; mêmes branches manquantes (409, 422, catch-all) et endpoints non appelés.</td></tr></table>
+
+<h2 id="metriques"><span class="num">4</span>Les métriques — calcul par couche et global</h2>
+<p>Pondération par volume de code <em>à logique</em> (hors DTOs/entités/enums/interfaces), estimé depuis les classes livrées : domaine ~15 % du volume, use cases ~10 %, web mappers ~10 %, mappers persistance ~30 %, adapters ~25 %, REST+handler ~10 %.</p>
+<table><tr><th>Couche</th><th>Cible</th><th>Est. RETAIL</th><th></th><th>Est. CORPO</th><th></th></tr>
+<tr><td>Domaine</td><td>≥ 90 %</td><td><strong>~90 %</strong></td><td><div class="bar"><span class="bar-ok" style="width:90%"></span></div></td><td><strong>~90 %</strong></td><td><div class="bar"><span class="bar-ok" style="width:90%"></span></div></td></tr>
+<tr><td>Use case</td><td>≥ 85 %</td><td><strong>~50 %</strong></td><td><div class="bar"><span class="bar-ko" style="width:50%"></span></div></td><td><strong>~50 %</strong></td><td><div class="bar"><span class="bar-ko" style="width:50%"></span></div></td></tr>
+<tr><td>Web mapper</td><td>≥ 85 %</td><td><strong>~5 %</strong></td><td><div class="bar"><span class="bar-ko" style="width:5%"></span></div></td><td><strong>~5 %</strong></td><td><div class="bar"><span class="bar-ko" style="width:5%"></span></div></td></tr>
+<tr><td>Mapper persistance</td><td>≥ 85 %</td><td><strong>~82 %</strong></td><td><div class="bar"><span class="bar-mid" style="width:82%"></span></div></td><td><strong>~82 %</strong></td><td><div class="bar"><span class="bar-mid" style="width:82%"></span></div></td></tr>
+<tr><td>Adapters</td><td>≥ 80 %</td><td><strong>~75 %</strong></td><td><div class="bar"><span class="bar-mid" style="width:75%"></span></div></td><td><strong>~78 %</strong></td><td><div class="bar"><span class="bar-mid" style="width:78%"></span></div></td></tr>
+<tr><td>REST + handler</td><td>100 % branches</td><td><strong>~65 %</strong></td><td><div class="bar"><span class="bar-mid" style="width:65%"></span></div></td><td><strong>~65 %</strong></td><td><div class="bar"><span class="bar-mid" style="width:65%"></span></div></td></tr>
+<tr><td><strong>GLOBAL pondéré (code à logique)</strong></td><td>—</td><td><strong>≈ 65-70 %</strong></td><td><div class="bar"><span class="bar-mid" style="width:67%"></span></div></td><td><strong>≈ 66-71 %</strong></td><td><div class="bar"><span class="bar-mid" style="width:68%"></span></div></td></tr></table>
+<div class="note"><strong>Lecture du calcul</strong> : global retail ≈ 0,15×90 + 0,10×50 + 0,10×5 + 0,30×82 + 0,25×75 + 0,10×65 ≈ <strong>67 %</strong>. Le chiffre brut que JaCoCo affichera sur TOUT le module sera différent (il inclura DTOs/entités : plus haut grâce au lombok.config, ou plus bas sans lui) — c'est le chiffre par couche qui pilote le travail, pas le global brut. Et rappel : ces estimations supposent la config de mesure de la section 6 ; sans <code>lombok.config</code>, retire 15-20 points partout.</div>
+
+<h2 id="trous"><span class="num">5</span>Les trous — par ordre de gravité</h2>
+<div class="danger"><strong>Trou n°1 — Les web mappers MapStruct (les deux périmètres, ~5 %)</strong> : les contrats d'entrée (id/réf/statuts/dates IGNORÉS — c'est une frontière de SÉCURITÉ : un client qui envoie "requestStatus":"VALIDATED" ne doit pas passer) ne sont vérifiés par AUCUN test. C'est le plus grave car c'est du code de frontière, et il est invisible : tout marche en apparence.</div>
+<div class="danger"><strong>Trou n°2 — Chemins heureux des use cases (~50 %)</strong> : create/update/getById/getAll/cancel ne sont exercés unitairement que côté rejet. L'orchestration (validation AVANT save, mapping aller-retour) n'est prouvée que par les campagnes API manuelles — la couverture ne la voit pas, et une régression ne serait attrapée qu'à la main.</div>
+<div class="danger"><strong>Trou n°3 — 3 branches de handler jamais déclenchées</strong> : 422 (RetailValidation/CorpoValidation), 409 (Conflict), et le catch-all Exception. Le contrat d'erreur BFF est LA promesse faite au front — chaque branche doit avoir son test (cible 100 %).</div>
+<table><tr><th>#</th><th>Trou</th><th>Périmètres</th><th>Gravité</th></tr>
+<tr><td>4</td><td>4 endpoints jamais appelés par un test controller : PUT, GET liste, GET legacy (retail), PATCH cancel</td><td>les deux</td><td><span class="pill p-mid">Moyenne</span></td></tr>
+<tr><td>5</td><td>DenominationRepositoryImpl à 0 % (retail ET corpo)</td><td>les deux</td><td><span class="pill p-mid">Faible (trivial)</span></td></tr>
+<tr><td>6</td><td>Adapter : findAll + résolution user inconnu (retail) non testés</td><td>retail</td><td><span class="pill p-mid">Faible</span></td></tr>
+<tr><td>7</td><td>Domaine : branche multi-devises (2 détails) non testée unitairement</td><td>retail</td><td><span class="pill p-mid">Faible (couverte par cahier API)</span></td></tr>
+<tr><td>8</td><td>Mapper persistance : devise inconnue KO + sens lecture toDomain</td><td>les deux</td><td><span class="pill p-mid">Faible</span></td></tr></table>
+
+<h2 id="mesure"><span class="num">6</span>Les chiffres réels + le plan de comblement</h2>
+<h3>Mesurer (IntelliJ, la procédure qu'on a validée)</h3>
+<ol>
+<li>Vérifie <code>lombok.config</code> à la racine : <code>lombok.addLombokGeneratedAnnotation = true</code> (JaCoCo ignore alors le boilerplate généré).</li>
+<li><kbd>Settings → Build → Coverage</kbd> : runner <strong>JaCoCo</strong> ; filtre d'inclusion <code>com.bmci.*</code>.</li>
+<li>Clic droit sur le dossier de tests racine → <strong>Run 'All Tests' with Coverage</strong> — sur les TESTS, pas sur l'application lancée.</li>
+<li>Le rapport s'affiche à l'ARRÊT du process ; exporte en HTML si tu veux le partager.</li>
+</ol>
+<h3>Le tableau à remplir avec les chiffres réels</h3>
+<table><tr><th>Couche</th><th>Estimé (ce doc)</th><th>Mesuré retail</th><th>Mesuré corpo</th><th>Écart à investiguer si &gt; 10 pts</th></tr>
+<tr><td>Domaine</td><td>~90 %</td><td>____</td><td>____</td><td></td></tr>
+<tr><td>Use case</td><td>~50 %</td><td>____</td><td>____</td><td></td></tr>
+<tr><td>Web mapper</td><td>~5 %</td><td>____</td><td>____</td><td></td></tr>
+<tr><td>Mapper persistance</td><td>~82 %</td><td>____</td><td>____</td><td></td></tr>
+<tr><td>Adapters</td><td>~75-78 %</td><td>____</td><td>____</td><td></td></tr>
+<tr><td>REST + handler</td><td>~65 %</td><td>____</td><td>____</td><td></td></tr></table>
+<h3>Le plan de comblement — ~3h30, dans cet ordre</h3>
+<table><tr><th>Action</th><th>Contenu</th><th>Effort</th><th>Gain attendu</th></tr>
+<tr><td><strong>A. Tests des web mappers</strong> (×2 périmètres)</td><td><code>Mappers.getMapper</code> comme pour la persistance : DTO complet avec id/réf/statut REMPLIS → vérifier qu'ils sont IGNORÉS en entrée ; aller-retour domaine→DTO ; VO↔UUID null-safe. ~6 cas par périmètre.</td><td>~1h</td><td>Web mapper 5→90 % ; global +8-9 pts</td></tr>
+<tr><td><strong>B. Chemins heureux des use cases</strong> (×2)</td><td>create/update/getById/getAll/cancel avec mocks : vérifier l'ORDRE (validate avant save), les délégations, le mapping retour. ~5 cas par périmètre.</td><td>~1h</td><td>Use case 50→90 % ; global +4 pts</td></tr>
+<tr><td><strong>C. Compléter les controller tests</strong> (×2)</td><td>422 (mock jette Validation), 409 (Conflict), catch-all (RuntimeException nue), + PUT/GET liste/legacy/cancel en happy path. ~7 cas par périmètre.</td><td>~1h</td><td>Handler 100 % branches ; REST ~90 % ; global +3 pts</td></tr>
+<tr><td><strong>D. Miettes</strong></td><td>DenominationRepositoryImpl (×2), findAll + user inconnu adapter retail, devise inconnue mapper, multi-devises domaine.</td><td>~30 min</td><td>Adapters ≥85 % ; global +2 pts</td></tr></table>
+<div class="ok"><strong>Projection après plan</strong> : global par couche ≈ <strong>88-92 %</strong> sur les deux périmètres, toutes les cibles atteintes, handler à 100 % de branches. C'est le niveau qui se défend en revue sans discussion. Ordre A→D voulu : on commence par le trou le plus grave ET le plus rentable. Quand tu as les chiffres réels, envoie les captures — on recale les estimations et on ajuste le plan si un écart dépasse 10 points.</div>
+</div></body></html>
