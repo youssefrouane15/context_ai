@@ -1,0 +1,226 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Correctif — UnnecessaryStubbingException &amp; ports corpo</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;--rouge:#B3402A;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.62;font-size:15px;}
+.wrap{max-width:1090px;margin:0 auto;padding:0 26px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:46px 26px 38px;margin-bottom:34px;}
+header.hero .inner{max-width:1090px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:10px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:28px;line-height:1.15;}
+.hero p.sub{margin-top:12px;max-width:880px;color:#DCEBE3;font-size:15px;}
+.badge-v{display:inline-block;margin-top:13px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:22px;color:var(--vertF);margin:48px 0 8px;padding-top:16px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:17px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:16.5px;color:var(--vert);margin:24px 0 8px;}
+p{margin:9px 0;} ul,ol{margin:8px 0 8px 24px;} li{margin:4px 0;} strong{color:var(--vertF);}
+table{width:100%;border-collapse:collapse;margin:14px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:13.4px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:8px 12px;font-family:'Archivo',sans-serif;font-size:12.4px;}
+td{padding:8px 12px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+td code,p code,li code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.3px;}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.6px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.6px;}
+.filehead{display:flex;align-items:center;gap:12px;background:var(--vertF);color:#fff;padding:9px 15px;border-radius:8px 8px 0 0;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12.4px;flex-wrap:wrap;}
+.fh-act{font-weight:600;padding:2px 10px;border-radius:3px;letter-spacing:1px;font-size:11px;}
+.act-new{background:#178A5E;color:#fff;} .act-add{background:#3B6BB5;color:#fff;}
+.fh-path{word-break:break-all;color:#CBE3D8;}
+.fh-note{color:#F2D9A0;font-size:11.5px;width:100%;}
+.copybtn{margin-left:auto;background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 12px;border-radius:4px;cursor:pointer;}
+.copybtn:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:16px 19px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:12.5px;line-height:1.52;margin-bottom:6px;}
+code{font-family:'IBM Plex Mono',monospace;}
+.c-kw{color:#C792EA;font-weight:600;}
+.c-typ{color:#82AAFF;}
+.c-str{color:#C3E88D;}
+.c-ann{color:#FFCB6B;}
+.c-num{color:#F78C6C;}
+.c-com{color:#7E8F88;font-style:italic;}
+kbd{background:var(--vertF);color:#fff;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Couverture · Correctif du plan B</div>
+<h1>Correctif : le test du use case retail restructuré<br>+ la marche à suivre côté corpo</h1>
+<p class="sub">Deux causes distinctes : (1) collision entre les stubs globaux du @BeforeEach d'origine et les tests ajoutés — Mockito strict a eu raison de refuser ; (2) côté corpo, les ports s'appellent CashDemandRepository/CashDemandUseCase dans le package corpo (pas « CorpoDemandRepository »).</p>
+<div class="badge-v">CORRECTIF · 04/08/2026</div>
+</div></header><div class="wrap">
+
+<h2><span class="num">1</span>La règle Mockito qui a tout fait tomber (et pourquoi elle a raison)</h2>
+<p><code>MockitoExtension</code> tourne en <strong>strictness STRICT_STUBS</strong> par défaut : un stub déclaré mais non consommé dans UN test = <code>UnnecessaryStubbingException</code>. Mon @BeforeEach d'origine stubbait <code>denominationRepository</code> et <code>webMapper.toDomain</code> pour TOUS les tests, alors que <code>getById/getAll/cancel</code> n'appellent jamais ces méthodes → 5 rouges. La sévérité est une garde utile : elle interdit les tests aux dépendances floues. La correction propre : <strong>zéro stub global — chaque test déclare exactement ce qu'il consomme</strong> (les helpers construisent, ils ne stubbent pas ; <code>stubReferential()</code> n'est appelé que par les 4 tests qui passent par create/update). L'anti-pattern écarté : <code>@MockitoSettings(strictness = LENIENT)</code>, qui aurait masqué le problème au lieu de le résoudre.</p>
+<div class="filehead"><span class="fh-act act-add">REMPLACER</span><span class="fh-path">...\service\domain\retail\CashDemandUseCaseImplTest.java — le fichier COMPLET restructuré (7 tests)</span><button class="copybtn" onclick="copyCode(1, this)">Copier</button></div><pre><code id="code-1"><span class="c-kw">package</span> com.bmci.workflow.fund.management.service.domain.retail;
+
+<span class="c-kw">import</span> com.bmci.q360.domain.entity.enums.<span class="c-typ">RequestType</span>;
+<span class="c-kw">import</span> com.bmci.q360.domain.retail.entity.<span class="c-typ">CashOperation</span>;
+<span class="c-kw">import</span> com.bmci.q360.domain.retail.entity.<span class="c-typ">CashRequest</span>;
+<span class="c-kw">import</span> com.bmci.q360.domain.retail.entity.<span class="c-typ">Denomination</span>;
+<span class="c-kw">import</span> com.bmci.q360.domain.retail.enums.<span class="c-typ">RequestStatus</span>;
+<span class="c-kw">import</span> com.bmci.q360.domain.retail.enums.<span class="c-typ">UrgencyFlag</span>;
+<span class="c-kw">import</span> com.bmci.q360.domain.retail.exceptions.<span class="c-typ">RetailValidationException</span>;
+<span class="c-kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.<span class="c-typ">CashRequestDTO</span>;
+<span class="c-kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.mapper.<span class="c-typ">CashRequestWebMapper</span>;
+<span class="c-kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.inputs.service.<span class="c-typ">CashDemandUseCaseImpl</span>;
+<span class="c-kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.outputs.repository.<span class="c-typ">CashDemandRepository</span>;
+<span class="c-kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.outputs.repository.<span class="c-typ">DenominationRepository</span>;
+<span class="c-kw">import</span> org.junit.jupiter.api.<span class="c-typ">Test</span>;
+<span class="c-kw">import</span> org.junit.jupiter.api.extension.<span class="c-typ">ExtendWith</span>;
+<span class="c-kw">import</span> org.mockito.<span class="c-typ">ArgumentCaptor</span>;
+<span class="c-kw">import</span> org.mockito.<span class="c-typ">InjectMocks</span>;
+<span class="c-kw">import</span> org.mockito.<span class="c-typ">Mock</span>;
+<span class="c-kw">import</span> org.mockito.<span class="c-typ">Mockito</span>;
+<span class="c-kw">import</span> org.mockito.junit.jupiter.<span class="c-typ">MockitoExtension</span>;
+
+<span class="c-kw">import</span> java.math.<span class="c-typ">BigDecimal</span>;
+<span class="c-kw">import</span> java.util.<span class="c-typ">ArrayList</span>;
+<span class="c-kw">import</span> java.util.<span class="c-typ">List</span>;
+<span class="c-kw">import</span> java.util.<span class="c-typ">UUID</span>;
+
+<span class="c-kw">import</span> <span class="c-kw">static</span> org.junit.jupiter.api.<span class="c-typ">Assertions</span>.*;
+
+<span class="c-com">/**
+ * Version RESTRUCTUREE : plus AUCUN stub global en @BeforeEach.
+ * Regle Mockito strict (le defaut, et c'est une bonne garde) : chaque test
+ * declare EXACTEMENT les stubs qu'il consomme — un stub inutilise dans un
+ * test = UnnecessaryStubbingException. Les helpers ci-dessous construisent
+ * les objets ; les tests posent leurs propres stubs.
+ */</span>
+<span class="c-ann">@ExtendWith</span>(<span class="c-typ">MockitoExtension</span>.<span class="c-kw">class</span>)
+<span class="c-kw">class</span> <span class="c-typ">CashDemandUseCaseImplTest</span> {
+
+    <span class="c-ann">@Mock</span> <span class="c-kw">private</span> <span class="c-typ">CashDemandRepository</span> cashDemandRepository;
+    <span class="c-ann">@Mock</span> <span class="c-kw">private</span> <span class="c-typ">DenominationRepository</span> denominationRepository;
+    <span class="c-ann">@Mock</span> <span class="c-kw">private</span> <span class="c-typ">CashRequestWebMapper</span> webMapper;
+    <span class="c-ann">@InjectMocks</span> <span class="c-kw">private</span> <span class="c-typ">CashDemandUseCaseImpl</span> useCase;
+
+    <span class="c-com">// ==================== helpers (construction pure, ZERO stub) ====================</span>
+
+    <span class="c-kw">private</span> <span class="c-typ">CashRequest</span> validDomain() {
+        <span class="c-typ">CashOperation</span> operation = <span class="c-kw">new</span> <span class="c-typ">CashOperation</span>();
+        operation.setOperationSens(<span class="c-typ">RequestType</span>.<span class="c-typ">COLLECTION</span>);   <span class="c-com">// pas de ventilation requise</span>
+        <span class="c-typ">CashRequest</span> domain = <span class="c-kw">new</span> <span class="c-typ">CashRequest</span>();
+        domain.setUidUser(<span class="c-str">"j43709"</span>);
+        domain.setEstablishment(<span class="c-str">"001"</span>);
+        domain.setOperations(<span class="c-kw">new</span> <span class="c-typ">ArrayList</span>&lt;&gt;(<span class="c-typ">List</span>.of(operation)));
+        <span class="c-kw">return</span> domain;
+    }
+
+    <span class="c-com">/** Stub du referentiel — appele UNIQUEMENT par les tests qui passent par create/update. */</span>
+    <span class="c-kw">private</span> <span class="c-kw">void</span> stubReferential() {
+        <span class="c-typ">Denomination</span> billet200 = <span class="c-kw">new</span> <span class="c-typ">Denomination</span>();
+        billet200.setDenominationCode(<span class="c-str">"BILLET_200"</span>);
+        billet200.setFaceValue(<span class="c-kw">new</span> <span class="c-typ">BigDecimal</span>(<span class="c-str">"200"</span>));
+        <span class="c-typ">Mockito</span>.when(denominationRepository.findAllActiveDenominations())
+                .thenReturn(<span class="c-typ">List</span>.of(billet200));
+    }
+
+    <span class="c-com">// ==================== chemins de REJET ====================</span>
+
+    <span class="c-ann">@Test</span>
+    <span class="c-kw">void</span> createShouldRejectInvalidRequestWithoutTouchingRepository() {
+        stubReferential();
+        <span class="c-typ">Mockito</span>.when(webMapper.toDomain(<span class="c-typ">Mockito</span>.any(<span class="c-typ">CashRequestDTO</span>.<span class="c-kw">class</span>)))
+                .thenReturn(<span class="c-kw">new</span> <span class="c-typ">CashRequest</span>());               <span class="c-com">// sans operations =&gt; 422</span>
+
+        assertThrows(<span class="c-typ">RetailValidationException</span>.<span class="c-kw">class</span>, () -&gt; useCase.create(<span class="c-kw">new</span> <span class="c-typ">CashRequestDTO</span>()));
+        <span class="c-typ">Mockito</span>.verify(cashDemandRepository, <span class="c-typ">Mockito</span>.never()).save(<span class="c-typ">Mockito</span>.any());
+    }
+
+    <span class="c-ann">@Test</span>
+    <span class="c-kw">void</span> updateShouldRevalidateBeforeDelegating() {
+        stubReferential();
+        <span class="c-typ">Mockito</span>.when(webMapper.toDomain(<span class="c-typ">Mockito</span>.any(<span class="c-typ">CashRequestDTO</span>.<span class="c-kw">class</span>)))
+                .thenReturn(<span class="c-kw">new</span> <span class="c-typ">CashRequest</span>());
+
+        assertThrows(<span class="c-typ">RetailValidationException</span>.<span class="c-kw">class</span>,
+                () -&gt; useCase.update(<span class="c-typ">UUID</span>.randomUUID(), <span class="c-kw">new</span> <span class="c-typ">CashRequestDTO</span>()));
+        <span class="c-typ">Mockito</span>.verify(cashDemandRepository, <span class="c-typ">Mockito</span>.never()).update(<span class="c-typ">Mockito</span>.any(), <span class="c-typ">Mockito</span>.any());
+    }
+
+    <span class="c-com">// ==================== chemins HEUREUX ====================</span>
+
+    <span class="c-ann">@Test</span>
+    <span class="c-kw">void</span> createShouldValidateBeforeSaving() {
+        stubReferential();
+        <span class="c-typ">CashRequest</span> domain = validDomain();
+        <span class="c-typ">Mockito</span>.when(webMapper.toDomain(<span class="c-typ">Mockito</span>.any(<span class="c-typ">CashRequestDTO</span>.<span class="c-kw">class</span>))).thenReturn(domain);
+        <span class="c-typ">Mockito</span>.when(cashDemandRepository.save(<span class="c-typ">Mockito</span>.any())).thenReturn(domain);
+        <span class="c-typ">Mockito</span>.when(webMapper.toResponseDTO(domain)).thenReturn(<span class="c-kw">new</span> <span class="c-typ">CashRequestDTO</span>());
+
+        useCase.create(<span class="c-kw">new</span> <span class="c-typ">CashRequestDTO</span>());
+
+        <span class="c-com">// Preuve indirecte de l'ordre : le domaine capture au save porte deja</span>
+        <span class="c-com">// les defauts serveur que SEULE la validation pose.</span>
+        <span class="c-typ">ArgumentCaptor</span>&lt;<span class="c-typ">CashRequest</span>&gt; saved = <span class="c-typ">ArgumentCaptor</span>.forClass(<span class="c-typ">CashRequest</span>.<span class="c-kw">class</span>);
+        <span class="c-typ">Mockito</span>.verify(cashDemandRepository).save(saved.capture());
+        <span class="c-typ">CashOperation</span> operation = saved.getValue().getOperations().get(<span class="c-num">0</span>);
+        assertEquals(<span class="c-typ">UrgencyFlag</span>.<span class="c-typ">NO</span>, operation.getIsUrgent());
+        assertEquals(<span class="c-str">"INITIATED"</span>, operation.getOperationStatus());
+        assertEquals(<span class="c-typ">RequestStatus</span>.<span class="c-typ">INITIATED</span>, saved.getValue().getRequestStatus());
+    }
+
+    <span class="c-ann">@Test</span>
+    <span class="c-kw">void</span> updateShouldValidateThenDelegateWithSameId() {
+        stubReferential();
+        <span class="c-typ">UUID</span> id = <span class="c-typ">UUID</span>.randomUUID();
+        <span class="c-typ">CashRequest</span> domain = validDomain();
+        <span class="c-typ">Mockito</span>.when(webMapper.toDomain(<span class="c-typ">Mockito</span>.any(<span class="c-typ">CashRequestDTO</span>.<span class="c-kw">class</span>))).thenReturn(domain);
+        <span class="c-typ">Mockito</span>.when(cashDemandRepository.update(id, domain)).thenReturn(domain);
+        <span class="c-typ">Mockito</span>.when(webMapper.toResponseDTO(domain)).thenReturn(<span class="c-kw">new</span> <span class="c-typ">CashRequestDTO</span>());
+
+        useCase.update(id, <span class="c-kw">new</span> <span class="c-typ">CashRequestDTO</span>());
+
+        <span class="c-typ">Mockito</span>.verify(cashDemandRepository).update(id, domain);
+    }
+
+    <span class="c-ann">@Test</span>
+    <span class="c-kw">void</span> getByIdShouldDelegateAndMapBack() {
+        <span class="c-com">// Ni toDomain ni referentiel ici : AUCUN stub superflu</span>
+        <span class="c-typ">UUID</span> id = <span class="c-typ">UUID</span>.randomUUID();
+        <span class="c-typ">CashRequest</span> domain = validDomain();
+        <span class="c-typ">CashRequestDTO</span> expected = <span class="c-kw">new</span> <span class="c-typ">CashRequestDTO</span>();
+        <span class="c-typ">Mockito</span>.when(cashDemandRepository.getCashRequestById(id)).thenReturn(domain);
+        <span class="c-typ">Mockito</span>.when(webMapper.toResponseDTO(domain)).thenReturn(expected);
+
+        assertSame(expected, useCase.getCashDemandById(id));
+    }
+
+    <span class="c-ann">@Test</span>
+    <span class="c-kw">void</span> getAllShouldMapEachElement() {
+        <span class="c-typ">Mockito</span>.when(cashDemandRepository.findAll()).thenReturn(<span class="c-typ">List</span>.of(validDomain(), validDomain()));
+        <span class="c-typ">Mockito</span>.when(webMapper.toResponseDTO(<span class="c-typ">Mockito</span>.any())).thenReturn(<span class="c-kw">new</span> <span class="c-typ">CashRequestDTO</span>());
+
+        assertEquals(<span class="c-num">2</span>, useCase.getAll().size());
+        <span class="c-typ">Mockito</span>.verify(webMapper, <span class="c-typ">Mockito</span>.times(<span class="c-num">2</span>)).toResponseDTO(<span class="c-typ">Mockito</span>.any());
+    }
+
+    <span class="c-ann">@Test</span>
+    <span class="c-kw">void</span> cancelShouldDelegateAndMapBack() {
+        <span class="c-typ">UUID</span> id = <span class="c-typ">UUID</span>.randomUUID();
+        <span class="c-typ">CashRequest</span> domain = validDomain();
+        <span class="c-typ">Mockito</span>.when(cashDemandRepository.cancelById(id)).thenReturn(domain);
+        <span class="c-typ">Mockito</span>.when(webMapper.toResponseDTO(domain)).thenReturn(<span class="c-kw">new</span> <span class="c-typ">CashRequestDTO</span>());
+
+        assertNotNull(useCase.cancel(id));
+        <span class="c-typ">Mockito</span>.verify(cashDemandRepository).cancelById(id);
+    }
+}</code></pre>
+<h2><span class="num">2</span>Côté corpo : les ports portent les MÊMES noms que retail</h2>
+<p>Ton arborescence tranche ce que j'avais supposé de travers : dans le package corpo, les ports s'appellent <code>CashDemandUseCase</code>, <code>CashDemandRepository</code>, <code>DenominationRepository</code> — mêmes noms qu'en retail, seul le package change. Donc dans <code>CorpoDemandUseCaseImplTest</code> :</p>
+<ul>
+<li>Les champs <code>@Mock</code> doivent être typés sur les ports du package <strong>corpo</strong> : <code>...service.domain.corpo.ports.outputs.repository.CashDemandRepository</code> (vérifie l'import — s'il pointe vers le package retail ou vers un type « CorpoDemandRepository » inexistant, c'est l'erreur).</li>
+<li>Les méthodes appelées doivent être celles de l'interface RÉELLE : <kbd>Ctrl+B</kbd> sur le type du champ → tu vois la liste exacte (probablement <code>getCashRequestById / save / update / findAll / cancelById</code> en miroir du retail — mais c'est l'interface qui fait foi, pas ma supposition).</li>
+</ul>
+<div class="note"><strong>Pour un fichier exact plutôt qu'adapté</strong> : colle-moi (1) l'interface du port corpo <code>CashDemandRepository</code> et (2) l'en-tête de ton CorpoDemandUseCaseImplTest existant (imports + champs @Mock) — je te régénère le fichier corpo complet au caractère près, restructuré selon la même règle zéro-stub-global.</div>
+
+<h2><span class="num">3</span>La leçon à encaisser (pour moi comme pour toi)</h2>
+<p>Un bloc « AJOUTER » doit être conçu en fonction du <strong>fichier d'accueil</strong> — ses stubs globaux, sa strictness, ses helpers. J'ai fourni des ajouts pensés isolément : le compilateur ne pouvait rien dire, c'est Mockito à l'exécution qui a attrapé l'incohérence. Le réflexe que ça t'installe pour tes futurs tests : <em>un @BeforeEach ne devrait stubber que ce que TOUS les tests de la classe consomment ; sinon, le stub descend dans les tests concernés.</em></p>
+</div>
+<script>
+function copyCode(i, btn) {
+  const el = document.getElementById('code-' + i);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copié !';
+    setTimeout(() => btn.textContent = old, 1600);
+  });
+}
+</script></body></html>
