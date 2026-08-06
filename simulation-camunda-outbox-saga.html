@@ -1,0 +1,374 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Camunda, Outbox &amp; Saga — la simulation expliquée simplement</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;--rouge:#B3402A;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.62;font-size:15px;}
+.wrap{max-width:1090px;margin:0 auto;padding:0 26px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:46px 26px 38px;margin-bottom:34px;}
+header.hero .inner{max-width:1090px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:10px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:28px;line-height:1.15;}
+.hero p.sub{margin-top:12px;max-width:880px;color:#DCEBE3;font-size:15px;}
+.badge-v{display:inline-block;margin-top:13px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:22px;color:var(--vertF);margin:48px 0 8px;padding-top:16px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:17px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:16.5px;color:var(--vert);margin:24px 0 8px;}
+p{margin:9px 0;} ul,ol{margin:8px 0 8px 24px;} li{margin:4px 0;} strong{color:var(--vertF);}
+table{width:100%;border-collapse:collapse;margin:14px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:13.4px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:8px 12px;font-family:'Archivo',sans-serif;font-size:12.4px;}
+td{padding:8px 12px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+td code,p code,li code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.3px;}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.6px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.6px;}
+.filehead{display:flex;align-items:center;gap:12px;background:var(--vertF);color:#fff;padding:9px 15px;border-radius:8px 8px 0 0;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12.4px;flex-wrap:wrap;}
+.fh-act{font-weight:600;padding:2px 10px;border-radius:3px;letter-spacing:1px;font-size:11px;}
+.act-new{background:#178A5E;color:#fff;} .act-add{background:#3B6BB5;color:#fff;}
+.fh-path{word-break:break-all;color:#CBE3D8;}
+.fh-note{color:#F2D9A0;font-size:11.5px;width:100%;}
+.copybtn{margin-left:auto;background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 12px;border-radius:4px;cursor:pointer;}
+.copybtn:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:16px 19px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:12.5px;line-height:1.52;margin-bottom:6px;}
+code{font-family:'IBM Plex Mono',monospace;}
+.c-kw{color:#C792EA;font-weight:600;}
+.c-typ{color:#82AAFF;}
+.c-str{color:#C3E88D;}
+.c-ann{color:#FFCB6B;}
+.c-num{color:#F78C6C;}
+.c-com{color:#7E8F88;font-style:italic;}
+kbd{background:var(--vertF);color:#fff;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+
+.pb{background:#FFFFFF;border:1px solid #E3DED4;border-left:5px solid #B3402A;border-radius:8px;padding:13px 17px;margin:14px 0;}
+.pb .t{font-family:'Archivo',sans-serif;font-weight:700;color:#B3402A;font-size:13px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px;}
+.idee{background:#FFFFFF;border:1px solid #E3DED4;border-left:5px solid #0B6B4F;border-radius:8px;padding:13px 17px;margin:14px 0;}
+.idee .t{font-family:'Archivo',sans-serif;font-weight:700;color:#0B6B4F;font-size:13px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px;}
+.retenir{background:#EDF7F1;border-left:4px solid #0B6B4F;padding:11px 15px;margin:14px 0;border-radius:0 6px 6px 0;font-size:13.8px;}
+.retenir .t{font-family:'Archivo',sans-serif;font-weight:700;color:#07402F;font-size:13px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px;}
+</style>
+</head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · AER_LM-258 · Apprentissage · Camunda + Outbox + Saga</div>
+<h1>La simulation du processus en Java<br>Camunda, Outbox et Saga — expliqués simplement</h1>
+<p class="sub">Une simulation complète et pédagogique du futur processus Gestion des Espèces, avec les deux patterns qu'on utilisera partout : l'Outbox (pour ne jamais perdre un message entre notre base et l'engine) et la Saga (pour défaire proprement quand une étape échoue). Chaque concept suit le même chemin : LE PROBLÈME raconté comme une panne réelle → L'IDÉE en une image → LE CODE → À RETENIR. Les noms de classes sont ceux de la simulation — les définitifs viendront de l'archi QlickFlow.</p>
+<div class="badge-v">SIMULATION PÉDAGOGIQUE · 05/08/2026</div>
+</div></header><div class="wrap">
+
+<h2><span class="num">1</span>La grande image : qui fait quoi</h2>
+<p>Trois acteurs, à ne plus jamais confondre :</p>
+<table><tr><th>Acteur</th><th>Son rôle</th><th>Image simple</th></tr>
+<tr><td><strong>L'engine Camunda</strong> (repo séparé)</td><td>Il connaît LE PARCOURS : quelle étape vient après laquelle, qui doit valider quoi. Il ne connaît RIEN au métier des espèces.</td><td>Le GPS : il dit « tourne à droite », il ne conduit pas.</td></tr>
+<tr><td><strong>Notre microservice</strong></td><td>Il connaît LE MÉTIER : les demandes, les montants, les statuts en base. Il exécute les étapes que l'engine lui confie.</td><td>Le conducteur : il tient le volant.</td></tr>
+<tr><td><strong>La businessKey</strong></td><td>Notre référence RT-/CO-, donnée à l'instance au démarrage.</td><td>Le fil rouge qui relie la demande (chez nous) et son parcours (chez l'engine), pour toujours.</td></tr></table>
+<p>Et le BPMN se lit comme une bande dessinée — chaque balise est une case :</p>
+<div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">(repo engine) — gestion-especes.bpmn, extrait commenté</span><button class="copybtn" onclick="copyCode(1, this)">Copier</button></div><pre><code id="code-1">&lt;!-- <span class="c-typ">EXTRAIT</span> simplifie du <span class="c-typ">BPMN</span> (le fichier complet vivra dans le repo engine).
+     <span class="c-typ">Lis</span>-le comme une bande dessinee : chaque balise = une case du diagramme. --&gt;
+&lt;bpmn:process id=<span class="c-str">"gestion-especes"</span> name=<span class="c-str">"Gestion des Especes"</span> isExecutable=<span class="c-str">"true"</span>&gt;
+
+  &lt;!-- <span class="c-typ">La</span> demande est <span class="c-typ">SOUMISE</span> : le processus demarre ici --&gt;
+  &lt;bpmn:startEvent id=<span class="c-str">"demande-soumise"</span> name=<span class="c-str">"Demande soumise"</span>/&gt;
+
+  &lt;!-- <span class="c-typ">Aiguillage</span> : le profil qui a saisi est-il auto-validant ? --&gt;
+  &lt;bpmn:exclusiveGateway id=<span class="c-str">"gw-auto-validant"</span> name=<span class="c-str">"Profil auto-validant ?"</span>/&gt;
+
+  &lt;!-- <span class="c-typ">NON</span> -&gt; un humain doit approuver : c'est une <span class="c-typ">USER</span> <span class="c-typ">TASK</span>.
+       candidateGroups = <span class="c-str">"qui a le droit de la prendre"</span> (vient du ms users) --&gt;
+  &lt;bpmn:userTask id=<span class="c-str">"task-validation-da"</span> name=<span class="c-str">"Valider la demande"</span>
+                 camunda:candidateGroups=<span class="c-str">"DA,CHEF_CAISSE"</span>/&gt;
+
+  &lt;!-- <span class="c-typ">OUI</span> ou approuvee -&gt; notre microservice doit poser le statut en base :
+       c'est une <span class="c-typ">EXTERNAL</span> <span class="c-typ">TASK</span> : l'engine <span class="c-str">"affiche une annonce"</span> (topic) et
+       <span class="c-typ">NOTRE</span> worker vient la chercher --&gt;
+  &lt;bpmn:serviceTask id=<span class="c-str">"task-marquer-a-traiter"</span> name=<span class="c-str">"Marquer A TRAITER"</span>
+                    camunda:type=<span class="c-str">"external"</span> camunda:topic=<span class="c-str">"marquer-a-traiter"</span>/&gt;
+
+  &lt;!-- <span class="c-typ">La</span> <span class="c-typ">Caisse</span> <span class="c-typ">Centrale</span> traite ou annule : user tasks <span class="c-typ">CC</span>, puis fin --&gt;
+  &lt;bpmn:userTask id=<span class="c-str">"task-traitement-cc"</span> name=<span class="c-str">"Traiter (Caisse Centrale)"</span>
+                 camunda:candidateGroups=<span class="c-str">"CAISSE_CENTRALE"</span>/&gt;
+  &lt;bpmn:endEvent id=<span class="c-str">"demande-traitee"</span> name=<span class="c-str">"Traitee"</span>/&gt;
+
+&lt;/bpmn:process&gt;</code></pre>
+<p>Deux types de cases à retenir : la <strong>user task</strong> (« un humain doit agir » — le DA valide, la Caisse Centrale traite ; l'engine attend, la tâche apparaît dans une corbeille de tâches) et l'<strong>external task</strong> (« un logiciel doit agir » — l'engine poste une annonce sur un topic, et NOTRE worker vient la chercher). Ce sens-là est important : l'engine ne nous appelle jamais, c'est nous qui venons chercher le travail — donc si notre service est en panne, le travail attend sagement au lieu de se perdre.</p>
+<div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">...\\process\\DemandeProcessClient.java — le pont REST vers l'engine</span><button class="copybtn" onclick="copyCode(2, this)">Copier</button></div><pre><code id="code-2"><span class="c-kw">package</span> com.bmci.workflow.fund.management.process;
+
+<span class="c-kw">import</span> org.springframework.stereotype.<span class="c-typ">Component</span>;
+<span class="c-kw">import</span> org.springframework.web.client.<span class="c-typ">RestTemplate</span>;
+
+<span class="c-kw">import</span> java.util.<span class="c-typ">Map</span>;
+
+<span class="c-com">/**
+ * Le PONT vers l'engine (repo separe) : de simples appels REST.
+ * On ne demarre JAMAIS l'instance directement d'ici (voir Outbox) —
+ * cette classe est appelee par le relais, pas par le service metier.
+ */</span>
+<span class="c-ann">@Component</span>
+<span class="c-kw">public</span> <span class="c-kw">class</span> <span class="c-typ">DemandeProcessClient</span> {
+
+    <span class="c-kw">private</span> <span class="c-kw">final</span> <span class="c-typ">RestTemplate</span> rest = <span class="c-kw">new</span> <span class="c-typ">RestTemplate</span>();
+    <span class="c-kw">private</span> <span class="c-kw">static</span> <span class="c-kw">final</span> <span class="c-typ">String</span> <span class="c-typ">ENGINE</span> = <span class="c-str">"http://localhost:8080/engine-rest"</span>;
+
+    <span class="c-com">/** Demarre l'instance : businessKey = NOTRE reference RT-/CO-.
+     *  C'est le fil qui relie pour toujours la demande et son processus. */</span>
+    <span class="c-kw">public</span> <span class="c-kw">void</span> demarrerInstance(<span class="c-typ">String</span> businessKey, <span class="c-typ">String</span> entite) {
+        rest.postForObject(<span class="c-typ">ENGINE</span> + <span class="c-str">"/process-definition/key/gestion-especes/start"</span>,
+                <span class="c-typ">Map</span>.of(
+                    <span class="c-str">"businessKey"</span>, businessKey,                 <span class="c-com">// ex : RT-2026-000042</span>
+                    <span class="c-str">"variables"</span>, <span class="c-typ">Map</span>.of(
+                        <span class="c-str">"entite"</span>, <span class="c-typ">Map</span>.of(<span class="c-str">"value"</span>, entite))),    <span class="c-com">// PANIER_AGENCE / CORPORATE</span>
+                <span class="c-typ">Map</span>.<span class="c-kw">class</span>);
+    }
+
+    <span class="c-com">/** Termine une user task (ex : le DA a clique "Approuver" chez nous). */</span>
+    <span class="c-kw">public</span> <span class="c-kw">void</span> completerTache(<span class="c-typ">String</span> taskId, <span class="c-typ">Map</span>&lt;<span class="c-typ">String</span>, <span class="c-typ">Object</span>&gt; variables) {
+        rest.postForObject(<span class="c-typ">ENGINE</span> + <span class="c-str">"/task/"</span> + taskId + <span class="c-str">"/complete"</span>,
+                <span class="c-typ">Map</span>.of(<span class="c-str">"variables"</span>, variables), <span class="c-typ">Map</span>.<span class="c-kw">class</span>);
+    }
+}</code></pre>
+<h2><span class="num">2</span>Le pattern OUTBOX — ne jamais perdre un message</h2>
+<div class="pb"><div class="t">Le problème, raconté comme une panne</div>
+Un caissier soumet sa demande à 9h58. Notre code naïf fait : ① UPDATE du statut en base → ② appel REST à l'engine pour démarrer le processus. Entre ① et ②, le serveur crashe (ou l'engine est en maintenance). Résultat au réveil : la demande est SOUMISE en base... mais <strong>aucun processus n'existe</strong>. Personne ne la validera jamais. Elle est orpheline, et personne ne le sait. L'inverse est possible aussi (processus démarré, statut pas posé). C'est LE problème des « deux systèmes » : on ne peut pas écrire dans notre base ET chez l'engine d'un seul geste atomique.</div>
+<div class="idee"><div class="t">L'idée, en une image</div>
+Le serveur de restaurant n'apporte pas ta commande en cuisine en criant : il l'<strong>écrit d'abord sur son carnet</strong>. Si la cuisine est débordée, la commande est sur le carnet — rien n'est perdu, elle partira plus tard. L'Outbox, c'est le carnet : au lieu d'appeler l'engine, on écrit le message <strong>dans notre propre base</strong>, dans LA MÊME transaction que le changement de statut. Une transaction = tout ou rien : soit statut+message existent tous les deux, soit aucun. Puis un « facteur » (un scheduler) livre les messages du carnet à l'engine, et réessaie tant que ça échoue.</div>
+<div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">db/migration — la table outbox (V suivant)</span><button class="copybtn" onclick="copyCode(3, this)">Copier</button></div><pre><code id="code-3">-- <span class="c-typ">La</span> table <span class="c-typ">OUTBOX</span> : la <span class="c-str">"boite d'envoi"</span> qui vit <span class="c-typ">DANS</span> <span class="c-typ">NOTRE</span> base metier.
+-- <span class="c-typ">Un</span> message a envoyer a l'engine = une ligne ici, ecrite dans la <span class="c-typ">MEME</span>
+-- transaction que le changement metier. <span class="c-typ">C</span>'est tout le secret du pattern.
+<span class="c-typ">CREATE</span> <span class="c-typ">TABLE</span> retail.outbox_event (
+    id             uuid <span class="c-typ">PRIMARY</span> <span class="c-typ">KEY</span>,
+    aggregate_ref  varchar(<span class="c-num">20</span>)  <span class="c-typ">NOT</span> <span class="c-typ">NULL</span>,   -- <span class="c-typ">RT</span>-<span class="c-num">2026</span>-<span class="c-num">000042</span> : de quelle demande on parle
+    event_type     varchar(<span class="c-num">50</span>)  <span class="c-typ">NOT</span> <span class="c-typ">NULL</span>,   -- <span class="c-typ">DEMANDE_SOUMISE</span>, <span class="c-typ">DEMANDE_VALIDEE</span>...
+    payload        text         <span class="c-typ">NOT</span> <span class="c-typ">NULL</span>,   -- le contenu du message (<span class="c-typ">JSON</span>)
+    created_at     timestamp    <span class="c-typ">NOT</span> <span class="c-typ">NULL</span> <span class="c-typ">DEFAULT</span> <span class="c-typ">CURRENT_TIMESTAMP</span>,
+    sent_at        timestamp    <span class="c-typ">NULL</span>        -- <span class="c-typ">NULL</span> = pas encore livre a l'engine
+);
+
+-- <span class="c-typ">L</span>'index du relais : <span class="c-str">"donne-moi les messages pas encore partis, dans l'ordre"</span>
+<span class="c-typ">CREATE</span> <span class="c-typ">INDEX</span> idx_outbox_pending <span class="c-typ">ON</span> retail.outbox_event (created_at) <span class="c-typ">WHERE</span> sent_at <span class="c-typ">IS</span> <span class="c-typ">NULL</span>;</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">...\\service\\domain\\retail\\SoumissionService.java — LE cœur : une seule transaction</span><button class="copybtn" onclick="copyCode(4, this)">Copier</button></div><pre><code id="code-4"><span class="c-kw">package</span> com.bmci.workflow.fund.management.service.domain.retail;
+
+<span class="c-kw">import</span> lombok.<span class="c-typ">RequiredArgsConstructor</span>;
+<span class="c-kw">import</span> org.springframework.stereotype.<span class="c-typ">Service</span>;
+<span class="c-kw">import</span> org.springframework.transaction.annotation.<span class="c-typ">Transactional</span>;
+
+<span class="c-com">/**
+ * LE COEUR DU PATTERN OUTBOX, en une methode.
+ * Regle d'or : le statut metier ET le message pour l'engine sont ecrits
+ * dans LA MEME transaction. Soit les deux existent, soit aucun.
+ * Aucun appel reseau ici — le reseau, c'est le probleme du relais.
+ */</span>
+<span class="c-ann">@Service</span>
+<span class="c-ann">@RequiredArgsConstructor</span>
+<span class="c-kw">public</span> <span class="c-kw">class</span> <span class="c-typ">SoumissionService</span> {
+
+    <span class="c-kw">private</span> <span class="c-kw">final</span> <span class="c-typ">CashDemandRepository</span> cashDemandRepository;
+    <span class="c-kw">private</span> <span class="c-kw">final</span> <span class="c-typ">OutboxRepository</span> outboxRepository;
+
+    <span class="c-ann">@Transactional</span>   <span class="c-com">// &lt;-- UNE transaction pour les DEUX ecritures</span>
+    <span class="c-kw">public</span> <span class="c-kw">void</span> soumettre(<span class="c-typ">String</span> requestRef) {
+        <span class="c-com">// 1. Le changement METIER : la demande passe SOUMISE</span>
+        <span class="c-typ">CashRequest</span> demande = cashDemandRepository.getByRef(requestRef);
+        demande.soumettre();                          <span class="c-com">// regle du domaine (garde cutoff 10h ici)</span>
+        cashDemandRepository.save(demande);
+
+        <span class="c-com">// 2. Le MESSAGE pour l'engine : juste une ligne en base, pas un appel reseau</span>
+        outboxRepository.save(<span class="c-typ">OutboxEvent</span>.of(
+                requestRef,
+                <span class="c-str">"DEMANDE_SOUMISE"</span>,
+                <span class="c-str">"{\"entite\": \"PANIER_AGENCE\"}"</span>));
+
+        <span class="c-com">// Si un crash arrive ICI : la transaction annule TOUT.</span>
+        <span class="c-com">// Pas de statut sans message, pas de message sans statut. Jamais.</span>
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">...\\process\\OutboxRelay.java — le facteur (scheduler)</span><button class="copybtn" onclick="copyCode(5, this)">Copier</button></div><pre><code id="code-5"><span class="c-kw">package</span> com.bmci.workflow.fund.management.process;
+
+<span class="c-kw">import</span> lombok.<span class="c-typ">RequiredArgsConstructor</span>;
+<span class="c-kw">import</span> lombok.extern.slf4j.<span class="c-typ">Slf4j</span>;
+<span class="c-kw">import</span> org.springframework.scheduling.annotation.<span class="c-typ">Scheduled</span>;
+<span class="c-kw">import</span> org.springframework.stereotype.<span class="c-typ">Component</span>;
+
+<span class="c-kw">import</span> java.time.<span class="c-typ">LocalDateTime</span>;
+<span class="c-kw">import</span> java.util.<span class="c-typ">List</span>;
+
+<span class="c-com">/**
+ * LE FACTEUR : toutes les 2 secondes, il regarde la boite d'envoi et livre
+ * ce qui n'est pas encore parti. Si l'engine est en panne -&gt; il n'efface
+ * rien, il REESSAIERA au prochain tour. C'est ca, la garantie de livraison.
+ */</span>
+<span class="c-ann">@Component</span>
+<span class="c-ann">@RequiredArgsConstructor</span>
+<span class="c-ann">@Slf4j</span>
+<span class="c-kw">public</span> <span class="c-kw">class</span> <span class="c-typ">OutboxRelay</span> {
+
+    <span class="c-kw">private</span> <span class="c-kw">final</span> <span class="c-typ">OutboxRepository</span> outboxRepository;
+    <span class="c-kw">private</span> <span class="c-kw">final</span> <span class="c-typ">DemandeProcessClient</span> processClient;
+
+    <span class="c-ann">@Scheduled</span>(fixedDelay = <span class="c-num">2000</span>)
+    <span class="c-kw">public</span> <span class="c-kw">void</span> livrerLesMessagesEnAttente() {
+        <span class="c-typ">List</span>&lt;<span class="c-typ">OutboxEvent</span>&gt; enAttente = outboxRepository.findBySentAtIsNullOrderByCreatedAt();
+
+        <span class="c-kw">for</span> (<span class="c-typ">OutboxEvent</span> event : enAttente) {
+            <span class="c-kw">try</span> {
+                <span class="c-kw">if</span> (<span class="c-str">"DEMANDE_SOUMISE"</span>.equals(event.getEventType())) {
+                    processClient.demarrerInstance(event.getAggregateRef(), <span class="c-str">"PANIER_AGENCE"</span>);
+                }
+                event.setSentAt(<span class="c-typ">LocalDateTime</span>.now());     <span class="c-com">// livre -&gt; on le marque</span>
+                outboxRepository.save(event);
+            } <span class="c-kw">catch</span> (<span class="c-typ">Exception</span> e) {
+                <span class="c-com">// Engine injoignable ? On LOG et on s'arrete la pour ce tour.</span>
+                <span class="c-com">// Le message reste sent_at = NULL -&gt; reessaye dans 2 secondes.</span>
+                log.warn(<span class="c-str">"Engine injoignable, nouvelle tentative au prochain tour : {}"</span>, e.getMessage());
+                <span class="c-kw">return</span>;
+            }
+        }
+    }
+}</code></pre>
+<div class="retenir"><div class="t">À retenir</div>
+① Le service métier n'appelle JAMAIS l'engine directement — il écrit dans la table outbox, dans la même transaction que le métier. ② Le relais livre et réessaie : un message peut donc arriver <strong>deux fois</strong> (livré, crash avant le marquage sent_at, relivré) — c'est le prix de « au moins une fois ». ③ D'où la règle jumelle : tout destinataire doit être <strong>idempotent</strong> — recevoir deux fois le même message = le traiter une seule fois. Tu verras ce mot partout maintenant.</div>
+
+<h2><span class="num">3</span>Les workers — notre microservice exécute les étapes</h2>
+<p>Quand le processus arrive sur une external task, l'engine poste l'annonce sur le topic, et notre worker la prend. Regarde comme l'idempotence du point ② se retrouve ici :</p>
+<div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">...\\process\\MarquerATraiterWorker.java — un worker simple et idempotent</span><button class="copybtn" onclick="copyCode(6, this)">Copier</button></div><pre><code id="code-6"><span class="c-kw">package</span> com.bmci.workflow.fund.management.process;
+
+<span class="c-kw">import</span> org.camunda.bpm.client.spring.annotation.<span class="c-typ">ExternalTaskSubscription</span>;
+<span class="c-kw">import</span> org.camunda.bpm.client.task.<span class="c-typ">ExternalTask</span>;
+<span class="c-kw">import</span> org.camunda.bpm.client.task.<span class="c-typ">ExternalTaskHandler</span>;
+<span class="c-kw">import</span> org.camunda.bpm.client.task.<span class="c-typ">ExternalTaskService</span>;
+<span class="c-kw">import</span> lombok.<span class="c-typ">RequiredArgsConstructor</span>;
+<span class="c-kw">import</span> org.springframework.stereotype.<span class="c-typ">Component</span>;
+
+<span class="c-com">/**
+ * UN WORKER = notre microservice qui "prend une annonce" postee par l'engine.
+ * L'engine ne nous appelle pas : c'est NOUS qui venons chercher le travail
+ * (long polling). Avantage : si on est en panne, le travail attend sagement.
+ */</span>
+<span class="c-ann">@Component</span>
+<span class="c-ann">@RequiredArgsConstructor</span>
+<span class="c-ann">@ExternalTaskSubscription</span>(topicName = <span class="c-str">"marquer-a-traiter"</span>)   <span class="c-com">// l'annonce qu'on guette</span>
+<span class="c-kw">public</span> <span class="c-kw">class</span> <span class="c-typ">MarquerATraiterWorker</span> <span class="c-kw">implements</span> <span class="c-typ">ExternalTaskHandler</span> {
+
+    <span class="c-kw">private</span> <span class="c-kw">final</span> <span class="c-typ">CashDemandRepository</span> cashDemandRepository;
+
+    <span class="c-ann">@Override</span>
+    <span class="c-kw">public</span> <span class="c-kw">void</span> execute(<span class="c-typ">ExternalTask</span> task, <span class="c-typ">ExternalTaskService</span> taskService) {
+        <span class="c-typ">String</span> requestRef = task.getBusinessKey();            <span class="c-com">// RT-2026-000042 : notre fil</span>
+
+        <span class="c-com">// IDEMPOTENT : si le statut est DEJA pose (retry apres un crash au</span>
+        <span class="c-com">// mauvais moment), on ne refait rien — on confirme juste.</span>
+        <span class="c-typ">CashRequest</span> demande = cashDemandRepository.getByRef(requestRef);
+        <span class="c-kw">if</span> (!demande.estDejaATraiter()) {
+            demande.marquerATraiter();
+            cashDemandRepository.save(demande);
+        }
+
+        taskService.complete(task);      <span class="c-com">// on rend le travail : l'engine avance</span>
+    }
+}</code></pre>
+<h2><span class="num">4</span>Le pattern SAGA — défaire proprement quand une étape échoue</h2>
+<div class="pb"><div class="t">Le problème, raconté comme une panne</div>
+La Caisse Centrale traite une urgence : ① geler la demande → ② réserver les fonds → ③ notifier le prestataire de transport. Trois étapes, trois systèmes — donc <strong>pas de transaction globale possible</strong> : chaque étape a déjà commité quand la suivante démarre. Et à l'étape ③, le prestataire répond « refusé ». Nous voilà avec des fonds réservés pour rien et une demande gelée pour rien. Qui les libère ? Quand ? Si c'est « un dev y pensera », c'est un incident de prod en devenir.</div>
+<div class="idee"><div class="t">L'idée, en une image</div>
+La réservation de voyage : tu réserves le vol, puis l'hôtel, puis la voiture. La voiture est indisponible ? Tu ne laisses pas le vol et l'hôtel payés dans le vide : tu <strong>annules l'hôtel, puis le vol — dans l'ordre inverse</strong>. La Saga, c'est exactement ça : chaque étape déclare son action inverse (sa <strong>compensation</strong>), et si une étape échoue définitivement, on remonte le fil en compensant tout ce qui avait réussi. Et la beauté de notre archi : <strong>Camunda est déjà l'orchestrateur de la saga</strong> — le BPMN décrit les étapes ET leurs compensations, l'engine gère la marche arrière tout seul.</div>
+<div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">(repo engine) — la saga « traiter une urgence », extrait commenté</span><button class="copybtn" onclick="copyCode(7, this)">Copier</button></div><pre><code id="code-7">&lt;!-- <span class="c-typ">LA</span> <span class="c-typ">SAGA</span> en <span class="c-typ">BPMN</span> : <span class="c-str">"Traiter une demande urgente"</span> = <span class="c-num">3</span> etapes qui doivent
+     reussir <span class="c-typ">ENSEMBLE</span>... sans transaction globale possible (<span class="c-num">3</span> systemes !).
+     <span class="c-typ">Chaque</span> etape declare sa <span class="c-typ">COMPENSATION</span> : son annulation, au cas ou. --&gt;
+
+&lt;bpmn:serviceTask id=<span class="c-str">"geler-demande"</span> name=<span class="c-str">"1. Geler la demande"</span>
+                  camunda:type=<span class="c-str">"external"</span> camunda:topic=<span class="c-str">"geler-demande"</span>/&gt;
+&lt;!-- compensation de <span class="c-num">1</span> : degeler --&gt;
+
+&lt;bpmn:serviceTask id=<span class="c-str">"reserver-fonds"</span> name=<span class="c-str">"2. Reserver les fonds"</span>
+                  camunda:type=<span class="c-str">"external"</span> camunda:topic=<span class="c-str">"reserver-fonds"</span>/&gt;
+&lt;!-- compensation de <span class="c-num">2</span> : liberer les fonds --&gt;
+
+&lt;bpmn:serviceTask id=<span class="c-str">"notifier-prestataire"</span> name=<span class="c-str">"3. Notifier le prestataire"</span>
+                  camunda:type=<span class="c-str">"external"</span> camunda:topic=<span class="c-str">"notifier-prestataire"</span>/&gt;
+&lt;!-- <span class="c-typ">PAS</span> de compensation : c'est la <span class="c-typ">DERNIERE</span> etape. <span class="c-typ">Si</span> elle reussit, la saga
+     est finie. <span class="c-typ">Si</span> elle echoue -&gt; l'engine remonte le fil et compense <span class="c-num">2</span> puis <span class="c-num">1</span>,
+     <span class="c-typ">DANS</span> <span class="c-typ">L</span>'<span class="c-typ">ORDRE</span> <span class="c-typ">INVERSE</span>. <span class="c-typ">Comme</span> on defait une valise. --&gt;</code></pre>
+<p>Le point le plus important de toute la page est dans le worker de l'étape 3 : la différence entre les <strong>deux sortes d'échec</strong>. Un échec TECHNIQUE (réseau, timeout) est temporaire → on réessaie. Un échec MÉTIER (« refusé ») est définitif → réessayer ne changera rien, il faut compenser. Confondre les deux, c'est soit spammer le prestataire de retries inutiles, soit abandonner pour une micro-coupure réseau :</p>
+<div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">...\\process\\NotifierPrestataireWorker.java — LE test des deux échecs</span><button class="copybtn" onclick="copyCode(8, this)">Copier</button></div><pre><code id="code-8"><span class="c-kw">package</span> com.bmci.workflow.fund.management.process;
+
+<span class="c-kw">import</span> org.camunda.bpm.client.spring.annotation.<span class="c-typ">ExternalTaskSubscription</span>;
+<span class="c-kw">import</span> org.camunda.bpm.client.task.<span class="c-typ">ExternalTask</span>;
+<span class="c-kw">import</span> org.camunda.bpm.client.task.<span class="c-typ">ExternalTaskHandler</span>;
+<span class="c-kw">import</span> org.camunda.bpm.client.task.<span class="c-typ">ExternalTaskService</span>;
+<span class="c-kw">import</span> lombok.<span class="c-typ">RequiredArgsConstructor</span>;
+<span class="c-kw">import</span> org.springframework.stereotype.<span class="c-typ">Component</span>;
+
+<span class="c-com">/**
+ * L'etape 3 de la saga — celle qui peut echouer pour de vrai (systeme externe).
+ * Deux sortes d'echec, deux reactions differentes. C'est LE point a comprendre.
+ */</span>
+<span class="c-ann">@Component</span>
+<span class="c-ann">@RequiredArgsConstructor</span>
+<span class="c-ann">@ExternalTaskSubscription</span>(topicName = <span class="c-str">"notifier-prestataire"</span>)
+<span class="c-kw">public</span> <span class="c-kw">class</span> <span class="c-typ">NotifierPrestataireWorker</span> <span class="c-kw">implements</span> <span class="c-typ">ExternalTaskHandler</span> {
+
+    <span class="c-kw">private</span> <span class="c-kw">final</span> <span class="c-typ">PrestataireClient</span> prestataireClient;
+
+    <span class="c-ann">@Override</span>
+    <span class="c-kw">public</span> <span class="c-kw">void</span> execute(<span class="c-typ">ExternalTask</span> task, <span class="c-typ">ExternalTaskService</span> taskService) {
+        <span class="c-kw">try</span> {
+            prestataireClient.notifier(task.getBusinessKey());
+            taskService.complete(task);                       <span class="c-com">// etape 3 OK -&gt; saga finie</span>
+
+        } <span class="c-kw">catch</span> (<span class="c-typ">PrestataireIndisponibleException</span> e) {
+            <span class="c-com">// Echec TECHNIQUE (reseau, timeout) : ca vaut le coup de REESSAYER.</span>
+            <span class="c-com">// 3 tentatives espacees de 30s, PUIS incident visible dans Cockpit.</span>
+            taskService.handleFailure(task, <span class="c-str">"Prestataire injoignable"</span>, e.getMessage(),
+                    task.getRetries() == <span class="c-kw">null</span> ? <span class="c-num">3</span> : task.getRetries() - <span class="c-num">1</span>, <span class="c-num">30_000L</span>);
+
+        } <span class="c-kw">catch</span> (<span class="c-typ">DemandeRefuseeParPrestataireException</span> e) {
+            <span class="c-com">// Echec METIER (refus definitif) : reessayer ne changera RIEN.</span>
+            <span class="c-com">// On leve une ERREUR BPMN -&gt; l'engine declenche les COMPENSATIONS :</span>
+            <span class="c-com">// liberer les fonds (2), puis degeler la demande (1). Ordre inverse.</span>
+            taskService.handleBpmnError(task, <span class="c-str">"PRESTATAIRE_REFUS"</span>, e.getMessage());
+        }
+    }
+}</code></pre><div class="filehead"><span class="fh-act act-new">CRÉER</span><span class="fh-path">...\\process\\LibererFondsCompensationWorker.java — une compensation = un worker inverse</span><button class="copybtn" onclick="copyCode(9, this)">Copier</button></div><pre><code id="code-9"><span class="c-kw">package</span> com.bmci.workflow.fund.management.process;
+
+<span class="c-kw">import</span> org.camunda.bpm.client.spring.annotation.<span class="c-typ">ExternalTaskSubscription</span>;
+<span class="c-kw">import</span> org.camunda.bpm.client.task.<span class="c-typ">ExternalTask</span>;
+<span class="c-kw">import</span> org.camunda.bpm.client.task.<span class="c-typ">ExternalTaskService</span>;
+<span class="c-kw">import</span> org.camunda.bpm.client.task.<span class="c-typ">ExternalTaskHandler</span>;
+<span class="c-kw">import</span> lombok.<span class="c-typ">RequiredArgsConstructor</span>;
+<span class="c-kw">import</span> org.springframework.stereotype.<span class="c-typ">Component</span>;
+
+<span class="c-com">/**
+ * UNE COMPENSATION = un worker comme un autre, qui fait l'action INVERSE.
+ * "Reserver les fonds" a son miroir : "liberer les fonds".
+ * L'engine l'appelle automatiquement quand la saga part en arriere.
+ */</span>
+<span class="c-ann">@Component</span>
+<span class="c-ann">@RequiredArgsConstructor</span>
+<span class="c-ann">@ExternalTaskSubscription</span>(topicName = <span class="c-str">"liberer-fonds"</span>)
+<span class="c-kw">public</span> <span class="c-kw">class</span> <span class="c-typ">LibererFondsCompensationWorker</span> <span class="c-kw">implements</span> <span class="c-typ">ExternalTaskHandler</span> {
+
+    <span class="c-kw">private</span> <span class="c-kw">final</span> <span class="c-typ">FondsService</span> fondsService;
+
+    <span class="c-ann">@Override</span>
+    <span class="c-kw">public</span> <span class="c-kw">void</span> execute(<span class="c-typ">ExternalTask</span> task, <span class="c-typ">ExternalTaskService</span> taskService) {
+        <span class="c-com">// Idempotent, encore et toujours : liberer des fonds deja liberes = ne rien faire</span>
+        fondsService.libererSiReserves(task.getBusinessKey());
+        taskService.complete(task);
+    }
+}</code></pre>
+<div class="retenir"><div class="t">À retenir</div>
+① Une saga = des étapes qui commitent chacune localement + une compensation par étape (sauf la dernière). ② L'échec TECHNIQUE se réessaie (handleFailure, retries, puis incident visible dans Cockpit) ; l'échec MÉTIER déclenche la marche arrière (handleBpmnError → compensations en ordre inverse). ③ Une compensation est un worker ordinaire qui fait l'inverse — et lui aussi idempotent (libérer des fonds déjà libérés = ne rien faire). ④ Nos statuts suivent : GELÉ posé à l'étape 1, retiré par sa compensation — le « verrou applicatif » du ticket trouve ici sa place naturelle.</div>
+
+<h2><span class="num">5</span>Tout relier : la carte mentale finale</h2>
+<table><tr><th>Question que tu te poseras</th><th>La réponse-réflexe</th></tr>
+<tr><td>« Je dois changer un statut ET prévenir l'engine »</td><td>→ <strong>Outbox</strong> : les deux écritures dans une transaction, le relais livre.</td></tr>
+<tr><td>« Mon message peut-il arriver deux fois ? »</td><td>→ Oui, toujours. Donc <strong>idempotence</strong> partout (le fameux « si déjà fait, ne rien refaire »).</td></tr>
+<tr><td>« Plusieurs étapes sur plusieurs systèmes, et si l'une échoue ? »</td><td>→ <strong>Saga</strong> : une compensation par étape, Camunda orchestre la marche arrière.</td></tr>
+<tr><td>« Réessayer ou abandonner ? »</td><td>→ Échec technique = réessayer (handleFailure). Échec métier = compenser (handleBpmnError).</td></tr>
+<tr><td>« Comment je retrouve le processus d'une demande ? »</td><td>→ Par la <strong>businessKey</strong> = la réf RT-/CO-. Une requête, zéro jointure exotique.</td></tr>
+<tr><td>« Où vit quoi ? »</td><td>→ BPMN + déploiement : repo engine. Workers + outbox + statuts : chez nous.</td></tr></table>
+<div class="ok"><strong>Et maintenant</strong> : cette simulation est volontairement épurée pour l'apprentissage — quand tu m'envoies les diagrammes QlickFlow et le pattern réel de l'engine (workers ou delegates ?), on la transforme en implémentation réelle : mêmes concepts, vrais noms, vraies conventions du socle. Si un passage reste flou, dis-moi LEQUEL précisément et je le réexplique autrement — c'est le but de ce doc.</div>
+</div>
+<script>
+function copyCode(i, btn) {
+  const el = document.getElementById('code-' + i);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copié !';
+    setTimeout(() => btn.textContent = old, 1600);
+  });
+}
+</script></body></html>
