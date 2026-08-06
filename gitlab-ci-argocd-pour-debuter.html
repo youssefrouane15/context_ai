@@ -1,0 +1,198 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>GitLab CI &amp; Argo CD — pour débuter, en images</title><style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root{--vert:#0B6B4F;--vertF:#07402F;--or:#B8892C;--fond:#F7F5F0;--encre:#1C2321;--carte:#FFFFFF;--ligne:#E3DED4;--rouge:#B3402A;--bleu:#1F2A44;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Public Sans',sans-serif;background:var(--fond);color:var(--encre);line-height:1.65;font-size:15px;}
+.wrap{max-width:1040px;margin:0 auto;padding:0 26px 90px;}
+header.hero{background:linear-gradient(135deg,#1F2A44 0%,#0B6B4F 80%);color:#fff;padding:46px 26px 38px;margin-bottom:34px;}
+header.hero .inner{max-width:1040px;margin:0 auto;}
+.tagline{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:#CBE3D8;margin-bottom:10px;}
+h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:28px;line-height:1.15;}
+.hero p.sub{margin-top:12px;max-width:860px;color:#DCEBE3;font-size:15px;}
+.badge-v{display:inline-block;margin-top:13px;background:var(--or);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 12px;border-radius:3px;letter-spacing:1px;}
+h2{font-family:'Archivo',sans-serif;font-weight:700;font-size:22px;color:var(--vertF);margin:48px 0 8px;padding-top:16px;border-top:3px solid var(--vert);}
+h2 .num{color:var(--or);margin-right:10px;font-family:'IBM Plex Mono',monospace;font-size:17px;}
+h3{font-family:'Archivo',sans-serif;font-weight:700;font-size:16.5px;color:var(--vert);margin:24px 0 8px;}
+p{margin:9px 0;} ul,ol{margin:8px 0 8px 24px;} li{margin:5px 0;} strong{color:var(--vertF);}
+table{width:100%;border-collapse:collapse;margin:14px 0;background:var(--carte);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(28,35,33,.08);font-size:13.6px;}
+th{background:var(--vertF);color:#fff;text-align:left;padding:8px 12px;font-family:'Archivo',sans-serif;font-size:12.5px;}
+td{padding:8px 12px;border-bottom:1px solid var(--ligne);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+td code,p code,li code{background:#ECE7DC;color:var(--vertF);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.4px;}
+.note{background:#FFF8E8;border-left:4px solid var(--or);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.7px;}
+.ok{background:#EDF7F1;border-left:4px solid var(--vert);padding:11px 15px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13.7px;}
+.idee{background:var(--carte);border:1px solid var(--ligne);border-left:5px solid var(--vert);border-radius:8px;padding:13px 17px;margin:14px 0;}
+.idee .t{font-family:'Archivo',sans-serif;font-weight:700;color:var(--vert);font-size:13px;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px;}
+.filehead{display:flex;align-items:center;gap:12px;background:var(--vertF);color:#fff;padding:9px 15px;border-radius:8px 8px 0 0;margin-top:18px;font-family:'IBM Plex Mono',monospace;font-size:12.4px;flex-wrap:wrap;}
+.fh-act{font-weight:600;padding:2px 10px;border-radius:3px;letter-spacing:1px;font-size:11px;background:#178A5E;color:#fff;}
+.fh-path{word-break:break-all;color:#CBE3D8;}
+.fh-note{color:#F2D9A0;font-size:11.5px;width:100%;}
+.copybtn{margin-left:auto;background:var(--or);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 12px;border-radius:4px;cursor:pointer;}
+.copybtn:hover{background:#9a7223;}
+pre{background:#10231C;color:#E8F2EC;padding:16px 19px;overflow-x:auto;border-radius:0 0 8px 8px;font-size:12.6px;line-height:1.55;margin-bottom:6px;}
+code{font-family:'IBM Plex Mono',monospace;}
+.c-kw{color:#C792EA;font-weight:600;} .c-str{color:#C3E88D;} .c-ann{color:#FFCB6B;} .c-num{color:#F78C6C;} .c-com{color:#7E8F88;font-style:italic;}
+/* ===== schemas ===== */
+.schema{background:var(--carte);border:1px solid var(--ligne);border-radius:12px;padding:22px 18px;margin:16px 0;overflow-x:auto;}
+.schema .titre{font-family:'Archivo',sans-serif;font-weight:700;color:var(--vertF);font-size:13.5px;margin-bottom:14px;text-align:center;}
+.ligne-flux{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;}
+.boite{border-radius:10px;padding:10px 14px;text-align:center;font-size:12.8px;font-weight:600;min-width:96px;line-height:1.3;}
+.boite small{display:block;font-weight:400;font-size:11px;opacity:.85;margin-top:2px;}
+.b-dev{background:#E4DDF5;color:#4B3A80;border:2px solid #7B68B5;}
+.b-git{background:#FBE9D9;color:#8A4B12;border:2px solid #D98E4A;}
+.b-ci{background:#D9E6FB;color:#1F3F80;border:2px solid #4A76D9;}
+.b-reg{background:#EDEDED;color:#444;border:2px solid #999;}
+.b-argo{background:#FBF0C9;color:#7A5B00;border:2px solid #C9A227;}
+.b-k8s{background:#CFEFE4;color:#0B5B44;border:2px solid #0B6B4F;}
+.fleche{font-family:'IBM Plex Mono',monospace;color:var(--or);font-weight:700;font-size:17px;}
+.fleche small{display:block;font-size:10px;color:#7A837E;font-weight:400;text-align:center;}
+.etape-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--vertF);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;margin-right:8px;flex:none;}
+.pipeline{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;}
+.job{border-radius:8px;padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:#fff;}
+.j-ok{background:#178A5E;} .j-ko{background:#B3402A;} .j-skip{background:#AAB2AD;}
+.boucle{border:2px dashed var(--or);border-radius:12px;padding:14px;margin-top:12px;text-align:center;font-size:13px;color:#7A5B00;background:#FFFDF5;}
+kbd{background:var(--vertF);color:#fff;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+</style></head><body>
+<header class="hero"><div class="inner">
+<div class="tagline">BMCI · Q360 · Apprentissage · Du code au serveur</div>
+<h1>GitLab CI &amp; Argo CD, expliqués à quelqu'un<br>qui part de zéro — en images</h1>
+<p class="sub">LA question à laquelle répond cette page : « j'ai codé sur mon PC... comment mon code arrive-t-il sur le serveur, tout seul, sans casse ? ». Réponse en deux moitiés : GitLab CI (l'usine qui fabrique et vérifie) et Argo CD (le livreur qui garde le serveur conforme). Zéro prérequis.</p>
+<div class="badge-v">DÉBUTANT · 05/08/2026</div>
+</div></header><div class="wrap">
+
+<h2><span class="num">1</span>La grande image — le voyage complet du code</h2>
+<div class="schema"><div class="titre">Du clavier au serveur : 6 étapes, 2 mondes</div>
+<div class="ligne-flux">
+<div class="boite b-dev">👩‍💻 Toi<small>git push</small></div><div class="fleche">→<small>1</small></div><div class="boite b-git">GitLab<small>ton code</small></div><div class="fleche">→<small>2</small></div><div class="boite b-ci">Pipeline CI<small>fabrique + teste</small></div><div class="fleche">→<small>3</small></div><div class="boite b-reg">Registry<small>l'entrepôt d'images</small></div><div class="fleche">→<small>4</small></div><div class="boite b-git">Repo config<small>« je veux la version X »</small></div><div class="fleche">→<small>5</small></div><div class="boite b-argo">Argo CD<small>compare Git ↔ serveur</small></div><div class="fleche">→<small>6</small></div><div class="boite b-k8s">Kubernetes<small>l'app tourne !</small></div>
+</div></div>
+<p>Deux mondes, deux outils :</p>
+<table><tr><th></th><th>GitLab CI</th><th>Argo CD</th></tr>
+<tr><td><strong>Son métier</strong></td><td><strong>FABRIQUER</strong> : compiler, tester, emballer le code en « image »</td><td><strong>DÉPLOYER</strong> : faire tourner la bonne version sur le serveur, en permanence</td></tr>
+<tr><td><strong>Image simple</strong></td><td>L'usine avec sa chaîne de montage</td><td>Le magasinier qui vérifie sans arrêt que le rayon correspond au catalogue</td></tr>
+<tr><td><strong>Se déclenche</strong></td><td>À chaque <code>git push</code></td><td>Tout seul, en boucle, toutes les ~3 minutes</td></tr></table>
+
+<h2><span class="num">2</span>GitLab CI — l'usine</h2>
+<div class="idee"><div class="t">L'idée en une phrase</div>
+À chaque push, un robot suit une <strong>recette</strong> écrite dans un fichier de ton repo (<code>.gitlab-ci.yml</code>) : il compile, lance TES tests, et emballe le tout. Si UNE étape échoue, la chaîne s'arrête — le code cassé ne va jamais plus loin.</div>
+<div class="schema"><div class="titre">Un pipeline = des étapes qui se suivent (et s'arrêtent au premier rouge)</div>
+<div class="pipeline">
+<span class="job j-ok">build ✓</span><span class="fleche">→</span>
+<span class="job j-ok">test ✓</span><span class="fleche">→</span>
+<span class="job j-ok">package ✓</span>
+</div>
+<div style="height:10px"></div>
+<div class="pipeline">
+<span class="job j-ok">build ✓</span><span class="fleche">→</span>
+<span class="job j-ko">test ✗</span><span class="fleche">→</span>
+<span class="job j-skip">package (jamais lancé)</span>
+</div>
+<p style="text-align:center;font-size:12.5px;margin-top:8px;">En haut : tout est vert, l'image part vers l'entrepôt. En bas : un test rouge = <strong>rien n'est déployé</strong>. C'est ta ceinture de sécurité — et c'est pour ça que le <kbd>mvn clean verify</kbd> qu'on soigne depuis des semaines compte autant.</p>
+</div>
+<div class="filehead"><span class="fh-act act-new">FICHIER</span><span class="fh-path">.gitlab-ci.yml — à la racine du repo de CODE</span><button class="copybtn" onclick="copyCode(1, this)">Copier</button><span class="fh-note">Lis les commentaires : chaque ligne est expliquée</span></div><pre><code id="code-1"><span class="c-com"># .gitlab-ci.yml — la "recette" que le robot GitLab suit A CHAQUE push.</span>
+<span class="c-com"># 3 etapes (stages), executees dans l'ordre. Une etape rouge = tout s'arrete.</span>
+
+<span class="c-ann">stages</span>:
+  - build        <span class="c-com"># 1. compiler</span>
+  - test         <span class="c-com"># 2. verifier</span>
+  - package      <span class="c-com"># 3. emballer (image Docker)</span>
+
+<span class="c-ann">build-job</span>:
+<span class="c-ann">  stage</span>: build
+<span class="c-ann">  image</span>: maven:<span class="c-num">3</span>.<span class="c-num">9</span>-eclipse-temurin-<span class="c-num">17</span>     <span class="c-com"># l'outil dont ce job a besoin</span>
+<span class="c-ann">  script</span>:
+    - mvn clean compile                   <span class="c-com"># les commandes, comme dans ton terminal</span>
+
+<span class="c-ann">test-job</span>:
+<span class="c-ann">  stage</span>: test
+<span class="c-ann">  image</span>: maven:<span class="c-num">3</span>.<span class="c-num">9</span>-eclipse-temurin-<span class="c-num">17</span>
+<span class="c-ann">  script</span>:
+    - mvn clean verify                    <span class="c-com"># tes tests ! rouge ici = pas de deploiement</span>
+
+<span class="c-ann">package-job</span>:
+<span class="c-ann">  stage</span>: package
+<span class="c-ann">  image</span>: docker:<span class="c-num">24</span>
+<span class="c-ann">  script</span>:
+    - docker build -t <span class="c-kw">$REGISTRY</span>/fund-management:<span class="c-kw">$CI_COMMIT_SHORT_SHA</span> .
+    - docker push <span class="c-kw">$REGISTRY</span>/fund-management:<span class="c-kw">$CI_COMMIT_SHORT_SHA</span>
+  <span class="c-com"># $CI_COMMIT_SHORT_SHA = le numero du commit (ex: a1b2c3d) :</span>
+  <span class="c-com"># chaque version a son etiquette unique, on sait toujours QUOI tourne OU.</span></code></pre>
+<p>Et « l'image Docker », c'est quoi ? <strong>Un plat préparé sous vide</strong> : ton application + tout ce qu'il lui faut pour tourner (Java, les libs...), emballés ensemble avec une étiquette (le numéro du commit : <code>a1b2c3d</code>). Le serveur n'a plus rien à installer — il réchauffe le plat, c'est tout. Ces plats sont stockés dans un entrepôt : le <strong>registry</strong>.</p>
+
+<h2><span class="num">3</span>Argo CD — le magasinier (et l'idée GitOps)</h2>
+<div class="idee"><div class="t">L'idée en une phrase (c'est LA grande idée : GitOps)</div>
+On ne pousse plus rien vers le serveur à la main. À la place, un <strong>repo Git de config</strong> décrit « ce qui DOIT tourner » (quelle version, combien d'exemplaires). Et Argo CD compare EN BOUCLE ce que dit Git avec ce qui tourne vraiment — dès qu'il y a un écart, il corrige. <strong>Git devient la télécommande du serveur.</strong></div>
+<div class="schema"><div class="titre">La boucle d'Argo CD — comme un thermostat</div>
+<div class="ligne-flux">
+<div class="boite b-git">Repo config<small>« Je VEUX la version a1b2c3d, en 2 exemplaires »</small></div><div class="fleche">→<small>compare</small></div><div class="boite b-argo">Argo CD<small>« écart détecté ! »</small></div><div class="fleche">→<small>corrige</small></div><div class="boite b-k8s">Kubernetes<small>« ce qui TOURNE vraiment »</small></div>
+</div>
+<div class="boucle">🔁 …et il recommence, toutes les ~3 minutes, pour toujours. Un thermostat : température VOULUE (Git) vs température RÉELLE (serveur) → il chauffe ou il coupe jusqu'à égalité. Écart = <strong>OutOfSync</strong> (jaune), égalité = <strong>Synced</strong> (vert).</div>
+</div>
+<p>Conséquence géniale n°1 : <strong>déployer = modifier UNE ligne dans Git</strong> (l'étiquette de version) — avec une merge request, une revue, un historique. Conséquence n°2 : quelqu'un bidouille le serveur à la main ? Argo remet comme dans Git (<code>selfHeal</code>). Conséquence n°3 : revenir en arrière = <code>git revert</code>. Le déploiement devient aussi traçable que ton code.</p>
+<div class="filehead"><span class="fh-act act-new">FICHIER</span><span class="fh-path">deployment.yml — dans le repo de CONFIG (environnements/dev/)</span><button class="copybtn" onclick="copyCode(2, this)">Copier</button><span class="fh-note">La « ligne magique » : l'étiquette de l'image = la version déployée</span></div><pre><code id="code-2"><span class="c-com"># deployment.yml — vit dans le REPO DE CONFIG (pas le repo du code !)</span>
+<span class="c-com"># C'est la fiche qui decrit CE QUI DOIT TOURNER. Argo CD la lit en boucle.</span>
+
+<span class="c-ann">apiVersion</span>: apps/v1
+<span class="c-ann">kind</span>: Deployment
+<span class="c-ann">metadata</span>:
+<span class="c-ann">  name</span>: fund-management
+<span class="c-ann">spec</span>:
+<span class="c-ann">  replicas</span>: <span class="c-num">2</span>                              <span class="c-com"># "je veux 2 exemplaires de l'app"</span>
+<span class="c-ann">  template</span>:
+<span class="c-ann">    spec</span>:
+<span class="c-ann">      containers</span>:
+        - name: fund-management
+<span class="c-ann">          image</span>: registry.bmci/fund-management:a1b2c3d   <span class="c-com"># &lt;-- LA ligne magique :</span>
+<span class="c-ann">          ports</span>:                                          <span class="c-com"># changer cette etiquette</span>
+            - containerPort: <span class="c-num">8300</span>                         <span class="c-com"># = deployer une version</span></code></pre><div class="filehead"><span class="fh-act act-new">FICHIER</span><span class="fh-path">application.yml — on présente le repo de config à Argo, une seule fois</span><button class="copybtn" onclick="copyCode(3, this)">Copier</button></div><pre><code id="code-3"><span class="c-com"># application.yml — on presente le repo de config a Argo CD, UNE fois.</span>
+<span class="c-com"># Ensuite il surveille tout seul, pour toujours.</span>
+
+<span class="c-ann">apiVersion</span>: argoproj.io/v1alpha1
+<span class="c-ann">kind</span>: Application
+<span class="c-ann">metadata</span>:
+<span class="c-ann">  name</span>: fund-management
+<span class="c-ann">spec</span>:
+<span class="c-ann">  source</span>:
+<span class="c-ann">    repoURL</span>: https://gitlab.bmci/squad/fund-management-config.git   <span class="c-com"># OU regarder</span>
+<span class="c-ann">    path</span>: environnements/dev                                        <span class="c-com"># quel dossier</span>
+<span class="c-ann">  destination</span>:
+<span class="c-ann">    server</span>: https://kubernetes.default.svc                          <span class="c-com"># OU deployer</span>
+<span class="c-ann">    namespace</span>: fund-management
+<span class="c-ann">  syncPolicy</span>:
+<span class="c-ann">    automated</span>:
+<span class="c-ann">      selfHeal</span>: true      <span class="c-com"># quelqu'un bidouille le cluster a la main ? Argo REMET comme dans Git</span>
+<span class="c-ann">      prune</span>: true         <span class="c-com"># un fichier supprime de Git ? Argo supprime aussi dans le cluster</span></code></pre>
+<div class="note"><strong>Deux repos, à ne pas confondre</strong> : le repo de <strong>CODE</strong> (ton Java + le .gitlab-ci.yml — l'usine) et le repo de <strong>CONFIG</strong> (les fichiers « je veux » — le catalogue qu'Argo surveille). Le pont entre les deux : la dernière étape du pipeline CI met à jour l'étiquette de version dans le repo de config. L'usine fabrique, met à jour le catalogue... et le magasinier fait le reste.</div>
+
+<h2><span class="num">4</span>Le film complet — ta journée de dev, image par image</h2>
+<div class="schema"><div class="titre">Tu corriges un bug sur fund-management. Voici TOUT ce qui se passe :</div>
+<table><tr><td><span class="etape-num">1</span></td><td><code>git push</code> — ta correction part sur GitLab.</td></tr>
+<tr><td><span class="etape-num">2</span></td><td>GitLab voit le push → lance le pipeline : <strong>build</strong> ✓ puis <strong>test</strong> (ton mvn clean verify) ✓ puis <strong>package</strong> ✓.</td></tr>
+<tr><td><span class="etape-num">3</span></td><td>L'image <code>fund-management:f4e5d6</code> est poussée à l'entrepôt (registry).</td></tr>
+<tr><td><span class="etape-num">4</span></td><td>Le pipeline met à jour le repo de config : l'étiquette passe de <code>a1b2c3d</code> à <code>f4e5d6</code>.</td></tr>
+<tr><td><span class="etape-num">5</span></td><td>Argo CD compare (dans les ~3 min) : « Git dit f4e5d6, le serveur fait tourner a1b2c3d → <strong>OutOfSync</strong> ».</td></tr>
+<tr><td><span class="etape-num">6</span></td><td>Argo synchronise : Kubernetes télécharge la nouvelle image et bascule les 2 exemplaires <strong>l'un après l'autre</strong> — jamais zéro app disponible (rolling update).</td></tr>
+<tr><td><span class="etape-num">7</span></td><td><strong>Synced ✓ Healthy ✓</strong> dans l'écran Argo. Ta correction est en ligne. Tu n'as touché AUCUN serveur.</td></tr>
+<tr><td><span class="etape-num">8</span></td><td>La version déployée pose problème ? <code>git revert</code> sur le repo de config → Argo redéploie l'ancienne. Retour arrière en 1 commit.</td></tr></table>
+</div>
+
+<h2><span class="num">5</span>Le mini-lexique (7 mots et tu suis toutes les réunions)</h2>
+<table><tr><th>Mot</th><th>Traduction simple</th></tr>
+<tr><td><strong>Pipeline</strong></td><td>La chaîne de montage lancée à chaque push (build → test → package).</td></tr>
+<tr><td><strong>Job / Stage</strong></td><td>Une machine de la chaîne / un groupe de machines qui tournent au même moment.</td></tr>
+<tr><td><strong>Runner</strong></td><td>L'ordinateur (chez BMCI) qui exécute réellement les jobs.</td></tr>
+<tr><td><strong>Image Docker</strong></td><td>Le plat sous vide : l'app + tout son nécessaire, avec une étiquette de version.</td></tr>
+<tr><td><strong>Registry</strong></td><td>L'entrepôt qui stocke les images.</td></tr>
+<tr><td><strong>GitOps</strong></td><td>« Git décrit ce qui doit tourner ; un robot fait en sorte que ce soit vrai. »</td></tr>
+<tr><td><strong>Synced / OutOfSync</strong></td><td>Serveur conforme à Git / écart détecté (Argo va corriger).</td></tr></table>
+
+<div class="ok"><strong>Ce qu'il faut retenir en 3 phrases</strong> : GitLab CI fabrique et vérifie (l'usine — un test rouge et rien ne part). Argo CD garde le serveur conforme à ce que Git décrit (le thermostat — écart → correction, en boucle). Et toi, tu ne déploies plus jamais « sur » un serveur : tu modifies Git, le reste suit — traçable, révisable, réversible. Quand tu verras la vraie config QlickFlow, tu reconnaîtras exactement ces briques.</div>
+</div>
+<script>
+function copyCode(i, btn) {
+  const el = document.getElementById('code-' + i);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copié !';
+    setTimeout(() => btn.textContent = old, 1600);
+  });
+}
+</script></body></html>
