@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fund-management-front — L'architecture expliquée + plan de la feature « Liste »</title>
+<style>
+:root{
+  --paper:#F6F5F1; --ink:#17251F; --muted:#5C6B63;
+  --green:#0B6B4F; --green-d:#07402F; --gold:#B8892C; --gold-soft:#F4EAD6;
+  --green-soft:#E3EFE9; --card:#FFFFFF; --line:#DCD9CF;
+  --code-bg:#0E1B16; --code-ink:#D9E8E0;
+  --blue:#2F5D8A; --blue-soft:#E4EDF6;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;line-height:1.65;font-size:16.5px}
+.wrap{max-width:960px;margin:0 auto;padding:0 22px}
+.hero{background:linear-gradient(160deg,var(--green-d) 0%,var(--green) 78%);color:#F2F7F4;padding:46px 0 42px}
+.tagline{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:#BFD9CD;margin-bottom:12px}
+.hero h1{font-size:clamp(25px,4vw,36px);line-height:1.22;font-weight:800;max-width:840px}
+.hero h1 em{color:#EBCB8B;font-style:normal}
+.hero .sub{margin-top:14px;max-width:800px;color:#D7E7DF;font-size:16.5px}
+.hero .sub strong{color:#fff}
+main{padding:42px 0 70px}
+section{margin-bottom:52px}
+.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;margin-bottom:8px;color:var(--green)}
+.eyebrow.o{color:var(--gold)}
+h2{font-size:25px;font-weight:800;line-height:1.25;margin-bottom:12px}
+h3{font-size:18.5px;font-weight:700;margin:24px 0 8px;color:var(--green-d)}
+p{margin-bottom:13px}
+strong{color:var(--green-d)}
+.muted{color:var(--muted)}
+ul.clean{list-style:none;margin:0 0 14px}
+ul.clean li{padding:6px 0 6px 26px;position:relative}
+ul.clean li::before{content:"—";position:absolute;left:0;color:var(--gold);font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 24px;margin:16px 0;box-shadow:0 3px 12px rgba(20,35,29,.05)}
+.card h4{font-size:16px;font-weight:800;margin-bottom:8px}
+.card.g{border-left:5px solid var(--green)}
+.card.o{border-left:5px solid var(--gold)}
+.card.b{border-left:5px solid var(--blue)}
+.analogie{background:var(--gold-soft);border:1px solid #E4D3AC;border-radius:var(--radius);padding:18px 22px;margin:18px 0;font-size:15.5px}
+.analogie .tag{display:inline-block;background:var(--gold);color:#fff;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;border-radius:20px;padding:3px 12px;margin-bottom:8px}
+.retenir{background:var(--green-soft);border:1px solid #C4DACF;border-radius:var(--radius);padding:18px 22px;margin:18px 0}
+.retenir .tag{display:inline-block;background:var(--green);color:#fff;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;border-radius:20px;padding:3px 12px;margin-bottom:8px}
+.flowbox{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin:18px 0}
+.layer{display:flex;align-items:stretch;gap:14px}
+.layer .badge{width:170px;min-width:170px;border-radius:10px;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px 8px;line-height:1.35}
+.layer .what{flex:1;padding:10px 4px 10px 14px;font-size:14.5px}
+.layer .what b{display:block;font-size:14.5px;color:var(--green-d)}
+.layer .what span{color:var(--muted);font-size:13.8px}
+.larrow{display:flex;justify-content:flex-start;color:#A8B5AE;font-size:19px;line-height:1;margin:3px 0 3px 78px}
+.l1 .badge{background:var(--green)}
+.l2 .badge{background:#0E7F63}
+.l3 .badge{background:var(--gold)}
+.l4 .badge{background:#8A6A1F}
+.l5 .badge{background:var(--blue)}
+.layer code, td code, code.inline{background:#EFEDE6;border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:.88em;color:var(--green-d);font-family:Consolas,"Courier New",monospace}
+.tblwrap{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:0 3px 12px rgba(20,35,29,.05);font-size:14.5px;min-width:600px}
+th{background:var(--green-d);color:#EAF3EE;text-align:left;padding:11px 14px;font-size:13px;letter-spacing:.05em;text-transform:uppercase}
+td{padding:11px 14px;border-bottom:1px solid #EEEBE2;vertical-align:top}
+tr:last-child td{border-bottom:none}
+td b{color:var(--green-d)}
+.pill{display:inline-block;font-size:11px;font-weight:800;border-radius:20px;padding:2px 10px;color:#fff}
+.pill.must{background:#A8442C}.pill.info{background:var(--blue)}
+footer{background:var(--green-d);color:#BFD9CD;text-align:center;padding:24px 20px;font-size:13.5px}
+@media(max-width:640px){.layer .badge{width:110px;min-width:110px;font-size:11.5px}.larrow{margin-left:48px}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="tagline">BMCI · Q360 / QlickFlow · fund-management-front · Doc d'architecture + cadrage feature</div>
+    <h1>Un hexagone côté front aussi :<br>comment <em>fund-management-front</em> est construit — et où vivra ta « Liste des opérations »</h1>
+    <p class="sub">Bonne nouvelle : cette app Angular est organisée <strong>exactement comme le microservice Java que tu as refactoré</strong> — mêmes mots, mêmes couches, même philosophie ports &amp; adapters. Tu connais déjà cette architecture ; ce doc te donne la correspondance, le trajet d'une donnée, et le plan précis de ta feature.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section>
+  <div class="eyebrow">1 · La grande idée</div>
+  <h2>C'est ton hexagonal backend, traduit en Angular</h2>
+  <p>Regarde l'arborescence de <code class="inline">features/fund-management</code> et compare avec le microservice Java :</p>
+  <div class="tblwrap">
+  <table>
+    <thead><tr><th>Côté front (Angular)</th><th>Équivalent backend (Java)</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><code>presenter/pages/</code></td><td><code>application/rest</code> (Controller)</td><td>Le point de contact avec le monde extérieur — ici l'utilisateur au lieu du HTTP entrant</td></tr>
+      <tr><td><code>domain/domain-core/entities</code>, <code>value-objects</code>, <code>aggregators</code></td><td><code>fund-management-domain-core</code></td><td>Le métier pur : modèles (<code>operation.model.ts</code>), règles, zéro dépendance technique</td></tr>
+      <tr><td><code>domain/domain-application-services</code></td><td><code>fund-management-application-service</code> (use cases)</td><td>L'orchestration des cas d'usage (<code>fundManagement.service.ts</code>)</td></tr>
+      <tr><td><code>adapters/apiAdapters</code></td><td><code>fund-management-data-access</code> (RepositoryImpl)</td><td>L'adapter technique vers le monde extérieur — HTTP au lieu de JPA (<code>fundManagement-http.service.ts</code>)</td></tr>
+      <tr><td><code>adapters/localState</code> (store/query/actions/facade)</td><td>≈ la base de données… mais en mémoire</td><td>L'état local de la feature : le cache réactif dans lequel les composants lisent</td></tr>
+      <tr><td><code>core/guards</code>, <code>privileges-manager</code></td><td>Spring Security + filtres</td><td>Contrôle d'accès : qui entre sur quelle route, qui voit quel bouton (<code>is-granted</code>)</td></tr>
+      <tr><td><code>shared/presenter/components</code></td><td>≈ un socle commun</td><td>Les briques UI réutilisables : header, drawer, input, feedback-state, icons</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="analogie">
+    <span class="tag">Analogie</span>
+    Même immeuble, autre ville. Au backend, l'hexagone protège le métier de la <b>base de données</b> ; au front, il protège le métier du <b>framework et du HTTP</b>. Dans les deux cas la règle est identique : <b>le domaine ne connaît personne, tout le monde connaît le domaine</b>. Si demain l'API change (agence → corpo, tiens tiens…), seul l'adapter HTTP bouge — et c'est précisément pour ça que l'équipe a choisi ce découpage, vu la migration en cours.
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">2 · Le trajet d'une donnée</div>
+  <h2>De l'écran au backend, aller-retour</h2>
+  <p>Voici ce qui se passera quand ta page « Liste » se chargera :</p>
+
+  <div class="flowbox">
+    <div class="layer l1">
+      <div class="badge">COMPOSANT<br>(presenter)</div>
+      <div class="what"><b>fund-management-list.component.ts</b><span>« J'ai besoin des opérations » → il appelle la façade, et affiche ce que la query lui donne. Il ne sait ni d'où viennent les données, ni comment.</span></div>
+    </div>
+    <div class="larrow">↓</div>
+    <div class="layer l2">
+      <div class="badge">FAÇADE<br>(localState)</div>
+      <div class="what"><b>fundMangement.facade.ts</b><span>Le guichet unique de la feature : il expose <code>loadOperations()</code> et les observables. C'est LE seul fichier que le composant importe.</span></div>
+    </div>
+    <div class="larrow">↓</div>
+    <div class="layer l3">
+      <div class="badge">SERVICE MÉTIER<br>(domain)</div>
+      <div class="what"><b>fundManagement.service.ts</b><span>Le cas d'usage : il coordonne, applique les règles éventuelles (tri métier, mapping), et délègue la technique à l'adapter.</span></div>
+    </div>
+    <div class="larrow">↓</div>
+    <div class="layer l4">
+      <div class="badge">ADAPTER HTTP<br>(apiAdapters)</div>
+      <div class="what"><b>fundManagement-http.service.ts</b><span>Le seul qui connaît les URLs : <code>GET /cash</code> vers le microservice (via le proxy en dev). Il traduit le JSON de l'API en modèles du domaine.</span></div>
+    </div>
+    <div class="larrow">↓ &nbsp;réponse&nbsp; ↑</div>
+    <div class="layer l5">
+      <div class="badge">STORE + QUERY<br>(localState)</div>
+      <div class="what"><b>fundMangement.store.ts / query.ts</b><span>La réponse est rangée dans le store (l'état) ; la query expose des flux filtrés/triés ; le composant, abonné, se met à jour tout seul. Réactif de bout en bout.</span></div>
+    </div>
+  </div>
+
+  <div class="retenir">
+    <span class="tag">La règle d'or</span>
+    Un composant <b>n'appelle jamais</b> l'adapter HTTP directement, et <b>ne stocke jamais</b> dans ses attributs des données qui appartiennent à la feature. Il demande à la <b>façade</b>, il lit la <b>query</b>. Toute la testabilité du front (comme celle du backend avec les ports mockés) repose là-dessus.
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow o">3 · Ta feature</div>
+  <h2>La « Liste des opérations » : où elle vit, ce qu'on va créer</h2>
+  <p>D'après le partage convenu (ton collègue : le formulaire de saisie vu dans les maquettes — caisse, GAB, ramassage, devises ; toi : la <strong>consultation</strong>), ta partie couvre : lister les demandes/opérations existantes avec leur statut, et probablement le point d'entrée vers le détail et l'annulation. Côté API, terrain connu — c'est le contrat de l'ancienne version agence que tu as toi-même refactorée : <code class="inline">GET /cash</code> (liste), <code class="inline">GET /cash/{id}</code>, <code class="inline">PATCH /cash/{id}/cancel</code>, <code class="inline">PATCH /cash/{id}/operations/cancel</code>.</p>
+
+  <h3>Les fichiers à créer / modifier</h3>
+  <div class="tblwrap">
+  <table>
+    <thead><tr><th>Fichier</th><th>Action</th><th>Contenu</th></tr></thead>
+    <tbody>
+      <tr><td><code>presenter/pages/fund-management-list/</code><br>(component .ts/.html/.scss/.spec)</td><td><span class="pill must">CRÉER</span></td><td>La page liste : tableau des demandes, statuts, filtres, actions. S'appuie sur les composants <code>shared</code> (header, input, feedback-state pour vide/erreur/chargement)</td></tr>
+      <tr><td><code>fund-management.routes.ts</code></td><td><span class="pill must">MODIFIER</span></td><td>Ajouter la route <code>list</code>, protégée par les guards existants, selon le pattern du fichier</td></tr>
+      <tr><td><code>domain-core/entities/</code> (ex. <code>cash-request.model.ts</code>)</td><td><span class="pill must">CRÉER</span></td><td>Le modèle de la demande (aligné sur le CashRequestDTO de l'API agence : id, statut, opérations…) — <code>operation.model.ts</code> existe déjà, on le complète</td></tr>
+      <tr><td><code>adapters/apiAdapters/fundManagement-http.service.ts</code></td><td><span class="pill must">MODIFIER</span></td><td>Ajouter <code>getAll()</code> → <code>GET /cash</code> (+ <code>cancel</code> si l'action est dans ta partie)</td></tr>
+      <tr><td><code>adapters/localState/</code> (store, query, actions, facade)</td><td><span class="pill must">MODIFIER</span></td><td>État <code>operations[]</code> + <code>loading/error</code>, action de chargement, sélecteurs, méthode <code>loadOperations()</code> dans la façade</td></tr>
+      <tr><td><code>domain-application-services/.../fundManagement.service.ts</code></td><td><span class="pill must">MODIFIER</span></td><td>Le cas d'usage « charger la liste » entre façade et adapter</td></tr>
+      <tr><td><code>shared/.../feedback-state</code></td><td><span class="pill info">RÉUTILISER</span></td><td>Pour les états liste vide / erreur réseau / chargement — ne pas réinventer</td></tr>
+      <tr><td><code>core/privileges-manager/is-granted.directive</code></td><td><span class="pill info">RÉUTILISER</span></td><td>Masquer l'action « Annuler » selon les droits, comme le reste de l'app</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="card o">
+    <h4>⚠️ Le point de coordination avec ton collègue : vous partagez le même localState</h4>
+    <p>Lui écrit dans le store (création de demande), toi tu le lis (liste). Décidez ensemble <b>maintenant</b> de la forme de l'état (une seule collection <code>cashRequests</code> ? statuts normalisés ? qui déclenche le rechargement après une création ?) — sinon vous vous marcherez dessus au premier merge. Même logique que les décisions de merge corpo/retail côté backend : 10 minutes à deux, des heures économisées.</p>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow o">4 · Ce dont j'ai besoin pour coder</div>
+  <h2>Les fichiers à me partager — la liste exacte</h2>
+  <p>Pas besoin de tout le repo. Par ordre d'importance :</p>
+
+  <div class="card g">
+    <h4>🎯 Indispensables (le pattern à respecter)</h4>
+    <ul class="clean">
+      <li><code class="inline">adapters/localState/fundMangement.store.ts</code> + <code class="inline">query.ts</code> + <code class="inline">actions.ts</code> + <code class="inline">facade.ts</code> — les 4, pour reproduire exactement le pattern d'état (Akita ? maison ? signals ?)</li>
+      <li><code class="inline">adapters/apiAdapters/fundManagement-http.service.ts</code> — la convention d'appel (base URL, headers, mapping)</li>
+      <li><code class="inline">domain-application-services/output/fundManagement.service.ts</code> — le chaînage façade↔adapter</li>
+      <li><code class="inline">domain-core/entities/operation.model.ts</code> — le modèle existant à étendre</li>
+      <li><code class="inline">presenter/pages/fund-management/fund-management.component.ts</code> + <code class="inline">.html</code> — la page de ton collègue = le modèle de structure d'une page</li>
+      <li><code class="inline">fund-management.routes.ts</code> et <code class="inline">app.routes.ts</code> — pour brancher la route proprement</li>
+    </ul>
+  </div>
+
+  <div class="card b">
+    <h4>📎 Utiles (pour réutiliser au lieu de réinventer)</h4>
+    <ul class="clean">
+      <li><code class="inline">shared/.../feedback-state.component.ts</code> + <code class="inline">.html</code> — ses @Input pour les états vide/erreur</li>
+      <li><code class="inline">shared/.../input.component.ts</code> — si la liste a une recherche/filtres</li>
+      <li><code class="inline">core/privileges-manager/is-granted.directive.ts</code> — la syntaxe exacte de la directive de droits</li>
+      <li><code class="inline">environment.ts</code> + <code class="inline">proxy.config.json</code> — pour câbler le GET /cash vers ton microservice local (port 8300)</li>
+      <li>La maquette UX de la <b>vue liste</b> précisément (celles partagées montrent la saisie — s'il existe un écran liste dédié dans le lot, c'est lui mon contrat visuel)</li>
+    </ul>
+  </div>
+
+  <p class="muted">Colle-les dans la conversation (ou en fichier markdown comme pour le backend). Dès réception des « indispensables », je livre la feature complète dans le pattern exact du projet : modèle, adapter, state, façade, composant, route, et les specs — comme d'habitude.</p>
+</section>
+
+</main>
+
+<footer>
+  BMCI · Squad Q360 / QlickFlow · fund-management-front — doc d'architecture &amp; cadrage feature « Liste » · 10/08/2026
+</footer>
+</body>
+</html>
