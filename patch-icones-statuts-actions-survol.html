@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Icônes SVG par statut + Actions au survol — fund-management-list</title>
+<style>
+:root{--paper:#F6F5F1;--ink:#17251F;--muted:#5C6B63;--green:#0B6B4F;--green-d:#07402F;--gold:#B8892C;--gold-soft:#F4EAD6;--green-soft:#E3EFE9;--line:#DCD9CF;--code-bg:#0E1B16;--code-ink:#D9E8E0;--red:#A8442C;--blue:#2F5D8A;--blue-soft:#E4EDF6;--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:"Segoe UI",system-ui,Arial,sans-serif;line-height:1.62;font-size:16px}
+.wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+.hero{background:linear-gradient(160deg,var(--green-d) 0%,var(--green) 78%);color:#F2F7F4;padding:36px 0 32px}
+.tagline{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#BFD9CD;margin-bottom:10px}
+.hero h1{font-size:clamp(23px,3.4vw,30px);line-height:1.22;font-weight:800;max-width:880px}
+.hero h1 em{color:#EBCB8B;font-style:normal}
+.hero .sub{margin-top:10px;max-width:840px;color:#D7E7DF;font-size:15px}
+main{padding:34px 0 60px}
+section{margin-bottom:40px}
+.eyebrow{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;margin-bottom:6px;color:var(--green)}
+h2{font-size:22px;font-weight:800;margin-bottom:10px}
+p{margin-bottom:12px}
+strong{color:var(--green-d)}
+.muted{color:var(--muted)}
+.badge{display:inline-block;font-size:11px;font-weight:800;border-radius:20px;padding:3px 12px;color:#fff;letter-spacing:.06em;vertical-align:middle;margin-left:10px;background:var(--gold)}
+.filetitle{background:var(--green-d);color:#DCEDE4;font-size:12.5px;font-weight:700;border-radius:10px 10px 0 0;padding:8px 16px;font-family:Consolas,monospace;display:flex;align-items:center;justify-content:space-between;margin-top:22px}
+.codebox{position:relative;margin:0 0 8px}
+.codebox pre{background:var(--code-bg);color:var(--code-ink);border-radius:0 0 12px 12px;padding:18px;font-family:Consolas,"Courier New",monospace;font-size:12.8px;line-height:1.6;overflow-x:auto;white-space:pre}
+.copybtn{background:rgba(255,255,255,.14);color:#EAF3EE;border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:4px 12px;font-size:11.5px;font-weight:700;cursor:pointer}
+.copybtn:hover{background:var(--gold);border-color:var(--gold)}
+.copybtn.ok{background:var(--green);border-color:var(--green)}
+.simple{background:var(--blue-soft);border:1px solid #C3D4E5;border-radius:var(--radius);padding:13px 17px;margin:10px 0 4px;font-size:14.5px}
+.simple .tag{display:inline-block;background:var(--blue);color:#fff;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;border-radius:20px;padding:2px 10px;margin-right:8px}
+.retenir{background:var(--green-soft);border:1px solid #C4DACF;border-radius:var(--radius);padding:14px 18px;margin:14px 0;font-size:14.5px}
+.retenir .tag{display:inline-block;background:var(--green);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;border-radius:20px;padding:2px 11px;margin-bottom:6px}
+code.inline{background:#EFEDE6;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.87em;color:var(--green-d);font-family:Consolas,monospace}
+footer{background:var(--green-d);color:#BFD9CD;text-align:center;padding:20px;font-size:13px}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+<div class="tagline">BMCI · Q360 / QlickFlow · fund-management-front · Patch UI</div>
+<h1>Icônes SVG par statut + <em>Actions révélées au survol</em></h1>
+<p class="sub">3 modifications dans <strong style="color:#EBCB8B">fund-management-list</strong>. Pourquoi des SVG inline ? Les mat-icon dépendent d'une police Google bloquée par le réseau BMCI — on applique le pattern déjà utilisé par le projet lui-même (shared/icons : SVG lucide collés dans le template, zéro dépendance réseau).</p>
+</div></header>
+<main class="wrap">
+
+<section>
+<div class="eyebrow">Modif 1 · La cellule Statut</div>
+<h2>Icône intégrée dans la chip <span class="badge">HTML — REMPLACER LE &lt;td&gt; STATUT</span></h2>
+<div class="simple"><span class="tag">En clair</span>Chaque statut reçoit son pictogramme : ✓ cercle-coche (Validé), horloge (En Attente), boîte d'archive (Archivé). <code>stroke="currentColor"</code> = « prends la couleur du texte parent » — l'icône hérite automatiquement de la couleur de la chip, sans rien coder de plus.</div>
+<div class="filetitle"><span>fund-management-list.component.html — le &lt;td&gt; de la colonne Statut</span><button class="copybtn" onclick="copyIt(this)">Copier</button></div>
+<div class="codebox"><pre>&lt;td&gt;
+  &lt;span class="chip-statut" [class]="'chip-statut statut-' + d.requestStatus"&gt;
+    &lt;svg *ngIf="d.requestStatus === 'VALIDATED'" width="14" height="14" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"&gt;
+      &lt;path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/&gt;&lt;polyline points="22 4 12 14.01 9 11.01"/&gt;
+    &lt;/svg&gt;
+    &lt;svg *ngIf="d.requestStatus === 'INITIATED'" width="14" height="14" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"&gt;
+      &lt;circle cx="12" cy="12" r="10"/&gt;&lt;polyline points="12 6 12 12 16 14"/&gt;
+    &lt;/svg&gt;
+    &lt;svg *ngIf="d.requestStatus === 'CANCELLED'" width="14" height="14" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"&gt;
+      &lt;rect x="2" y="3" width="20" height="5" rx="1"/&gt;&lt;path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/&gt;&lt;line x1="10" y1="12" x2="14" y2="12"/&gt;
+    &lt;/svg&gt;
+    {{ libelleStatut(d.requestStatus) }}
+  &lt;/span&gt;
+&lt;/td&gt;</pre></div>
+</section>
+
+<section>
+<div class="eyebrow">Modif 2 · La cellule Actions</div>
+<h2>Œil (détail) + Archive, masqués par défaut <span class="badge">HTML — REMPLACER LE &lt;td&gt; ACTIONS</span></h2>
+<div class="filetitle"><span>fund-management-list.component.html — le &lt;td class="col-actions"&gt;</span><button class="copybtn" onclick="copyIt(this)">Copier</button></div>
+<div class="codebox"><pre>&lt;td class="col-actions"&gt;
+  &lt;button class="btn-action" type="button" title="Voir le détail" (click)="voirDetail(d)"&gt;
+    &lt;svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round"&gt;
+      &lt;path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/&gt;&lt;circle cx="12" cy="12" r="3"/&gt;
+    &lt;/svg&gt;
+  &lt;/button&gt;
+  &lt;button class="btn-action" type="button" title="Archiver"
+    [disabled]="d.requestStatus === 'CANCELLED'" (click)="annuler(d)"&gt;
+    &lt;svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round"&gt;
+      &lt;rect x="2" y="3" width="20" height="5" rx="1"/&gt;&lt;path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/&gt;&lt;line x1="10" y1="12" x2="14" y2="12"/&gt;
+    &lt;/svg&gt;
+  &lt;/button&gt;
+&lt;/td&gt;</pre></div>
+
+<div class="filetitle"><span>fund-management-list.component.ts — AJOUTER la méthode</span><button class="copybtn" onclick="copyIt(this)">Copier</button></div>
+<div class="codebox"><pre>  voirDetail(d: DemandeFonds): void {
+    // TODO : écran détail de la demande (prochaine feature)
+    this.snackBar.open(`Détail de ${this.reference(d)} — à venir.`, 'Fermer', { duration: 3000 });
+  }</pre></div>
+</section>
+
+<section>
+<div class="eyebrow">Modif 3 · Le SCSS</div>
+<h2>Le mécanisme du survol <span class="badge">SCSS — AJOUTER À LA FIN</span></h2>
+<div class="simple"><span class="tag">En clair</span>Les boutons sont toujours dans la page mais à <code>opacity: 0</code> (invisibles). La règle <code>tbody tr:hover .btn-action</code> = « souris sur la ligne → montre SES boutons ». Le <code>transition</code> donne le fondu de la maquette. Fidélité maquette : sur une ligne Archivé, le bouton archive reste masqué même au survol (<code>:disabled</code>). Et <code>:focus-visible</code> garde l'accessibilité clavier (navigation Tab).</div>
+<div class="filetitle"><span>fund-management-list.component.scss — à la fin du fichier</span><button class="copybtn" onclick="copyIt(this)">Copier</button></div>
+<div class="codebox"><pre>.chip-statut {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  svg { flex: none; }
+}
+
+.btn-action {
+  opacity: 0;
+  transition: opacity 0.15s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #5c6b63;
+  padding: 6px;
+  border-radius: 6px;
+
+  &:hover { background: #eef4f1; color: #0e7d5a; }
+  &:focus-visible { opacity: 1; }
+  &:disabled { opacity: 0 !important; cursor: default; }
+}
+
+tbody tr:hover .btn-action { opacity: 1; }</pre></div>
+</section>
+
+<section>
+<div class="eyebrow">Validation</div>
+<h2>3 vérifications</h2>
+<div class="retenir"><span class="tag">Checklist</span>
+<b>①</b> Chaque statut a son pictogramme dans la chip, à la couleur de la chip.&nbsp;
+<b>②</b> Ligne survolée → œil + archive apparaissent en fondu ; souris ailleurs → ils disparaissent.&nbsp;
+<b>③</b> Ligne Archivé → seul l'œil apparaît au survol, jamais le bouton archive.
+&nbsp;· Bonus : supprime les anciens <code>mat-icon</code> du tableau (warning/archive) devenus inutiles. Le warning Tailwind dans ta console vient du fichier maquette ouvert dans l'autre onglet — rien à corriger côté app.</div>
+</section>
+
+</main>
+<footer>BMCI · Squad Q360 / QlickFlow · fund-management-front — patch icônes &amp; survol · 10/08/2026</footer>
+<script>
+function copyIt(btn){
+  const box = btn.closest('.filetitle').nextElementSibling.querySelector('pre');
+  navigator.clipboard.writeText(box.innerText).then(()=>{
+    btn.textContent='Copié ✓';btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='Copier';btn.classList.remove('ok')},1800);
+  });
+}
+</script>
+</body>
+</html>
