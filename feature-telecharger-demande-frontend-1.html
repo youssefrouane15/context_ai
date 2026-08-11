@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feature « Télécharger une demande » — génération 100% frontend (Option A)</title>
+<style>
+  :root{
+    --vert:#0B6B4F; --vert-fonce:#07402F; --or:#B8892C;
+    --fond:#F7F9F8; --carte:#FFFFFF; --texte:#1D2A26; --gris:#5E6E68;
+    --code-bg:#0F1E1A; --code-texte:#D8E6E0;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI', Tahoma, sans-serif; background:var(--fond); color:var(--texte); line-height:1.6;}
+  header{background:linear-gradient(135deg, var(--vert-fonce), var(--vert)); color:#fff; padding:36px 48px;}
+  header h1{font-size:1.6rem; font-weight:600;}
+  header p{opacity:.85; margin-top:6px; font-size:.95rem;}
+  .badge{display:inline-block; background:var(--or); color:#fff; font-size:.75rem; padding:3px 10px; border-radius:12px; margin-top:12px; letter-spacing:.5px; margin-right:8px;}
+  main{max-width:1000px; margin:0 auto; padding:32px 24px 64px;}
+  section{background:var(--carte); border-radius:10px; padding:28px 32px; margin-bottom:24px; box-shadow:0 1px 4px rgba(7,64,47,.08); border-left:4px solid var(--vert);}
+  section.rollback{border-left-color:#B33A3A;}
+  h2{color:var(--vert-fonce); font-size:1.15rem; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  h3{color:var(--vert-fonce); font-size:1rem; margin:18px 0 8px;}
+  .num{background:var(--vert); color:#fff; width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0;}
+  .num.rouge{background:#B33A3A;}
+  p{margin-bottom:12px;}
+  .fichier{display:inline-block; background:#EAF3EF; color:var(--vert-fonce); font-family:Consolas, monospace; font-size:.85rem; padding:2px 8px; border-radius:4px;}
+  .note{background:#FFF8EC; border-left:4px solid var(--or); padding:14px 18px; border-radius:6px; margin:16px 0; font-size:.93rem;}
+  .note strong{color:var(--or);}
+  .ok{background:#EAF6EF; border-left:4px solid var(--vert); padding:14px 18px; border-radius:6px; margin:16px 0; font-size:.93rem;}
+  .flux{background:#EAF6EF; border:1px solid #C4DACF; border-radius:8px; padding:16px 20px; margin:16px 0; font-family:Consolas, monospace; font-size:.88rem; text-align:center; color:var(--vert-fonce);}
+  .code-bloc{position:relative; margin:14px 0;}
+  .titre-fichier{background:var(--vert-fonce); color:#EAF3EE; font-family:Consolas, monospace; font-size:.8rem; padding:8px 14px; border-radius:8px 8px 0 0; display:flex; justify-content:space-between; align-items:center; gap:12px;}
+  .titre-fichier .tag-action{background:var(--or); color:#fff; font-size:.68rem; padding:2px 8px; border-radius:10px; letter-spacing:.5px; white-space:nowrap;}
+  .titre-fichier .tag-action.creer{background:#A8442C;}
+  .titre-fichier + pre{border-radius:0 0 8px 8px; margin-top:0;}
+  pre{background:var(--code-bg); color:var(--code-texte); padding:20px; border-radius:8px; overflow-x:auto; font-family:Consolas,'Courier New',monospace; font-size:.84rem; line-height:1.55;}
+  .btn-copier{background:var(--vert); color:#fff; border:none; padding:4px 12px; border-radius:5px; cursor:pointer; font-size:.75rem;}
+  .btn-copier:hover{background:var(--or);}
+  .kw{color:#7FD1B4;} .str{color:#E8C77D;} .com{color:#6E8B82; font-style:italic;} .att{color:#9BC4E2;} .bal{color:#F2A0A0;}
+  ul{margin:8px 0 12px 22px;}
+  li{margin-bottom:6px;}
+  table{border-collapse:collapse; width:100%; margin:14px 0; font-size:.9rem;}
+  th{background:var(--vert-fonce); color:#EAF3EE; text-align:left; padding:9px 12px; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em;}
+  td{padding:9px 12px; border-bottom:1px solid #EEEBE2; vertical-align:top;}
+  td code{background:#EAF3EF; color:var(--vert-fonce); font-family:Consolas, monospace; font-size:.85em; padding:1px 6px; border-radius:4px;}
+  footer{text-align:center; color:var(--gris); font-size:.8rem; padding-bottom:32px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Feature « Télécharger une demande » — 100% frontend</h1>
+  <p><strong>fund-management-front</strong> · Option A : génération CSV native, zéro backend, zéro dépendance npm</p>
+  <span class="badge">OPTION A</span><span class="badge">SANS DÉPENDANCE</span><span class="badge">SANS ENDPOINT API</span>
+</header>
+<main>
+
+<section>
+  <h2><span class="num">1</span>Cadrage fonctionnel</h2>
+  <p>Le bouton « Télécharger » de la liste des demandes génère un fichier <strong>CSV récapitulatif</strong> de la demande, entièrement côté navigateur, à partir des données <strong>déjà présentes dans le store</strong> (l'objet <span class="fichier">DemandeFonds</span> chargé par <span class="fichier">loadDemandes()</span>). Aucun appel réseau, aucun endpoint backend, aucune librairie à installer.</p>
+  <h3>Pourquoi CSV natif et pas PDF</h3>
+  <ul>
+    <li><strong>Zéro dépendance :</strong> un PDF exigerait jsPDF via Artifactory — vu l'historique (timeouts, .npmrc, ECONNRESET), on ne fait pas dépendre la feature d'un npm install incertain.</li>
+    <li><strong>Exploitable :</strong> le CSV s'ouvre dans Excel (usage bancaire courant), séparateur <code style="background:#EAF3EF;padding:1px 6px;border-radius:4px;">;</code> et BOM UTF-8 pour que les accents et le format français passent proprement.</li>
+    <li><strong>Évolutif :</strong> si la maquette exige plus tard un PDF formaté (entête BMCI, édition), ce sera un endpoint backend à cadrer avec Yassin — la chaîne construite ici ne changera pas, seul l'adapter d'export sera remplacé.</li>
+  </ul>
+  <h3>Contenu du fichier généré</h3>
+  <p>Un bloc entête (demande) puis une ligne par coupure de chaque opération :</p>
+  <table>
+    <tr><th>Bloc</th><th>Colonnes</th></tr>
+    <tr><td><strong>Entête demande</strong></td><td>Référence (id) · Agence (branchCode) · Établissement · Statut (libellé FR)</td></tr>
+    <tr><td><strong>Détail</strong></td><td>Opération (type) · Sens · Urgent · Statut opération · Devise · Coupure · Quantité · Montant devise</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span class="num">2</span>Architecture — où vit chaque morceau</h2>
+  <p>La génération d'un fichier est une préoccupation <strong>technique</strong> (comme le HTTP) : elle vit donc dans <span class="fichier">adapters</span>, pas dans le domaine ni dans le composant. La chaîne respecte le pattern du projet :</p>
+  <div class="flux">composant → façade → actions → adapter d'export (nouveau)</div>
+  <table>
+    <tr><th>Fichier</th><th>Action</th><th>Rôle</th></tr>
+    <tr><td><code>adapters\exportAdapters\demande-export.service.ts</code></td><td><strong style="color:#A8442C;">CRÉER</strong></td><td>Construit le CSV depuis <code>DemandeFonds</code> et déclenche le téléchargement navigateur</td></tr>
+    <tr><td><code>adapters\localState\fundMangement.actions.ts</code></td><td><strong style="color:var(--or);">MODIFIER</strong></td><td>Nouvelle action <code>telechargerDemande(d)</code> — passthrough vers l'adapter, pas d'écriture store</td></tr>
+    <tr><td><code>adapters\localState\fundMangement.facade.ts</code></td><td><strong style="color:var(--or);">MODIFIER</strong></td><td>Délégation aux actions (le seul chemin possible : la façade n'a que query + actions)</td></tr>
+    <tr><td><code>presenter\pages\fund-management-list\...component.ts</code></td><td><strong style="color:var(--or);">MODIFIER</strong></td><td><code>telecharger(d)</code> simplifiée : appel façade + snackbars</td></tr>
+    <tr><td><code>...component.html</code></td><td><strong style="color:var(--vert);">INCHANGÉ</strong></td><td>Le bouton avec l'icône télécharger est déjà en place</td></tr>
+  </table>
+  <div class="note"><strong>Ce qui ne bouge pas :</strong> le port <span class="fichier">FundService</span>, l'adapter HTTP et le service métier — l'export ne fait aucun appel réseau, il n'a rien à faire dans le port API.</div>
+</section>
+
+<section>
+  <h2><span class="num">3</span>L'adapter d'export (nouveau fichier)</h2>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>src\app\features\fund-management\adapters\exportAdapters\demande-export.service.ts</span><span class="tag-action creer">CRÉER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">import</span> { Injectable } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { DemandeFonds } <span class="kw">from</span> <span class="str">'../../domain/domain-core/entities/operation.model'</span>;
+<span class="com">// ⚠️ Ajuste le chemin d'import selon l'emplacement réel de DemandeFonds</span>
+
+<span class="att">@Injectable</span>({ providedIn: <span class="str">'root'</span> })
+<span class="kw">export class</span> DemandeExportService {
+
+  <span class="com">/** Génère le CSV et déclenche le téléchargement navigateur. */</span>
+  telecharger(d: DemandeFonds): <span class="kw">void</span> {
+    <span class="kw">const</span> csv = <span class="kw">this</span>.genererCsv(d);
+
+    <span class="com">// BOM UTF-8 : indispensable pour qu'Excel affiche correctement les accents</span>
+    <span class="kw">const</span> blob = <span class="kw">new</span> Blob([<span class="str">'\uFEFF'</span> + csv], { type: <span class="str">'text/csv;charset=utf-8;'</span> });
+
+    <span class="kw">const</span> url = window.URL.createObjectURL(blob);
+    <span class="kw">const</span> lien = document.createElement(<span class="str">'a'</span>);
+    lien.href = url;
+    lien.download = <span class="str">`demande-fonds-${d.id}.csv`</span>;
+    lien.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  <span class="com">/** Construit le contenu CSV : entête demande + une ligne par coupure. */</span>
+  <span class="kw">private</span> genererCsv(d: DemandeFonds): <span class="kw">string</span> {
+    <span class="kw">const</span> lignes: <span class="kw">string</span>[] = [];
+
+    <span class="com">// ---- Bloc entête demande ----</span>
+    lignes.push([<span class="str">'Référence'</span>, <span class="str">'Agence'</span>, <span class="str">'Établissement'</span>, <span class="str">'Statut'</span>].join(<span class="str">';'</span>));
+    lignes.push([
+      <span class="kw">this</span>.champ(d.id),
+      <span class="kw">this</span>.champ(d.branchCode),
+      <span class="kw">this</span>.champ(d.establishment),
+      <span class="kw">this</span>.champ(<span class="kw">this</span>.libelleStatut(d.requestStatus))
+    ].join(<span class="str">';'</span>));
+    lignes.push(<span class="str">''</span>); <span class="com">// ligne vide de séparation</span>
+
+    <span class="com">// ---- Bloc détail des opérations ----</span>
+    lignes.push([
+      <span class="str">'Opération'</span>, <span class="str">'Sens'</span>, <span class="str">'Urgent'</span>, <span class="str">'Statut opération'</span>,
+      <span class="str">'Devise'</span>, <span class="str">'Coupure'</span>, <span class="str">'Quantité'</span>, <span class="str">'Montant devise'</span>
+    ].join(<span class="str">';'</span>));
+
+    <span class="kw">for</span> (<span class="kw">const</span> op <span class="kw">of</span> d.operations ?? []) {
+      <span class="kw">const</span> baseOp = [
+        <span class="kw">this</span>.champ(op.operationType),
+        <span class="kw">this</span>.champ(op.operationSens),
+        <span class="kw">this</span>.champ(op.isUrgent),
+        <span class="kw">this</span>.champ(<span class="kw">this</span>.libelleStatut(op.operationStatus))
+      ];
+
+      <span class="kw">const</span> details = op.currencyDetails ?? [];
+      <span class="kw">if</span> (details.length === 0) {
+        <span class="com">// Opération sans ventilation (ex. ramassage) : une seule ligne</span>
+        lignes.push([...baseOp, <span class="str">''</span>, <span class="str">''</span>, <span class="str">''</span>, <span class="str">''</span>].join(<span class="str">';'</span>));
+        <span class="kw">continue</span>;
+      }
+
+      <span class="kw">for</span> (<span class="kw">const</span> detail <span class="kw">of</span> details) {
+        <span class="kw">const</span> denoms = detail.operationDenominations ?? [];
+        <span class="kw">if</span> (denoms.length === 0) {
+          lignes.push([
+            ...baseOp,
+            <span class="kw">this</span>.champ(detail.currency?.isoCode),
+            <span class="str">''</span>, <span class="str">''</span>,
+            <span class="kw">this</span>.champ(detail.totalAmountByCurrency)
+          ].join(<span class="str">';'</span>));
+          <span class="kw">continue</span>;
+        }
+
+        <span class="kw">for</span> (<span class="kw">const</span> denom <span class="kw">of</span> denoms) {
+          lignes.push([
+            ...baseOp,
+            <span class="kw">this</span>.champ(detail.currency?.isoCode),
+            <span class="kw">this</span>.champ(denom.denomination?.denominationLabel),
+            <span class="kw">this</span>.champ(denom.quantity),
+            <span class="kw">this</span>.champ(detail.totalAmountByCurrency)
+          ].join(<span class="str">';'</span>));
+        }
+      }
+    }
+
+    <span class="kw">return</span> lignes.join(<span class="str">'\r\n'</span>);
+  }
+
+  <span class="com">/** Échappe un champ CSV : null-safe, guillemets doublés, encadré si nécessaire. */</span>
+  <span class="kw">private</span> champ(valeur: <span class="kw">unknown</span>): <span class="kw">string</span> {
+    <span class="kw">if</span> (valeur === <span class="kw">null</span> || valeur === <span class="kw">undefined</span>) { <span class="kw">return</span> <span class="str">''</span>; }
+    <span class="kw">const</span> s = String(valeur);
+    <span class="kw">return</span> /[;"\r\n]/.test(s) ? <span class="str">`"${s.replace(/"/g, '""')}"`</span> : s;
+  }
+
+  <span class="com">/** Même mapping que le composant liste — statuts techniques → libellés FR. */</span>
+  <span class="kw">private</span> libelleStatut(s: <span class="kw">string</span>): <span class="kw">string</span> {
+    <span class="kw">const</span> map: Record&lt;<span class="kw">string</span>, <span class="kw">string</span>&gt; = {
+      INITIATED: <span class="str">'En Attente'</span>,
+      VALIDATED: <span class="str">'Validé'</span>,
+      CREATED: <span class="str">'Validé'</span>,
+      CANCELLED: <span class="str">'Annulée'</span>
+    };
+    <span class="kw">return</span> map[s] ?? s;
+  }
+}</code></pre>
+  </div>
+  <div class="note"><strong>Adapte deux points à ton code réel :</strong> (1) le chemin d'import de <span class="fichier">DemandeFonds</span> ; (2) les noms exacts des propriétés de tes modèles (<span class="fichier">currencyDetails</span>, <span class="fichier">operationDenominations</span>, <span class="fichier">denominationLabel</span>…) — je les ai alignés sur les DTOs du backend, vérifie qu'ils correspondent à <span class="fichier">operation.model.ts</span>. Si <span class="fichier">libelleStatut</span> devient dupliqué entre le composant et cet adapter, extrais-le dans un utilitaire partagé de la feature — à ta convenance.</div>
+</section>
+
+<section>
+  <h2><span class="num">4</span>Actions — <span class="fichier">fundMangement.actions.ts</span></h2>
+  <p>Injecter le nouvel adapter (nouveau champ dans le constructeur, à côté de <span class="fichier">serviceHttp</span>), puis ajouter l'action. Elle est <strong>synchrone</strong> — pas d'async, pas d'écriture store (un fichier téléchargé n'est pas de l'état) :</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>adapters\localState\fundMangement.actions.ts</span><span class="tag-action">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// 1) Import en tête de fichier</span>
+<span class="kw">import</span> { DemandeExportService } <span class="kw">from</span> <span class="str">'../exportAdapters/demande-export.service'</span>;
+
+<span class="com">// 2) Injection dans le constructeur, à côté du champ serviceHttp existant</span>
+<span class="com">//    constructor(..., private exportService: DemandeExportService) {}</span>
+
+<span class="com">// 3) Nouvelle action, sous annulerDemande</span>
+  telechargerDemande(d: DemandeFonds): <span class="kw">void</span> {
+    <span class="kw">this</span>.exportService.telecharger(d);
+  }</code></pre>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">5</span>Façade — <span class="fichier">fundMangement.facade.ts</span></h2>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>adapters\localState\fundMangement.facade.ts</span><span class="tag-action">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>  telechargerDemande(d: DemandeFonds): <span class="kw">void</span> {
+    <span class="kw">this</span>.actions.telechargerDemande(d);
+  }</code></pre>
+  </div>
+  <p>Remarque : la signature prend maintenant <strong>l'objet complet</strong> <span class="fichier">DemandeFonds</span> (et plus seulement l'id) — c'est lui qui porte les données à exporter, déjà en mémoire.</p>
+</section>
+
+<section>
+  <h2><span class="num">6</span>Composant — <span class="fichier">fund-management-list.component.ts</span></h2>
+  <p>La méthode se simplifie : plus d'async, plus de Blob, plus de <span class="fichier">createObjectURL</span> — tout est dans l'adapter :</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>presenter\pages\fund-management-list\fund-management-list.component.ts</span><span class="tag-action">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>telecharger(d: DemandeFonds): <span class="kw">void</span> {
+  <span class="kw">try</span> {
+    <span class="kw">this</span>.facade.telechargerDemande(d);
+    <span class="kw">this</span>.snackBar.open(<span class="str">'Demande téléchargée.'</span>, <span class="str">'Fermer'</span>, { duration: 3000 });
+  } <span class="kw">catch</span> (e) {
+    <span class="kw">this</span>.snackBar.open(<span class="str">"Erreur lors du téléchargement de la demande."</span>, <span class="str">'Fermer'</span>, { duration: 4000 });
+  }
+}</code></pre>
+  </div>
+  <p>Le template HTML est inchangé : le bouton <span class="fichier">(click)="telecharger(d)"</span> avec l'icône flèche fonctionne tel quel.</p>
+</section>
+
+<section class="rollback">
+  <h2><span class="num rouge">7</span>Rollback de la v3 — à supprimer si déjà appliqué</h2>
+  <p>La v3 construisait la chaîne sur un endpoint API inexistant. Si tu avais commencé à l'appliquer, retire ces morceaux :</p>
+  <ul>
+    <li><span class="fichier">telechargerDemande(id): Promise&lt;Blob&gt;</span> dans le <strong>port FundService</strong> — à supprimer.</li>
+    <li><span class="fichier">telechargerDemande</span> dans l'<strong>adapter HTTP</strong> (<span class="fichier">fundManagement-http.service.ts</span>) avec le <span class="fichier">firstValueFrom</span> vers <span class="fichier">/cash/{id}/export</span> — à supprimer.</li>
+    <li>L'éventuel passthrough dans le <strong>service métier</strong> (<span class="fichier">fundManagement.service.ts</span>) — à supprimer.</li>
+    <li>L'ancienne action/façade qui passaient un <span class="fichier">id: string</span> — remplacées par les versions de ce doc (objet <span class="fichier">DemandeFonds</span>).</li>
+    <li>L'import <span class="fichier">firstValueFrom</span> dans le composant s'il n'est plus utilisé.</li>
+  </ul>
+  <div class="ok"><strong>Après nettoyage :</strong> aucune trace de <span class="fichier">/export</span> dans le projet — <code style="background:#EAF3EF;padding:1px 6px;border-radius:4px;">Ctrl+Shift+F</code> sur « export » pour vérifier.</div>
+</section>
+
+<section>
+  <h2><span class="num">8</span>Checklist de validation</h2>
+  <ul>
+    <li>Compilation OK (<span class="fichier">ng serve --proxy-config proxy.conf.json</span>) — aucun nouvel appel réseau, le proxy n'est même pas sollicité par cette feature.</li>
+    <li>Clic « Télécharger » sur une demande avec opérations ventilées → fichier <span class="fichier">demande-fonds-{id}.csv</span> téléchargé, lisible dans Excel (accents corrects, colonnes séparées).</li>
+    <li>Clic sur une demande <strong>CANCELLED</strong> → téléchargement fonctionne aussi (statut « Annulée » dans le fichier).</li>
+    <li>Demande avec opération sans ventilation → une ligne avec colonnes devise/coupure vides, pas d'erreur.</li>
+    <li>Rollback v3 vérifié : plus aucune référence à <span class="fichier">/export</span> ni au port côté HTTP.</li>
+    <li>À montrer à Yassin : si la maquette attend un PDF formaté plutôt qu'un CSV, la seule pièce à remplacer sera <span class="fichier">DemandeExportService</span> — le reste de la chaîne est acquis.</li>
+  </ul>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · fund-management-front · Feature « Télécharger une demande » — Option A (100% frontend)</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{
+    btn.textContent = 'Copié ✓';
+    setTimeout(()=>btn.textContent='Copier', 1800);
+  });
+}
+</script>
+</body>
+</html>
