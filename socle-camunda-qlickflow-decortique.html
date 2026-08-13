@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le socle Camunda QlickFlow, décortiqué — et sa transposition vers fund-management</title>
+<style>
+  :root{
+    --vert:#0B6B4F; --vert-fonce:#07402F; --or:#B8892C;
+    --fond:#F7F9F8; --carte:#FFFFFF; --texte:#1D2A26; --gris:#5E6E68;
+    --code-bg:#0F1E1A; --code-texte:#D8E6E0; --rouge:#B33A3A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI', Tahoma, sans-serif; background:var(--fond); color:var(--texte); line-height:1.65;}
+  header{background:linear-gradient(135deg, var(--vert-fonce), var(--vert)); color:#fff; padding:38px 48px;}
+  header h1{font-size:1.55rem; font-weight:600; line-height:1.3;}
+  header p{opacity:.85; margin-top:8px; font-size:.95rem; max-width:820px;}
+  .badge{display:inline-block; background:var(--or); color:#fff; font-size:.75rem; padding:3px 10px; border-radius:12px; margin-top:12px; letter-spacing:.5px; margin-right:8px;}
+  main{max-width:1020px; margin:0 auto; padding:32px 24px 64px;}
+  .toc{background:var(--carte); border-radius:10px; padding:20px 28px; margin-bottom:24px; box-shadow:0 1px 4px rgba(7,64,47,.08);}
+  .toc ol{margin:8px 0 0 22px;}
+  .toc a{color:var(--vert-fonce);}
+  section{background:var(--carte); border-radius:10px; padding:28px 32px; margin-bottom:24px; box-shadow:0 1px 4px rgba(7,64,47,.08); border-left:4px solid var(--vert);}
+  section.critique{border-left-color:var(--rouge);}
+  h2{color:var(--vert-fonce); font-size:1.18rem; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  h3{color:var(--vert-fonce); font-size:1rem; margin:20px 0 8px;}
+  .num{background:var(--vert); color:#fff; min-width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0;}
+  .critique .num{background:var(--rouge);}
+  p{margin-bottom:12px;}
+  .fichier{display:inline-block; background:#EAF3EF; color:var(--vert-fonce); font-family:Consolas, monospace; font-size:.85rem; padding:2px 8px; border-radius:4px;}
+  .simple{background:#EAF6EF; border-left:4px solid var(--vert); padding:14px 18px; border-radius:6px; margin:16px 0; font-size:.94rem;}
+  .simple .tag{display:inline-block; background:var(--vert); color:#fff; font-size:.7rem; padding:2px 8px; border-radius:10px; margin-right:8px; letter-spacing:.5px; vertical-align:middle;}
+  .note{background:#FFF8EC; border-left:4px solid var(--or); padding:14px 18px; border-radius:6px; margin:16px 0; font-size:.93rem;}
+  .note strong{color:var(--or);}
+  .verif{background:#FBEAEA; border-left:4px solid var(--rouge); padding:14px 18px; border-radius:6px; margin:16px 0; font-size:.93rem;}
+  .verif strong{color:var(--rouge);}
+  .flux{background:#0F1E1A; color:#D8E6E0; border-radius:8px; padding:20px 24px; margin:16px 0; font-family:Consolas, monospace; font-size:.85rem; line-height:1.9; overflow-x:auto; white-space:pre;}
+  .code-bloc{position:relative; margin:14px 0;}
+  .titre-fichier{background:var(--vert-fonce); color:#EAF3EE; font-family:Consolas, monospace; font-size:.8rem; padding:8px 14px; border-radius:8px 8px 0 0; display:flex; justify-content:space-between; align-items:center; gap:12px;}
+  .titre-fichier + pre{border-radius:0 0 8px 8px; margin-top:0;}
+  pre{background:var(--code-bg); color:var(--code-texte); padding:18px; border-radius:8px; overflow-x:auto; font-family:Consolas,'Courier New',monospace; font-size:.84rem; line-height:1.55;}
+  .btn-copier{background:var(--vert); color:#fff; border:none; padding:4px 12px; border-radius:5px; cursor:pointer; font-size:.75rem;}
+  .btn-copier:hover{background:var(--or);}
+  .kw{color:#7FD1B4;} .str{color:#E8C77D;} .com{color:#6E8B82; font-style:italic;} .att{color:#9BC4E2;}
+  ul{margin:8px 0 12px 22px;}
+  li{margin-bottom:7px;}
+  table{border-collapse:collapse; width:100%; margin:14px 0; font-size:.88rem;}
+  th{background:var(--vert-fonce); color:#EAF3EE; text-align:left; padding:9px 12px; font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;}
+  td{padding:9px 12px; border-bottom:1px solid #EEEBE2; vertical-align:top;}
+  td code, li code, p code{background:#EAF3EF; color:var(--vert-fonce); font-family:Consolas, monospace; font-size:.85em; padding:1px 6px; border-radius:4px;}
+  footer{text-align:center; color:var(--gris); font-size:.8rem; padding-bottom:32px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Le socle Camunda 7 de QlickFlow, décortiqué<br>— et comment le transposer sur microservice-fund-management</h1>
+  <p>Analyse des deux projets (<strong>qlickflow-camunda-engine</strong> et <strong>derog-tar-retail-ci</strong>), du déploiement BPMN depuis le Modeler, du pattern Outbox observé dans tes logs, avec critique du socle et plan de transposition hexagonale — dans la continuité du cadrage AER_LM-258.</p>
+  <span class="badge">CAMUNDA 7.24</span><span class="badge">PATTERN OUTBOX</span><span class="badge">PRÉPARATION AER_LM-258</span>
+</header>
+<main>
+
+<div class="toc"><strong>Sommaire</strong>
+<ol>
+  <li><a href="#vue">La vue d'ensemble : qui parle à qui</a></li>
+  <li><a href="#deploiement">Le déploiement BPMN depuis le Modeler et la process-definition-key</a></li>
+  <li><a href="#outbox">Le pattern Outbox, décortiqué pièce par pièce</a></li>
+  <li><a href="#logs">Tes logs, ligne par ligne</a></li>
+  <li><a href="#retour">Le chemin retour des statuts — ce qui reste à vérifier</a></li>
+  <li><a href="#critique">Critique du socle : ce qui est bien, ce qui pique</a></li>
+  <li><a href="#transposition">La transposition sur fund-management (hexagonal)</a></li>
+  <li><a href="#questions">Les questions à poser à Yassin</a></li>
+</ol>
+</div>
+
+<section id="vue">
+  <h2><span class="num">1</span>La vue d'ensemble : qui parle à qui</h2>
+  <p>Tes captures montrent une décision d'architecture fondamentale du socle : <strong>le moteur Camunda n'est PAS embarqué dans le microservice métier</strong>. Ce sont deux applications Spring Boot séparées :</p>
+  <table>
+    <tr><th>Projet</th><th>Rôle</th><th>Preuves dans tes captures</th></tr>
+    <tr><td><code>qlickflow-camunda-engine</code></td><td>Le <strong>moteur</strong> Camunda, mutualisé. Une seule classe <code>Application</code>, il ne fait qu'héberger le moteur et son API REST (port 3030).</td><td>Projet quasi vide (1 classe + yaml), fichiers <code>camunda-h2-database.mv.db</code> à la racine (base H2 locale du moteur), 2 BPMN d'autres processus dans ses resources.</td></tr>
+    <tr><td><code>derog-tar-retail-ci</code></td><td>Le <strong>microservice métier</strong> (dérogation tarifaire retail). Il ne contient aucun moteur : il <em>pilote</em> le moteur à distance via son API REST.</td><td>Package <code>bpm.outbox</code> complet, <code>camunda-openapi-v7.24.json</code> + template mustache (client REST généré), logs de POST vers <code>localhost:3030/engine…</code>.</td></tr>
+  </table>
+  <div class="simple"><span class="tag">En clair</span>Le moteur Camunda est comme une <strong>tour de contrôle mutualisée</strong> : chaque microservice métier (dérog tarifaire aujourd'hui, fund-management demain) lui envoie ses plans de vol (les BPMN), lui signale les événements (« la demande X est soumise »), et la tour décide de l'étape suivante. Le microservice garde ses données métier chez lui (PostgreSQL à lui, migrations Flyway V1→V6) ; le moteur garde l'état des processus chez lui (sa propre base — H2 en local).</div>
+  <div class="flux">┌─────────────────────────┐         REST (HTTP, port 3030)        ┌──────────────────────────┐
+│  derog-tar-retail-ci    │ ─── POST /engine-rest/… ────────────▶ │  qlickflow-camunda-engine │
+│  (métier + PostgreSQL)  │   démarrer processus / corréler msg   │  (moteur + sa propre BDD) │
+│                         │                                        │                          │
+│  table OUTBOX ◀── écrit │◀── ? (chemin retour, cf. section 5) ──│  BPMN déployés :          │
+│  par la transaction     │                                        │  P_A104304_QF_DEROG_…     │
+│  métier, vidée par le   │                                        │  mainlevee-chab, etc.     │
+│  polling job            │                                        └──────────────────────────┘
+└─────────────────────────┘
+        ▲
+        │ déploiement manuel des BPMN
+┌───────┴───────┐
+│ Camunda       │
+│ Modeler       │ ─── Deploy ──▶ http://localhost:3030/engine-rest (deployment/create)
+└───────────────┘</div>
+  <p>Pourquoi ce choix « moteur externe » plutôt qu'embarqué ? C'était justement la question structurante Q1 de notre cadrage AER_LM-258 — le socle y a déjà répondu : <strong>externe et mutualisé</strong>. Conséquences : les microservices restent légers (pas de tables Camunda chez eux), le moteur est un point central administrable (Cockpit unique), mais chaque interaction avec le workflow est un appel réseau — d'où tout l'attirail de fiabilisation qu'on va voir (outbox, retry, recovery).</p>
+</section>
+
+<section id="deploiement">
+  <h2><span class="num">2</span>Le déploiement BPMN depuis le Modeler et la process-definition-key</h2>
+  <p>C'est le point que tu voulais éclaircir. Le mécanisme repose sur <strong>un seul identifiant</strong>, présent à trois endroits qui doivent correspondre exactement :</p>
+  <h3>a) Dans le fichier BPMN : l'attribut id du process</h3>
+  <p>Ouvre <span class="fichier">P_A104304_QF_DEROG_TARIF_RET_PACK.bpmn</span> en XML (onglet XML du Modeler). La racine contient :</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>Extrait type du BPMN (onglet XML du Modeler)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>&lt;bpmn:process <span class="att">id</span>=<span class="str">"P_A104304_QF_DEROG_TARIF_RET_PACK"</span> <span class="att">name</span>=<span class="str">"Dérogation tarifaire retail"</span> <span class="att">isExecutable</span>=<span class="str">"true"</span>&gt;</code></pre>
+  </div>
+  <p>Cet <code>id</code> — modifiable dans le Modeler en cliquant sur le fond du diagramme, panneau de droite, champ « ID » — devient la <strong>process-definition-key</strong> côté moteur. Le nom du fichier ne compte pas ; seul cet attribut compte. Note aussi <code>isExecutable="true"</code> : sans lui, le moteur accepte le déploiement mais refuse de démarrer des instances.</p>
+  <h3>b) Au déploiement : le Modeler pousse vers le moteur</h3>
+  <p>Bouton « Deploy » du Modeler (l'icône fusée) → il demande l'URL du REST endpoint : <code>http://localhost:3030/engine-rest</code> (celui de <span class="fichier">qlickflow-camunda-engine</span>) et un « deployment name ». Le Modeler fait alors un <code>POST /engine-rest/deployment/create</code>. Le moteur enregistre une <strong>nouvelle version</strong> de la définition : si une définition avec la même key existe déjà, il crée la version N+1 — les instances en cours continuent sur leur version d'origine, les nouvelles instances démarrent par défaut sur la dernière. C'est le versioning natif de Camunda.</p>
+  <h3>c) Dans le yaml du microservice : la même key</h3>
+  <p>Le microservice a besoin de connaître la key pour dire au moteur « démarre une instance de CE processus ». D'où la propriété que tu as vue dans l'<span class="fichier">application.yaml</span> de la dérog tarifaire — schématiquement :</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>application.yaml (principe — vérifie les noms exacts dans le fichier)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="att">camunda</span>:
+  <span class="att">base-url</span>: http://localhost:3030/engine-rest
+  <span class="att">process-definition-keys</span>:
+    <span class="att">derogation-tarifaire</span>: P_A104304_QF_DEROG_TARIF_RET_PACK
+    <span class="att">infos-complementaires</span>: P_A104304_QF_DEROG_TARIF_RET_PACK_INFO_COMPL</code></pre>
+  </div>
+  <p>Quand le service veut lancer le workflow, il appelle <code>POST /engine-rest/process-definition/key/{key}/start</code> avec cette valeur. Si la key du yaml ne correspond pas à l'id d'un BPMN déployé → erreur « no deployed process definition with key ». C'est LE point de fragilité du déploiement manuel : trois copies du même identifiant (XML, moteur, yaml) qu'aucun outil ne synchronise automatiquement.</p>
+  <div class="note"><strong>La convention de nommage :</strong> <code>P_A104304_QF_DEROG_TARIF_RET_PACK</code> se lit probablement P = Process, A104304 = code applicatif/projet BMCI, QF = QlickFlow, puis le nom métier. Pour fund-management il faudra demander à Yassin le code à utiliser — ne l'invente pas.</div>
+  <div class="simple"><span class="tag">En clair</span>La process-definition-key est le <strong>nom de la recette</strong> enregistrée chez le moteur. Le Modeler dépose la recette (avec son nom écrit dedans), le yaml du microservice note ce même nom dans son carnet, et à chaque nouvelle demande le service téléphone au moteur : « lance-moi la recette qui s'appelle P_A104304_… ». Un caractère de différence entre les deux, et le téléphone sonne dans le vide.</div>
+</section>
+
+<section id="outbox">
+  <h2><span class="num">3</span>Le pattern Outbox, décortiqué pièce par pièce</h2>
+  <h3>Le problème qu'il résout : le double-écrit (dual-write)</h3>
+  <p>Imagine le code naïf : dans la même méthode, on sauvegarde la demande en base <em>puis</em> on appelle Camunda par REST. Deux systèmes, deux écritures, aucune transaction commune. Si la base commite mais que l'appel REST échoue (réseau, moteur redémarré…), tu as une demande « SOUMISE » en base <strong>sans processus démarré</strong> chez Camunda — état incohérent, invisible, découvert des jours plus tard. L'inverse est possible aussi (processus démarré, rollback en base).</p>
+  <div class="simple"><span class="tag">En clair</span>L'outbox, c'est la <strong>boîte d'envoi du courrier</strong> : au lieu de courir à la poste toi-même à chaque lettre (et risquer l'accident en route), tu poses la lettre dans la boîte d'envoi <em>dans le même geste</em> que ton travail. Un facteur passe toutes les X secondes, prend les lettres, et s'occupe de la poste — avec des retentatives si la poste est fermée. Ta lettre ne peut pas se perdre entre ton bureau et la boîte : c'est le même geste, la même transaction.</div>
+  <h3>Comment le socle l'implémente — chaque package de bpm.outbox a un rôle</h3>
+  <table>
+    <tr><th>Package (tes captures)</th><th>Rôle dans la mécanique</th></tr>
+    <tr><td><code>publisher</code> (OutboxPublisher, DefaultOutboxPublisher)</td><td>Le point d'entrée pour le code métier : « publie cet événement ». Concrètement : un INSERT dans la table outbox, <strong>dans la transaction métier en cours</strong>. C'est ça, la garantie d'atomicité.</td></tr>
+    <tr><td><code>contract</code> (metatata, payload, transport)</td><td>La forme d'une lettre : les métadonnées (type d'événement, clé de corrélation, id agrégat…), le contenu métier (payload JSON), et les infos de transport. (Note le typo « metatata » — il est dans le socle.)</td></tr>
+    <tr><td><code>persistence</code> (entity, mapper, repository)</td><td>La table outbox elle-même et son accès JPA. La migration <code>V5__alter_outbox_event_text_columns.sql</code> montre qu'ils ont dû élargir les colonnes texte — les payloads ont grossi en cours de route.</td></tr>
+    <tr><td><code>job</code> (OutboxPollingJob, OutboxRecoveryJob)</td><td>Le facteur : un job planifié (<code>@Scheduled</code>, thread <code>scheduling-1</code> de tes logs) qui tourne en boucle. Le second job repêche les lettres bloquées (claimées par un pod qui a crashé avant de finir).</td></tr>
+    <tr><td><code>processing</code> (claiming → dispatching → execution → finalization)</td><td>Le pipeline du facteur, en 4 temps : <strong>claiming</strong> = réserver un lot d'événements en attente (les marquer « à moi » pour qu'un autre pod ne les prenne pas) ; <strong>dispatching</strong> = router chaque événement vers son handler selon son type ; <strong>execution</strong> = l'appel réel (POST REST vers Camunda) ; <strong>finalization</strong> = marquer traité, ou compter l'échec pour retry.</td></tr>
+    <tr><td><code>spring</code> (autoconfigure, properties…)</td><td>Le packaging en starter : le module s'auto-configure via des propriétés. Indice fort que ce <code>bpm.outbox</code> est conçu comme un <strong>socle réutilisable</strong> — exactement ce qu'on voudra brancher dans fund-management.</td></tr>
+    <tr><td><code>spi</code></td><td>Les points d'extension : là où chaque microservice branche SES handlers d'événements sans modifier le socle.</td></tr>
+  </table>
+  <h3>Et ShedLock (migration V4) — le détail qui prouve la production</h3>
+  <p><code>V4__create_shedlock_table.sql</code> : sur OpenShift, le microservice tourne en plusieurs répliques. Sans précaution, chaque pod exécuterait le polling job → doubles envois vers Camunda. ShedLock pose un <strong>verrou en base</strong> : à chaque tick, un seul pod obtient le verrou et exécute le job, les autres passent leur tour. Le claiming par lot ajoute une seconde ceinture de sécurité au niveau des lignes elles-mêmes.</p>
+</section>
+
+<section id="logs">
+  <h2><span class="num">4</span>Tes logs, ligne par ligne</h2>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>Ce que tu as capturé (09:29:28, thread scheduling-1)</span></div>
+<pre><code>LoggerInterceptor - End POST   http://localhost:3030/engine…   ← fin d'un appel REST vers le moteur
+LoggerInterceptor - Start POST http://localhost:3030/engine…   ← début du suivant (plusieurs paires)
+…
+SpringOutboxPollingJob - Start outbox polling job …            ← le facteur commence sa tournée
+OutboxPollingJob       - Outbox polling job &gt; claim            ← étape 1 : réserver un lot
+OutboxPollingJob       - Outbox polling job &gt; empty batch      ← rien à envoyer cette fois
+SpringOutboxPollingJob - End outbox polling job …              ← tournée terminée (en ~1 ms)</code></pre>
+  </div>
+  <p>Deux choses distinctes cohabitent sur ce thread planifié :</p>
+  <ul>
+    <li><strong>Le polling outbox</strong> (les 4 dernières lignes) : tournée du facteur, boîte vide, il rentre. Ça tourne en permanence, que tu aies de l'activité ou non.</li>
+    <li><strong>Les paires Start/End POST</strong> vers <code>localhost:3030/engine…</code> <em>avant</em> le job outbox : des appels REST récurrents vers le moteur qui ne viennent pas de la boîte vide. Hypothèse la plus probable : un <strong>polling de tâches</strong> — soit du <code>fetchAndLock</code> d'external tasks (le microservice demande au moteur « as-tu du travail pour moi ? »), soit une synchronisation périodique d'état (requêtes sur les user tasks ou les instances). L'URL est tronquée sur ta photo ; la partie après <code>/engine</code> trancherait immédiatement.</li>
+  </ul>
+  <div class="verif"><strong>À vérifier (2 minutes) :</strong> clique sur un de ces liens bleus dans la console IntelliJ et regarde l'URL complète. Si c'est <code>/engine-rest/external-task/fetchAndLock</code> → le socle utilise des <strong>external tasks</strong> et ça répond à la question du chemin retour (section 5). Si c'est <code>/engine-rest/task…</code> ou <code>/history/…</code> → c'est de la synchronisation d'état par interrogation. Note-le, c'est structurant pour nous.</div>
+  <p>Le <code>LoggerInterceptor</code> (package <code>c.b.i.q.w.c.l</code>) est un intercepteur du client REST qui trace chaque appel sortant — couplé au package <code>observability.correlation</code>, il permet de suivre une demande de bout en bout dans les logs. Bonne pratique du socle à conserver.</p>
+</section>
+
+<section id="retour">
+  <h2><span class="num">5</span>Le chemin retour des statuts — ce qu'on sait, ce qui manque</h2>
+  <p>Tes captures prouvent solidement le sens <strong>aller</strong> : métier → outbox → REST → Camunda. Le sens <strong>retour</strong> (le processus avance chez Camunda → le statut métier change dans PostgreSQL de la dérog) n'est pas directement visible. Trois mécanismes possibles en Camunda 7, et le socle en utilise forcément au moins un :</p>
+  <table>
+    <tr><th>Mécanisme</th><th>Principe</th><th>Indices pour/contre</th></tr>
+    <tr><td><strong>External tasks</strong> (pull)</td><td>Dans le BPMN, les service tasks sont de type « external » avec un topic. Le microservice interroge le moteur (<code>fetchAndLock</code>), exécute le travail (dont la mise à jour du statut), et complète la tâche.</td><td>Compatible avec les POST récurrents de tes logs ; c'est le pattern recommandé avec moteur distant. <strong>Hypothèse favorite.</strong></td></tr>
+    <tr><td><strong>Callback HTTP</strong> (push)</td><td>Le BPMN contient des connecteurs HTTP qui appellent l'API du microservice (« passe la demande X en VALIDATED »).</td><td>Possible — le package <code>wfdtrp.controller</code> pourrait exposer ces endpoints — mais fragile (le moteur doit connaître l'URL de chaque service, gestion d'erreur côté BPMN).</td></tr>
+    <tr><td><strong>Interrogation d'état</strong> (poll)</td><td>Le service interroge périodiquement le moteur sur l'état des instances/tâches et synchronise sa base.</td><td>Également compatible avec tes logs ; plus simple mais avec latence et charge d'interrogation.</td></tr>
+  </table>
+  <div class="simple"><span class="tag">En clair</span>Aller = le métier <strong>pousse</strong> ses événements vers le moteur via la boîte d'envoi. Retour = soit le métier <strong>tire</strong> le travail que le moteur lui a préparé (external tasks — le plus probable ici), soit le moteur <strong>rappelle</strong> le métier. Il nous faut cette réponse avant d'écrire notre BPMN, car elle détermine comment on écrira nos service tasks.</div>
+</section>
+
+<section class="critique" id="critique">
+  <h2><span class="num">6</span>Critique du socle : ce qui est bien, ce qui pique</h2>
+  <h3>Ce qui est solide (à reprendre tel quel)</h3>
+  <ul>
+    <li><strong>Outbox transactionnel + ShedLock + recovery job</strong> : le trio complet de la fiabilité en multi-pods. Rien à redire, c'est l'état de l'art du pattern.</li>
+    <li><strong>Client Camunda généré depuis l'OpenAPI officiel</strong> (<code>camunda-openapi-v7.24.json</code> + mustache) : pas de client écrit à la main, contrat typé, régénérable.</li>
+    <li><strong>Packaging en starter auto-configuré</strong> (<code>spring.autoconfigure</code> + <code>spi</code>) : le socle outbox est réutilisable par les autres microservices — dont le nôtre.</li>
+    <li><strong>Observabilité par corrélation</strong> : intercepteur de logs + correlation id, indispensable quand trois systèmes participent à une même demande.</li>
+    <li><strong>Migrations Flyway propres</strong> incluant l'infra technique (shedlock, outbox, audit) versionnée comme le reste.</li>
+  </ul>
+  <h3>Ce qui pique (les nitpicks demandés)</h3>
+  <ul>
+    <li><strong>Le déploiement BPMN est manuel et non versionné côté moteur.</strong> Le BPMN vit dans le repo de la dérog, mais c'est un humain avec le Modeler qui le pousse vers le moteur. Risque de dérive : le fichier committé ≠ la version réellement déployée. Aucun pipeline ne garantit la synchronisation (le <code>.gitlab-ci.yml</code> build l'app, pas les déploiements BPMN, sauf preuve contraire). En cible, un déploiement du BPMN par appel REST au démarrage du service ou par étape de pipeline serait plus sûr — question à poser.</li>
+    <li><strong>Triple copie de la key sans garde-fou</strong> (XML, moteur, yaml) : une faute de frappe = erreur au runtime seulement. Un test d'intégration qui vérifie au démarrage que les keys du yaml existent chez le moteur serait peu coûteux.</li>
+    <li><strong>Logs INFO sur boîte vide</strong> : « Start/claim/empty batch/End » à chaque tick, toutes les quelques secondes → du bruit permanent qui noie les vrais événements. Ces lignes devraient être en DEBUG ; seul un lot non vide mérite INFO.</li>
+    <li><strong>Latence structurelle du polling</strong> : le statut ne bouge qu'au rythme du tick (aller) + tick de récupération (retour). Pour AER_LM-258 avec ses gardes horaires strictes (10h/16h), il faudra connaître ces intervalles et vérifier qu'ils sont compatibles avec l'expérience utilisateur attendue.</li>
+    <li><strong>H2 en fichier pour le moteur local</strong> : parfait pour le poste de dev, mais à ne jamais extrapoler — en INT/PROD le moteur doit pointer une vraie base. À confirmer dans le yaml de l'engine.</li>
+    <li><strong>Couplage de version</strong> : le client est généré depuis l'OpenAPI 7.24 ; une montée de version du moteur impose de régénérer. Pas grave, mais à documenter.</li>
+    <li><strong>Le typo <code>metatata</code></strong> : anecdotique, mais si ce package devient un socle partagé, il sera gravé partout. À signaler gentiment.</li>
+  </ul>
+</section>
+
+<section id="transposition">
+  <h2><span class="num">7</span>La transposition sur fund-management (hexagonal)</h2>
+  <p>La dérog tarifaire est en couches « classiques » (controller/service/repository/facade). Nous, on est en hexagonal strict — la transposition consiste à ranger chaque pièce du socle du bon côté des ports. La règle d'or : <strong>le domaine ne sait pas que Camunda existe</strong> ; il sait seulement qu'il « publie des événements de cycle de vie ».</p>
+  <table>
+    <tr><th>Pièce du socle (dérog)</th><th>Chez nous (fund-management)</th><th>Module</th></tr>
+    <tr><td>Appel à <code>OutboxPublisher</code> dans le service métier</td><td>Un <strong>port de sortie</strong> <code>WorkflowEventPublisher</code> dans <code>service.domain.ports.output</code>, appelé par les use cases (ex. à la soumission d'une demande). Le domaine publie un événement métier, point.</td><td><code>fund-management-application-service</code> (le port) </td></tr>
+    <tr><td><code>bpm.outbox.persistence</code> + <code>publisher</code></td><td>L'<strong>adapter</strong> qui implémente le port : INSERT dans la table outbox dans la même transaction que le <code>save()</code>. Table créée par une migration Flyway chez nous (+ shedlock), comme leurs V4/V5.</td><td><code>fund-management-data-access</code></td></tr>
+    <tr><td><code>OutboxPollingJob</code> + pipeline + client Camunda généré</td><td>L'infrastructure d'envoi : job planifié + client REST. C'est de la technique pure, côté adapters — jamais dans domain-core. Si le socle <code>bpm.outbox</code> est publié comme dépendance interne (starter), on l'importe au lieu de le réécrire.</td><td><code>fund-management-container</code> (ou un nouveau module <code>fund-management-bpm</code> si Yassin préfère isoler)</td></tr>
+    <tr><td><code>process-definition-keys</code> du yaml</td><td>Même principe dans notre <code>application.yaml</code>, avec la key de NOTRE processus (code à demander, convention <code>P_Axxxxx_QF_…</code>).</td><td>container / resources</td></tr>
+    <tr><td>BPMN dans <code>resources/bpmn</code></td><td>Notre BPMN AER_LM-258 versionné dans le repo (source de vérité), déployé vers le moteur via Modeler comme eux — en signalant le risque de dérive (section 6).</td><td>container / resources</td></tr>
+    <tr><td>Chemin retour (external tasks / callback)</td><td><strong>Dépend de la réponse de la section 5.</strong> Si external tasks : un worker côté adapters qui fetchAndLock, appelle un use case dédié (« appliquer la transition X »), et complète la tâche. Le use case reste la seule porte d'entrée du domaine — le worker n'est qu'un adapter entrant de plus, au même titre que le controller REST.</td><td>adapters entrants</td></tr>
+  </table>
+  <p>Et le lien avec notre cadrage AER_LM-258 se referme proprement : les statuts du cycle de vie (INITIATED → VALIDATED → … ) restent portés par <strong>notre</strong> base via <code>requestStatus</code> ; Camunda orchestre QUI peut faire QUOI et QUAND (les validations par profil, les gardes 10h/16h), et chaque transition franchie déclenche — par le chemin retour — la mise à jour du statut chez nous. GELÉ, comme on l'avait cadré, reste un verrou applicatif chez nous, pas un état Camunda.</p>
+  <div class="note"><strong>Ordre de bataille inchangé :</strong> on ne code rien tant que (a) le BPMN n'est pas validé par Yassin et (b) les réponses ci-dessous ne sont pas connues. Le socle nous fait gagner énormément — à condition de le brancher, pas de le réinventer.</div>
+</section>
+
+<section id="questions">
+  <h2><span class="num">8</span>Les questions à poser à Yassin</h2>
+  <ul>
+    <li><strong>Q1 — Chemin retour :</strong> les BPMN QlickFlow utilisent-ils des external tasks (topics) ou des callbacks HTTP vers les microservices ? (Je vérifie l'URL complète des POST récurrents de mon côté — section 4.)</li>
+    <li><strong>Q2 — Socle réutilisable :</strong> le package <code>bpm.outbox</code> est-il publié comme dépendance interne (starter) qu'on peut importer dans fund-management, ou faut-il le copier/adapter ?</li>
+    <li><strong>Q3 — Convention de key :</strong> quel code processus pour fund-management (format <code>P_Axxxxx_QF_…</code>) ? Qui attribue le code A ?</li>
+    <li><strong>Q4 — Environnements :</strong> en INT/RCT/PROD, où tourne le moteur (URL, base) et qui a le droit de déployer les BPMN dessus ? Le déploiement Modeler manuel est-il la cible ou un provisoire ?</li>
+    <li><strong>Q5 — Intervalles :</strong> quels sont les intervalles du polling outbox et du polling de tâches ? Compatibles avec les gardes 10h/16h d'AER_LM-258 ?</li>
+    <li><strong>Q6 — Multi-processus :</strong> la dérog a deux BPMN (principal + infos complémentaires, comme le pattern mainlevee/traitement de l'engine). Notre cycle AER_LM-258 tient-il en un seul processus ou faut-il le même découpage (ex. le circuit Rejet→Brouillon en sous-processus) ?</li>
+  </ul>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · Socle Camunda 7 décortiqué · Préparation AER_LM-258 · microservice-fund-management</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{
+    btn.textContent = 'Copié ✓';
+    setTimeout(()=>btn.textContent='Copier', 1800);
+  });
+}
+</script>
+</body>
+</html>
