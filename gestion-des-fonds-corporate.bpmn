@@ -1,0 +1,714 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
+                  xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_GestionDesFonds"
+                  targetNamespace="http://bmci.ma/bpmn/gestion-des-fonds"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- ============================ MESSAGES ============================ -->
+  <bpmn:message id="Message_Annulation" name="msgAnnulerDemande" />
+  <bpmn:message id="Message_Modification" name="msgModifierDemande" />
+  <bpmn:message id="Message_Commentaire" name="msgAjouterCommentaire" />
+
+  <!-- ========================= COLLABORATION ========================= -->
+  <bpmn:collaboration id="Collaboration_GestionDesFonds">
+    <bpmn:documentation>Vue d'ensemble du parcours de gestion des fonds - Caisse Centrale BMCI.</bpmn:documentation>
+    <bpmn:participant id="Participant_GestionDesFonds" name="Gestion des fonds — Demande Agence / Demande Corporate / Alimentation GAB Hors Site" processRef="gestion-des-fonds" />
+  </bpmn:collaboration>
+
+  <!-- ============================ PROCESS ============================ -->
+  <bpmn:process id="gestion-des-fonds" name="Workflow de gestion des fonds" isExecutable="true"
+                camunda:versionTag="2.0" camunda:historyTimeToLive="180">
+
+    <bpmn:documentation>Parcours unifie des trois types de demandes traitees par la Caisse Centrale :
+Demande Agence (retraits et versements d'especes, natures 1 a 4), Demande Corporate (livraison sur site et/ou ramassage, natures 5 et 6)
+et Demande d'Alimentation GAB Hors Site. Les trois circuits sont saisis et suivis independamment mais convergent vers la meme etape
+de traitement Caisse Centrale.
+Variables attendues : typeDemande (AGENCE | CORPORATE | GAB_HORS_SITE), typeAgence (RETAIL | CENTRE_AFFAIRES | BANQUE_PRIVEE),
+referenceDemande, agenceCode, creePar, urgent (Boolean).</bpmn:documentation>
+
+    <!-- ---------------------- COULOIRS / ACTEURS ---------------------- -->
+    <bpmn:laneSet id="LaneSet_GestionDesFonds">
+      <bpmn:lane id="Lane_Initiateur" name="Initiateur — DA / Chef de Caisse / RM / Directeur de Zone / Operateur Pole Monetique">
+        <bpmn:flowNodeRef>StartEvent_DemandeSoumise</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Systeme" name="Systeme GDF (automatique)">
+        <bpmn:flowNodeRef>Task_InitialiserDemande</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_TypeDemande</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_UrgenceBanquePrivee</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EclaterBesoinsGab</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_JoinAgence</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_MergeTraitement</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CloturerDemande</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AnnulationCaisseCentrale</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_DemandeTraitee</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_AnnuleeParCaisseCentrale</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_BanquePrivee" name="Responsable Banque Privee">
+        <bpmn:flowNodeRef>Task_ValiderUrgence</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_CaisseCentrale" name="Caisse Centrale">
+        <bpmn:flowNodeRef>Task_TraitementCaisseCentrale</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_DecisionCaisseCentrale</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Evenements" name="Evenements transverses — acteurs habilites sur les 3 circuits">
+        <bpmn:flowNodeRef>EventSubProcess_Annulation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EventSubProcess_Modification</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EventSubProcess_Commentaire</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- ---------- Demarrage ---------- -->
+    <bpmn:startEvent id="StartEvent_DemandeSoumise" name="Demande saisie et soumise">
+      <bpmn:documentation>Instance creee a la soumission. Statut initial : Saisie / A traiter, visible immediatement par la Caisse Centrale.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="typeDemande" label="Type de demande" type="enum">
+            <camunda:value id="AGENCE" name="Demande Agence" />
+            <camunda:value id="CORPORATE" name="Demande Corporate" />
+            <camunda:value id="GAB_HORS_SITE" name="Alimentation GAB Hors Site" />
+          </camunda:formField>
+          <camunda:formField id="typeAgence" label="Type d'agence" type="enum">
+            <camunda:value id="RETAIL" name="Retail" />
+            <camunda:value id="CENTRE_AFFAIRES" name="Centre d'Affaires" />
+            <camunda:value id="BANQUE_PRIVEE" name="Banque Privee" />
+          </camunda:formField>
+          <camunda:formField id="referenceDemande" label="Reference de la demande" type="string" />
+          <camunda:formField id="agenceCode" label="Code agence" type="string" />
+          <camunda:formField id="creePar" label="Matricule createur" type="string" />
+          <camunda:formField id="urgent" label="Demande urgente" type="boolean" defaultValue="false" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_Start_Init</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_InitialiserDemande" name="Initialiser le suivi de la demande"
+                      camunda:delegateExpression="${initialiserDemandeDelegate}" camunda:asyncAfter="true">
+      <bpmn:documentation>Persiste la demande au statut SAISIE_A_TRAITER, calcule apresCutoff (soumission apres 10h00) et ouvre l'historique.</bpmn:documentation>
+      <bpmn:incoming>Flow_Start_Init</bpmn:incoming>
+      <bpmn:outgoing>Flow_Init_Type</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_TypeDemande" name="Type de demande ?" default="Flow_Type_Gab">
+      <bpmn:incoming>Flow_Init_Type</bpmn:incoming>
+      <bpmn:outgoing>Flow_Type_Agence</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Type_Corporate</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Type_Gab</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:exclusiveGateway id="Gateway_UrgenceBanquePrivee" name="Urgence a valider ?" default="Flow_Urgence_Non">
+      <bpmn:incoming>Flow_Type_Agence</bpmn:incoming>
+      <bpmn:outgoing>Flow_Urgence_Oui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Urgence_Non</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_ValiderUrgence" name="Valider ou refuser l'urgence"
+                   camunda:formKey="gf-validation-urgence-bp"
+                   camunda:candidateGroups="RESPONSABLE_BANQUE_PRIVEE">
+      <bpmn:documentation>Le Responsable Banque Privee approuve ou refuse le caractere urgent d'une Demande Agence soumise apres 10h00 par une agence Banque Privee.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="urgenceApprouvee" label="Urgence approuvee" type="boolean" />
+          <camunda:formField id="commentaireUrgence" label="Commentaire" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Urgence_Oui</bpmn:incoming>
+      <bpmn:outgoing>Flow_Urgence_Join</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_JoinAgence" name="">
+      <bpmn:incoming>Flow_Urgence_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_Urgence_Non</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinAgence_Merge</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_EclaterBesoinsGab" name="Eclater les besoins par GAB"
+                      camunda:delegateExpression="${eclaterBesoinsGabDelegate}">
+      <bpmn:documentation>Genere une reference par besoin a partir de la reference globale de la demande.</bpmn:documentation>
+      <bpmn:incoming>Flow_Type_Gab</bpmn:incoming>
+      <bpmn:outgoing>Flow_Gab_Merge</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_MergeTraitement" name="">
+      <bpmn:incoming>Flow_JoinAgence_Merge</bpmn:incoming>
+      <bpmn:incoming>Flow_Type_Corporate</bpmn:incoming>
+      <bpmn:incoming>Flow_Gab_Merge</bpmn:incoming>
+      <bpmn:outgoing>Flow_Merge_Traitement</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_TraitementCaisseCentrale" name="Traiter la demande"
+                   camunda:formKey="gf-traitement-caisse-centrale"
+                   camunda:candidateGroups="CAISSE_CENTRALE">
+      <bpmn:documentation>Seule entite de traitement, commune aux trois circuits. Pour l'Alimentation GAB : preparation des billets par cassette, besoin par besoin.
+La Caisse Centrale peut egalement annuler une demande non encore traitee, avec un motif obligatoire d'au moins 10 caracteres.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="decisionCaisseCentrale" label="Decision" type="enum">
+            <camunda:value id="TRAITEE" name="Traitee" />
+            <camunda:value id="ANNULEE" name="Annulee" />
+          </camunda:formField>
+          <camunda:formField id="motifAnnulation" label="Motif d'annulation (10 caracteres minimum)" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Merge_Traitement</bpmn:incoming>
+      <bpmn:outgoing>Flow_Traitement_Decision</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_DecisionCaisseCentrale" name="Decision ?" default="Flow_Decision_Traitee">
+      <bpmn:incoming>Flow_Traitement_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Decision_Traitee</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Decision_Annulee</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_CloturerDemande" name="Cloturer et historiser la demande"
+                      camunda:delegateExpression="${cloturerDemandeDelegate}">
+      <bpmn:incoming>Flow_Decision_Traitee</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cloture_Fin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_AnnulationCaisseCentrale" name="Enregistrer l'annulation Caisse Centrale"
+                      camunda:delegateExpression="${annulerDemandeDelegate}">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="origineAnnulation">CAISSE_CENTRALE</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Decision_Annulee</bpmn:incoming>
+      <bpmn:outgoing>Flow_AnnulationCc_Fin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_DemandeTraitee" name="Demande traitee">
+      <bpmn:incoming>Flow_Cloture_Fin</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_AnnuleeParCaisseCentrale" name="Demande annulee (Caisse Centrale)">
+      <bpmn:incoming>Flow_AnnulationCc_Fin</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ============ Sous-processus evenementiel : ANNULATION ============ -->
+    <bpmn:subProcess id="EventSubProcess_Annulation" name="Annulation avant traitement (interruptif)" triggeredByEvent="true">
+      <bpmn:documentation>Demande Agence : DA et Chef de Caisse de l'agence, quel qu'en soit le createur.
+Demande Corporate : DA, RM et Directeur de Zone en secours.
+Alimentation GAB Hors Site : uniquement l'operateur createur.</bpmn:documentation>
+      <bpmn:startEvent id="StartEvent_MsgAnnulation" name="Annulation demandee" isInterrupting="true">
+        <bpmn:outgoing>Flow_Esp1_1</bpmn:outgoing>
+        <bpmn:messageEventDefinition id="MsgDef_Annulation" messageRef="Message_Annulation" />
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Task_EnregistrerAnnulation" name="Enregistrer le motif d'annulation"
+                        camunda:delegateExpression="${annulerDemandeDelegate}">
+        <bpmn:extensionElements>
+          <camunda:inputOutput>
+            <camunda:inputParameter name="origineAnnulation">CREATEUR</camunda:inputParameter>
+          </camunda:inputOutput>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_Esp1_1</bpmn:incoming>
+        <bpmn:outgoing>Flow_Esp1_2</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="EndEvent_Annulee" name="Demande annulee">
+        <bpmn:incoming>Flow_Esp1_2</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_Esp1_1" sourceRef="StartEvent_MsgAnnulation" targetRef="Task_EnregistrerAnnulation" />
+      <bpmn:sequenceFlow id="Flow_Esp1_2" sourceRef="Task_EnregistrerAnnulation" targetRef="EndEvent_Annulee" />
+    </bpmn:subProcess>
+
+    <!-- ============ Sous-processus evenementiel : MODIFICATION ============ -->
+    <bpmn:subProcess id="EventSubProcess_Modification" name="Modification avant traitement (non interruptif)" triggeredByEvent="true">
+      <bpmn:documentation>Memes habilitations que l'annulation. La demande reste en attente de traitement pendant l'enregistrement.</bpmn:documentation>
+      <bpmn:startEvent id="StartEvent_MsgModification" name="Modification demandee" isInterrupting="false">
+        <bpmn:outgoing>Flow_Esp2_1</bpmn:outgoing>
+        <bpmn:messageEventDefinition id="MsgDef_Modification" messageRef="Message_Modification" />
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Task_AppliquerModification" name="Appliquer et tracer la modification"
+                        camunda:delegateExpression="${modifierDemandeDelegate}">
+        <bpmn:incoming>Flow_Esp2_1</bpmn:incoming>
+        <bpmn:outgoing>Flow_Esp2_2</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="EndEvent_Modifiee" name="Modification tracee">
+        <bpmn:incoming>Flow_Esp2_2</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_Esp2_1" sourceRef="StartEvent_MsgModification" targetRef="Task_AppliquerModification" />
+      <bpmn:sequenceFlow id="Flow_Esp2_2" sourceRef="Task_AppliquerModification" targetRef="EndEvent_Modifiee" />
+    </bpmn:subProcess>
+
+    <!-- ============ Sous-processus evenementiel : COMMENTAIRE ============ -->
+    <bpmn:subProcess id="EventSubProcess_Commentaire" name="Commentaire libre (non interruptif)" triggeredByEvent="true">
+      <bpmn:documentation>Un commentaire libre peut accompagner toute demande, a tout moment, sur les trois circuits.</bpmn:documentation>
+      <bpmn:startEvent id="StartEvent_MsgCommentaire" name="Commentaire ajoute" isInterrupting="false">
+        <bpmn:outgoing>Flow_Esp3_1</bpmn:outgoing>
+        <bpmn:messageEventDefinition id="MsgDef_Commentaire" messageRef="Message_Commentaire" />
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Task_HistoriserCommentaire" name="Historiser le commentaire"
+                        camunda:delegateExpression="${commentaireDemandeDelegate}">
+        <bpmn:incoming>Flow_Esp3_1</bpmn:incoming>
+        <bpmn:outgoing>Flow_Esp3_2</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="EndEvent_Commentaire" name="Commentaire trace">
+        <bpmn:incoming>Flow_Esp3_2</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_Esp3_1" sourceRef="StartEvent_MsgCommentaire" targetRef="Task_HistoriserCommentaire" />
+      <bpmn:sequenceFlow id="Flow_Esp3_2" sourceRef="Task_HistoriserCommentaire" targetRef="EndEvent_Commentaire" />
+    </bpmn:subProcess>
+
+    <!-- ============================ FLUX ============================ -->
+    <bpmn:sequenceFlow id="Flow_Start_Init" sourceRef="StartEvent_DemandeSoumise" targetRef="Task_InitialiserDemande" />
+    <bpmn:sequenceFlow id="Flow_Init_Type" sourceRef="Task_InitialiserDemande" targetRef="Gateway_TypeDemande" />
+
+    <bpmn:sequenceFlow id="Flow_Type_Agence" name="Demande Agence" sourceRef="Gateway_TypeDemande" targetRef="Gateway_UrgenceBanquePrivee">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${typeDemande == 'AGENCE'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Type_Corporate" name="Demande Corporate" sourceRef="Gateway_TypeDemande" targetRef="Gateway_MergeTraitement">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${typeDemande == 'CORPORATE'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Type_Gab" name="Alimentation GAB Hors Site" sourceRef="Gateway_TypeDemande" targetRef="Task_EclaterBesoinsGab" />
+
+    <bpmn:sequenceFlow id="Flow_Urgence_Oui" name="Oui" sourceRef="Gateway_UrgenceBanquePrivee" targetRef="Task_ValiderUrgence">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${typeAgence == 'BANQUE_PRIVEE' &amp;&amp; urgent &amp;&amp; apresCutoff}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Urgence_Non" name="Non" sourceRef="Gateway_UrgenceBanquePrivee" targetRef="Gateway_JoinAgence" />
+    <bpmn:sequenceFlow id="Flow_Urgence_Join" sourceRef="Task_ValiderUrgence" targetRef="Gateway_JoinAgence" />
+    <bpmn:sequenceFlow id="Flow_JoinAgence_Merge" sourceRef="Gateway_JoinAgence" targetRef="Gateway_MergeTraitement" />
+    <bpmn:sequenceFlow id="Flow_Gab_Merge" sourceRef="Task_EclaterBesoinsGab" targetRef="Gateway_MergeTraitement" />
+
+    <bpmn:sequenceFlow id="Flow_Merge_Traitement" sourceRef="Gateway_MergeTraitement" targetRef="Task_TraitementCaisseCentrale" />
+    <bpmn:sequenceFlow id="Flow_Traitement_Decision" sourceRef="Task_TraitementCaisseCentrale" targetRef="Gateway_DecisionCaisseCentrale" />
+    <bpmn:sequenceFlow id="Flow_Decision_Traitee" name="Traitee" sourceRef="Gateway_DecisionCaisseCentrale" targetRef="Task_CloturerDemande" />
+    <bpmn:sequenceFlow id="Flow_Decision_Annulee" name="Annulee" sourceRef="Gateway_DecisionCaisseCentrale" targetRef="Task_AnnulationCaisseCentrale">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${decisionCaisseCentrale == 'ANNULEE'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Cloture_Fin" sourceRef="Task_CloturerDemande" targetRef="EndEvent_DemandeTraitee" />
+    <bpmn:sequenceFlow id="Flow_AnnulationCc_Fin" sourceRef="Task_AnnulationCaisseCentrale" targetRef="EndEvent_AnnuleeParCaisseCentrale" />
+
+    <!-- ======================== ANNOTATIONS ======================== -->
+    <bpmn:textAnnotation id="Annotation_Statut">
+      <bpmn:text>Statut initial : Saisie / A traiter — visible immediatement par la Caisse Centrale, sans validation hierarchique intermediaire.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Cutoff">
+      <bpmn:text>Regle cutoff : agence Banque Privee + case Urgent cochee apres 10h00. Les deux autres circuits n'ont ni urgence ni cutoff.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Corporate">
+      <bpmn:text>Demande Corporate : reservee aux agences de type Centre d'Affaires. Ni cutoff, ni circuit Banque Privee.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Gab">
+      <bpmn:text>1 demande globale = n besoins (1 par GAB Hors Site) : ID GAB + n° compte SAB, agence retail de rattachement, 4 cassettes (2 x 100 DH, 2 x 200 DH).</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Urgence">
+      <bpmn:text>Approbation ou refus : dans les deux cas la demande poursuit vers la Caisse Centrale.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Consolidation">
+      <bpmn:text>Consolidation a l'export : Demande Agence + Demande Corporate de la meme agence et du meme jour.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Fin">
+      <bpmn:text>Aucun document recapitulatif edite. Historique complet (createur, modifications, commentaires, decision, motif) consultable sur l'ecran Suivi and historique.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Habilitations">
+      <bpmn:text>Motif obligatoire d'au moins 10 caracteres. Habilitations : Agence = DA / Chef de Caisse ; Corporate = DA / RM / Directeur de Zone en secours ; GAB Hors Site = operateur createur uniquement.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Notifications">
+      <bpmn:text>Notifications : non specifiees a ce stade pour la Gestion des Fonds (contrairement au parcours Derogation Tarifaire). Point a trancher avec les equipes metier.</bpmn:text>
+    </bpmn:textAnnotation>
+
+    <bpmn:association id="Assoc_Statut" sourceRef="StartEvent_DemandeSoumise" targetRef="Annotation_Statut" />
+    <bpmn:association id="Assoc_Cutoff" sourceRef="Gateway_UrgenceBanquePrivee" targetRef="Annotation_Cutoff" />
+    <bpmn:association id="Assoc_Corporate" sourceRef="Gateway_TypeDemande" targetRef="Annotation_Corporate" />
+    <bpmn:association id="Assoc_Gab" sourceRef="Task_EclaterBesoinsGab" targetRef="Annotation_Gab" />
+    <bpmn:association id="Assoc_Urgence" sourceRef="Task_ValiderUrgence" targetRef="Annotation_Urgence" />
+    <bpmn:association id="Assoc_Consolidation" sourceRef="Task_TraitementCaisseCentrale" targetRef="Annotation_Consolidation" />
+    <bpmn:association id="Assoc_Fin" sourceRef="EndEvent_DemandeTraitee" targetRef="Annotation_Fin" />
+    <bpmn:association id="Assoc_Habilitations" sourceRef="EventSubProcess_Annulation" targetRef="Annotation_Habilitations" />
+    <bpmn:association id="Assoc_Notifications" sourceRef="Task_TraitementCaisseCentrale" targetRef="Annotation_Notifications" />
+
+  </bpmn:process>
+
+  <!-- ============================ DIAGRAMME ============================ -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_GestionDesFonds">
+
+      <!-- Pool et couloirs -->
+      <bpmndi:BPMNShape id="Shape_Participant" bpmnElement="Participant_GestionDesFonds" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#ffffff" color:border-color="#1a3a6b" color:background-color="#ffffff">
+        <dc:Bounds x="160" y="80" width="1440" height="1030" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Initiateur" bpmnElement="Lane_Initiateur" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#eef3fb" color:border-color="#1a3a6b" color:background-color="#eef3fb">
+        <dc:Bounds x="190" y="80" width="1410" height="140" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Systeme" bpmnElement="Lane_Systeme" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#f5f6f7" color:border-color="#1a3a6b" color:background-color="#f5f6f7">
+        <dc:Bounds x="190" y="220" width="1410" height="300" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_BanquePrivee" bpmnElement="Lane_BanquePrivee" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#fff6e8" color:border-color="#1a3a6b" color:background-color="#fff6e8">
+        <dc:Bounds x="190" y="520" width="1410" height="140" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_CaisseCentrale" bpmnElement="Lane_CaisseCentrale" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#eaf4fb" color:border-color="#1a3a6b" color:background-color="#eaf4fb">
+        <dc:Bounds x="190" y="660" width="1410" height="220" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Evenements" bpmnElement="Lane_Evenements" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#f7f2fa" color:border-color="#1a3a6b" color:background-color="#f7f2fa">
+        <dc:Bounds x="190" y="880" width="1410" height="230" />
+      </bpmndi:BPMNShape>
+
+      <!-- Flux principal -->
+      <bpmndi:BPMNShape id="Shape_StartEvent_DemandeSoumise" bpmnElement="StartEvent_DemandeSoumise"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="230" y="132" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="209" y="175" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_InitialiserDemande" bpmnElement="Task_InitialiserDemande"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="320" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_TypeDemande" bpmnElement="Gateway_TypeDemande" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="480" y="265" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="466" y="322" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_UrgenceBanquePrivee" bpmnElement="Gateway_UrgenceBanquePrivee" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="620" y="265" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="608" y="322" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ValiderUrgence" bpmnElement="Task_ValiderUrgence"
+                        bioc:stroke="#b06000" bioc:fill="#ffe6c7" color:border-color="#b06000" color:background-color="#ffe6c7">
+        <dc:Bounds x="720" y="550" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_JoinAgence" bpmnElement="Gateway_JoinAgence" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="850" y="265" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_EclaterBesoinsGab" bpmnElement="Task_EclaterBesoinsGab"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="760" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_MergeTraitement" bpmnElement="Gateway_MergeTraitement" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="960" y="265" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_TraitementCaisseCentrale" bpmnElement="Task_TraitementCaisseCentrale"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="1040" y="700" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_DecisionCaisseCentrale" bpmnElement="Gateway_DecisionCaisseCentrale" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="1200" y="715" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1194" y="772" width="63" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_CloturerDemande" bpmnElement="Task_CloturerDemande"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="1330" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_AnnulationCaisseCentrale" bpmnElement="Task_AnnulationCaisseCentrale"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="1330" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_DemandeTraitee" bpmnElement="EndEvent_DemandeTraitee"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="1500" y="272" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1484" y="315" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_AnnuleeParCaisseCentrale" bpmnElement="EndEvent_AnnuleeParCaisseCentrale"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="1500" y="372" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1478" y="415" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sous-processus evenementiels -->
+      <bpmndi:BPMNShape id="Shape_EventSubProcess_Annulation" bpmnElement="EventSubProcess_Annulation" isExpanded="true"
+                        bioc:stroke="#a11f1f" bioc:fill="#fdeeee" color:border-color="#a11f1f" color:background-color="#fdeeee">
+        <dc:Bounds x="230" y="910" width="420" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_StartEvent_MsgAnnulation" bpmnElement="StartEvent_MsgAnnulation"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="270" y="972" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="252" y="1015" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_EnregistrerAnnulation" bpmnElement="Task_EnregistrerAnnulation"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="360" y="950" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_Annulee" bpmnElement="EndEvent_Annulee"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="530" y="972" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="514" y="1015" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_Esp1_1" bpmnElement="Flow_Esp1_1" bioc:stroke="#a11f1f" color:border-color="#a11f1f">
+        <di:waypoint x="306" y="990" />
+        <di:waypoint x="360" y="990" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Esp1_2" bpmnElement="Flow_Esp1_2" bioc:stroke="#a11f1f" color:border-color="#a11f1f">
+        <di:waypoint x="460" y="990" />
+        <di:waypoint x="530" y="990" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNShape id="Shape_EventSubProcess_Modification" bpmnElement="EventSubProcess_Modification" isExpanded="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf8e6" color:border-color="#a67c00" color:background-color="#fdf8e6">
+        <dc:Bounds x="690" y="910" width="420" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_StartEvent_MsgModification" bpmnElement="StartEvent_MsgModification"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="730" y="972" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="712" y="1015" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_AppliquerModification" bpmnElement="Task_AppliquerModification"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="820" y="950" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_Modifiee" bpmnElement="EndEvent_Modifiee"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="990" y="972" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="971" y="1015" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_Esp2_1" bpmnElement="Flow_Esp2_1" bioc:stroke="#a67c00" color:border-color="#a67c00">
+        <di:waypoint x="766" y="990" />
+        <di:waypoint x="820" y="990" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Esp2_2" bpmnElement="Flow_Esp2_2" bioc:stroke="#a67c00" color:border-color="#a67c00">
+        <di:waypoint x="920" y="990" />
+        <di:waypoint x="990" y="990" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNShape id="Shape_EventSubProcess_Commentaire" bpmnElement="EventSubProcess_Commentaire" isExpanded="true"
+                        bioc:stroke="#6b3fa0" bioc:fill="#f4eefa" color:border-color="#6b3fa0" color:background-color="#f4eefa">
+        <dc:Bounds x="1150" y="910" width="420" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_StartEvent_MsgCommentaire" bpmnElement="StartEvent_MsgCommentaire"
+                        bioc:stroke="#6b3fa0" bioc:fill="#e9dcf7" color:border-color="#6b3fa0" color:background-color="#e9dcf7">
+        <dc:Bounds x="1190" y="972" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1172" y="1015" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_HistoriserCommentaire" bpmnElement="Task_HistoriserCommentaire"
+                        bioc:stroke="#6b3fa0" bioc:fill="#e9dcf7" color:border-color="#6b3fa0" color:background-color="#e9dcf7">
+        <dc:Bounds x="1280" y="950" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_Commentaire" bpmnElement="EndEvent_Commentaire"
+                        bioc:stroke="#6b3fa0" bioc:fill="#e9dcf7" color:border-color="#6b3fa0" color:background-color="#e9dcf7">
+        <dc:Bounds x="1450" y="972" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1431" y="1015" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_Esp3_1" bpmnElement="Flow_Esp3_1" bioc:stroke="#6b3fa0" color:border-color="#6b3fa0">
+        <di:waypoint x="1226" y="990" />
+        <di:waypoint x="1280" y="990" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Esp3_2" bpmnElement="Flow_Esp3_2" bioc:stroke="#6b3fa0" color:border-color="#6b3fa0">
+        <di:waypoint x="1380" y="990" />
+        <di:waypoint x="1450" y="990" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Annotations -->
+      <bpmndi:BPMNShape id="Shape_Annotation_Statut" bpmnElement="Annotation_Statut">
+        <dc:Bounds x="310" y="95" width="200" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Cutoff" bpmnElement="Annotation_Cutoff">
+        <dc:Bounds x="560" y="95" width="200" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Corporate" bpmnElement="Annotation_Corporate">
+        <dc:Bounds x="810" y="95" width="200" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Gab" bpmnElement="Annotation_Gab">
+        <dc:Bounds x="230" y="440" width="240" height="75" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Urgence" bpmnElement="Annotation_Urgence">
+        <dc:Bounds x="900" y="545" width="170" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Consolidation" bpmnElement="Annotation_Consolidation">
+        <dc:Bounds x="700" y="680" width="230" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Notifications" bpmnElement="Annotation_Notifications">
+        <dc:Bounds x="700" y="770" width="230" height="75" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Fin" bpmnElement="Annotation_Fin">
+        <dc:Bounds x="1640" y="250" width="220" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Habilitations" bpmnElement="Annotation_Habilitations">
+        <dc:Bounds x="230" y="1150" width="420" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_Assoc_Statut" bpmnElement="Assoc_Statut">
+        <di:waypoint x="266" y="145" />
+        <di:waypoint x="310" y="132" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Cutoff" bpmnElement="Assoc_Cutoff">
+        <di:waypoint x="645" y="265" />
+        <di:waypoint x="645" y="155" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Corporate" bpmnElement="Assoc_Corporate">
+        <di:waypoint x="530" y="278" />
+        <di:waypoint x="880" y="155" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Gab" bpmnElement="Assoc_Gab">
+        <di:waypoint x="760" y="412" />
+        <di:waypoint x="470" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Urgence" bpmnElement="Assoc_Urgence">
+        <di:waypoint x="820" y="580" />
+        <di:waypoint x="900" y="575" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Consolidation" bpmnElement="Assoc_Consolidation">
+        <di:waypoint x="1040" y="720" />
+        <di:waypoint x="930" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Notifications" bpmnElement="Assoc_Notifications">
+        <di:waypoint x="1040" y="765" />
+        <di:waypoint x="930" y="800" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Fin" bpmnElement="Assoc_Fin">
+        <di:waypoint x="1536" y="290" />
+        <di:waypoint x="1640" y="292" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Habilitations" bpmnElement="Assoc_Habilitations">
+        <di:waypoint x="440" y="1070" />
+        <di:waypoint x="440" y="1150" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Connexions du flux principal -->
+      <bpmndi:BPMNEdge id="Edge_Flow_Start_Init" bpmnElement="Flow_Start_Init">
+        <di:waypoint x="248" y="168" />
+        <di:waypoint x="248" y="290" />
+        <di:waypoint x="320" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Init_Type" bpmnElement="Flow_Init_Type">
+        <di:waypoint x="420" y="290" />
+        <di:waypoint x="480" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Type_Agence" bpmnElement="Flow_Type_Agence">
+        <di:waypoint x="530" y="290" />
+        <di:waypoint x="620" y="290" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="535" y="266" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Type_Corporate" bpmnElement="Flow_Type_Corporate">
+        <di:waypoint x="505" y="265" />
+        <di:waypoint x="505" y="234" />
+        <di:waypoint x="985" y="234" />
+        <di:waypoint x="985" y="265" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="700" y="212" width="93" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Type_Gab" bpmnElement="Flow_Type_Gab">
+        <di:waypoint x="505" y="315" />
+        <di:waypoint x="505" y="390" />
+        <di:waypoint x="760" y="390" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="386" y="366" width="83" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Urgence_Oui" bpmnElement="Flow_Urgence_Oui">
+        <di:waypoint x="645" y="315" />
+        <di:waypoint x="645" y="590" />
+        <di:waypoint x="720" y="590" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="654" y="532" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Urgence_Non" bpmnElement="Flow_Urgence_Non">
+        <di:waypoint x="645" y="265" />
+        <di:waypoint x="645" y="252" />
+        <di:waypoint x="875" y="252" />
+        <di:waypoint x="875" y="265" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="748" y="230" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Urgence_Join" bpmnElement="Flow_Urgence_Join">
+        <di:waypoint x="820" y="590" />
+        <di:waypoint x="875" y="590" />
+        <di:waypoint x="875" y="315" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_JoinAgence_Merge" bpmnElement="Flow_JoinAgence_Merge">
+        <di:waypoint x="900" y="290" />
+        <di:waypoint x="960" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Gab_Merge" bpmnElement="Flow_Gab_Merge">
+        <di:waypoint x="860" y="390" />
+        <di:waypoint x="985" y="390" />
+        <di:waypoint x="985" y="315" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Merge_Traitement" bpmnElement="Flow_Merge_Traitement">
+        <di:waypoint x="1010" y="290" />
+        <di:waypoint x="1090" y="290" />
+        <di:waypoint x="1090" y="700" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Traitement_Decision" bpmnElement="Flow_Traitement_Decision">
+        <di:waypoint x="1140" y="740" />
+        <di:waypoint x="1200" y="740" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Decision_Traitee" bpmnElement="Flow_Decision_Traitee"
+                       bioc:stroke="#1b7a3d" color:border-color="#1b7a3d">
+        <di:waypoint x="1225" y="715" />
+        <di:waypoint x="1225" y="290" />
+        <di:waypoint x="1330" y="290" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1234" y="532" width="38" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Decision_Annulee" bpmnElement="Flow_Decision_Annulee"
+                       bioc:stroke="#a11f1f" color:border-color="#a11f1f">
+        <di:waypoint x="1250" y="740" />
+        <di:waypoint x="1290" y="740" />
+        <di:waypoint x="1290" y="390" />
+        <di:waypoint x="1330" y="390" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1298" y="592" width="45" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Cloture_Fin" bpmnElement="Flow_Cloture_Fin"
+                       bioc:stroke="#1b7a3d" color:border-color="#1b7a3d">
+        <di:waypoint x="1430" y="290" />
+        <di:waypoint x="1500" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_AnnulationCc_Fin" bpmnElement="Flow_AnnulationCc_Fin"
+                       bioc:stroke="#a11f1f" color:border-color="#a11f1f">
+        <di:waypoint x="1430" y="390" />
+        <di:waypoint x="1500" y="390" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
