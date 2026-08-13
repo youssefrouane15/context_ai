@@ -1,0 +1,693 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
+                  xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_GestionDesSuccessions"
+                  targetNamespace="http://bmci.ma/bpmn/gestion-des-successions"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- ========================= COLLABORATION ========================= -->
+  <bpmn:collaboration id="Collaboration_Successions">
+    <bpmn:participant id="Participant_Successions" name="Parcours de gestion des successions — de la declaration de deces au classement du dossier" processRef="gestion-des-successions" />
+  </bpmn:collaboration>
+
+  <!-- ============================ PROCESS ============================ -->
+  <bpmn:process id="gestion-des-successions" name="Parcours de gestion des successions" isExecutable="true"
+                camunda:versionTag="1.0" camunda:historyTimeToLive="365">
+
+    <bpmn:documentation>Traitement d'une demande de succession, de la reception de la declaration de deces en agence jusqu'au classement
+du dossier par le pole succession, en passant par la securisation des comptes du defunt, le traitement de ses engagements
+(credits, assurances) et la remise de la lettre de partage aux heritiers.
+
+ACTEURS : Agence, Pole Succession, Petit Contentieux, APAC Financement, Pole Assurances, Service PNC/CC.
+
+VARIABLES : numeroDossier, clientDefunt, dateDeces, religion, atdOuSaisieArret (Boolean), engagementsEnCours (Boolean),
+creditHabitat (Boolean), creditConsommation (Boolean).</bpmn:documentation>
+
+    <!-- ---------------------- COULOIRS / ACTEURS ---------------------- -->
+    <bpmn:laneSet id="LaneSet_Successions">
+      <bpmn:lane id="Lane_Agence" name="Agence">
+        <bpmn:flowNodeRef>StartEvent_DeclarationDeces</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RemettreListeDocuments</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_MajFicheClient</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_SplitInitial</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CloturerProduitsAgence</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EnrichirDemande</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RemettreLettreHeritiers</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CloturerDerniersComptes</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Systeme" name="Systeme (automatise)">
+        <bpmn:flowNodeRef>Task_NotifierPoleSuccession</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_VerifierDonnees</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_PoleSuccession" name="Pole Succession — pilote du dossier">
+        <bpmn:flowNodeRef>Task_PoserParticularite</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Atd</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_JoinAtd</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_VerifierEngagements</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Engagements</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ServicesSplit</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ServicesJoin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_JoinEngagements</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_JoinInitial</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FinaliserDossier</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ClasserDossier</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_DossierClasse</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_PetitContentieux" name="Petit Contentieux">
+        <bpmn:flowNodeRef>Task_TraiterAtd</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Apac" name="APAC Financement">
+        <bpmn:flowNodeRef>Task_ApacCreditHabitat</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Assurances" name="Pole Assurances (Operations Assurances)">
+        <bpmn:flowNodeRef>Task_MiseEnJeuAssurances</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_PncCc" name="Service PNC/CC">
+        <bpmn:flowNodeRef>Task_PncCc</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- ---------- Agence : reception et initiation ---------- -->
+    <bpmn:startEvent id="StartEvent_DeclarationDeces" name="Declaration de deces recue en agence">
+      <bpmn:documentation>Un proche informe l'agence du deces.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="clientDefunt" label="Client defunt" type="string" />
+          <camunda:formField id="dateDeces" label="Date de deces" type="date" />
+          <camunda:formField id="religion" label="Religion de la personne" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_Start_Liste</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_RemettreListeDocuments" name="Remettre la liste des documents a fournir"
+                   camunda:formKey="succ-liste-documents" camunda:candidateGroups="AGENCE">
+      <bpmn:documentation>La liste remise est adaptee a la religion de la personne.</bpmn:documentation>
+      <bpmn:incoming>Flow_Start_Liste</bpmn:incoming>
+      <bpmn:outgoing>Flow_Liste_Maj</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_MajFicheClient" name="Mettre a jour la fiche client et initier le parcours"
+                   camunda:formKey="succ-maj-fiche-client" camunda:candidateGroups="AGENCE">
+      <bpmn:documentation>Mise a jour immediate de la date de deces sur la fiche client et initiation du parcours dans l'application.</bpmn:documentation>
+      <bpmn:incoming>Flow_Liste_Maj</bpmn:incoming>
+      <bpmn:outgoing>Flow_Maj_Split</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:parallelGateway id="Gateway_SplitInitial" name="">
+      <bpmn:incoming>Flow_Maj_Split</bpmn:incoming>
+      <bpmn:outgoing>Flow_Split_Produits</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Split_Notification</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:userTask id="Task_CloturerProduitsAgence" name="Cloturer les produits geres directement par l'agence"
+                   camunda:formKey="succ-cloture-produits" camunda:candidateGroups="AGENCE">
+      <bpmn:incoming>Flow_Split_Produits</bpmn:incoming>
+      <bpmn:outgoing>Flow_Produits_Join</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ---------- Systeme ---------- -->
+    <bpmn:sendTask id="Task_NotifierPoleSuccession" name="Informer le pole succession"
+                   camunda:delegateExpression="${notifierPoleSuccessionDelegate}">
+      <bpmn:incoming>Flow_Split_Notification</bpmn:incoming>
+      <bpmn:outgoing>Flow_Notif_Verif</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:serviceTask id="Task_VerifierDonnees" name="Verifier la date de deces et la particularite ATD / saisie-arret"
+                      camunda:delegateExpression="${verifierDonneesSuccessionDelegate}" camunda:asyncAfter="true">
+      <bpmn:documentation>Controle automatise : presence de la date de deces sur la fiche client et detection d'une particularite ATD ou saisie-arret (positionne atdOuSaisieArret).</bpmn:documentation>
+      <bpmn:incoming>Flow_Notif_Verif</bpmn:incoming>
+      <bpmn:outgoing>Flow_Verif_Particularite</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ---------- Pole Succession : securisation ---------- -->
+    <bpmn:userTask id="Task_PoserParticularite" name="Poser la particularite succession et declencher la surveillance des comptes"
+                   camunda:formKey="succ-particularite" camunda:candidateGroups="POLE_SUCCESSION">
+      <bpmn:incoming>Flow_Verif_Particularite</bpmn:incoming>
+      <bpmn:outgoing>Flow_Particularite_Atd</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Atd" name="ATD ou saisie-arret detecte ?" default="Flow_Atd_Non">
+      <bpmn:incoming>Flow_Particularite_Atd</bpmn:incoming>
+      <bpmn:outgoing>Flow_Atd_Oui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Atd_Non</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_TraiterAtd" name="Traiter le volet ATD / saisie-arret"
+                   camunda:formKey="succ-volet-atd" camunda:candidateGroups="PETIT_CONTENTIEUX">
+      <bpmn:documentation>Le Petit Contentieux traite son propre volet, en parallele du parcours succession (hors perimetre detaille).</bpmn:documentation>
+      <bpmn:incoming>Flow_Atd_Oui</bpmn:incoming>
+      <bpmn:outgoing>Flow_Atd_Retour</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_JoinAtd" name="">
+      <bpmn:incoming>Flow_Atd_Non</bpmn:incoming>
+      <bpmn:incoming>Flow_Atd_Retour</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinAtd_Attente</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ---------- Agence : phase d'attente des documents ---------- -->
+    <bpmn:userTask id="Task_EnrichirDemande" name="Enrichir la demande au fil des documents apportes par la famille"
+                   camunda:formKey="succ-enrichissement" camunda:candidateGroups="AGENCE">
+      <bpmn:documentation>Le dossier reste bloque en phase d'attente tant que les documents necessaires n'ont pas ete apportes par la famille.
+L'agence peut completer la demande a tout moment de cette phase, sans limite de relance formalisee a ce stade.</bpmn:documentation>
+      <bpmn:incoming>Flow_JoinAtd_Attente</bpmn:incoming>
+      <bpmn:outgoing>Flow_Attente_Engagements</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ---------- Pole Succession : engagements ---------- -->
+    <bpmn:userTask id="Task_VerifierEngagements" name="Verifier les engagements (credits) du defunt"
+                   camunda:formKey="succ-engagements" camunda:candidateGroups="POLE_SUCCESSION">
+      <bpmn:incoming>Flow_Attente_Engagements</bpmn:incoming>
+      <bpmn:outgoing>Flow_Engagements_Gateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Engagements" name="Engagements en cours ?" default="Flow_Engagements_Non">
+      <bpmn:incoming>Flow_Engagements_Gateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Engagements_Oui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Engagements_Non</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:inclusiveGateway id="Gateway_ServicesSplit" name="Solliciter les services concernes" default="Flow_Services_Assurances">
+      <bpmn:incoming>Flow_Engagements_Oui</bpmn:incoming>
+      <bpmn:outgoing>Flow_Services_Apac</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Services_Assurances</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Services_Pnc</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+
+    <bpmn:userTask id="Task_ApacCreditHabitat" name="Traiter le volet credit habitat"
+                   camunda:formKey="succ-credit-habitat" camunda:candidateGroups="APAC_FINANCEMENT">
+      <bpmn:incoming>Flow_Services_Apac</bpmn:incoming>
+      <bpmn:outgoing>Flow_Apac_Join</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_MiseEnJeuAssurances" name="Mettre en jeu les assurances (vie, deces)"
+                   camunda:formKey="succ-assurances" camunda:candidateGroups="POLE_ASSURANCES">
+      <bpmn:incoming>Flow_Services_Assurances</bpmn:incoming>
+      <bpmn:outgoing>Flow_Assurances_Join</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_PncCc" name="Mettre en jeu l'assurance du credit consommation"
+                   camunda:formKey="succ-assurance-credit-conso" camunda:candidateGroups="SERVICE_PNC_CC">
+      <bpmn:incoming>Flow_Services_Pnc</bpmn:incoming>
+      <bpmn:outgoing>Flow_Pnc_Join</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:inclusiveGateway id="Gateway_ServicesJoin" name="">
+      <bpmn:incoming>Flow_Apac_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_Assurances_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_Pnc_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_ServicesJoin_Suite</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+
+    <bpmn:exclusiveGateway id="Gateway_JoinEngagements" name="">
+      <bpmn:incoming>Flow_ServicesJoin_Suite</bpmn:incoming>
+      <bpmn:incoming>Flow_Engagements_Non</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinEngagements_JoinInitial</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:parallelGateway id="Gateway_JoinInitial" name="">
+      <bpmn:incoming>Flow_JoinEngagements_JoinInitial</bpmn:incoming>
+      <bpmn:incoming>Flow_Produits_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinInitial_Finaliser</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:userTask id="Task_FinaliserDossier" name="Finaliser le dossier et transmettre la lettre de partage"
+                   camunda:formKey="succ-lettre-partage" camunda:candidateGroups="POLE_SUCCESSION">
+      <bpmn:incoming>Flow_JoinInitial_Finaliser</bpmn:incoming>
+      <bpmn:outgoing>Flow_Finaliser_Remise</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ---------- Agence : remise et cloture ---------- -->
+    <bpmn:userTask id="Task_RemettreLettreHeritiers" name="Remettre la lettre de partage aux heritiers"
+                   camunda:formKey="succ-remise-lettre" camunda:candidateGroups="AGENCE">
+      <bpmn:documentation>Remise aux heritiers pour le reglement de la succession.</bpmn:documentation>
+      <bpmn:incoming>Flow_Finaliser_Remise</bpmn:incoming>
+      <bpmn:outgoing>Flow_Remise_Cloture</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_CloturerDerniersComptes" name="Cloturer le ou les derniers comptes du defunt"
+                   camunda:formKey="succ-cloture-comptes" camunda:candidateGroups="AGENCE">
+      <bpmn:incoming>Flow_Remise_Cloture</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cloture_Classement</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ---------- Pole Succession : classement ---------- -->
+    <bpmn:userTask id="Task_ClasserDossier" name="Classer le dossier de succession"
+                   camunda:formKey="succ-classement" camunda:candidateGroups="POLE_SUCCESSION">
+      <bpmn:incoming>Flow_Cloture_Classement</bpmn:incoming>
+      <bpmn:outgoing>Flow_Classement_Fin</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="EndEvent_DossierClasse" name="Dossier classe — fin du parcours">
+      <bpmn:incoming>Flow_Classement_Fin</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ============================ FLUX ============================ -->
+    <bpmn:sequenceFlow id="Flow_Start_Liste" sourceRef="StartEvent_DeclarationDeces" targetRef="Task_RemettreListeDocuments" />
+    <bpmn:sequenceFlow id="Flow_Liste_Maj" sourceRef="Task_RemettreListeDocuments" targetRef="Task_MajFicheClient" />
+    <bpmn:sequenceFlow id="Flow_Maj_Split" sourceRef="Task_MajFicheClient" targetRef="Gateway_SplitInitial" />
+    <bpmn:sequenceFlow id="Flow_Split_Produits" sourceRef="Gateway_SplitInitial" targetRef="Task_CloturerProduitsAgence" />
+    <bpmn:sequenceFlow id="Flow_Split_Notification" sourceRef="Gateway_SplitInitial" targetRef="Task_NotifierPoleSuccession" />
+    <bpmn:sequenceFlow id="Flow_Notif_Verif" sourceRef="Task_NotifierPoleSuccession" targetRef="Task_VerifierDonnees" />
+    <bpmn:sequenceFlow id="Flow_Verif_Particularite" sourceRef="Task_VerifierDonnees" targetRef="Task_PoserParticularite" />
+    <bpmn:sequenceFlow id="Flow_Particularite_Atd" sourceRef="Task_PoserParticularite" targetRef="Gateway_Atd" />
+    <bpmn:sequenceFlow id="Flow_Atd_Oui" name="Oui" sourceRef="Gateway_Atd" targetRef="Task_TraiterAtd">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${atdOuSaisieArret}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Atd_Non" name="Non" sourceRef="Gateway_Atd" targetRef="Gateway_JoinAtd" />
+    <bpmn:sequenceFlow id="Flow_Atd_Retour" name="Une fois traite" sourceRef="Task_TraiterAtd" targetRef="Gateway_JoinAtd" />
+    <bpmn:sequenceFlow id="Flow_JoinAtd_Attente" sourceRef="Gateway_JoinAtd" targetRef="Task_EnrichirDemande" />
+    <bpmn:sequenceFlow id="Flow_Attente_Engagements" sourceRef="Task_EnrichirDemande" targetRef="Task_VerifierEngagements" />
+    <bpmn:sequenceFlow id="Flow_Engagements_Gateway" sourceRef="Task_VerifierEngagements" targetRef="Gateway_Engagements" />
+    <bpmn:sequenceFlow id="Flow_Engagements_Oui" name="Oui" sourceRef="Gateway_Engagements" targetRef="Gateway_ServicesSplit">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${engagementsEnCours}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Engagements_Non" name="Non" sourceRef="Gateway_Engagements" targetRef="Gateway_JoinEngagements" />
+    <bpmn:sequenceFlow id="Flow_Services_Apac" name="Credit habitat" sourceRef="Gateway_ServicesSplit" targetRef="Task_ApacCreditHabitat">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${creditHabitat}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Services_Assurances" name="Toutes assurances" sourceRef="Gateway_ServicesSplit" targetRef="Task_MiseEnJeuAssurances" />
+    <bpmn:sequenceFlow id="Flow_Services_Pnc" name="Si credit consommation" sourceRef="Gateway_ServicesSplit" targetRef="Task_PncCc">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${creditConsommation}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Apac_Join" sourceRef="Task_ApacCreditHabitat" targetRef="Gateway_ServicesJoin" />
+    <bpmn:sequenceFlow id="Flow_Assurances_Join" sourceRef="Task_MiseEnJeuAssurances" targetRef="Gateway_ServicesJoin" />
+    <bpmn:sequenceFlow id="Flow_Pnc_Join" sourceRef="Task_PncCc" targetRef="Gateway_ServicesJoin" />
+    <bpmn:sequenceFlow id="Flow_ServicesJoin_Suite" sourceRef="Gateway_ServicesJoin" targetRef="Gateway_JoinEngagements" />
+    <bpmn:sequenceFlow id="Flow_JoinEngagements_JoinInitial" sourceRef="Gateway_JoinEngagements" targetRef="Gateway_JoinInitial" />
+    <bpmn:sequenceFlow id="Flow_Produits_Join" sourceRef="Task_CloturerProduitsAgence" targetRef="Gateway_JoinInitial" />
+    <bpmn:sequenceFlow id="Flow_JoinInitial_Finaliser" sourceRef="Gateway_JoinInitial" targetRef="Task_FinaliserDossier" />
+    <bpmn:sequenceFlow id="Flow_Finaliser_Remise" sourceRef="Task_FinaliserDossier" targetRef="Task_RemettreLettreHeritiers" />
+    <bpmn:sequenceFlow id="Flow_Remise_Cloture" sourceRef="Task_RemettreLettreHeritiers" targetRef="Task_CloturerDerniersComptes" />
+    <bpmn:sequenceFlow id="Flow_Cloture_Classement" sourceRef="Task_CloturerDerniersComptes" targetRef="Task_ClasserDossier" />
+    <bpmn:sequenceFlow id="Flow_Classement_Fin" sourceRef="Task_ClasserDossier" targetRef="EndEvent_DossierClasse" />
+
+    <!-- ======================== ANNOTATIONS ======================== -->
+    <bpmn:textAnnotation id="Annotation_Documents">
+      <bpmn:text>La liste des documents a fournir est adaptee a la religion de la personne.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Produits">
+      <bpmn:text>En parallele de l'initiation du parcours, l'agence cloture les produits qu'elle gere directement.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Notifications">
+      <bpmn:text>Notifications : l'agence informe le pole succession des l'initiation du parcours ; le pole succession informe en retour l'APAC Financement, le pole Assurances et, le cas echeant, le Service PNC/CC des taches a traiter.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Attente">
+      <bpmn:text>Regle de retour et de relance : le dossier reste bloque en phase d'attente tant que les documents necessaires n'ont pas ete apportes par la famille. L'agence peut completer la demande a tout moment, sans limite de relance formalisee a ce stade.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Atd">
+      <bpmn:text>Le Petit Contentieux traite son propre volet en parallele — hors perimetre detaille de ce parcours.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Engagements">
+      <bpmn:text>Le pole succession verifie si le defunt avait des engagements (credits) en cours.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Services">
+      <bpmn:text>Taches declenchees en parallele : APAC Financement (credit habitat), pole Assurances (mise en jeu de toutes les assurances) et, en cas de credit consommation, une tache supplementaire vers le Service PNC/CC. Le processus revient au pole succession une fois ces taches traitees.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Fin">
+      <bpmn:text>Fin du workflow : le parcours se termine lorsque le pole succession classe le dossier, apres remise de la lettre de partage aux heritiers et cloture du ou des derniers comptes du defunt.</bpmn:text>
+    </bpmn:textAnnotation>
+
+    <bpmn:association id="Assoc_Documents" sourceRef="Task_RemettreListeDocuments" targetRef="Annotation_Documents" />
+    <bpmn:association id="Assoc_Produits" sourceRef="Task_CloturerProduitsAgence" targetRef="Annotation_Produits" />
+    <bpmn:association id="Assoc_Notifications" sourceRef="Task_NotifierPoleSuccession" targetRef="Annotation_Notifications" />
+    <bpmn:association id="Assoc_Attente" sourceRef="Task_EnrichirDemande" targetRef="Annotation_Attente" />
+    <bpmn:association id="Assoc_Atd" sourceRef="Task_TraiterAtd" targetRef="Annotation_Atd" />
+    <bpmn:association id="Assoc_Engagements" sourceRef="Gateway_Engagements" targetRef="Annotation_Engagements" />
+    <bpmn:association id="Assoc_Services" sourceRef="Task_PncCc" targetRef="Annotation_Services" />
+    <bpmn:association id="Assoc_Fin" sourceRef="EndEvent_DossierClasse" targetRef="Annotation_Fin" />
+
+  </bpmn:process>
+
+  <!-- ============================ DIAGRAMME ============================ -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_Successions">
+
+      <!-- Pool et couloirs -->
+      <bpmndi:BPMNShape id="Shape_Participant" bpmnElement="Participant_Successions" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#ffffff" color:border-color="#1a3a6b" color:background-color="#ffffff">
+        <dc:Bounds x="160" y="80" width="3160" height="1160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Agence" bpmnElement="Lane_Agence" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#eef3fb" color:border-color="#1a3a6b" color:background-color="#eef3fb">
+        <dc:Bounds x="190" y="80" width="3130" height="220" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Systeme" bpmnElement="Lane_Systeme" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#f5f6f7" color:border-color="#1a3a6b" color:background-color="#f5f6f7">
+        <dc:Bounds x="190" y="300" width="3130" height="140" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_PoleSuccession" bpmnElement="Lane_PoleSuccession" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#eefaef" color:border-color="#1a3a6b" color:background-color="#eefaef">
+        <dc:Bounds x="190" y="440" width="3130" height="220" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_PetitContentieux" bpmnElement="Lane_PetitContentieux" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#fdeeee" color:border-color="#1a3a6b" color:background-color="#fdeeee">
+        <dc:Bounds x="190" y="660" width="3130" height="140" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Apac" bpmnElement="Lane_Apac" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#fff6e8" color:border-color="#1a3a6b" color:background-color="#fff6e8">
+        <dc:Bounds x="190" y="800" width="3130" height="140" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Assurances" bpmnElement="Lane_Assurances" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#f7f2fa" color:border-color="#1a3a6b" color:background-color="#f7f2fa">
+        <dc:Bounds x="190" y="940" width="3130" height="140" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_PncCc" bpmnElement="Lane_PncCc" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#eef8f7" color:border-color="#1a3a6b" color:background-color="#eef8f7">
+        <dc:Bounds x="190" y="1080" width="3130" height="160" />
+      </bpmndi:BPMNShape>
+
+      <!-- Agence -->
+      <bpmndi:BPMNShape id="Shape_StartEvent_DeclarationDeces" bpmnElement="StartEvent_DeclarationDeces"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="250" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_RemettreListeDocuments" bpmnElement="Task_RemettreListeDocuments"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="330" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_MajFicheClient" bpmnElement="Task_MajFicheClient"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="480" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_SplitInitial" bpmnElement="Gateway_SplitInitial"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="630" y="135" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CloturerProduitsAgence" bpmnElement="Task_CloturerProduitsAgence"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="720" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_EnrichirDemande" bpmnElement="Task_EnrichirDemande"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="1480" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_RemettreLettreHeritiers" bpmnElement="Task_RemettreLettreHeritiers"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="2770" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CloturerDerniersComptes" bpmnElement="Task_CloturerDerniersComptes"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="2920" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Systeme -->
+      <bpmndi:BPMNShape id="Shape_Task_NotifierPoleSuccession" bpmnElement="Task_NotifierPoleSuccession"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="720" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_VerifierDonnees" bpmnElement="Task_VerifierDonnees"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="870" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Pole Succession -->
+      <bpmndi:BPMNShape id="Shape_Task_PoserParticularite" bpmnElement="Task_PoserParticularite"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="1020" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_Atd" bpmnElement="Gateway_Atd" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="1170" y="495" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_JoinAtd" bpmnElement="Gateway_JoinAtd" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="1400" y="495" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_VerifierEngagements" bpmnElement="Task_VerifierEngagements"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="1630" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_Engagements" bpmnElement="Gateway_Engagements" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="1780" y="495" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_ServicesSplit" bpmnElement="Gateway_ServicesSplit"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="1870" y="495" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_ServicesJoin" bpmnElement="Gateway_ServicesJoin"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="2300" y="495" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_JoinEngagements" bpmnElement="Gateway_JoinEngagements" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="2420" y="495" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_JoinInitial" bpmnElement="Gateway_JoinInitial"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="2520" y="495" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_FinaliserDossier" bpmnElement="Task_FinaliserDossier"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="2620" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ClasserDossier" bpmnElement="Task_ClasserDossier"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="3070" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_DossierClasse" bpmnElement="EndEvent_DossierClasse"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="3220" y="502" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Petit Contentieux -->
+      <bpmndi:BPMNShape id="Shape_Task_TraiterAtd" bpmnElement="Task_TraiterAtd"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="1250" y="690" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- APAC / Assurances / PNC-CC -->
+      <bpmndi:BPMNShape id="Shape_Task_ApacCreditHabitat" bpmnElement="Task_ApacCreditHabitat"
+                        bioc:stroke="#b06000" bioc:fill="#ffe6c7" color:border-color="#b06000" color:background-color="#ffe6c7">
+        <dc:Bounds x="1960" y="830" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_MiseEnJeuAssurances" bpmnElement="Task_MiseEnJeuAssurances"
+                        bioc:stroke="#6b3fa0" bioc:fill="#e9dcf7" color:border-color="#6b3fa0" color:background-color="#e9dcf7">
+        <dc:Bounds x="1960" y="970" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_PncCc" bpmnElement="Task_PncCc"
+                        bioc:stroke="#0f6b63" bioc:fill="#cfeae6" color:border-color="#0f6b63" color:background-color="#cfeae6">
+        <dc:Bounds x="2150" y="1110" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Annotations -->
+      <bpmndi:BPMNShape id="Shape_Annotation_Documents" bpmnElement="Annotation_Documents">
+        <dc:Bounds x="250" y="210" width="230" height="70" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Produits" bpmnElement="Annotation_Produits">
+        <dc:Bounds x="510" y="210" width="170" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Notifications" bpmnElement="Annotation_Notifications">
+        <dc:Bounds x="880" y="200" width="280" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Attente" bpmnElement="Annotation_Attente">
+        <dc:Bounds x="1650" y="200" width="280" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Atd" bpmnElement="Annotation_Atd">
+        <dc:Bounds x="1500" y="690" width="280" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Engagements" bpmnElement="Annotation_Engagements">
+        <dc:Bounds x="1650" y="570" width="230" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Services" bpmnElement="Annotation_Services">
+        <dc:Bounds x="2500" y="1100" width="320" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Fin" bpmnElement="Annotation_Fin">
+        <dc:Bounds x="3000" y="570" width="300" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_Assoc_Documents" bpmnElement="Assoc_Documents">
+        <di:waypoint x="380" y="200" />
+        <di:waypoint x="365" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Produits" bpmnElement="Assoc_Produits">
+        <di:waypoint x="720" y="250" />
+        <di:waypoint x="680" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Notifications" bpmnElement="Assoc_Notifications">
+        <di:waypoint x="770" y="330" />
+        <di:waypoint x="900" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Attente" bpmnElement="Assoc_Attente">
+        <di:waypoint x="1580" y="250" />
+        <di:waypoint x="1650" y="245" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Atd" bpmnElement="Assoc_Atd">
+        <di:waypoint x="1350" y="730" />
+        <di:waypoint x="1500" y="730" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Engagements" bpmnElement="Assoc_Engagements">
+        <di:waypoint x="1805" y="545" />
+        <di:waypoint x="1805" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Services" bpmnElement="Assoc_Services">
+        <di:waypoint x="2200" y="1190" />
+        <di:waypoint x="2500" y="1160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Fin" bpmnElement="Assoc_Fin">
+        <di:waypoint x="3238" y="538" />
+        <di:waypoint x="3200" y="570" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Connexions -->
+      <bpmndi:BPMNEdge id="Edge_Flow_Start_Liste" bpmnElement="Flow_Start_Liste">
+        <di:waypoint x="286" y="160" />
+        <di:waypoint x="330" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Liste_Maj" bpmnElement="Flow_Liste_Maj">
+        <di:waypoint x="430" y="160" />
+        <di:waypoint x="480" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Maj_Split" bpmnElement="Flow_Maj_Split">
+        <di:waypoint x="580" y="160" />
+        <di:waypoint x="630" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Split_Produits" bpmnElement="Flow_Split_Produits">
+        <di:waypoint x="655" y="185" />
+        <di:waypoint x="655" y="250" />
+        <di:waypoint x="720" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Split_Notification" bpmnElement="Flow_Split_Notification">
+        <di:waypoint x="680" y="160" />
+        <di:waypoint x="700" y="160" />
+        <di:waypoint x="700" y="370" />
+        <di:waypoint x="720" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Notif_Verif" bpmnElement="Flow_Notif_Verif">
+        <di:waypoint x="820" y="370" />
+        <di:waypoint x="870" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Verif_Particularite" bpmnElement="Flow_Verif_Particularite">
+        <di:waypoint x="970" y="370" />
+        <di:waypoint x="995" y="370" />
+        <di:waypoint x="995" y="520" />
+        <di:waypoint x="1020" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Particularite_Atd" bpmnElement="Flow_Particularite_Atd">
+        <di:waypoint x="1120" y="520" />
+        <di:waypoint x="1170" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Atd_Oui" bpmnElement="Flow_Atd_Oui" bioc:stroke="#a11f1f" color:border-color="#a11f1f">
+        <di:waypoint x="1195" y="545" />
+        <di:waypoint x="1195" y="730" />
+        <di:waypoint x="1250" y="730" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Atd_Non" bpmnElement="Flow_Atd_Non">
+        <di:waypoint x="1220" y="520" />
+        <di:waypoint x="1400" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Atd_Retour" bpmnElement="Flow_Atd_Retour" bioc:stroke="#a11f1f" color:border-color="#a11f1f">
+        <di:waypoint x="1350" y="730" />
+        <di:waypoint x="1425" y="730" />
+        <di:waypoint x="1425" y="545" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_JoinAtd_Attente" bpmnElement="Flow_JoinAtd_Attente">
+        <di:waypoint x="1425" y="495" />
+        <di:waypoint x="1425" y="250" />
+        <di:waypoint x="1480" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Attente_Engagements" bpmnElement="Flow_Attente_Engagements">
+        <di:waypoint x="1580" y="250" />
+        <di:waypoint x="1605" y="250" />
+        <di:waypoint x="1605" y="520" />
+        <di:waypoint x="1630" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Engagements_Gateway" bpmnElement="Flow_Engagements_Gateway">
+        <di:waypoint x="1730" y="520" />
+        <di:waypoint x="1780" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Engagements_Oui" bpmnElement="Flow_Engagements_Oui">
+        <di:waypoint x="1830" y="520" />
+        <di:waypoint x="1870" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Engagements_Non" bpmnElement="Flow_Engagements_Non">
+        <di:waypoint x="1805" y="495" />
+        <di:waypoint x="1805" y="450" />
+        <di:waypoint x="2445" y="450" />
+        <di:waypoint x="2445" y="495" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Services_Apac" bpmnElement="Flow_Services_Apac" bioc:stroke="#b06000" color:border-color="#b06000">
+        <di:waypoint x="1920" y="520" />
+        <di:waypoint x="2010" y="520" />
+        <di:waypoint x="2010" y="830" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Services_Assurances" bpmnElement="Flow_Services_Assurances" bioc:stroke="#6b3fa0" color:border-color="#6b3fa0">
+        <di:waypoint x="1895" y="545" />
+        <di:waypoint x="1895" y="1010" />
+        <di:waypoint x="1960" y="1010" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Services_Pnc" bpmnElement="Flow_Services_Pnc" bioc:stroke="#0f6b63" color:border-color="#0f6b63">
+        <di:waypoint x="1895" y="495" />
+        <di:waypoint x="1895" y="470" />
+        <di:waypoint x="2200" y="470" />
+        <di:waypoint x="2200" y="1110" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Apac_Join" bpmnElement="Flow_Apac_Join" bioc:stroke="#b06000" color:border-color="#b06000">
+        <di:waypoint x="2060" y="870" />
+        <di:waypoint x="2325" y="870" />
+        <di:waypoint x="2325" y="545" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Assurances_Join" bpmnElement="Flow_Assurances_Join" bioc:stroke="#6b3fa0" color:border-color="#6b3fa0">
+        <di:waypoint x="2060" y="1010" />
+        <di:waypoint x="2270" y="1010" />
+        <di:waypoint x="2270" y="520" />
+        <di:waypoint x="2300" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Pnc_Join" bpmnElement="Flow_Pnc_Join" bioc:stroke="#0f6b63" color:border-color="#0f6b63">
+        <di:waypoint x="2250" y="1150" />
+        <di:waypoint x="2380" y="1150" />
+        <di:waypoint x="2380" y="470" />
+        <di:waypoint x="2325" y="470" />
+        <di:waypoint x="2325" y="495" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ServicesJoin_Suite" bpmnElement="Flow_ServicesJoin_Suite">
+        <di:waypoint x="2350" y="520" />
+        <di:waypoint x="2420" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_JoinEngagements_JoinInitial" bpmnElement="Flow_JoinEngagements_JoinInitial">
+        <di:waypoint x="2470" y="520" />
+        <di:waypoint x="2520" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Produits_Join" bpmnElement="Flow_Produits_Join">
+        <di:waypoint x="820" y="250" />
+        <di:waypoint x="820" y="105" />
+        <di:waypoint x="2545" y="105" />
+        <di:waypoint x="2545" y="495" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_JoinInitial_Finaliser" bpmnElement="Flow_JoinInitial_Finaliser">
+        <di:waypoint x="2570" y="520" />
+        <di:waypoint x="2620" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Finaliser_Remise" bpmnElement="Flow_Finaliser_Remise">
+        <di:waypoint x="2720" y="520" />
+        <di:waypoint x="2745" y="520" />
+        <di:waypoint x="2745" y="160" />
+        <di:waypoint x="2770" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Remise_Cloture" bpmnElement="Flow_Remise_Cloture">
+        <di:waypoint x="2870" y="160" />
+        <di:waypoint x="2920" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Cloture_Classement" bpmnElement="Flow_Cloture_Classement">
+        <di:waypoint x="3020" y="160" />
+        <di:waypoint x="3045" y="160" />
+        <di:waypoint x="3045" y="520" />
+        <di:waypoint x="3070" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Classement_Fin" bpmnElement="Flow_Classement_Fin">
+        <di:waypoint x="3170" y="520" />
+        <di:waypoint x="3220" y="520" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
