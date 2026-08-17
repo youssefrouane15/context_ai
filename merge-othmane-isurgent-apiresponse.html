@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merge manuel avec la branche d'Othmane — isUrgent boolean + ApiResponse — clean install vert</title>
+<style>
+  :root{
+    --vert:#0B6B4F; --vert-fonce:#07402F; --or:#B8892C;
+    --fond:#F7F9F8; --carte:#FFFFFF; --texte:#1D2A26; --gris:#5E6E68;
+    --code-bg:#0F1E1A; --code-texte:#D8E6E0; --rouge:#B33A3A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI', Tahoma, sans-serif; background:var(--fond); color:var(--texte); line-height:1.65;}
+  header{background:linear-gradient(135deg, var(--vert-fonce), var(--vert)); color:#fff; padding:38px 48px;}
+  header h1{font-size:1.5rem; font-weight:600; line-height:1.35;}
+  header p{opacity:.85; margin-top:8px; font-size:.95rem; max-width:860px;}
+  .badge{display:inline-block; background:var(--or); color:#fff; font-size:.75rem; padding:3px 10px; border-radius:12px; margin-top:12px; letter-spacing:.5px; margin-right:8px;}
+  main{max-width:1040px; margin:0 auto; padding:32px 24px 64px;}
+  .toc{background:var(--carte); border-radius:10px; padding:20px 28px; margin-bottom:24px; box-shadow:0 1px 4px rgba(7,64,47,.08);}
+  .toc ol{margin:8px 0 0 22px;}
+  .toc a{color:var(--vert-fonce);}
+  section{background:var(--carte); border-radius:10px; padding:28px 32px; margin-bottom:24px; box-shadow:0 1px 4px rgba(7,64,47,.08); border-left:4px solid var(--vert);}
+  h2{color:var(--vert-fonce); font-size:1.18rem; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  h3{color:var(--vert-fonce); font-size:1rem; margin:20px 0 8px;}
+  .num{background:var(--vert); color:#fff; min-width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0;}
+  p{margin-bottom:12px;}
+  .fichier{display:inline-block; background:#EAF3EF; color:var(--vert-fonce); font-family:Consolas, monospace; font-size:.85rem; padding:2px 8px; border-radius:4px;}
+  .simple{background:#EAF6EF; border-left:4px solid var(--vert); padding:14px 18px; border-radius:6px; margin:16px 0; font-size:.94rem;}
+  .note{background:#FFF8EC; border-left:4px solid var(--or); padding:14px 18px; border-radius:6px; margin:16px 0; font-size:.93rem;}
+  .note strong{color:var(--or);}
+  .attention{background:#FBEAEA; border-left:4px solid var(--rouge); padding:14px 18px; border-radius:6px; margin:16px 0; font-size:.93rem;}
+  .attention strong{color:var(--rouge);}
+  .code-bloc{position:relative; margin:14px 0;}
+  .titre-fichier{background:var(--vert-fonce); color:#EAF3EE; font-family:Consolas, monospace; font-size:.78rem; padding:8px 14px; border-radius:8px 8px 0 0; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
+  .tag-action{background:#A8442C; color:#fff; font-size:.68rem; padding:2px 8px; border-radius:10px; letter-spacing:.5px; white-space:nowrap;}
+  .tag-action.modif{background:var(--or);}
+  .tag-action.suppr{background:#6E3A8B;}
+  .titre-fichier + pre{border-radius:0 0 8px 8px; margin-top:0;}
+  pre{background:var(--code-bg); color:var(--code-texte); padding:18px; border-radius:8px; overflow-x:auto; font-family:Consolas,'Courier New',monospace; font-size:.83rem; line-height:1.55;}
+  .btn-copier{background:var(--vert); color:#fff; border:none; padding:4px 12px; border-radius:5px; cursor:pointer; font-size:.75rem;}
+  .btn-copier:hover{background:var(--or);}
+  .kw{color:#7FD1B4;} .str{color:#E8C77D;} .com{color:#6E8B82; font-style:italic;} .att{color:#9BC4E2;} .ann{color:#D8B4E2;} .del{color:#E08A8A; text-decoration:line-through;}
+  ul{margin:8px 0 12px 22px;}
+  li{margin-bottom:7px;}
+  table{border-collapse:collapse; width:100%; margin:14px 0; font-size:.88rem;}
+  th{background:var(--vert-fonce); color:#EAF3EE; text-align:left; padding:9px 12px; font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;}
+  td{padding:9px 12px; border-bottom:1px solid #EEEBE2; vertical-align:top;}
+  td code, li code, p code{background:#EAF3EF; color:var(--vert-fonce); font-family:Consolas, monospace; font-size:.85em; padding:1px 6px; border-radius:4px;}
+  .check{list-style:none; margin-left:0;}
+  .check li::before{content:"☐ "; color:var(--vert); font-weight:bold;}
+  footer{text-align:center; color:var(--gris); font-size:.8rem; padding-bottom:32px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Merge manuel avec la branche d'Othmane<br>isUrgent → boolean · ApiResponse (format socle) · establishment conservé</h1>
+  <p>Plan d'exécution complet sur la branche corpo/refacto : chaque fichier touché, dans l'ordre qui compile, avec les impacts sur les scripts V1 (édités en place, phase V0), les mappers MapStruct, les DTOs, le domaine, les handlers et les tests. Objectif unique : <strong>mvn clean install vert</strong>, puis ajustements front dans un second document.</p>
+  <span class="badge">3 DÉCISIONS</span><span class="badge">V1 ÉDITÉ EN PLACE</span><span class="badge">CLEAN INSTALL VERT</span>
+</header>
+<main>
+
+<div class="toc"><strong>Sommaire — l'ordre EST le plan d'exécution</strong>
+<ol>
+  <li><a href="#cadrage">Cadrage : les 3 décisions et la liste des impacts</a></li>
+  <li><a href="#etape1">Étape 1 — Scripts Flyway V1 (retail) et V2 (corpo) édités en place</a></li>
+  <li><a href="#etape2">Étape 2 — Entités JPA</a></li>
+  <li><a href="#etape3">Étape 3 — Domaine (retail + corpo)</a></li>
+  <li><a href="#etape4">Étape 4 — DTOs</a></li>
+  <li><a href="#etape5">Étape 5 — Mappers MapStruct</a></li>
+  <li><a href="#etape6">Étape 6 — ApiResponse : la classe + les controllers</a></li>
+  <li><a href="#etape7">Étape 7 — ApiResponse : les handlers d'exceptions</a></li>
+  <li><a href="#etape8">Étape 8 — Les tests qui cassent et leur correction</a></li>
+  <li><a href="#etape9">Étape 9 — Base locale + clean install + vérifications</a></li>
+  <li><a href="#front">Ce qui attend le front (document suivant)</a></li>
+</ol>
+</div>
+
+<section id="cadrage">
+  <h2><span class="num">1</span>Cadrage : les 3 décisions et la liste des impacts</h2>
+  <table>
+    <tr><th>Décision</th><th>Verdict</th><th>Ce qui bouge</th></tr>
+    <tr><td><code>institutionCode</code></td><td>Déjà supprimé des deux côtés</td><td>Rien</td></tr>
+    <tr><td><code>establishment</code> sur CashRequest</td><td><strong>CONSERVÉ</strong> (besoin AER_LM-258)</td><td>Rien — on ne reprend pas la suppression d'Othmane</td></tr>
+    <tr><td><code>isUrgent</code> String YES/NO</td><td><strong>→ boolean</strong></td><td>V1/V2 Flyway (colonne), entités, domaine, DTOs, tests. UrgencyFlag supprimé.</td></tr>
+    <tr><td>Wrapper de réponse</td><td><strong>ApiResponse&lt;T&gt;</strong> format socle <code>success/message/data/error</code></td><td>Tous les controllers (retail + corpo), tous les handlers, tous les tests controller</td></tr>
+  </table>
+  <div class="attention"><strong>Règle de la phase V0 (ta décision) :</strong> pas de migration correctrice V3. On édite les scripts V1 et V2 en place et on rejoue la base locale (drop + recréation). Les scripts de reset/purge existants servent à ça. En INT/PROD la question ne se pose pas encore.</div>
+  <div class="note"><strong>Pré-requis avant de commencer :</strong> branche propre (tout committé), <code>mvn clean install</code> vert sur l'état actuel — c'est ton point de retour si quelque chose dérape. Fais un commit par étape de ce doc, ça rend le bisect trivial.</div>
+</section>
+
+<section id="etape1">
+  <h2><span class="num">2</span>Étape 1 — Scripts Flyway V1 (retail) et V2 (corpo) édités en place</h2>
+  <p>Dans chaque script, la colonne de la table <code>cash_operation</code> change de type. Cherche la ligne <code>is_urgent</code> et remplace :</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>db\migration\V1__… (schéma retail) ET V2__… (schéma corpo) — table cash_operation</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">-- AVANT (à supprimer) :</span>
+<span class="del">is_urgent VARCHAR(3) NOT NULL DEFAULT 'NO',</span>
+<span class="del">CONSTRAINT chk_is_urgent CHECK (is_urgent IN ('YES', 'NO')),</span>
+
+<span class="com">-- APRÈS :</span>
+is_urgent BOOLEAN NOT NULL DEFAULT FALSE,</code></pre>
+  </div>
+  <p>Vérifie qu'aucun <code>INSERT</code> de seed n'alimente <code>is_urgent</code> avec <code>'YES'</code>/<code>'NO'</code> (les seeds portent normalement sur currency/denomination/establishment/user_profile, pas sur des opérations — mais un <code>Ctrl+F</code> sur <code>is_urgent</code> dans les deux fichiers coûte 10 secondes).</p>
+  <div class="note"><strong>Pourquoi supprimer la contrainte CHECK :</strong> elle n'a plus de sens sur un booléen — le type garantit déjà les deux seules valeurs possibles. La laisser ferait échouer le script.</div>
+</section>
+
+<section id="etape2">
+  <h2><span class="num">3</span>Étape 2 — Entités JPA</h2>
+  <p>Retail et corpo ont chacun leur entité opération. Même modification dans les deux :</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>dataaccess\…\CashOperationEntity.java (retail) ET l'entité opération corpo</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// AVANT :</span>
+<span class="del">@Column(name = "is_urgent", nullable = false, length = 3)</span>
+<span class="del">private String isUrgent = "NO";</span>
+
+<span class="com">// APRÈS :</span>
+<span class="ann">@Column</span>(name = <span class="str">"is_urgent"</span>, nullable = <span class="kw">false</span>)
+<span class="kw">private</span> Boolean isUrgent = Boolean.FALSE;</code></pre>
+  </div>
+  <div class="note"><strong>Boolean (objet) et non boolean (primitif) :</strong> volontaire, pour rester cohérent avec les autres champs wrapper de l'entité et éviter le piège du getter Lombok <code>isUrgent()</code> sur un primitif qui perturbe MapStruct et Jackson (avec un primitif <code>boolean isUrgent</code>, Lombok génère <code>isUrgent()</code> et non <code>getIsUrgent()</code> — les mappings par nom se cassent). Avec <code>Boolean</code>, Lombok génère <code>getIsUrgent()</code> et tout reste aligné.</div>
+</section>
+
+<section id="etape3">
+  <h2><span class="num">4</span>Étape 3 — Domaine (retail + corpo)</h2>
+  <p>Trois modifications dans domain-core.</p>
+  <h3>a) L'entité domaine CashOperation (retail) et son équivalent corpo</h3>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>domain-core\…\CashOperation.java (retail) ET l'entité opération corpo</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Le champ :</span>
+<span class="del">private UrgencyFlag isUrgent;   // ou String selon ton état actuel</span>
+<span class="kw">private</span> Boolean isUrgent;
+
+<span class="com">// Dans la méthode de défauts serveur (validateAndCompute / applyDefaults) :</span>
+<span class="del">if (isUrgent == null) isUrgent = UrgencyFlag.NO;</span>
+<span class="kw">if</span> (isUrgent == <span class="kw">null</span>) isUrgent = Boolean.FALSE;</code></pre>
+  </div>
+  <h3>b) Supprimer l'enum UrgencyFlag</h3>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>domain-core\…\enums\UrgencyFlag.java</span><span class="tag-action suppr">SUPPRIMER</span></div>
+<pre><code><span class="com">// Supprime le fichier, puis Ctrl+Shift+F "UrgencyFlag" dans tout le projet :
+// chaque occurrence restante est un endroit à corriger (mapper, test, DTO).
+// L'objectif : zéro résultat.</span></code></pre>
+  </div>
+  <h3>c) Rien d'autre côté règles</h3>
+  <p>La règle SUPPLY+CASH_DESK ⇒ ventilation obligatoire, les totaux par devise, la référence RT-AAAA-NNNNNN : aucun ne dépend de l'urgence. Aucun changement.</p>
+</section>
+
+<section id="etape4">
+  <h2><span class="num">5</span>Étape 4 — DTOs</h2>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>dto\CashOperationDTO.java (retail) ET l'opération DTO corpo</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="del">private String isUrgent;</span>
+<span class="kw">private</span> Boolean isUrgent;   <span class="com">// null accepté en entrée → défaut serveur FALSE</span></code></pre>
+  </div>
+  <p>Aucune annotation de validation à ajouter : le défaut serveur du domaine gère le null. Le JSON attendu du front devient <code>"isUrgent": true</code> au lieu de <code>"isUrgent": "YES"</code> — noté pour le document front.</p>
+</section>
+
+<section id="etape5">
+  <h2><span class="num">6</span>Étape 5 — Mappers MapStruct</h2>
+  <p>Bonne nouvelle : les deux mappers (<span class="fichier">CashRequestWebMapper</span> et <span class="fichier">CashRequestPersistenceMapper</span>, retail comme corpo) mappent <code>isUrgent</code> <strong>par nom</strong>. Une fois que source et cible sont toutes deux <code>Boolean</code>, MapStruct régénère le mapping tout seul au build. <strong>Il n'y a rien à écrire</strong> — sauf si tu avais une méthode de conversion explicite <code>UrgencyFlag ↔ String</code> :</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>Dans les mappers — si présent uniquement</span><span class="tag-action suppr">SUPPRIMER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Toute méthode de ce genre devient inutile ET fait échouer la compilation
+// (UrgencyFlag n'existe plus) → à supprimer :</span>
+<span class="del">default String urgencyToString(UrgencyFlag flag) { … }</span>
+<span class="del">default UrgencyFlag stringToUrgency(String s) { … }</span>
+<span class="del">@Mapping(target = "isUrgent", qualifiedByName = "…")</span></code></pre>
+  </div>
+  <div class="attention"><strong>Piège MapStruct à connaître :</strong> après ces changements, fais un <code>mvn clean compile</code> (pas juste un build IntelliJ). Les classes <code>*Impl</code> générées vivent dans <code>target/generated-sources</code> — un build incrémental IntelliJ peut garder une vieille version et te montrer des erreurs fantômes (ou en cacher). <code>clean</code> force la régénération.</div>
+</section>
+
+<section id="etape6">
+  <h2><span class="num">7</span>Étape 6 — ApiResponse : la classe + les controllers</h2>
+  <h3>a) La classe, format socle exact (success / message / data / error)</h3>
+  <p>Placée dans <code>application-service</code> (module partagé par retail et corpo, comme <code>ResponseDTO</code> qui y vit déjà) :</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>application-service\…\service\domain\dto\ApiResponse.java</span><span class="tag-action">CRÉER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.dto;
+
+<span class="kw">import</span> com.fasterxml.jackson.annotation.JsonInclude;
+<span class="kw">import</span> lombok.AllArgsConstructor;
+<span class="kw">import</span> lombok.Getter;
+<span class="kw">import</span> lombok.NoArgsConstructor;
+
+<span class="com">/**
+ * Enveloppe standard de toute réponse HTTP du microservice,
+ * alignée sur le format du socle QlickFlow : { success, message, data, error }.
+ * Les champs null ne sont pas sérialisés (data absent en erreur, error absent en succès).
+ */</span>
+<span class="ann">@Getter</span>
+<span class="ann">@NoArgsConstructor</span>
+<span class="ann">@AllArgsConstructor</span>
+<span class="ann">@JsonInclude</span>(JsonInclude.Include.NON_NULL)
+<span class="kw">public class</span> ApiResponse&lt;T&gt; {
+
+    <span class="kw">private</span> Boolean success;
+    <span class="kw">private</span> String message;
+    <span class="kw">private</span> T data;
+    <span class="kw">private</span> String error;
+
+    <span class="kw">public static</span> &lt;T&gt; ApiResponse&lt;T&gt; success(T data) {
+        <span class="kw">return new</span> ApiResponse&lt;&gt;(<span class="kw">true</span>, <span class="kw">null</span>, data, <span class="kw">null</span>);
+    }
+
+    <span class="kw">public static</span> &lt;T&gt; ApiResponse&lt;T&gt; success(T data, String message) {
+        <span class="kw">return new</span> ApiResponse&lt;&gt;(<span class="kw">true</span>, message, data, <span class="kw">null</span>);
+    }
+
+    <span class="kw">public static</span> &lt;T&gt; ApiResponse&lt;T&gt; failure(String message, String error) {
+        <span class="kw">return new</span> ApiResponse&lt;&gt;(<span class="kw">false</span>, message, <span class="kw">null</span>, error);
+    }
+}</code></pre>
+  </div>
+  <div class="note"><strong>Et le <code>ResponseDTO&lt;D,C&gt;</code> existant ?</strong> Il exprimait le même besoin (message + data). Vérifie ses usages (<code>Alt+F7</code>) : s'il n'est utilisé nulle part, supprime-le pour ne pas garder deux enveloppes concurrentes. S'il est utilisé, remplace par ApiResponse.</div>
+
+  <h3>b) Le controller retail — chaque endpoint enveloppé</h3>
+  <p>Le principe est mécanique : le type de retour devient <code>ResponseEntity&lt;ApiResponse&lt;X&gt;&gt;</code> et le corps passe par <code>ApiResponse.success(...)</code>. Les codes HTTP ne changent pas (201 sur create, 200 ailleurs) :</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>application\rest\retail\RetailDemandController.java</span><span class="tag-action modif">MODIFIER — les 7 endpoints</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="ann">@PostMapping</span>
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;CashRequestDTO&gt;&gt; create(<span class="ann">@Valid @RequestBody</span> CashRequestDTO request) {
+    <span class="kw">return</span> ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(cashDemandUseCase.create(request)));
+}
+
+<span class="ann">@PutMapping</span>(<span class="str">"/{id}"</span>)
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;CashRequestDTO&gt;&gt; update(<span class="ann">@PathVariable</span> UUID id,
+                                                       <span class="ann">@Valid @RequestBody</span> CashRequestDTO request) {
+    <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(cashDemandUseCase.update(id, request)));
+}
+
+<span class="ann">@GetMapping</span>(<span class="str">"/{id}"</span>)
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;CashRequestDTO&gt;&gt; getById(<span class="ann">@PathVariable</span> UUID id) {
+    <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(cashDemandUseCase.getCashDemandById(id)));
+}
+
+<span class="ann">@GetMapping</span>(<span class="str">"/getCashDemandById"</span>)   <span class="com">// endpoint legacy conservé</span>
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;CashRequestDTO&gt;&gt; getCashRequestById(<span class="ann">@RequestParam</span>(<span class="str">"cashRequestId"</span>) UUID id) {
+    <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(cashDemandUseCase.getCashDemandById(id)));
+}
+
+<span class="ann">@GetMapping</span>
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;List&lt;CashRequestDTO&gt;&gt;&gt; getAll() {
+    <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(cashDemandUseCase.getAll()));
+}
+
+<span class="ann">@PatchMapping</span>(<span class="str">"/{id}/cancel"</span>)
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;CashRequestDTO&gt;&gt; cancelRequest(<span class="ann">@PathVariable</span> UUID id) {
+    <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(cashDemandUseCase.cancel(id)));
+}
+
+<span class="ann">@PatchMapping</span>(<span class="str">"/{id}/operations/cancel"</span>)
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;CashRequestDTO&gt;&gt; cancelOperations(<span class="ann">@PathVariable</span> UUID id,
+                                                                 <span class="ann">@RequestBody</span> CashRequestDTO request) {
+    <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(
+            cashDemandUseCase.cancelOperations(id, request.getOperations())));
+}</code></pre>
+  </div>
+  <p>Import à ajouter en tête : <code>import com.bmci.workflow.fund.management.service.domain.dto.ApiResponse;</code></p>
+  <h3>c) Le controller corpo — même traitement</h3>
+  <p>Applique exactement la même transformation à chaque endpoint de <span class="fichier">CorpoDemandController</span> (create/getById/getAll/… avec <code>CorpoCashRequestDTO</code>). Le pattern est identique, seuls les types changent.</p>
+</section>
+
+<section id="etape7">
+  <h2><span class="num">8</span>Étape 7 — ApiResponse : les handlers d'exceptions</h2>
+  <p>C'est ce qui garantit une <strong>seule forme de réponse</strong> pour le front, succès comme erreur. Le principe : le corps d'erreur devient <code>ApiResponse.failure(message, error)</code>, les statuts HTTP ne changent pas. Sur le modèle de <span class="fichier">RetailDemandExceptionHandler</span> :</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>RetailDemandExceptionHandler.java ET le handler corpo — chaque @ExceptionHandler</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Le type de retour de chaque méthode devient ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt;.
+// Exemples (adapte aux noms de tes exceptions typées et de tes clés messages) :</span>
+
+<span class="ann">@ExceptionHandler</span>(RetailNotFoundException.<span class="kw">class</span>)
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; handleNotFound(RetailNotFoundException ex) {
+    <span class="kw">return</span> ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(ApiResponse.failure(message(<span class="str">"retail.error.notfound"</span>, ex.getMessage()), <span class="str">"NOT_FOUND"</span>));
+}
+
+<span class="ann">@ExceptionHandler</span>(RetailConflictException.<span class="kw">class</span>)
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; handleConflict(RetailConflictException ex) {
+    <span class="kw">return</span> ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ApiResponse.failure(message(<span class="str">"retail.error.conflict"</span>, ex.getMessage()), <span class="str">"CONFLICT"</span>));
+}
+
+<span class="ann">@ExceptionHandler</span>(RetailValidationException.<span class="kw">class</span>)
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; handleValidation(RetailValidationException ex) {
+    <span class="kw">return</span> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(ApiResponse.failure(message(<span class="str">"retail.error.validation"</span>, ex.getMessage()), <span class="str">"VALIDATION_ERROR"</span>));
+}
+
+<span class="ann">@ExceptionHandler</span>(MethodArgumentNotValidException.<span class="kw">class</span>)   <span class="com">// @Valid → 400</span>
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; handleBadRequest(MethodArgumentNotValidException ex) {
+    String detail = ex.getBindingResult().getFieldErrors().stream()
+            .map(e -&gt; e.getField() + <span class="str">" : "</span> + e.getDefaultMessage())
+            .collect(Collectors.joining(<span class="str">"; "</span>));
+    <span class="kw">return</span> ResponseEntity.badRequest()
+            .body(ApiResponse.failure(message(<span class="str">"retail.error.badrequest"</span>, detail), <span class="str">"BAD_REQUEST"</span>));
+}
+
+<span class="ann">@ExceptionHandler</span>(Exception.<span class="kw">class</span>)   <span class="com">// filet de sécurité</span>
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; handleTechnical(Exception ex) {
+    log.error(<span class="str">"Erreur technique non gérée"</span>, ex);
+    <span class="kw">return</span> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(ApiResponse.failure(message(<span class="str">"retail.error.technical"</span>), <span class="str">"TECHNICAL_ERROR"</span>));
+}</code></pre>
+  </div>
+  <div class="note"><strong>Le champ <code>error</code> = un code stable, le champ <code>message</code> = le texte lisible.</strong> Le front pourra brancher sa logique sur <code>error</code> (ex. afficher un formulaire de correction sur VALIDATION_ERROR) sans dépendre du texte. Si tu avais un <code>ErrorDTO</code> maison comme corps d'erreur, il devient inutile — supprime-le après avoir vérifié ses usages, sinon tu gardes deux formats d'erreur.</div>
+</section>
+
+<section id="etape8">
+  <h2><span class="num">9</span>Étape 8 — Les tests qui cassent et leur correction</h2>
+  <p>Trois familles de tests vont rougir. Voici exactement quoi et pourquoi.</p>
+
+  <h3>a) Tests controller (MockMvc) — le JSON a changé de forme</h3>
+  <p>Toute assertion du type <code>jsonPath("$.id")</code> ou <code>jsonPath("$.requestStatus")</code> échoue : ces champs sont maintenant sous <code>data</code>. Les <code>status().isOk()</code>/<code>isCreated()</code> restent vrais.</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>Tests controller retail + corpo — pattern de correction</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// AVANT :</span>
+<span class="del">.andExpect(jsonPath("$.id").value(id.toString()))</span>
+<span class="del">.andExpect(jsonPath("$.requestStatus").value("INITIATED"))</span>
+
+<span class="com">// APRÈS :</span>
+.andExpect(jsonPath(<span class="str">"$.success"</span>).value(<span class="kw">true</span>))
+.andExpect(jsonPath(<span class="str">"$.data.id"</span>).value(id.toString()))
+.andExpect(jsonPath(<span class="str">"$.data.requestStatus"</span>).value(<span class="str">"INITIATED"</span>))
+
+<span class="com">// Pour les tests d'erreur (handler) :</span>
+.andExpect(status().isNotFound())
+.andExpect(jsonPath(<span class="str">"$.success"</span>).value(<span class="kw">false</span>))
+.andExpect(jsonPath(<span class="str">"$.error"</span>).value(<span class="str">"NOT_FOUND"</span>))
+.andExpect(jsonPath(<span class="str">"$.data"</span>).doesNotExist())</code></pre>
+  </div>
+  <p>Les tests qui se contentent de <code>status().isOk()</code> + <code>verify(useCase).create(any())</code> (comme <span class="fichier">CashDemandControllerTest</span> d'origine) passent sans modification. Astuce : <code>Ctrl+Shift+F</code> sur <code>jsonPath("$.</code> dans <code>src/test</code> te donne la liste exhaustive à corriger.</p>
+
+  <h3>b) Tests avec des payloads isUrgent — le type a changé</h3>
+  <p>Tout builder ou setter de test qui fait <code>.isUrgent("YES")</code>, <code>.isUrgent(UrgencyFlag.NO)</code> ou <code>setIsUrgent("NO")</code> ne compile plus. Idem pour les fixtures JSON.</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>Tests use case / mapper / domaine — pattern de correction</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="del">.isUrgent("YES")</span>            →   .isUrgent(<span class="kw">true</span>)
+<span class="del">.isUrgent(UrgencyFlag.NO)</span>   →   .isUrgent(<span class="kw">false</span>)
+<span class="del">assertEquals("NO", op.getIsUrgent())</span>   →   assertEquals(Boolean.FALSE, op.getIsUrgent())
+<span class="del">"isUrgent": "YES"</span>  (JSON)   →   <span class="str">"isUrgent"</span>: <span class="kw">true</span></code></pre>
+  </div>
+  <p>Le test de défaut serveur (celui qui vérifie qu'une opération sans urgence reçoit NO) devient : « reçoit <code>Boolean.FALSE</code> ». Même intention, nouvelle valeur.</p>
+
+  <h3>c) Tests de handler — le corps d'erreur a changé</h3>
+  <p>Si tes tests de handler asserent sur les champs de l'ancien <code>ErrorDTO</code> (ex. <code>$.code</code>, <code>$.detail</code>), ils passent sur <code>$.success</code>/<code>$.error</code>/<code>$.message</code> — cf. le bloc du (a).</p>
+
+  <div class="attention"><strong>Mockito strict (MockitoExtension) — rappel :</strong> en corrigeant les tests, ne rajoute pas de stubs « au cas où » dans un <code>@BeforeEach</code>. Chaque test déclare exactement ce qu'il consomme, sinon <code>UnnecessaryStubbingException</code> te fera rougir le build pour une mauvaise raison.</div>
+</section>
+
+<section id="etape9">
+  <h2><span class="num">10</span>Étape 9 — Base locale + clean install + vérifications</h2>
+  <ol>
+    <li><strong>Rejouer la base locale</strong> : la colonne <code>is_urgent</code> a changé de type dans les scripts, or Flyway a déjà appliqué l'ancien V1/V2 (checksum enregistré). Un simple redémarrage échouera avec <em>Migration checksum mismatch</em>. Utilise ton script de reset (drop des schémas retail/corpo + <code>flyway_schema_history</code>), puis redémarre : V1/V2 se rejouent proprement.</li>
+    <li><strong>Compilation à blanc</strong> : <code>mvn clean compile</code> à la racine — corrige toute erreur restante (elle pointera presque toujours sur une occurrence oubliée de <code>UrgencyFlag</code> ou un type de retour de controller).</li>
+    <li><strong>Le vrai test</strong> : <code>mvn clean install</code>. Vert attendu. Si un test rougit, son nom te dit dans quelle famille du § 8 il tombe.</li>
+    <li><strong>Vérification fonctionnelle rapide</strong> (app démarrée, Postman) : POST <code>/cash</code> avec <code>"isUrgent": true</code> → 201 et corps <code>{ "success": true, "data": { … "isUrgent": true … } }</code> ; GET <code>/cash/{uuid-inexistant}</code> → 404 et corps <code>{ "success": false, "message": "…", "error": "NOT_FOUND" }</code>. Deux appels, tu as validé les deux décisions.</li>
+  </ol>
+  <h3>Checklist finale avant de montrer la branche à Yassin</h3>
+  <ul class="check">
+    <li><code>Ctrl+Shift+F "UrgencyFlag"</code> → 0 résultat</li>
+    <li><code>Ctrl+Shift+F "\"YES\""</code> et <code>"\"NO\""</code> dans src → 0 résultat lié à l'urgence</li>
+    <li>Tous les endpoints retail ET corpo renvoient <code>ResponseEntity&lt;ApiResponse&lt;…&gt;&gt;</code></li>
+    <li>Tous les handlers renvoient <code>ApiResponse.failure(…)</code> — aucun ErrorDTO résiduel</li>
+    <li><code>ResponseDTO</code> supprimé (ou remplacé) — une seule enveloppe dans le projet</li>
+    <li>V1 et V2 : <code>is_urgent BOOLEAN NOT NULL DEFAULT FALSE</code>, plus de CHECK</li>
+    <li><code>mvn clean install</code> vert</li>
+    <li>Un commit par étape, message clair (« merge Othmane: isUrgent boolean », « merge Othmane: ApiResponse wrapper »…)</li>
+  </ul>
+</section>
+
+<section id="front">
+  <h2><span class="num">11</span>Ce qui attend le front (document suivant)</h2>
+  <p>Pour cadrer dès maintenant l'étape 2 de la validation de Yassin, voici la liste exacte des ruptures de contrat que le backend vient d'introduire pour <span class="fichier">fund-management-front</span> :</p>
+  <table>
+    <tr><th>Rupture</th><th>Où ça casse côté front</th></tr>
+    <tr><td>Toutes les réponses enveloppées <code>{ success, message, data, error }</code></td><td>Chaque méthode de <code>fundManagement-http.service.ts</code> doit lire <code>.data</code> (getDemandes, annulerDemande, create…). Une seule logique de lecture, écrite une fois.</td></tr>
+    <tr><td>Erreurs enveloppées avec code <code>error</code></td><td>Les snackbars d'erreur peuvent afficher <code>message</code> et brancher sur <code>error</code> — remplace les messages génériques actuels.</td></tr>
+    <tr><td><code>isUrgent</code> boolean</td><td>Modèle <code>operation.model.ts</code> (<code>isUrgent: boolean</code>), formulaire de création (checkbox au lieu de select YES/NO), et tout <code>=== 'YES'</code> dans les templates.</td></tr>
+  </table>
+  <p>Ces trois points seront le document front, écrit sur la même chaîne (adapter HTTP → actions → façade → composants). Dis-moi quand le clean install est vert et je le prépare.</p>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · microservice-fund-management · Merge manuel branche Othmane · isUrgent boolean + ApiResponse socle</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{
+    btn.textContent = 'Copié ✓';
+    setTimeout(()=>btn.textContent='Copier', 1800);
+  });
+}
+</script>
+</body>
+</html>
