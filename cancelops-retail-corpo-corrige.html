@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cancelOperations — retail ET corpo · RequestStatus / CorpoRequestStatus · DTO en common</title>
+<style>
+  :root{
+    --vert:#0B6B4F; --vert-fonce:#07402F; --or:#B8892C;
+    --fond:#F7F9F8; --carte:#FFFFFF; --texte:#1D2A26; --gris:#5E6E68;
+    --code-bg:#0F1E1A; --code-texte:#D8E6E0; --rouge:#B33A3A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI', Tahoma, sans-serif; background:var(--fond); color:var(--texte); line-height:1.65;}
+  header{background:linear-gradient(135deg, var(--vert-fonce), var(--vert)); color:#fff; padding:38px 48px;}
+  header h1{font-size:1.5rem; font-weight:600; line-height:1.35;}
+  header p{opacity:.85; margin-top:8px; font-size:.95rem; max-width:860px;}
+  .badge{display:inline-block; background:var(--or); color:#fff; font-size:.75rem; padding:3px 10px; border-radius:12px; margin-top:12px; letter-spacing:.5px; margin-right:8px;}
+  main{max-width:1040px; margin:0 auto; padding:32px 24px 64px;}
+  section{background:var(--carte); border-radius:10px; padding:28px 32px; margin-bottom:24px; box-shadow:0 1px 4px rgba(7,64,47,.08); border-left:4px solid var(--vert);}
+  h2{color:var(--vert-fonce); font-size:1.18rem; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  h3{color:var(--vert-fonce); font-size:1rem; margin:20px 0 8px;}
+  .num{background:var(--vert); color:#fff; min-width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0;}
+  p{margin-bottom:12px;}
+  .fichier{display:inline-block; background:#EAF3EF; color:var(--vert-fonce); font-family:Consolas, monospace; font-size:.85rem; padding:2px 8px; border-radius:4px;}
+  .note{background:#FFF8EC; border-left:4px solid var(--or); padding:14px 18px; border-radius:6px; margin:16px 0; font-size:.93rem;}
+  .note strong{color:var(--or);}
+  .attention{background:#FBEAEA; border-left:4px solid var(--rouge); padding:14px 18px; border-radius:6px; margin:16px 0; font-size:.93rem;}
+  .attention strong{color:var(--rouge);}
+  .code-bloc{position:relative; margin:14px 0;}
+  .titre-fichier{background:var(--vert-fonce); color:#EAF3EE; font-family:Consolas, monospace; font-size:.78rem; padding:8px 14px; border-radius:8px 8px 0 0; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
+  .tag-action{background:#A8442C; color:#fff; font-size:.68rem; padding:2px 8px; border-radius:10px; letter-spacing:.5px; white-space:nowrap;}
+  .tag-action.modif{background:var(--or);}
+  .titre-fichier + pre{border-radius:0 0 8px 8px; margin-top:0;}
+  pre{background:var(--code-bg); color:var(--code-texte); padding:18px; border-radius:8px; overflow-x:auto; font-family:Consolas,'Courier New',monospace; font-size:.83rem; line-height:1.55;}
+  .btn-copier{background:var(--vert); color:#fff; border:none; padding:4px 12px; border-radius:5px; cursor:pointer; font-size:.75rem;}
+  .btn-copier:hover{background:var(--or);}
+  .kw{color:#7FD1B4;} .str{color:#E8C77D;} .com{color:#6E8B82; font-style:italic;} .ann{color:#D8B4E2;}
+  ul{margin:8px 0 12px 22px;}
+  li{margin-bottom:7px;}
+  table{border-collapse:collapse; width:100%; margin:14px 0; font-size:.88rem;}
+  th{background:var(--vert-fonce); color:#EAF3EE; text-align:left; padding:9px 12px; font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;}
+  td{padding:9px 12px; border-bottom:1px solid #EEEBE2; vertical-align:top;}
+  td code, li code, p code{background:#EAF3EF; color:var(--vert-fonce); font-family:Consolas, monospace; font-size:.85em; padding:1px 6px; border-radius:4px;}
+  .check{list-style:none; margin-left:0;}
+  .check li::before{content:"☐ "; color:var(--vert); font-weight:bold;}
+  footer{text-align:center; color:var(--gris); font-size:.8rem; padding-bottom:32px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>cancelOperations — retail ET corpo, symétriques<br>RequestStatus / CorpoRequestStatus · CancelOperationsRequestDTO en common</h1>
+  <p>Version corrigée sur le vrai codebase : le statut des opérations utilise <strong>le même enum que la demande</strong> (<code>RequestStatus</code> côté retail, <code>CorpoRequestStatus</code> côté corpo — pas d'enum OperationStatus), le DTO d'entrée est partagé dans <code>common</code>, et le use case est livré pour <strong>les deux modèles</strong> avec leurs vrais noms de classes.</p>
+  <span class="badge">RETAIL + CORPO</span><span class="badge">common.CancelOperationsRequestDTO</span><span class="badge">REMPLACE LE DOC PRÉCÉDENT</span>
+</header>
+<main>
+
+<section>
+  <h2><span class="num">1</span>Ce qui change par rapport au doc précédent</h2>
+  <table>
+    <tr><th>Erreur du doc précédent</th><th>Réalité du codebase</th></tr>
+    <tr><td><code>OperationStatus.CANCELLED</code></td><td>Il n'existe pas. <code>CashOperation.operationStatus</code> est un <code>RequestStatus</code> ; <code>CorpoCashOperation.operationStatus</code> est un <code>CorpoRequestStatus</code>.</td></tr>
+    <tr><td>DTO dans <code>retail.dto</code></td><td><code>service.domain.common.CancelOperationsRequestDTO</code> — partagé, comme <code>ApiResponse</code>.</td></tr>
+    <tr><td>Use case retail seulement</td><td>Retail <strong>et</strong> corpo, chacun avec ses classes : <code>CashRequest</code>/<code>CorpoCashRequest</code>, <code>CashDemandUseCase</code>/<code>CorpoDemandUseCase</code>, <code>RetailDemandController</code>/<code>CorpoDemandController</code>.</td></tr>
+  </table>
+  <p>Tout le reste du doc précédent (ApiResponse en common, controllers enveloppés, handlers) reste valable — seules les parties ci-dessous le remplacent.</p>
+</section>
+
+<section>
+  <h2><span class="num">2</span>Le DTO partagé</h2>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>application-service\…\service\domain\common\CancelOperationsRequestDTO.java</span><span class="tag-action">CRÉER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.common;
+
+<span class="kw">import</span> jakarta.validation.constraints.NotEmpty;
+<span class="kw">import</span> lombok.AllArgsConstructor;
+<span class="kw">import</span> lombok.Data;
+<span class="kw">import</span> lombok.NoArgsConstructor;
+
+<span class="kw">import</span> java.util.List;
+<span class="kw">import</span> java.util.UUID;
+
+<span class="com">/** Corps de PATCH …/{id}/operations/cancel — commun retail et corpo. */</span>
+<span class="ann">@Data</span>
+<span class="ann">@NoArgsConstructor</span>
+<span class="ann">@AllArgsConstructor</span>
+<span class="kw">public class</span> CancelOperationsRequestDTO {
+
+    <span class="ann">@NotEmpty</span>(message = <span class="str">"Au moins une opération à annuler est requise"</span>)
+    <span class="kw">private</span> List&lt;UUID&gt; operationIds;
+}</code></pre>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">3</span>RETAIL — la règle dans l'agrégat</h2>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>domain-core\…\CashRequest.java — AJOUTER</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">/**
+ * Annule les opérations désignées ; si toutes les opérations sont alors
+ * annulées, la demande passe elle-même à CANCELLED.
+ * @throws IllegalStateException    demande déjà annulée / opération déjà annulée
+ * @throws IllegalArgumentException id ne correspondant à aucune opération
+ */</span>
+<span class="kw">public void</span> cancelOperations(Set&lt;UUID&gt; operationIds) {
+    <span class="kw">if</span> (RequestStatus.CANCELLED.equals(<span class="kw">this</span>.requestStatus)) {
+        <span class="kw">throw new</span> IllegalStateException(<span class="str">"La demande est déjà annulée"</span>);
+    }
+    <span class="kw">for</span> (UUID operationId : operationIds) {
+        CashOperation operation = <span class="kw">this</span>.operations.stream()
+                .filter(op -&gt; op.getId() != <span class="kw">null</span> &amp;&amp; operationId.equals(op.getId().getValue()))
+                .findFirst()
+                .orElseThrow(() -&gt; <span class="kw">new</span> IllegalArgumentException(
+                        <span class="str">"Opération inconnue dans cette demande : "</span> + operationId));
+        <span class="kw">if</span> (RequestStatus.CANCELLED.equals(operation.getOperationStatus())) {
+            <span class="kw">throw new</span> IllegalStateException(<span class="str">"Opération déjà annulée : "</span> + operationId);
+        }
+        operation.setOperationStatus(RequestStatus.CANCELLED);
+    }
+    <span class="kw">boolean</span> allCancelled = <span class="kw">this</span>.operations.stream()
+            .allMatch(op -&gt; RequestStatus.CANCELLED.equals(op.getOperationStatus()));
+    <span class="kw">if</span> (allCancelled) {
+        <span class="kw">this</span>.requestStatus = RequestStatus.CANCELLED;
+    }
+}</code></pre>
+  </div>
+  <p>Imports : <code>java.util.Set</code>, <code>java.util.UUID</code> (l'enum <code>RequestStatus</code> est déjà importé par l'agrégat).</p>
+</section>
+
+<section>
+  <h2><span class="num">4</span>RETAIL — port, use case, controller</h2>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>…ports\inputs\service\CashDemandUseCase.java — AJOUTER</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>CashRequestDTO cancelOperations(UUID requestId, List&lt;UUID&gt; operationIds);</code></pre>
+  </div>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>…CashDemandUseCaseImpl.java — AJOUTER</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="ann">@Override</span>
+<span class="kw">public</span> CashRequestDTO cancelOperations(UUID requestId, List&lt;UUID&gt; operationIds) {
+    CashRequest demande = cashDemandRepository.getCashRequestById(requestId);
+    <span class="com">// getCashRequestById lève déjà RetailNotFoundException si absent (adapter refactoré) ;
+    // si chez toi il renvoie null, ajoute : if (demande == null) throw new RetailNotFoundException(...)</span>
+    <span class="kw">try</span> {
+        demande.cancelOperations(<span class="kw">new</span> HashSet&lt;&gt;(operationIds));
+    } <span class="kw">catch</span> (IllegalStateException | IllegalArgumentException regleViolee) {
+        <span class="kw">throw new</span> RetailConflictException(regleViolee.getMessage());   <span class="com">// → 409</span>
+    }
+    <span class="kw">return</span> webMapper.toResponseDTO(cashDemandRepository.update(requestId, demande));
+}</code></pre>
+  </div>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>application\rest\retail\RetailDemandController.java — AJOUTER l'endpoint</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.common.CancelOperationsRequestDTO;
+
+<span class="ann">@PatchMapping</span>(<span class="str">"/{id}/operations/cancel"</span>)
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;CashRequestDTO&gt;&gt; cancelOperations(
+        <span class="ann">@PathVariable</span> UUID id,
+        <span class="ann">@Valid @RequestBody</span> CancelOperationsRequestDTO request) {
+    <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(
+            cashDemandUseCase.cancelOperations(id, request.getOperationIds())));
+}</code></pre>
+  </div>
+  <p>Repository et handler retail : <strong>aucune modification</strong> (réutilise <code>update</code> ; 404/409 déjà mappés).</p>
+</section>
+
+<section>
+  <h2><span class="num">5</span>CORPO — la règle dans l'agrégat</h2>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>domain-core\…\corpo\entity\CorpoCashRequest.java — AJOUTER</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">public void</span> cancelOperations(Set&lt;UUID&gt; operationIds) {
+    <span class="kw">if</span> (CorpoRequestStatus.CANCELLED.equals(<span class="kw">this</span>.requestStatus)) {
+        <span class="kw">throw new</span> IllegalStateException(<span class="str">"La demande est déjà annulée"</span>);
+    }
+    <span class="kw">for</span> (UUID operationId : operationIds) {
+        CorpoCashOperation operation = <span class="kw">this</span>.operations.stream()
+                .filter(op -&gt; op.getId() != <span class="kw">null</span> &amp;&amp; operationId.equals(op.getId().getValue()))
+                .findFirst()
+                .orElseThrow(() -&gt; <span class="kw">new</span> IllegalArgumentException(
+                        <span class="str">"Opération inconnue dans cette demande : "</span> + operationId));
+        <span class="kw">if</span> (CorpoRequestStatus.CANCELLED.equals(operation.getOperationStatus())) {
+            <span class="kw">throw new</span> IllegalStateException(<span class="str">"Opération déjà annulée : "</span> + operationId);
+        }
+        operation.setOperationStatus(CorpoRequestStatus.CANCELLED);
+    }
+    <span class="kw">boolean</span> allCancelled = <span class="kw">this</span>.operations.stream()
+            .allMatch(op -&gt; CorpoRequestStatus.CANCELLED.equals(op.getOperationStatus()));
+    <span class="kw">if</span> (allCancelled) {
+        <span class="kw">this</span>.requestStatus = CorpoRequestStatus.CANCELLED;
+    }
+}</code></pre>
+  </div>
+  <p>Imports : <code>java.util.Set</code>, <code>java.util.UUID</code>. Si le champ statut d'opération corpo porte un autre nom que <code>operationStatus</code> dans <code>CorpoCashOperation</code>, IntelliJ te le soulignera immédiatement — c'est le seul champ que je n'ai pas vu directement.</p>
+</section>
+
+<section>
+  <h2><span class="num">6</span>CORPO — port, use case, controller</h2>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>…service\domain\corpo\ports\input\CorpoDemandUseCase.java — AJOUTER</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>CorpoCashRequestDTO cancelOperations(UUID requestId, List&lt;UUID&gt; operationIds);</code></pre>
+  </div>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>…service\domain\corpo\CorpoDemandUseCaseImpl.java — AJOUTER</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="ann">@Override</span>
+<span class="kw">public</span> CorpoCashRequestDTO cancelOperations(UUID requestId, List&lt;UUID&gt; operationIds) {
+    CorpoCashRequest demande = corpoDemandRepository.getById(requestId);
+    <span class="com">// getById lève CorpoNotFoundException si absent (même contrat que le retail refactoré)</span>
+    <span class="kw">try</span> {
+        demande.cancelOperations(<span class="kw">new</span> HashSet&lt;&gt;(operationIds));
+    } <span class="kw">catch</span> (IllegalStateException | IllegalArgumentException regleViolee) {
+        <span class="kw">throw new</span> CorpoConflictException(regleViolee.getMessage());   <span class="com">// → 409</span>
+    }
+    <span class="kw">return</span> webMapper.toResponseDTO(corpoDemandRepository.update(requestId, demande));
+}</code></pre>
+  </div>
+  <p>Les exceptions corpo vivent dans <code>com.bmci.q360.domain.corpo.exceptions</code> (à côté de <code>CorpoValidationException</code>). Si <code>CorpoConflictException</code> n'y existe pas encore, crée-la sur le modèle exact de <code>CorpoValidationException</code> et ajoute sa branche 409 dans le handler corpo — même code que la branche conflict retail du doc précédent.</p>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>application\rest\corpo\CorpoDemandController.java — AJOUTER l'endpoint</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.common.CancelOperationsRequestDTO;
+
+<span class="ann">@PatchMapping</span>(<span class="str">"/{id}/operations/cancel"</span>)
+<span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;CorpoCashRequestDTO&gt;&gt; cancelOperations(
+        <span class="ann">@PathVariable</span> UUID id,
+        <span class="ann">@Valid @RequestBody</span> CancelOperationsRequestDTO request) {
+    <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(
+            corpoDemandUseCase.cancelOperations(id, request.getOperationIds())));
+}</code></pre>
+  </div>
+  <p>Repository corpo : aucune modification (réutilise <code>update</code>).</p>
+</section>
+
+<section>
+  <h2><span class="num">7</span>Tests — les deux modèles</h2>
+  <h3>Domaine retail</h3>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>domain-core\src\test\…\CashRequestCancelOperationsTest.java</span><span class="tag-action">CRÉER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">class</span> CashRequestCancelOperationsTest {
+
+    <span class="kw">private</span> CashRequest demande(UUID id1, UUID id2) {
+        CashOperation op1 = <span class="kw">new</span> CashOperation();
+        op1.setId(<span class="kw">new</span> CashOperationId(id1));
+        op1.setOperationStatus(RequestStatus.INITIATED);
+        CashOperation op2 = <span class="kw">new</span> CashOperation();
+        op2.setId(<span class="kw">new</span> CashOperationId(id2));
+        op2.setOperationStatus(RequestStatus.INITIATED);
+        CashRequest d = <span class="kw">new</span> CashRequest();
+        d.setRequestStatus(RequestStatus.INITIATED);
+        d.setOperations(<span class="kw">new</span> ArrayList&lt;&gt;(List.of(op1, op2)));
+        <span class="kw">return</span> d;
+    }
+
+    <span class="ann">@Test</span> <span class="kw">void</span> annuleUneOperationSansToucherLaDemande() {
+        UUID id1 = UUID.randomUUID(), id2 = UUID.randomUUID();
+        CashRequest d = demande(id1, id2);
+        d.cancelOperations(Set.of(id1));
+        assertEquals(RequestStatus.CANCELLED, d.getOperations().get(0).getOperationStatus());
+        assertEquals(RequestStatus.INITIATED, d.getOperations().get(1).getOperationStatus());
+        assertEquals(RequestStatus.INITIATED, d.getRequestStatus());
+    }
+
+    <span class="ann">@Test</span> <span class="kw">void</span> annuleLaDemandeQuandToutEstAnnule() {
+        UUID id1 = UUID.randomUUID(), id2 = UUID.randomUUID();
+        CashRequest d = demande(id1, id2);
+        d.cancelOperations(Set.of(id1, id2));
+        assertEquals(RequestStatus.CANCELLED, d.getRequestStatus());
+    }
+
+    <span class="ann">@Test</span> <span class="kw">void</span> refuseOperationDejaAnnulee() {
+        UUID id1 = UUID.randomUUID();
+        CashRequest d = demande(id1, UUID.randomUUID());
+        d.getOperations().get(0).setOperationStatus(RequestStatus.CANCELLED);
+        assertThrows(IllegalStateException.<span class="kw">class</span>, () -&gt; d.cancelOperations(Set.of(id1)));
+    }
+
+    <span class="ann">@Test</span> <span class="kw">void</span> refuseOperationInconnue() {
+        CashRequest d = demande(UUID.randomUUID(), UUID.randomUUID());
+        assertThrows(IllegalArgumentException.<span class="kw">class</span>, () -&gt; d.cancelOperations(Set.of(UUID.randomUUID())));
+    }
+}</code></pre>
+  </div>
+  <h3>Domaine corpo — même structure, classes corpo</h3>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>domain-core\src\test\…\CorpoCashRequestCancelOperationsTest.java</span><span class="tag-action">CRÉER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">class</span> CorpoCashRequestCancelOperationsTest {
+
+    <span class="kw">private</span> CorpoCashRequest demande(UUID id1, UUID id2) {
+        CorpoCashOperation op1 = <span class="kw">new</span> CorpoCashOperation();
+        op1.setId(<span class="kw">new</span> CorpoCashOperationId(id1));   <span class="com">// ton value object d'id corpo</span>
+        op1.setOperationStatus(CorpoRequestStatus.INITIATED);
+        CorpoCashOperation op2 = <span class="kw">new</span> CorpoCashOperation();
+        op2.setId(<span class="kw">new</span> CorpoCashOperationId(id2));
+        op2.setOperationStatus(CorpoRequestStatus.INITIATED);
+        CorpoCashRequest d = <span class="kw">new</span> CorpoCashRequest();
+        d.setRequestStatus(CorpoRequestStatus.INITIATED);
+        d.setOperations(<span class="kw">new</span> ArrayList&lt;&gt;(List.of(op1, op2)));
+        <span class="kw">return</span> d;
+    }
+
+    <span class="ann">@Test</span> <span class="kw">void</span> annuleUneOperationSansToucherLaDemande() {
+        UUID id1 = UUID.randomUUID(), id2 = UUID.randomUUID();
+        CorpoCashRequest d = demande(id1, id2);
+        d.cancelOperations(Set.of(id1));
+        assertEquals(CorpoRequestStatus.CANCELLED, d.getOperations().get(0).getOperationStatus());
+        assertEquals(CorpoRequestStatus.INITIATED, d.getRequestStatus());
+    }
+
+    <span class="ann">@Test</span> <span class="kw">void</span> annuleLaDemandeQuandToutEstAnnule() {
+        UUID id1 = UUID.randomUUID(), id2 = UUID.randomUUID();
+        CorpoCashRequest d = demande(id1, id2);
+        d.cancelOperations(Set.of(id1, id2));
+        assertEquals(CorpoRequestStatus.CANCELLED, d.getRequestStatus());
+    }
+
+    <span class="ann">@Test</span> <span class="kw">void</span> refuseOperationDejaAnnulee() {
+        UUID id1 = UUID.randomUUID();
+        CorpoCashRequest d = demande(id1, UUID.randomUUID());
+        d.getOperations().get(0).setOperationStatus(CorpoRequestStatus.CANCELLED);
+        assertThrows(IllegalStateException.<span class="kw">class</span>, () -&gt; d.cancelOperations(Set.of(id1)));
+    }
+}</code></pre>
+  </div>
+  <h3>Use cases — Mockito strict (un test = ses stubs)</h3>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>CashDemandUseCaseImplTest (retail) — AJOUTER</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="ann">@Test</span>
+<span class="kw">void</span> cancelOperations_persisteEtRetourne() {
+    UUID requestId = UUID.randomUUID(), opId = UUID.randomUUID();
+    CashOperation op = <span class="kw">new</span> CashOperation();
+    op.setId(<span class="kw">new</span> CashOperationId(opId));
+    op.setOperationStatus(RequestStatus.INITIATED);
+    CashRequest demande = <span class="kw">new</span> CashRequest();
+    demande.setRequestStatus(RequestStatus.INITIATED);
+    demande.setOperations(<span class="kw">new</span> ArrayList&lt;&gt;(List.of(op)));
+    CashRequestDTO attendu = <span class="kw">new</span> CashRequestDTO();
+
+    when(cashDemandRepository.getCashRequestById(requestId)).thenReturn(demande);
+    when(cashDemandRepository.update(eq(requestId), any(CashRequest.<span class="kw">class</span>))).thenReturn(demande);
+    when(webMapper.toResponseDTO(demande)).thenReturn(attendu);
+
+    assertSame(attendu, useCase.cancelOperations(requestId, List.of(opId)));
+}
+
+<span class="ann">@Test</span>
+<span class="kw">void</span> cancelOperations_dejaAnnulee_409() {
+    UUID requestId = UUID.randomUUID(), opId = UUID.randomUUID();
+    CashOperation op = <span class="kw">new</span> CashOperation();
+    op.setId(<span class="kw">new</span> CashOperationId(opId));
+    op.setOperationStatus(RequestStatus.CANCELLED);
+    CashRequest demande = <span class="kw">new</span> CashRequest();
+    demande.setRequestStatus(RequestStatus.INITIATED);
+    demande.setOperations(<span class="kw">new</span> ArrayList&lt;&gt;(List.of(op)));
+
+    when(cashDemandRepository.getCashRequestById(requestId)).thenReturn(demande);
+
+    assertThrows(RetailConflictException.<span class="kw">class</span>, () -&gt; useCase.cancelOperations(requestId, List.of(opId)));
+    verify(cashDemandRepository, never()).update(any(), any());
+}</code></pre>
+  </div>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>CorpoDemandUseCaseImplTest — AJOUTER</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="ann">@Test</span>
+<span class="kw">void</span> cancelOperations_persisteEtRetourne() {
+    UUID requestId = UUID.randomUUID(), opId = UUID.randomUUID();
+    CorpoCashOperation op = <span class="kw">new</span> CorpoCashOperation();
+    op.setId(<span class="kw">new</span> CorpoCashOperationId(opId));
+    op.setOperationStatus(CorpoRequestStatus.INITIATED);
+    CorpoCashRequest demande = <span class="kw">new</span> CorpoCashRequest();
+    demande.setRequestStatus(CorpoRequestStatus.INITIATED);
+    demande.setOperations(<span class="kw">new</span> ArrayList&lt;&gt;(List.of(op)));
+    CorpoCashRequestDTO attendu = <span class="kw">new</span> CorpoCashRequestDTO();
+
+    when(corpoDemandRepository.getById(requestId)).thenReturn(demande);
+    when(corpoDemandRepository.update(eq(requestId), any(CorpoCashRequest.<span class="kw">class</span>))).thenReturn(demande);
+    when(webMapper.toResponseDTO(demande)).thenReturn(attendu);
+
+    assertSame(attendu, useCase.cancelOperations(requestId, List.of(opId)));
+}
+
+<span class="ann">@Test</span>
+<span class="kw">void</span> cancelOperations_dejaAnnulee_409() {
+    UUID requestId = UUID.randomUUID(), opId = UUID.randomUUID();
+    CorpoCashOperation op = <span class="kw">new</span> CorpoCashOperation();
+    op.setId(<span class="kw">new</span> CorpoCashOperationId(opId));
+    op.setOperationStatus(CorpoRequestStatus.CANCELLED);
+    CorpoCashRequest demande = <span class="kw">new</span> CorpoCashRequest();
+    demande.setRequestStatus(CorpoRequestStatus.INITIATED);
+    demande.setOperations(<span class="kw">new</span> ArrayList&lt;&gt;(List.of(op)));
+
+    when(corpoDemandRepository.getById(requestId)).thenReturn(demande);
+
+    assertThrows(CorpoConflictException.<span class="kw">class</span>, () -&gt; useCase.cancelOperations(requestId, List.of(opId)));
+    verify(corpoDemandRepository, never()).update(any(), any());
+}</code></pre>
+  </div>
+  <h3>Controllers — MockMvc (retail montré ; corpo = même test sur <code>/corpo/cash/</code> avec <code>CorpoCashRequestDTO</code>)</h3>
+  <div class="code-bloc">
+    <div class="titre-fichier"><span>Test controller retail — AJOUTER</span><span class="tag-action modif">MODIFIER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="ann">@Test</span>
+<span class="kw">void</span> cancelOperations_200Enveloppe() <span class="kw">throws</span> Exception {
+    UUID requestId = UUID.randomUUID();
+    CashRequestDTO reponse = <span class="kw">new</span> CashRequestDTO();
+    reponse.setId(requestId);
+    when(cashDemandUseCase.cancelOperations(eq(requestId), anyList())).thenReturn(reponse);
+
+    mockMvc.perform(patch(<span class="str">"/cash/"</span> + requestId + <span class="str">"/operations/cancel"</span>)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(<span class="str">"{\"operationIds\":[\""</span> + UUID.randomUUID() + <span class="str">"\"]}"</span>))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath(<span class="str">"$.success"</span>).value(<span class="kw">true</span>))
+            .andExpect(jsonPath(<span class="str">"$.data.id"</span>).value(requestId.toString()));
+}</code></pre>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">8</span>Récapitulatif + checklist</h2>
+  <table>
+    <tr><th>Fichier</th><th>Retail</th><th>Corpo</th></tr>
+    <tr><td>DTO d'entrée</td><td colspan="2"><code>common.CancelOperationsRequestDTO</code> (un seul, partagé)</td></tr>
+    <tr><td>Agrégat</td><td><code>CashRequest.cancelOperations</code> (RequestStatus)</td><td><code>CorpoCashRequest.cancelOperations</code> (CorpoRequestStatus)</td></tr>
+    <tr><td>Port use case</td><td><code>CashDemandUseCase</code></td><td><code>CorpoDemandUseCase</code></td></tr>
+    <tr><td>Use case</td><td><code>CashDemandUseCaseImpl</code> → RetailConflictException</td><td><code>CorpoDemandUseCaseImpl</code> → CorpoConflictException</td></tr>
+    <tr><td>Controller</td><td><code>RetailDemandController</code> PATCH /cash/{id}/operations/cancel</td><td><code>CorpoDemandController</code> PATCH /corpo/cash/{id}/operations/cancel</td></tr>
+    <tr><td>Repository / handler</td><td colspan="2">Aucune modification (réutilise update ; 404/409 déjà mappés — sauf création de CorpoConflictException si absente)</td></tr>
+    <tr><td>Tests</td><td>domaine + use case + controller</td><td>domaine + use case + controller</td></tr>
+  </table>
+  <ul class="check">
+    <li><code>Ctrl+Shift+F "OperationStatus"</code> → 0 résultat</li>
+    <li>Le domaine ne référence aucune exception HTTP (IllegalState/IllegalArgument uniquement)</li>
+    <li><code>mvn clean install</code> vert</li>
+    <li>Postman retail ET corpo : id d'opération inconnu → 409 ; dernière opération active annulée → demande CANCELLED</li>
+  </ul>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · microservice-fund-management · cancelOperations retail + corpo · common.CancelOperationsRequestDTO</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{
+    btn.textContent = 'Copié ✓';
+    setTimeout(()=>btn.textContent='Copier', 1800);
+  });
+}
+</script>
+</body>
+</html>
