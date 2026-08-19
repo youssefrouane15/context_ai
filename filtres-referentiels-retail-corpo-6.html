@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filtres serveur + Référentiels — retail &amp; corpo — QlickFlow Fund Management</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1e2a26;--code:#0f1a16;--muted:#5b6b64}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:28px 32px}
+header h1{margin:0 0 6px;font-size:1.6rem}
+header p{margin:0;opacity:.9}
+.badge{display:inline-block;background:var(--or);color:#fff;border-radius:4px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-top:10px}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+section{background:#fff;border:1px solid #e0e8e4;border-radius:8px;padding:20px 24px;margin-bottom:22px}
+h2{color:var(--vf);margin:0 0 14px;font-size:1.25rem;border-left:5px solid var(--or);padding-left:10px}
+h3{color:var(--v);margin:20px 0 8px;font-size:1.05rem}
+.num{display:inline-block;background:var(--v);color:#fff;border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px;font-size:.9rem;margin-right:8px}
+.note{background:#eef6f2;border-left:4px solid var(--v);padding:10px 14px;border-radius:4px;margin:12px 0}
+.warn{background:#fdf5e6;border-left:4px solid var(--or);padding:10px 14px;border-radius:4px;margin:12px 0}
+.stop{background:#fdecea;border-left:4px solid #b3261e;padding:10px 14px;border-radius:4px;margin:12px 0}
+.code-bloc{margin:14px 0;border:1px solid #d9e2dd;border-radius:6px;overflow:hidden}
+.titre-fichier{display:flex;align-items:center;justify-content:space-between;background:#e6efeb;padding:6px 12px;font-family:Consolas,monospace;font-size:.82rem;color:var(--vf)}
+.tag{font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:3px;margin-left:8px;color:#fff}
+.tag.new{background:var(--v)}.tag.edit{background:var(--or)}.tag.full{background:#3d5a80}.tag.del{background:#b3261e}
+.btn-copier{background:var(--v);color:#fff;border:0;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:.78rem}
+.btn-copier:hover{background:var(--vf)}
+pre{margin:0;padding:14px;background:var(--code);color:#e8f0ec;overflow:auto;font-family:Consolas,"Courier New",monospace;font-size:.82rem;line-height:1.45}
+.kw{color:#c792ea}.str{color:#c3e88d}.com{color:#7f9a90;font-style:italic}.ann{color:#ffcb6b}.ty{color:#82aaff}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.9rem}
+th,td{border:1px solid #d9e2dd;padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#e6efeb;color:var(--vf)}
+code{background:#eef2f0;padding:1px 5px;border-radius:3px;font-family:Consolas,monospace;font-size:.86em}
+pre code{background:transparent !important;padding:0;border-radius:0;font-size:inherit;color:inherit;display:block}
+pre,.code-bloc pre{background:#0f1a16 !important;color:#e8f0ec !important}
+ul.check li{margin:4px 0}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>Filtres côté serveur (retail + corpo) &amp; Référentiels — fin des mocks</h1>
+<p>microservice-fund-management · fund-management-front · Squad Q360 — livraison complète back puis front, pas à pas</p>
+<span class="badge">18/08/2026 · délégation Yassin</span>
+</header>
+<main>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">0</span>Ce qu'on livre et pourquoi</h2>
+<table>
+<tr><th>Problème actuel</th><th>Solution livrée</th></tr>
+<tr><td>Le front appelle <code>/cash/devises</code> et <code>/cash/operation</code> qui n'existent pas → 500 (collision avec <code>GET /cash/{id}</code>) → fallback mocks démo.</td><td>Endpoints référentiels réels sous <code>/cash/referentiels/*</code> (devises, coupures, agences), enveloppe <code>ApiResponse</code>. Suppression des mocks et des <code>catchError</code>.</td></tr>
+<tr><td><code>GET /cash</code> renvoie tout ; les 5 filtres (période, agence, type, statut, recherche) sont calculés dans un <code>computed</code> front.</td><td><code>GET /cash?statut=&amp;agence=&amp;operationType=&amp;operationSens=&amp;recherche=&amp;dateDebut=&amp;page=&amp;size=</code> paginé, filtré en base via <code>Specification</code>. Idem <code>GET /corpo/cash</code>.</td></tr>
+<tr><td>Trois TODO dans le composant liste : référence fabriquée visuellement, date prise sur <code>operations[0].createdAt</code>, liste agences construite depuis les données chargées.</td><td><code>uniqueRequestRef</code> et <code>createdAt</code> exposés dans <code>CashRequestDTO</code> ; agences servies par le référentiel.</td></tr>
+<tr><td>Un UUID invalide sur <code>/cash/{id}</code> renvoie 500.</td><td>Handler : <code>MethodArgumentTypeMismatchException</code> → 400.</td></tr>
+</table>
+
+<h3>Contrat API final</h3>
+<table>
+<tr><th>Endpoint</th><th>Paramètres</th><th>Réponse</th></tr>
+<tr><td><code>GET /cash</code></td><td><code>statut</code> (INITIATED|VALIDATED|CANCELLED), <code>agence</code> (branchCode), <code>operationType</code> (ATM|CASH_DESK|CURRENCY), <code>operationSens</code> (SUPPLY|COLLECTION), <code>recherche</code> (réf ou uid, contient, insensible casse), <code>dateDebut</code> (ISO date-time), <code>page</code> (défaut 0), <code>size</code> (défaut 20, max 100). Tri fixe : <code>creationDate desc</code>.</td><td><code>ApiResponse&lt;PageResult&lt;CashRequestDTO&gt;&gt;</code> = <code>{content, page, size, totalElements, totalPages}</code></td></tr>
+<tr><td><code>GET /corpo/cash</code></td><td>identiques</td><td><code>ApiResponse&lt;PageResult&lt;CorpoCashRequestDTO&gt;&gt;</code></td></tr>
+<tr><td><code>GET /cash/referentiels/devises</code></td><td>—</td><td><code>ApiResponse&lt;List&lt;CurrencyDTO&gt;&gt;</code> = <code>{id, isoCode, currencyName}</code></td></tr>
+<tr><td><code>GET /cash/referentiels/coupures</code></td><td><code>type</code> (<code>BANKNOTE</code> | <code>COIN</code>, optionnel)</td><td><code>ApiResponse&lt;List&lt;DenominationDTO&gt;&gt;</code> = <code>{id, denominationCode, itemType, faceValue, denominationLabel}</code></td></tr>
+<tr><td><code>GET /cash/referentiels/agences</code></td><td>—</td><td><code>ApiResponse&lt;List&lt;String&gt;&gt;</code> (branchCode distincts)</td></tr>
+</table>
+
+<div class="warn"><b>Deux choix fonctionnels que tu portes (à noter pour Yassin)</b> :
+(1) « Type de demande » : le front traduit ses 4 chips en vocabulaire backend — GAB = <code>ATM</code>+<code>SUPPLY</code>, CAISSE = <code>CASH_DESK</code>+<code>SUPPLY</code>, DEVISES = <code>CURRENCY</code>+<code>SUPPLY</code>, RAMASSAGE = <code>COLLECTION</code> — exactement la logique de <code>chipsContenu()</code> aujourd'hui, le backend ne connaît pas les libellés maquette.
+(2) « Agence » = <code>branchCode</code> (ce que la liste affiche et filtre aujourd'hui), pas le référentiel <code>establishment</code>. Si Yassin tranche establishment, c'est une ligne dans la Specification et une dans le référentiel agences.</div>
+
+<div class="stop"><b>Convention de lecture</b> : les blocs marqués <span class="tag full">FICHIER COMPLET</span> se collent tels quels ; <span class="tag edit">ÉDITION</span> = insérer/modifier dans un fichier existant. Les points où je n'ai pas vu le code exact sont signalés <b>[VÉRIFIER]</b> — c'est un nom de getter ou un package à confirmer, jamais de logique inventée.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">1</span>Backend — objets communs retail/corpo (application-service)</h2>
+<p>Deux records sans dépendance Spring, partagés par les deux périmètres. Ils vivent dans le module <code>fund-management-common</code>, package <code>common.dto</code>, à côté d'<code>ApiResponse</code> et <code>CancelOperationsRequestDTO</code>.</p>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-common\src\main\java\com\bmci\workflow\fund\management\common\dto\PageResult.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.common.dto;
+
+<span class="kw">import</span> java.util.List;
+<span class="kw">import</span> java.util.function.Function;
+
+<span class="com">/** Page de résultats indépendante de Spring Data (le port sortant ne doit pas exposer Page&lt;&gt;). */</span>
+<span class="kw">public record</span> <span class="ty">PageResult</span>&lt;T&gt;(List&lt;T&gt; content, <span class="kw">int</span> page, <span class="kw">int</span> size, <span class="kw">long</span> totalElements, <span class="kw">int</span> totalPages) {
+
+    <span class="kw">public</span> &lt;R&gt; PageResult&lt;R&gt; map(Function&lt;T, R&gt; mapper) {
+        <span class="kw">return new</span> PageResult&lt;&gt;(content.stream().map(mapper).toList(), page, size, totalElements, totalPages);
+    }
+
+    <span class="kw">public static</span> &lt;T&gt; PageResult&lt;T&gt; empty(<span class="kw">int</span> page, <span class="kw">int</span> size) {
+        <span class="kw">return new</span> PageResult&lt;&gt;(List.of(), page, size, 0, 0);
+    }
+}</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-common\...\common\dto\DemandeSearchCriteria.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.common.dto;
+
+<span class="kw">import</span> java.time.LocalDateTime;
+
+<span class="com">/**
+ * Critères de recherche d'une liste de demandes (retail et corpo).
+ * Tous les champs sont optionnels sauf page/size. Les valeurs vides sont normalisées en null
+ * dès la construction : le reste de la chaîne n'a plus à tester isBlank().
+ */</span>
+<span class="kw">public record</span> <span class="ty">DemandeSearchCriteria</span>(
+        String statut,
+        String agence,
+        String operationType,
+        String operationSens,
+        String recherche,
+        LocalDateTime dateDebut,
+        <span class="kw">int</span> page,
+        <span class="kw">int</span> size) {
+
+    <span class="kw">public static final int</span> SIZE_DEFAUT = 20;
+    <span class="kw">public static final int</span> SIZE_MAX = 100;
+
+    <span class="kw">public</span> DemandeSearchCriteria {
+        statut = vide(statut);
+        agence = vide(agence);
+        operationType = vide(operationType);
+        operationSens = vide(operationSens);
+        recherche = vide(recherche);
+        page = Math.max(page, 0);
+        size = size &lt;= 0 ? SIZE_DEFAUT : Math.min(size, SIZE_MAX);
+    }
+
+    <span class="kw">private static</span> String vide(String s) {
+        <span class="kw">return</span> (s == <span class="kw">null</span> || s.isBlank()) ? <span class="kw">null</span> : s.trim();
+    }
+}</code></pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">2</span>Backend — Specification générique (module common, à côté de <code>BaseEntity</code>)</h2>
+<p>Retail et corpo partagent les mêmes noms de champs sur les entités (<code>uniqueRequestRef</code>, <code>requestStatus</code>, <code>branchCode</code>, <code>creationDate</code>, <code>operations.operationType</code>, <code>operations.operationSens</code>, <code>userProfile.uid</code>). Une seule classe typée en générique suffit. Le <code>distinct</code> est posé uniquement quand on joint <code>operations</code>, pour ne pas dupliquer les lignes de la page.</p>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-common\src\main\java\com\bmci\workflow\fund\management\dataaccess\common\spec\DemandeSpecifications.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.dataaccess.common.spec;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DemandeSearchCriteria;
+<span class="kw">import</span> jakarta.persistence.criteria.Join;
+<span class="kw">import</span> jakarta.persistence.criteria.JoinType;
+<span class="kw">import</span> jakarta.persistence.criteria.Predicate;
+<span class="kw">import</span> org.springframework.data.jpa.domain.Specification;
+
+<span class="kw">import</span> java.util.ArrayList;
+<span class="kw">import</span> java.util.List;
+
+<span class="com">/**
+ * Construit la Specification JPA d'une recherche de demandes.
+ * Générique : s'applique à CashRequestEntity (retail) et CorpoCashRequestEntity (corpo),
+ * qui portent les mêmes attributs. Aucun fetch ici : la pagination reste exacte,
+ * l'arbre est rechargé dans un second appel (findAllWithTreeByIdIn).
+ */</span>
+<span class="kw">public final class</span> <span class="ty">DemandeSpecifications</span> {
+
+    <span class="kw">private</span> DemandeSpecifications() {}
+
+    <span class="kw">public static</span> &lt;E&gt; Specification&lt;E&gt; of(DemandeSearchCriteria c) {
+        <span class="kw">return</span> (root, query, cb) -&gt; {
+            List&lt;Predicate&gt; predicates = <span class="kw">new</span> ArrayList&lt;&gt;();
+
+            <span class="kw">if</span> (c.statut() != <span class="kw">null</span>) {
+                predicates.add(cb.equal(root.get(<span class="str">"requestStatus"</span>), c.statut()));
+            }
+            <span class="kw">if</span> (c.agence() != <span class="kw">null</span>) {
+                predicates.add(cb.equal(root.get(<span class="str">"branchCode"</span>), c.agence()));
+            }
+            <span class="kw">if</span> (c.dateDebut() != <span class="kw">null</span>) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get(<span class="str">"creationDate"</span>), c.dateDebut()));
+            }
+            <span class="kw">if</span> (c.recherche() != <span class="kw">null</span>) {
+                String motif = <span class="str">"%"</span> + c.recherche().toLowerCase() + <span class="str">"%"</span>;
+                Join&lt;Object, Object&gt; user = root.join(<span class="str">"userProfile"</span>, JoinType.LEFT);
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get(<span class="str">"uniqueRequestRef"</span>)), motif),
+                        cb.like(cb.lower(user.get(<span class="str">"uid"</span>)), motif)));
+            }
+            <span class="kw">if</span> (c.operationType() != <span class="kw">null</span> || c.operationSens() != <span class="kw">null</span>) {
+                Join&lt;Object, Object&gt; op = root.join(<span class="str">"operations"</span>, JoinType.INNER);
+                <span class="kw">if</span> (c.operationType() != <span class="kw">null</span>) {
+                    predicates.add(cb.equal(op.get(<span class="str">"operationType"</span>), c.operationType()));
+                }
+                <span class="kw">if</span> (c.operationSens() != <span class="kw">null</span>) {
+                    predicates.add(cb.equal(op.get(<span class="str">"operationSens"</span>), c.operationSens()));
+                }
+                query.distinct(<span class="kw">true</span>);
+            }
+            <span class="kw">return</span> cb.and(predicates.toArray(<span class="kw">new</span> Predicate[0]));
+        };
+    }
+}</code></pre>
+</div>
+<div class="note"><b>[VÉRIFIER] corpo</b> : si <code>CorpoCashRequestEntity</code> n'a pas exactement ces attributs (ex. pas de <code>userProfile</code>), la Specification lèvera une <code>IllegalArgumentException</code> au premier appel avec ce filtre. Ouvre l'entité corpo, compare les 6 noms ; si un manque, on retire ce prédicat pour corpo via une variante — mais je pars du principe que corpo est aligné retail (c'est ce qu'on a livré).</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">3</span>Backend retail — recherche paginée</h2>
+
+<h3>3.1 JpaRepository</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\dataaccess\retail\repository\CashDemandJpaRepository.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// 1) L'interface étend maintenant aussi JpaSpecificationExecutor (typé, pas raw) :</span>
+<span class="kw">public interface</span> <span class="ty">CashDemandJpaRepository</span> <span class="kw">extends</span> JpaRepository&lt;CashRequestEntity, UUID&gt;,
+                                                JpaSpecificationExecutor&lt;CashRequestEntity&gt; {
+
+    <span class="com">// 2) Ajoute, à côté de findAllWithTree() : MÊME corps JPQL que findAllWithTree()
+    //    (mêmes left join fetch), en ajoutant la clause where cr.id in :ids.
+    //    → copie/colle ta requête findAllWithTree, ne réécris pas les fetch de mémoire.</span>
+    <span class="ann">@Query</span>(<span class="str">"""
+            select distinct cr from CashRequestEntity cr
+            /* ... les mêmes left join fetch que findAllWithTree() ... */
+            where cr.id in :ids
+            """</span>)
+    List&lt;CashRequestEntity&gt; findAllWithTreeByIdIn(<span class="ann">@Param</span>(<span class="str">"ids"</span>) Collection&lt;UUID&gt; ids);
+
+    <span class="com">// 3) Référentiel agences (branchCode distincts, hors null)</span>
+    <span class="ann">@Query</span>(<span class="str">"select distinct cr.branchCode from CashRequestEntity cr where cr.branchCode is not null order by cr.branchCode"</span>)
+    List&lt;String&gt; findDistinctBranchCodes();
+}</code></pre>
+</div>
+<div class="note">Imports à ajouter : <code>org.springframework.data.jpa.repository.JpaSpecificationExecutor</code>, <code>org.springframework.data.repository.query.Param</code>, <code>java.util.Collection</code>.</div>
+
+<h3>3.2 Port sortant</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\retail\ports\output\repository\CashDemandRepository.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Remplace   List&lt;CashRequest&gt; findAll();   par :</span>
+PageResult&lt;CashRequest&gt; search(DemandeSearchCriteria criteria);
+
+<span class="com">// imports :</span>
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DemandeSearchCriteria;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.PageResult;</code></pre>
+</div>
+
+<h3>3.3 Adapter</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\dataaccess\retail\adapter\CashDemandRepositoryImpl.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Remplace la méthode findAll() (lignes 92-98) par :</span>
+    <span class="ann">@Override</span>
+    <span class="ann">@Transactional</span>(readOnly = <span class="kw">true</span>)
+    <span class="kw">public</span> PageResult&lt;CashRequest&gt; search(DemandeSearchCriteria criteria) {
+        Pageable pageable = PageRequest.of(criteria.page(), criteria.size(),
+                Sort.by(Sort.Direction.DESC, <span class="str">"creationDate"</span>));
+
+        <span class="com">// 1er appel : page d'entêtes filtrée (pas de fetch → pagination exacte en base)</span>
+        Page&lt;CashRequestEntity&gt; page = cashDemandJpaRepository.findAll(
+                DemandeSpecifications.of(criteria), pageable);
+
+        <span class="kw">if</span> (page.isEmpty()) {
+            <span class="kw">return</span> PageResult.empty(criteria.page(), criteria.size());
+        }
+
+        <span class="com">// 2e appel : arbre complet des ids de la page, remis dans l'ordre de la page</span>
+        List&lt;UUID&gt; ids = page.getContent().stream().map(CashRequestEntity::getId).toList();
+        Map&lt;UUID, CashRequestEntity&gt; arbre = cashDemandJpaRepository.findAllWithTreeByIdIn(ids).stream()
+                .collect(Collectors.toMap(CashRequestEntity::getId, Function.identity()));
+
+        List&lt;CashRequest&gt; content = ids.stream()
+                .map(arbre::get)
+                .map(mapper::toDomain)
+                .toList();
+
+        <span class="kw">return new</span> PageResult&lt;&gt;(content, page.getNumber(), page.getSize(),
+                page.getTotalElements(), page.getTotalPages());
+    }
+
+<span class="com">// imports à ajouter :</span>
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.common.spec.DemandeSpecifications;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DemandeSearchCriteria;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.PageResult;
+<span class="kw">import</span> org.springframework.data.domain.Page;
+<span class="kw">import</span> org.springframework.data.domain.PageRequest;
+<span class="kw">import</span> org.springframework.data.domain.Pageable;
+<span class="kw">import</span> org.springframework.data.domain.Sort;
+<span class="kw">import</span> java.util.UUID;</code></pre>
+</div>
+<div class="note">Pourquoi deux requêtes : paginer sur une requête qui <code>fetch</code> une collection force Hibernate à paginer en mémoire (warning <code>HHH90003004</code>, tout est chargé). Ici la première requête pagine proprement en SQL, la seconde charge l'arbre de 20 lignes max — deux allers-retours, zéro N+1.</div>
+
+<h3>3.4 Port entrant + use case</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\retail\ports\inputs\service\CashDemandUseCase.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Remplace   List&lt;CashRequestDTO&gt; getAll();   par :</span>
+PageResult&lt;CashRequestDTO&gt; search(DemandeSearchCriteria criteria);</code></pre>
+</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\retail\CashDemandUseCaseImpl.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Remplace getAll() (lignes 53-58) par :</span>
+    <span class="ann">@Override</span>
+    <span class="kw">public</span> PageResult&lt;CashRequestDTO&gt; search(DemandeSearchCriteria criteria) {
+        <span class="kw">return</span> cashDemandRepository.search(criteria).map(webMapper::toResponseDTO);
+    }</code></pre>
+</div>
+
+<h3>3.5 Controller</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\application\rest\retail\RetailDemandController.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Remplace la méthode getAll() par :</span>
+    <span class="ann">@GetMapping</span>
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;PageResult&lt;CashRequestDTO&gt;&gt;&gt; search(
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String statut,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String agence,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String operationType,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String operationSens,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String recherche,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) <span class="ann">@DateTimeFormat</span>(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateDebut,
+            <span class="ann">@RequestParam</span>(defaultValue = <span class="str">"0"</span>) <span class="kw">int</span> page,
+            <span class="ann">@RequestParam</span>(defaultValue = <span class="str">"20"</span>) <span class="kw">int</span> size) {
+
+        DemandeSearchCriteria criteria = <span class="kw">new</span> DemandeSearchCriteria(
+                statut, agence, operationType, operationSens, recherche, dateDebut, page, size);
+        <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(cashDemandUseCase.search(criteria)));
+    }
+
+<span class="com">// imports :</span>
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DemandeSearchCriteria;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.PageResult;
+<span class="kw">import</span> org.springframework.format.annotation.DateTimeFormat;
+<span class="kw">import</span> java.time.LocalDateTime;</code></pre>
+</div>
+
+<h3>3.6 Handler — UUID invalide → 400</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\application\rest\retail\error\RetailDemandExceptionHandler.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// 1) élargir le scope au nouveau controller référentiel (section 5) :</span>
+<span class="ann">@RestControllerAdvice</span>(assignableTypes = { RetailDemandController.<span class="kw">class</span>, RetailReferentielController.<span class="kw">class</span> })
+
+<span class="com">// 2) ajouter le cas "paramètre mal typé" (UUID invalide dans le path, date mal formée, page non numérique) :</span>
+    <span class="ann">@ExceptionHandler</span>(MethodArgumentTypeMismatchException.<span class="kw">class</span>)
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; handleTypeMismatch(MethodArgumentTypeMismatchException exception) {
+        String message = <span class="str">"Paramètre '"</span> + exception.getName() + <span class="str">"' invalide : "</span> + exception.getValue();
+        <span class="com">// [VÉRIFIER] réutilise la même constante/statut 400 que ton handleBeanValidation (ex. RetailHttpStatus.RETAIL_BAD_REQUEST)</span>
+        <span class="kw">return</span> build(RetailHttpStatus.RETAIL_BAD_REQUEST, message);
+    }
+
+<span class="com">// import :</span>
+<span class="kw">import</span> org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;</code></pre>
+</div>
+
+<h3>3.7 DTO — résoudre les 2 TODO front (référence réelle, date de la demande)</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\retail\dto\CashRequestDTO.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Ajoute deux champs en LECTURE SEULE (renvoyés, jamais acceptés du client) :</span>
+    <span class="kw">private</span> String uniqueRequestRef;
+    <span class="kw">private</span> LocalDateTime createdAt;</code></pre>
+</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\retail\mapper\CashRequestWebMapper.java (MapStruct)</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// toDomain(dto) : le client ne peut PAS fixer la réf ni la date → ignore explicite (sinon MapStruct les mappe)</span>
+    <span class="ann">@Mapping</span>(target = <span class="str">"uniqueRequestRef"</span>, ignore = <span class="kw">true</span>)
+    <span class="ann">@Mapping</span>(target = <span class="str">"createdAt"</span>, ignore = <span class="kw">true</span>)
+    CashRequest toDomain(CashRequestDTO dto);
+
+<span class="com">// toResponseDTO(domain) : rien à faire si le domaine porte uniqueRequestRef et createdAt (mapping implicite).</span></code></pre>
+</div>
+<div class="warn"><b>[VÉRIFIER]</b> le domaine <code>CashRequest</code> retail porte bien <code>uniqueRequestRef</code> (oui : <code>save()</code> fait <code>cashRequest.setUniqueRequestRef(...)</code>). Pour <code>createdAt</code> : si le champ n'existe pas sur <code>CashRequest</code>, ajoute <code>private LocalDateTime createdAt;</code> dans l'agrégat et dans <code>CashRequestPersistenceMapper.toDomain</code> ajoute <code>@Mapping(source = "creationDate", target = "createdAt")</code> (l'entité hérite <code>creationDate</code> de <code>BaseEntity</code>, <code>@CreationTimestamp</code>). C'est exactement ce qui a été fait côté corpo (<code>domain.getCreatedAt()</code> ← <code>entity.getCreationDate()</code>).</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">4</span>Backend corpo — recherche paginée (miroir)</h2>
+<p>Même mécanique, mêmes objets communs. Adapte uniquement les noms de classes corpo — <b>[VÉRIFIER]</b> les packages exacts chez toi (<code>service.domain.corpo.*</code>, <code>dataaccess.corpo.*</code>) ; la logique ne change pas.</p>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\dataaccess\corpo\repository\CorpoCashRequestJpaRepository.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">public interface</span> <span class="ty">CorpoCashRequestJpaRepository</span> <span class="kw">extends</span> JpaRepository&lt;CorpoCashRequestEntity, UUID&gt;,
+                                                     JpaSpecificationExecutor&lt;CorpoCashRequestEntity&gt; {
+
+    <span class="com">// même corps que ton findAllWithTree() corpo + where c.id in :ids</span>
+    <span class="ann">@Query</span>(<span class="str">"""
+            select distinct c from CorpoCashRequestEntity c
+            /* ... mêmes left join fetch que findAllWithTree() ... */
+            where c.id in :ids
+            """</span>)
+    List&lt;CorpoCashRequestEntity&gt; findAllWithTreeByIdIn(<span class="ann">@Param</span>(<span class="str">"ids"</span>) Collection&lt;UUID&gt; ids);
+}</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\corpo\ports\output\CorpoDemandRepository.java + ...\ports\input\CorpoDemandUseCase.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Port sortant — remplace findAll() :</span>
+PageResult&lt;CorpoCashRequest&gt; search(DemandeSearchCriteria criteria);
+
+<span class="com">// Port entrant — remplace getAll() :</span>
+PageResult&lt;CorpoCashRequestDTO&gt; search(DemandeSearchCriteria criteria);</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\dataaccess\corpo\adapter\CorpoDemandRepositoryImpl.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Remplace findAll() par :</span>
+    <span class="ann">@Override</span>
+    <span class="ann">@Transactional</span>(readOnly = <span class="kw">true</span>)
+    <span class="kw">public</span> PageResult&lt;CorpoCashRequest&gt; search(DemandeSearchCriteria criteria) {
+        Pageable pageable = PageRequest.of(criteria.page(), criteria.size(),
+                Sort.by(Sort.Direction.DESC, <span class="str">"creationDate"</span>));
+
+        Page&lt;CorpoCashRequestEntity&gt; page = corpoJpaRepository.findAll(
+                DemandeSpecifications.of(criteria), pageable);
+        <span class="kw">if</span> (page.isEmpty()) {
+            <span class="kw">return</span> PageResult.empty(criteria.page(), criteria.size());
+        }
+
+        List&lt;UUID&gt; ids = page.getContent().stream().map(CorpoCashRequestEntity::getId).toList();
+        Map&lt;UUID, CorpoCashRequestEntity&gt; arbre = corpoJpaRepository.findAllWithTreeByIdIn(ids).stream()
+                .collect(Collectors.toMap(CorpoCashRequestEntity::getId, Function.identity()));
+
+        List&lt;CorpoCashRequest&gt; content = ids.stream().map(arbre::get).map(mapper::toDomain).toList();
+        <span class="kw">return new</span> PageResult&lt;&gt;(content, page.getNumber(), page.getSize(),
+                page.getTotalElements(), page.getTotalPages());
+    }</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\corpo\CorpoDemandUseCaseImpl.java + ...\application\rest\CorpoDemandController.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Use case — remplace getAll() :</span>
+    <span class="ann">@Override</span>
+    <span class="kw">public</span> PageResult&lt;CorpoCashRequestDTO&gt; search(DemandeSearchCriteria criteria) {
+        <span class="kw">return</span> corpoDemandRepository.search(criteria).map(webMapper::toResponseDTO);
+    }
+
+<span class="com">// Controller (/corpo/cash) — remplace getAll() : signature identique au retail, use case corpo</span>
+    <span class="ann">@GetMapping</span>
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;PageResult&lt;CorpoCashRequestDTO&gt;&gt;&gt; search(
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String statut,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String agence,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String operationType,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String operationSens,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String recherche,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) <span class="ann">@DateTimeFormat</span>(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateDebut,
+            <span class="ann">@RequestParam</span>(defaultValue = <span class="str">"0"</span>) <span class="kw">int</span> page,
+            <span class="ann">@RequestParam</span>(defaultValue = <span class="str">"20"</span>) <span class="kw">int</span> size) {
+        DemandeSearchCriteria criteria = <span class="kw">new</span> DemandeSearchCriteria(
+                statut, agence, operationType, operationSens, recherche, dateDebut, page, size);
+        <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(corpoDemandUseCase.search(criteria)));
+    }
+
+<span class="com">// Handler corpo : même ajout MethodArgumentTypeMismatchException → 400 que le retail (3.6).</span></code></pre>
+</div>
+<div class="note">Le nom du champ mapper/repository dans <code>CorpoDemandUseCaseImpl</code> (<code>webMapper</code>, <code>corpoDemandRepository</code>) : garde ceux de ta classe. Le statut retail/corpo est comparé en <code>String</code> sur l'entité (<code>requestStatus</code> stocké en <code>name()</code>) — <code>statut=CANCELLED</code> marche pour les deux enums.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">5</span>Référentiels — contrat en common, implémentation par périmètre</h2>
+<p>Les deux périmètres ont chacun leurs tables (<code>retail.*</code> / <code>corpo.*</code>) et leurs JpaRepositories : un seul bean ne peut pas servir les deux. Donc : <b>interfaces dans <code>fund-management-common</code></b>, une implémentation par périmètre. Les interfaces marqueurs vides (<code>RetailReferentielRepository extends ReferentielRepository</code>) sont ce qui permet à Spring d'injecter le bon bean par type, sans <code>@Qualifier</code>.</p>
+<div class="note"><b>Pas de nouveau DTO</b> : on réutilise <code>common.dto.CurrencyDTO</code> <code>{id, isoCode, currencyName}</code> et <code>common.dto.DenominationDTO</code> <code>{id, denominationCode, itemType, faceValue, denominationLabel}</code>, déjà utilisés dans les demandes. Le front reçoit exactement le vocabulaire qu'il renvoie à la création. <b>Pas de filtre devise</b> : <code>DenominationEntity</code> retail n'a aucun lien vers <code>currency</code> (4 colonnes : <code>item_type</code>, <code>denomination_code</code>, <code>face_value</code>, <code>denomination_label</code>) — la devise n'existe que dans le code (<code>BILLET_EUR_50</code>). Le seul filtre possible aujourd'hui est <code>?type=BANKNOTE|COIN</code>. Ajouter une FK <code>currency_id</code> sur <code>denomination</code> (V1 éditée en place) est une évolution de modèle à proposer à Yassin ; le jour où elle arrive, on rajoute un paramètre <code>devise</code> — rien d'autre ne bouge.</div>
+
+<h3>5.1 Common — les deux ports</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-common\src\main\java\com\bmci\workflow\fund\management\common\referentiel\ReferentielRepository.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.common.referentiel;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+
+<span class="kw">import</span> java.util.List;
+
+<span class="com">/** Port sortant de lecture des référentiels — contrat commun retail / corpo. */</span>
+<span class="kw">public interface</span> <span class="ty">ReferentielRepository</span> {
+    List&lt;CurrencyDTO&gt; devises();
+    List&lt;DenominationDTO&gt; coupures(String itemType);   <span class="com">// null = toutes (BANKNOTE / COIN)</span>
+    List&lt;String&gt; agences();
+}</code></pre>
+</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\common\referentiel\ReferentielUseCase.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.common.referentiel;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+
+<span class="kw">import</span> java.util.List;
+
+<span class="com">/** Port entrant — contrat commun retail / corpo. */</span>
+<span class="kw">public interface</span> <span class="ty">ReferentielUseCase</span> {
+    List&lt;CurrencyDTO&gt; devises();
+    List&lt;DenominationDTO&gt; coupures(String itemType);
+    List&lt;String&gt; agences();
+}</code></pre>
+</div>
+
+<h3>5.2 Retail — marqueurs, use case, adapter, controller</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\retail\ports\output\repository\RetailReferentielRepository.java + ...\ports\inputs\service\RetailReferentielUseCase.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIERS COMPLETS</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.referentiel.ReferentielRepository;
+
+<span class="com">/** Marqueur retail : permet à Spring de résoudre le bean retail par type. */</span>
+<span class="kw">public interface</span> <span class="ty">RetailReferentielRepository</span> <span class="kw">extends</span> ReferentielRepository {}
+
+<span class="com">// ---- fichier séparé RetailReferentielUseCase.java ----</span>
+<span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.retail.ports.inputs.service;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.referentiel.ReferentielUseCase;
+
+<span class="kw">public interface</span> <span class="ty">RetailReferentielUseCase</span> <span class="kw">extends</span> ReferentielUseCase {}</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\retail\RetailReferentielUseCaseImpl.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.retail;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.inputs.service.RetailReferentielUseCase;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.RetailReferentielRepository;
+<span class="kw">import</span> lombok.RequiredArgsConstructor;
+<span class="kw">import</span> org.springframework.stereotype.Service;
+
+<span class="kw">import</span> java.util.List;
+
+<span class="ann">@Service</span>
+<span class="ann">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="ty">RetailReferentielUseCaseImpl</span> <span class="kw">implements</span> RetailReferentielUseCase {
+
+    <span class="kw">private final</span> RetailReferentielRepository referentielRepository;
+
+    <span class="ann">@Override</span> <span class="kw">public</span> List&lt;CurrencyDTO&gt; devises() { <span class="kw">return</span> referentielRepository.devises(); }
+
+    <span class="ann">@Override</span> <span class="kw">public</span> List&lt;DenominationDTO&gt; coupures(String itemType) {
+        <span class="kw">return</span> referentielRepository.coupures(itemType);
+    }
+
+    <span class="ann">@Override</span> <span class="kw">public</span> List&lt;String&gt; agences() { <span class="kw">return</span> referentielRepository.agences(); }
+}</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\dataaccess\retail\adapter\RetailReferentielRepositoryImpl.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.dataaccess.retail.adapter;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.entity.CurrencyEntity;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.entity.DenominationEntity;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.repository.CashDemandJpaRepository;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.repository.CurrencyJpaRepository;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.repository.DenominationJpaRepository;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.RetailReferentielRepository;
+<span class="kw">import</span> lombok.RequiredArgsConstructor;
+<span class="kw">import</span> org.springframework.stereotype.Component;
+<span class="kw">import</span> org.springframework.transaction.annotation.Transactional;
+
+<span class="kw">import</span> java.util.Comparator;
+<span class="kw">import</span> java.util.List;
+
+<span class="ann">@Component</span>
+<span class="ann">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="ty">RetailReferentielRepositoryImpl</span> <span class="kw">implements</span> RetailReferentielRepository {
+
+    <span class="kw">private final</span> CurrencyJpaRepository currencyJpaRepository;
+    <span class="kw">private final</span> DenominationJpaRepository denominationJpaRepository;
+    <span class="kw">private final</span> CashDemandJpaRepository cashDemandJpaRepository;
+
+    <span class="ann">@Override</span>
+    <span class="ann">@Transactional</span>(readOnly = <span class="kw">true</span>)
+    <span class="kw">public</span> List&lt;CurrencyDTO&gt; devises() {
+        <span class="kw">return</span> currencyJpaRepository.findAll().stream()
+                .sorted(Comparator.comparing(CurrencyEntity::getIsoCode))
+                .map(c -&gt; CurrencyDTO.builder()
+                        .id(c.getId())
+                        .isoCode(c.getIsoCode())
+                        .currencyName(c.getCurrencyName())
+                        .build())
+                .toList();
+    }
+
+    <span class="ann">@Override</span>
+    <span class="ann">@Transactional</span>(readOnly = <span class="kw">true</span>)
+    <span class="kw">public</span> List&lt;DenominationDTO&gt; coupures(String itemType) {
+        <span class="kw">return</span> denominationJpaRepository.findAll().stream()
+                .filter(d -&gt; itemType == <span class="kw">null</span> || itemType.equalsIgnoreCase(d.getItemType()))
+                .sorted(Comparator.comparing(DenominationEntity::getFaceValue).reversed())
+                .map(d -&gt; DenominationDTO.builder()
+                        .id(d.getId())
+                        .denominationCode(d.getDenominationCode())
+                        .itemType(d.getItemType())
+                        .faceValue(d.getFaceValue())
+                        .denominationLabel(d.getDenominationLabel())
+                        .build())
+                .toList();
+    }
+
+    <span class="ann">@Override</span>
+    <span class="ann">@Transactional</span>(readOnly = <span class="kw">true</span>)
+    <span class="kw">public</span> List&lt;String&gt; agences() {
+        <span class="kw">return</span> cashDemandJpaRepository.findDistinctBranchCodes();
+    }
+}</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\application\rest\retail\RetailReferentielController.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.application.rest.retail;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.ApiResponse;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.inputs.service.RetailReferentielUseCase;
+<span class="kw">import</span> lombok.RequiredArgsConstructor;
+<span class="kw">import</span> org.springframework.http.ResponseEntity;
+<span class="kw">import</span> org.springframework.web.bind.annotation.GetMapping;
+<span class="kw">import</span> org.springframework.web.bind.annotation.RequestMapping;
+<span class="kw">import</span> org.springframework.web.bind.annotation.RequestParam;
+<span class="kw">import</span> org.springframework.web.bind.annotation.RestController;
+
+<span class="kw">import</span> java.util.List;
+
+<span class="com">/** /cash/referentiels : deux segments → aucune collision avec GET /cash/{id} (cause des anciens 500). */</span>
+<span class="ann">@RestController</span>
+<span class="ann">@RequestMapping</span>(value = <span class="str">"/cash/referentiels"</span>, produces = <span class="str">"application/vnd.api.v1+json"</span>)
+<span class="ann">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="ty">RetailReferentielController</span> {
+
+    <span class="kw">private final</span> RetailReferentielUseCase referentielUseCase;
+
+    <span class="ann">@GetMapping</span>(<span class="str">"/devises"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;List&lt;CurrencyDTO&gt;&gt;&gt; devises() {
+        <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(referentielUseCase.devises()));
+    }
+
+    <span class="ann">@GetMapping</span>(<span class="str">"/coupures"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;List&lt;DenominationDTO&gt;&gt;&gt; coupures(
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String type) {
+        <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(referentielUseCase.coupures(type)));
+    }
+
+    <span class="ann">@GetMapping</span>(<span class="str">"/agences"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;List&lt;String&gt;&gt;&gt; agences() {
+        <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(referentielUseCase.agences()));
+    }
+}</code></pre>
+</div>
+<div class="note">Handler retail (3.6) : <code>assignableTypes = { RetailDemandController.class, RetailReferentielController.class }</code>.</div>
+
+<h3>5.3 Corpo — miroir</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>Corpo : 5 fichiers, même contenu que 5.2 avec les noms corpo</span><span class="tag new">NOUVEAU</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Marqueurs (packages corpo des ports) :</span>
+<span class="kw">public interface</span> <span class="ty">CorpoReferentielRepository</span> <span class="kw">extends</span> ReferentielRepository {}
+<span class="kw">public interface</span> <span class="ty">CorpoReferentielUseCase</span> <span class="kw">extends</span> ReferentielUseCase {}
+
+<span class="com">// CorpoReferentielUseCaseImpl : copie de RetailReferentielUseCaseImpl, injecte CorpoReferentielRepository.
+
+// CorpoReferentielRepositoryImpl (dataaccess.corpo.adapter) : copie de l'adapter retail en remplaçant
+//   CurrencyJpaRepository     → CorpoCurrencyJpaRepository
+//   DenominationJpaRepository → CorpoDenominationJpaRepository
+//   CashDemandJpaRepository   → CorpoCashRequestJpaRepository (+ la même @Query findDistinctBranchCodes() sur CorpoCashRequestEntity)
+//   entités retail            → entités corpo (CorpoCurrencyEntity / CorpoDenominationEntity)   [VÉRIFIER] noms exacts chez toi
+
+// CorpoReferentielController : @RequestMapping("/corpo/cash/referentiels"), injecte CorpoReferentielUseCase.
+// Handler corpo : ajouter CorpoReferentielController dans assignableTypes.</span></code></pre>
+</div>
+<div class="warn"><b>[VÉRIFIER]</b> les noms des JPA repos / entités corpo. Les getters (<code>getDenominationCode</code>, <code>getItemType</code>, <code>getFaceValue</code>, <code>getDenominationLabel</code>, <code>getIsoCode</code>, <code>getCurrencyName</code>) portent les mêmes noms que les DTO. Le <code>findAll()</code> filtré en Java est volontaire : 24 lignes de référentiel, pas besoin d'une requête dérivée par combinaison.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">6</span>Backend — tests (Mockito strict, zéro stub global)</h2>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-container\src\test\java\...\DemandeSearchCriteriaTest.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DemandeSearchCriteria;
+<span class="kw">import</span> org.junit.jupiter.api.Assertions;
+<span class="kw">import</span> org.junit.jupiter.api.Test;
+
+<span class="kw">class</span> <span class="ty">DemandeSearchCriteriaTest</span> {
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> normaliseLesChampsVidesEnNull() {
+        DemandeSearchCriteria c = <span class="kw">new</span> DemandeSearchCriteria(<span class="str">"  "</span>, <span class="str">""</span>, <span class="kw">null</span>, <span class="str">" SUPPLY "</span>, <span class="str">""</span>, <span class="kw">null</span>, 0, 20);
+        Assertions.assertNull(c.statut());
+        Assertions.assertNull(c.agence());
+        Assertions.assertNull(c.recherche());
+        Assertions.assertEquals(<span class="str">"SUPPLY"</span>, c.operationSens());
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> borneLaPagination() {
+        DemandeSearchCriteria c = <span class="kw">new</span> DemandeSearchCriteria(<span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, -3, 5000);
+        Assertions.assertEquals(0, c.page());
+        Assertions.assertEquals(DemandeSearchCriteria.SIZE_MAX, c.size());
+        Assertions.assertEquals(DemandeSearchCriteria.SIZE_DEFAUT,
+                <span class="kw">new</span> DemandeSearchCriteria(<span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, 0, 0).size());
+    }
+}</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\CashDemandRepositorySearchTest.java (adapter retail)</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management;
+
+<span class="kw">import</span> com.bmci.q360.domain.retail.entity.CashRequest;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.adapter.CashDemandRepositoryImpl;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.entity.CashRequestEntity;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.mapper.CashRequestPersistenceMapper;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.repository.CashDemandJpaRepository;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DemandeSearchCriteria;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.PageResult;
+<span class="kw">import</span> org.junit.jupiter.api.Assertions;
+<span class="kw">import</span> org.junit.jupiter.api.Test;
+<span class="kw">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="kw">import</span> org.mockito.ArgumentCaptor;
+<span class="kw">import</span> org.mockito.InjectMocks;
+<span class="kw">import</span> org.mockito.Mock;
+<span class="kw">import</span> org.mockito.Mockito;
+<span class="kw">import</span> org.mockito.junit.jupiter.MockitoExtension;
+<span class="kw">import</span> org.springframework.data.domain.PageImpl;
+<span class="kw">import</span> org.springframework.data.domain.Pageable;
+<span class="kw">import</span> org.springframework.data.jpa.domain.Specification;
+
+<span class="kw">import</span> java.util.List;
+<span class="kw">import</span> java.util.UUID;
+
+<span class="com">/* Les autres JpaRepository injectés dans CashDemandRepositoryImpl (Denomination, Currency, Establishment,
+   UserProfile) ne sont pas déclarés : Mockito les laisse à null, search() ne les touche pas. */</span>
+<span class="ann">@ExtendWith</span>(MockitoExtension.<span class="kw">class</span>)
+<span class="kw">class</span> <span class="ty">CashDemandRepositorySearchTest</span> {
+
+    <span class="ann">@Mock</span> <span class="kw">private</span> CashDemandJpaRepository cashDemandJpaRepository;
+    <span class="ann">@Mock</span> <span class="kw">private</span> CashRequestPersistenceMapper mapper;
+    <span class="ann">@InjectMocks</span> <span class="kw">private</span> CashDemandRepositoryImpl repository;
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> pageVideNeRechargePasLArbre() {
+        Mockito.when(cashDemandJpaRepository.findAll(Mockito.&lt;Specification&lt;CashRequestEntity&gt;&gt;any(), Mockito.any(Pageable.<span class="kw">class</span>)))
+                .thenReturn(<span class="kw">new</span> PageImpl&lt;&gt;(List.of()));
+
+        PageResult&lt;CashRequest&gt; result = repository.search(criteres(0, 20));
+
+        Assertions.assertTrue(result.content().isEmpty());
+        Assertions.assertEquals(0, result.totalElements());
+        Mockito.verify(cashDemandJpaRepository, Mockito.never()).findAllWithTreeByIdIn(Mockito.any());
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> rechargeLArbreDansLOrdreDeLaPage() {
+        UUID id1 = UUID.randomUUID();
+        UUID id2 = UUID.randomUUID();
+        CashRequestEntity e1 = entite(id1);
+        CashRequestEntity e2 = entite(id2);
+        CashRequest d1 = <span class="kw">new</span> CashRequest();
+        CashRequest d2 = <span class="kw">new</span> CashRequest();
+
+        ArgumentCaptor&lt;Pageable&gt; pageable = ArgumentCaptor.forClass(Pageable.<span class="kw">class</span>);
+        Mockito.when(cashDemandJpaRepository.findAll(Mockito.&lt;Specification&lt;CashRequestEntity&gt;&gt;any(), pageable.capture()))
+                .thenReturn(<span class="kw">new</span> PageImpl&lt;&gt;(List.of(e1, e2), Pageable.ofSize(20), 2));
+        <span class="com">// l'arbre revient dans le désordre : l'adapter doit rétablir l'ordre de la page</span>
+        Mockito.when(cashDemandJpaRepository.findAllWithTreeByIdIn(List.of(id1, id2))).thenReturn(List.of(e2, e1));
+        Mockito.when(mapper.toDomain(e1)).thenReturn(d1);
+        Mockito.when(mapper.toDomain(e2)).thenReturn(d2);
+
+        PageResult&lt;CashRequest&gt; result = repository.search(criteres(0, 20));
+
+        Assertions.assertSame(d1, result.content().get(0));
+        Assertions.assertSame(d2, result.content().get(1));
+        Assertions.assertEquals(2, result.totalElements());
+        Assertions.assertEquals(<span class="str">"creationDate: DESC"</span>, pageable.getValue().getSort().toString());
+    }
+
+    <span class="kw">private static</span> DemandeSearchCriteria criteres(<span class="kw">int</span> page, <span class="kw">int</span> size) {
+        <span class="kw">return new</span> DemandeSearchCriteria(<span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, <span class="kw">null</span>, page, size);
+    }
+
+    <span class="kw">private static</span> CashRequestEntity entite(UUID id) {
+        CashRequestEntity e = <span class="kw">new</span> CashRequestEntity();
+        e.setId(id);
+        <span class="kw">return</span> e;
+    }
+}</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\RetailDemandControllerTest.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Remplace le test de getAll() par :</span>
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> shouldSearchWithCriteria() <span class="kw">throws</span> Exception {
+        ArgumentCaptor&lt;DemandeSearchCriteria&gt; captor = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="kw">class</span>);
+        Mockito.when(cashDemandUseCase.search(captor.capture()))
+                .thenReturn(PageResult.empty(1, 10));
+
+        mockMvc.perform(MockMvcRequestBuilders.get(<span class="str">"/cash"</span>)
+                        .param(<span class="str">"statut"</span>, <span class="str">"INITIATED"</span>)
+                        .param(<span class="str">"operationSens"</span>, <span class="str">"COLLECTION"</span>)
+                        .param(<span class="str">"recherche"</span>, <span class="str">"RT-2026"</span>)
+                        .param(<span class="str">"dateDebut"</span>, <span class="str">"2026-08-11T00:00:00"</span>)
+                        .param(<span class="str">"page"</span>, <span class="str">"1"</span>).param(<span class="str">"size"</span>, <span class="str">"10"</span>))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath(<span class="str">"$.data.page"</span>).value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath(<span class="str">"$.data.totalElements"</span>).value(0));
+
+        DemandeSearchCriteria c = captor.getValue();
+        Assertions.assertEquals(<span class="str">"INITIATED"</span>, c.statut());
+        Assertions.assertEquals(<span class="str">"COLLECTION"</span>, c.operationSens());
+        Assertions.assertEquals(<span class="str">"RT-2026"</span>, c.recherche());
+        Assertions.assertEquals(1, c.page());
+        Assertions.assertEquals(10, c.size());
+    }
+
+<span class="com">// Idem dans CorpoDemandControllerTest sur "/corpo/cash" avec corpoDemandUseCase.
+// Le test existant "getAll" du use case retail/corpo : remplacer par un test search qui stub
+// cashDemandRepository.search(criteria) → PageResult d'un CashRequest, et vérifie que le DTO mappé est dans content.</span></code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\RetailReferentielControllerTest.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.application.rest.retail.RetailReferentielController;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.CurrencyDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.inputs.service.ReferentielUseCase;
+<span class="kw">import</span> org.junit.jupiter.api.BeforeEach;
+<span class="kw">import</span> org.junit.jupiter.api.Test;
+<span class="kw">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="kw">import</span> org.mockito.InjectMocks;
+<span class="kw">import</span> org.mockito.Mock;
+<span class="kw">import</span> org.mockito.Mockito;
+<span class="kw">import</span> org.mockito.junit.jupiter.MockitoExtension;
+<span class="kw">import</span> org.springframework.test.web.servlet.MockMvc;
+<span class="kw">import</span> org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+<span class="kw">import</span> org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+<span class="kw">import</span> org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+<span class="kw">import</span> java.math.BigDecimal;
+<span class="kw">import</span> java.util.List;
+
+<span class="ann">@ExtendWith</span>(MockitoExtension.<span class="kw">class</span>)
+<span class="kw">class</span> <span class="ty">RetailReferentielControllerTest</span> {
+
+    <span class="kw">private</span> MockMvc mockMvc;
+    <span class="ann">@Mock</span> <span class="kw">private</span> RetailReferentielUseCase referentielUseCase;
+    <span class="ann">@InjectMocks</span> <span class="kw">private</span> RetailReferentielController controller;
+
+    <span class="ann">@BeforeEach</span>
+    <span class="kw">void</span> setUp() { mockMvc = MockMvcBuilders.standaloneSetup(controller).build(); }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> devises() <span class="kw">throws</span> Exception {
+        Mockito.when(referentielUseCase.devises()).thenReturn(List.of(CurrencyDTO.builder().isoCode(<span class="str">"MAD"</span>).currencyName(<span class="str">"Dirham"</span>).build()));
+        mockMvc.perform(MockMvcRequestBuilders.get(<span class="str">"/cash/referentiels/devises"</span>))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath(<span class="str">"$.data[0].isoCode"</span>).value(<span class="str">"MAD"</span>));
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> coupuresFiltreesParType() <span class="kw">throws</span> Exception {
+        Mockito.when(referentielUseCase.coupures(<span class="str">"BANKNOTE"</span>))
+                .thenReturn(List.of(DenominationDTO.builder().denominationCode(<span class="str">"BILLET_200"</span>).faceValue(<span class="kw">new</span> BigDecimal(<span class="str">"200"</span>)).itemType(<span class="str">"BANKNOTE"</span>).denominationLabel(<span class="str">"Billet de 200 MAD"</span>).build()));
+        mockMvc.perform(MockMvcRequestBuilders.get(<span class="str">"/cash/referentiels/coupures"</span>)
+                        .param(<span class="str">"type"</span>, <span class="str">"BANKNOTE"</span>))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath(<span class="str">"$.data[0].denominationCode"</span>).value(<span class="str">"BILLET_200"</span>));
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> agences() <span class="kw">throws</span> Exception {
+        Mockito.when(referentielUseCase.agences()).thenReturn(List.of(<span class="str">"001"</span>, <span class="str">"002"</span>));
+        mockMvc.perform(MockMvcRequestBuilders.get(<span class="str">"/cash/referentiels/agences"</span>))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath(<span class="str">"$.data.length()"</span>).value(2));
+    }
+}</code></pre>
+</div>
+<div class="note">Vérification : <code>mvn clean verify</code> vert, puis <code>curl "http://localhost:8300/cash?statut=INITIATED&amp;page=0&amp;size=5"</code>, <code>curl http://localhost:8300/cash/referentiels/coupures?type=BANKNOTE</code>, <code>curl http://localhost:8300/cash/abc</code> → 400. <code>item_type</code> vaut <code>BANKNOTE</code> ou <code>COIN</code> (commentaire de l'entité).</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">7</span>Front retail — modèles, port, adapter HTTP</h2>
+
+<h3>7.1 Modèles (domain-core)</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>src\app\features\fund-management\domain\domain-core\entities\operation.model.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// --- DemandeFonds : deux champs de plus, renvoyés par le backend (lecture seule) ---</span>
+<span class="kw">export interface</span> DemandeFonds {
+  <span class="com">// ...champs existants inchangés...</span>
+  uniqueRequestRef?: string;
+  createdAt?: string;
+}
+
+<span class="com">// --- Référentiels : alignés sur CurrencyDTO / DenominationDTO backend ---
+// [VÉRIFIER] Devise et Denomination existent déjà dans ce fichier (mock : {id, code, valeur, libelle}) : remplace leurs corps par
+// ceux-ci et corrige les usages du formulaire (fund-management.component) : code→denominationCode, valeur→faceValue, libelle→denominationLabel.</span>
+<span class="kw">export interface</span> Devise {          <span class="com">// = CurrencyDTO backend</span>
+  id: string;
+  isoCode: string;
+  currencyName: string;
+}
+
+<span class="kw">export interface</span> Denomination {    <span class="com">// = DenominationDTO backend, le même objet que celui envoyé à la création</span>
+  id: string;
+  denominationCode: string;     <span class="com">// BILLET_200 …</span>
+  itemType: string;
+  faceValue: number;
+  denominationLabel: string;
+}
+
+<span class="com">// --- Recherche paginée ---</span>
+<span class="kw">export interface</span> DemandeCriteria {
+  statut?: string;
+  agence?: string;
+  operationType?: <span class="str">'ATM'</span> | <span class="str">'CASH_DESK'</span> | <span class="str">'CURRENCY'</span>;
+  operationSens?: <span class="str">'SUPPLY'</span> | <span class="str">'COLLECTION'</span>;
+  recherche?: string;
+  dateDebut?: string;    <span class="com">// ISO date-time, ex. 2026-08-11T00:00:00</span>
+  page: number;
+  size: number;
+}
+
+<span class="kw">export interface</span> PageResult&lt;T&gt; {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+<span class="kw">export const</span> CRITERIA_DEFAUT: DemandeCriteria = { page: 0, size: 20 };</code></pre>
+</div>
+
+<h3>7.2 Port FundService (domain-application-services)</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\domain\domain-application-services\output\fundManagement.service.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">import</span> { DemandeCriteria, DemandeFonds, DemandeFondsPayload, Denomination, Devise, PageResult }
+  <span class="kw">from</span> <span class="str">'../../domain-core/entities/operation.model'</span>;
+
+<span class="kw">export interface</span> FundService {
+  <span class="com">// référentiels</span>
+  getDevises(): Promise&lt;Devise[]&gt;;
+  getDenominationsGab(): Promise&lt;Denomination[]&gt;;
+  getDenominationsCaisse(): Promise&lt;Denomination[]&gt;;
+  getAgences(): Promise&lt;string[]&gt;;
+  <span class="com">// demandes</span>
+  creerDemande(payload: DemandeFondsPayload): Promise&lt;DemandeFonds&gt;;
+  getDemandes(criteria: DemandeCriteria): Promise&lt;PageResult&lt;DemandeFonds&gt;&gt;;
+  telechargerDemande(d: DemandeFonds): <span class="kw">void</span>;
+  <span class="com">// ...autres méthodes existantes conservées telles quelles...</span>
+}</code></pre>
+</div>
+
+<h3>7.3 Adapter HTTP — fin des mocks</h3>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\adapters\apiAdapters\fundManagement-http.service.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// 1) SUPPRIMER : mockDevises, mockDenominationsGab, mockDenominationsCaisse et les 3 méthodes actuelles
+//    getDevises / getDenominationsGab / getDenominationsCaisse (lignes ~10-62), ainsi que catchError/of s'ils
+//    ne servent plus ailleurs dans le fichier.
+
+// 2) AJOUTER (imports) :</span>
+<span class="kw">import</span> { HttpParams } <span class="kw">from</span> <span class="str">'@angular/common/http'</span>;
+<span class="kw">import</span> { DemandeCriteria, Denomination, Devise, PageResult } <span class="kw">from</span> <span class="str">'../../domain/domain-core/entities/operation.model'</span>;
+
+<span class="com">// 3) AJOUTER dans la classe :</span>
+  <span class="kw">private readonly</span> refUrl = <span class="kw">this</span>.apiUrl + <span class="str">'/referentiels'</span>;
+
+  <span class="com">// item_type côté entité : 'BANKNOTE' | 'COIN' (commentaire de DenominationEntity)</span>
+  <span class="kw">private static readonly</span> TYPE_BILLET = <span class="str">'BANKNOTE'</span>;
+
+  <span class="com">// ===== Référentiels — GET /cash/referentiels/* → { success, data } =====</span>
+
+  getDevises(): Promise&lt;Devise[]&gt; {
+    <span class="kw">return</span> firstValueFrom(
+      <span class="kw">this</span>.http.get&lt;ApiResponse&lt;Devise[]&gt;&gt;(<span class="kw">this</span>.refUrl + <span class="str">'/devises'</span>).pipe(map(r =&gt; <span class="kw">this</span>.data(r)))
+    );
+  }
+
+  <span class="com">/** GAB : billets uniquement (règle portée aujourd'hui par le mock GAB) */</span>
+  getDenominationsGab(): Promise&lt;Denomination[]&gt; {
+    <span class="kw">return</span> <span class="kw">this</span>.getCoupures(FundHttpService.TYPE_BILLET);
+  }
+
+  <span class="com">/** Caisse : billets + pièces */</span>
+  getDenominationsCaisse(): Promise&lt;Denomination[]&gt; {
+    <span class="kw">return</span> <span class="kw">this</span>.getCoupures();
+  }
+
+  getAgences(): Promise&lt;string[]&gt; {
+    <span class="kw">return</span> firstValueFrom(
+      <span class="kw">this</span>.http.get&lt;ApiResponse&lt;string[]&gt;&gt;(<span class="kw">this</span>.refUrl + <span class="str">'/agences'</span>).pipe(map(r =&gt; <span class="kw">this</span>.data(r)))
+    );
+  }
+
+  <span class="kw">private</span> getCoupures(type?: string): Promise&lt;Denomination[]&gt; {
+    <span class="kw">let</span> params = <span class="kw">new</span> HttpParams();
+    <span class="kw">if</span> (type) { params = params.set(<span class="str">'type'</span>, type); }
+    <span class="kw">return</span> firstValueFrom(
+      <span class="kw">this</span>.http.get&lt;ApiResponse&lt;Denomination[]&gt;&gt;(<span class="kw">this</span>.refUrl + <span class="str">'/coupures'</span>, { params }).pipe(map(r =&gt; <span class="kw">this</span>.data(r)))
+    );
+  }
+
+  <span class="com">// ===== Liste — GET /cash?… → { success, data: PageResult } =====</span>
+
+  getDemandes(criteria: DemandeCriteria): Promise&lt;PageResult&lt;DemandeFonds&gt;&gt; {
+    <span class="kw">let</span> params = <span class="kw">new</span> HttpParams()
+      .set(<span class="str">'page'</span>, criteria.page)
+      .set(<span class="str">'size'</span>, criteria.size);
+    <span class="kw">const</span> optionnels: (keyof DemandeCriteria)[] = [<span class="str">'statut'</span>, <span class="str">'agence'</span>, <span class="str">'operationType'</span>, <span class="str">'operationSens'</span>, <span class="str">'recherche'</span>, <span class="str">'dateDebut'</span>];
+    <span class="kw">for</span> (<span class="kw">const</span> k <span class="kw">of</span> optionnels) {
+      <span class="kw">const</span> v = criteria[k];
+      <span class="kw">if</span> (v !== <span class="kw">undefined</span> &amp;&amp; v !== <span class="kw">null</span> &amp;&amp; String(v).trim() !== <span class="str">''</span>) { params = params.set(k, String(v)); }
+    }
+    <span class="kw">return</span> firstValueFrom(
+      <span class="kw">this</span>.http.get&lt;ApiResponse&lt;PageResult&lt;DemandeFonds&gt;&gt;&gt;(<span class="kw">this</span>.apiUrl, { params }).pipe(map(r =&gt; <span class="kw">this</span>.data(r)))
+    );
+  }
+
+  <span class="com">/** Déballe l'enveloppe socle ; lève ErreurApi si success=false — même règle que creerDemande. */</span>
+  <span class="kw">private</span> data&lt;T&gt;(reponse: ApiResponse&lt;T&gt;): T {
+    <span class="kw">if</span> (!reponse.success || reponse.data === <span class="kw">undefined</span> || reponse.data === <span class="kw">null</span>) {
+      <span class="kw">throw new</span> ErreurApi(reponse.error ?? <span class="str">'ERR'</span>, reponse.message ?? <span class="str">'Réponse invalide du serveur.'</span>);
+    }
+    <span class="kw">return</span> reponse.data;
+  }</code></pre>
+</div>
+<div class="note">L'ancien <code>getDemandes()</code> sans paramètre disparaît ; s'il déballait déjà <code>.data</code> avec sa propre logique, remplace-le entièrement par celui-ci (le helper <code>data()</code> unifie le déballage — tu peux aussi l'utiliser dans <code>creerDemande</code> pour supprimer la duplication, optionnel).</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">8</span>Front retail — état (store / query / actions / façade)</h2>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\adapters\localState\fundMangement.store.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Ajoute à côté de demandes / loadingDemandes / errorDemandes :</span>
+  totalDemandes = signal&lt;number&gt;(0);
+  pageDemandes  = signal&lt;number&gt;(0);
+  agences       = signal&lt;string[]&gt;([]);
+<span class="com">// (demandes reste le signal DemandeFonds[] existant : il contient désormais la page courante)</span></code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\adapters\localState\fundMangement.query.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Expose les 3 nouveaux signals comme les autres (même style que demandes / loadingDemandes) :</span>
+  totalDemandes = <span class="kw">this</span>.store.totalDemandes.asReadonly();
+  pageDemandes  = <span class="kw">this</span>.store.pageDemandes.asReadonly();
+  agences       = <span class="kw">this</span>.store.agences.asReadonly();</code></pre>
+</div>
+<div class="note">[VÉRIFIER] la forme exacte de tes expositions dans <code>FundManagmentQuery</code> (<code>asReadonly()</code> ou <code>computed(() =&gt; this.store.x())</code>) — reproduis celle des voisins.</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\adapters\localState\fundMangement.actions.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// import à compléter :</span>
+<span class="kw">import</span> { DemandeCriteria, DemandeFonds, DemandeFondsPayload, ErreurApi } <span class="kw">from</span> <span class="str">"../../domain/domain-core/entities/operation.model"</span>;
+
+<span class="com">// Remplace loadDemandes() (lignes 59-71) par :</span>
+  <span class="kw">async</span> loadDemandes(criteria: DemandeCriteria): Promise&lt;<span class="kw">void</span>&gt; {
+    <span class="kw">this</span>.store.loadingDemandes.set(<span class="kw">true</span>);
+    <span class="kw">this</span>.store.errorDemandes.set(<span class="kw">null</span>);
+    <span class="kw">try</span> {
+      <span class="kw">const</span> page = <span class="kw">await this</span>.serviceHttp.getDemandes(criteria);
+      <span class="kw">this</span>.store.demandes.set(page.content);
+      <span class="kw">this</span>.store.totalDemandes.set(page.totalElements);
+      <span class="kw">this</span>.store.pageDemandes.set(page.page);
+    } <span class="kw">catch</span> (e) {
+      <span class="kw">this</span>.store.errorDemandes.set(
+        e <span class="kw">instanceof</span> ErreurApi ? e.message : <span class="str">"Impossible de charger les demandes."</span>
+      );
+    } <span class="kw">finally</span> {
+      <span class="kw">this</span>.store.loadingDemandes.set(<span class="kw">false</span>);
+    }
+  }
+
+<span class="com">// Ajoute :</span>
+  <span class="kw">async</span> loadAgences(): Promise&lt;<span class="kw">void</span>&gt; {
+    <span class="kw">try</span> {
+      <span class="kw">this</span>.store.agences.set(<span class="kw">await this</span>.serviceHttp.getAgences());
+    } <span class="kw">catch</span> {
+      <span class="kw">this</span>.store.agences.set([]);   <span class="com">// le filtre agence se dégrade en "Toutes", la liste reste utilisable</span>
+    }
+  }</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\adapters\localState\fundMangement.facade.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">import</span> { DemandeCriteria, DemandeFonds, DemandeFondsPayload } <span class="kw">from</span> <span class="str">"../../domain/domain-core/entities/operation.model"</span>;
+
+<span class="com">// ===== Liste des demandes ===== (remplace le bloc lignes 26-31)</span>
+  demandes        = <span class="kw">this</span>.query.demandes;
+  loadingDemandes = <span class="kw">this</span>.query.loadingDemandes;
+  errorDemandes   = <span class="kw">this</span>.query.errorDemandes;
+  totalDemandes   = <span class="kw">this</span>.query.totalDemandes;
+  pageDemandes    = <span class="kw">this</span>.query.pageDemandes;
+  agences         = <span class="kw">this</span>.query.agences;
+
+  loadDemandes(criteria: DemandeCriteria) { <span class="kw">return this</span>.actions.loadDemandes(criteria); }
+  loadAgences() { <span class="kw">return this</span>.actions.loadAgences(); }</code></pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">9</span>Front retail — composant liste</h2>
+<p>Les filtres cessent d'être un <code>computed</code> : chaque changement de contrôle (ou de page) recharge depuis le serveur. Implémentation en RxJS (<code>combineLatest</code> + <code>debounceTime</code> sur la recherche + <code>takeUntilDestroyed</code>) plutôt qu'en <code>effect</code> : pas d'écriture de signal dans un contexte réactif, donc pas de NG0600 comme celui qu'on vient de corriger. Un changement de filtre remet la page à 0.</p>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\presenter\pages\fund-management-list\fund-management-list.component.ts</span><span class="tag full">FICHIER COMPLET (partie logique — les méthodes d'affichage conservées sont marquées)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">import</span> { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { CommonModule } <span class="kw">from</span> <span class="str">'@angular/common'</span>;
+<span class="kw">import</span> { FormControl, ReactiveFormsModule } <span class="kw">from</span> <span class="str">'@angular/forms'</span>;
+<span class="kw">import</span> { takeUntilDestroyed } <span class="kw">from</span> <span class="str">'@angular/core/rxjs-interop'</span>;
+<span class="kw">import</span> { MatFormFieldModule } <span class="kw">from</span> <span class="str">'@angular/material/form-field'</span>;
+<span class="kw">import</span> { MatSelectModule } <span class="kw">from</span> <span class="str">'@angular/material/select'</span>;
+<span class="kw">import</span> { MatButtonModule } <span class="kw">from</span> <span class="str">'@angular/material/button'</span>;
+<span class="kw">import</span> { MatIconModule } <span class="kw">from</span> <span class="str">'@angular/material/icon'</span>;
+<span class="kw">import</span> { MatCardModule } <span class="kw">from</span> <span class="str">'@angular/material/card'</span>;
+<span class="kw">import</span> { MatSnackBar, MatSnackBarModule } <span class="kw">from</span> <span class="str">'@angular/material/snack-bar'</span>;
+<span class="kw">import</span> { MatPaginatorModule, PageEvent } <span class="kw">from</span> <span class="str">'@angular/material/paginator'</span>;
+<span class="kw">import</span> { BehaviorSubject, combineLatest, debounceTime, distinctUntilChanged, map, startWith } <span class="kw">from</span> <span class="str">'rxjs'</span>;
+<span class="kw">import</span> { FunManagementFacade } <span class="kw">from</span> <span class="str">'../../../adapters/localState/fundMangement.facade'</span>;
+<span class="kw">import</span> { CRITERIA_DEFAUT, DemandeCriteria, DemandeFonds } <span class="kw">from</span> <span class="str">'../../../domain/domain-core/entities/operation.model'</span>;
+<span class="kw">import</span> { FeedbackStateComponent } <span class="kw">from</span> <span class="str">'../../../../../shared/presenter/components/feedback-state/feedback-state.component'</span>;
+<span class="kw">import</span> { InputComponent } <span class="kw">from</span> <span class="str">'../../../../../shared/presenter/components/input/input.component'</span>;
+
+<span class="ann">@Component</span>({
+  selector: <span class="str">'app-fund-management-list'</span>,
+  standalone: <span class="kw">true</span>,
+  imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatSelectModule,
+    MatButtonModule, MatIconModule, MatCardModule, MatSnackBarModule, MatPaginatorModule,
+    FeedbackStateComponent, InputComponent],
+  templateUrl: <span class="str">'./fund-management-list.component.html'</span>,
+  styleUrl: <span class="str">'./fund-management-list.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="kw">export class</span> FundManagementListComponent <span class="kw">implements</span> OnInit {
+
+  <span class="kw">private readonly</span> destroyRef = inject(DestroyRef);
+
+  <span class="com">// ===== Filtres (maquette : période / agence / type / statut / référence) — INCHANGÉS =====</span>
+  periodeControl   = <span class="kw">new</span> FormControl(<span class="str">'7J'</span>,     { nonNullable: <span class="kw">true</span> });
+  agenceControl    = <span class="kw">new</span> FormControl(<span class="str">'TOUTES'</span>, { nonNullable: <span class="kw">true</span> });
+  typeControl      = <span class="kw">new</span> FormControl(<span class="str">'TOUS'</span>,   { nonNullable: <span class="kw">true</span> });
+  statutControl    = <span class="kw">new</span> FormControl(<span class="str">'TOUS'</span>,   { nonNullable: <span class="kw">true</span> });
+  rechercheControl = <span class="kw">new</span> FormControl(<span class="str">''</span>,       { nonNullable: <span class="kw">true</span> });
+
+  <span class="kw">readonly</span> periodes = [
+    { code: <span class="str">'7J'</span>,   libelle: <span class="str">'7 derniers jours'</span> },
+    { code: <span class="str">'30J'</span>,  libelle: <span class="str">'30 derniers jours'</span> },
+    { code: <span class="str">'TOUS'</span>, libelle: <span class="str">'Toute la période'</span> }
+  ];
+  <span class="kw">readonly</span> types = [<span class="str">'TOUS'</span>, <span class="str">'GAB'</span>, <span class="str">'CAISSE'</span>, <span class="str">'RAMASSAGE'</span>, <span class="str">'DEVISES'</span>];
+  <span class="kw">readonly</span> statuts = [
+    { code: <span class="str">'TOUS'</span>,      libelle: <span class="str">'Tous les statuts'</span> },
+    { code: <span class="str">'INITIATED'</span>, libelle: <span class="str">'En Attente'</span> },
+    { code: <span class="str">'VALIDATED'</span>, libelle: <span class="str">'Validé'</span> },
+    { code: <span class="str">'CANCELLED'</span>, libelle: <span class="str">'Archivé'</span> }
+  ];
+  <span class="kw">readonly</span> tailleParDefaut = CRITERIA_DEFAUT.size;
+
+  <span class="com">// pagination pilotée par le mat-paginator</span>
+  <span class="kw">private readonly</span> page$ = <span class="kw">new</span> BehaviorSubject&lt;number&gt;(0);
+
+  <span class="kw">constructor</span>(
+    <span class="kw">public</span> facade: FunManagementFacade,
+    <span class="kw">private</span> snackBar: MatSnackBar
+  ) {}
+
+  ngOnInit(): <span class="kw">void</span> {
+    <span class="kw">this</span>.facade.loadAgences();
+
+    <span class="kw">const</span> filtres$ = combineLatest([
+      <span class="kw">this</span>.periodeControl.valueChanges.pipe(startWith(<span class="kw">this</span>.periodeControl.value)),
+      <span class="kw">this</span>.agenceControl.valueChanges.pipe(startWith(<span class="kw">this</span>.agenceControl.value)),
+      <span class="kw">this</span>.typeControl.valueChanges.pipe(startWith(<span class="kw">this</span>.typeControl.value)),
+      <span class="kw">this</span>.statutControl.valueChanges.pipe(startWith(<span class="kw">this</span>.statutControl.value)),
+      <span class="kw">this</span>.rechercheControl.valueChanges.pipe(
+        startWith(<span class="kw">this</span>.rechercheControl.value),
+        debounceTime(300),
+        map(v =&gt; v.trim()),
+        distinctUntilChanged()
+      )
+    ]);
+
+    <span class="com">// tout changement de filtre → retour page 0</span>
+    filtres$.pipe(takeUntilDestroyed(<span class="kw">this</span>.destroyRef)).subscribe(() =&gt; {
+      <span class="kw">if</span> (<span class="kw">this</span>.page$.value !== 0) { <span class="kw">this</span>.page$.next(0); }
+    });
+
+    combineLatest([filtres$, <span class="kw">this</span>.page$])
+      .pipe(
+        map(([[periode, agence, type, statut, recherche], page]) =&gt;
+          <span class="kw">this</span>.construireCriteres(periode, agence, type, statut, recherche, page)),
+        takeUntilDestroyed(<span class="kw">this</span>.destroyRef)
+      )
+      .subscribe(criteres =&gt; <span class="kw">this</span>.facade.loadDemandes(criteres));
+  }
+
+  rafraichir(): <span class="kw">void</span> {
+    <span class="kw">this</span>.page$.next(<span class="kw">this</span>.page$.value);   <span class="com">// ré-émet les mêmes critères</span>
+  }
+
+  changerPage(e: PageEvent): <span class="kw">void</span> {
+    <span class="kw">this</span>.page$.next(e.pageIndex);
+  }
+
+  <span class="com">// ===== Traduction filtres écran → critères backend =====</span>
+  <span class="kw">private</span> construireCriteres(periode: string, agence: string, type: string, statut: string,
+                             recherche: string, page: number): DemandeCriteria {
+    <span class="kw">const</span> c: DemandeCriteria = { page, size: <span class="kw">this</span>.tailleParDefaut };
+    <span class="kw">if</span> (statut !== <span class="str">'TOUS'</span>)   { c.statut = statut; }
+    <span class="kw">if</span> (agence !== <span class="str">'TOUTES'</span>) { c.agence = agence; }
+    <span class="kw">if</span> (recherche)           { c.recherche = recherche; }
+    <span class="kw">const</span> limite = <span class="kw">this</span>.limitePeriode(periode);
+    <span class="kw">if</span> (limite)              { c.dateDebut = <span class="kw">this</span>.isoLocal(limite); }
+    <span class="com">// même sémantique que chipsContenu() : RAMASSAGE = sens COLLECTION, sinon type + SUPPLY</span>
+    <span class="kw">switch</span> (type) {
+      <span class="kw">case</span> <span class="str">'GAB'</span>:       c.operationType = <span class="str">'ATM'</span>;       c.operationSens = <span class="str">'SUPPLY'</span>;     <span class="kw">break</span>;
+      <span class="kw">case</span> <span class="str">'CAISSE'</span>:    c.operationType = <span class="str">'CASH_DESK'</span>; c.operationSens = <span class="str">'SUPPLY'</span>;     <span class="kw">break</span>;
+      <span class="kw">case</span> <span class="str">'DEVISES'</span>:   c.operationType = <span class="str">'CURRENCY'</span>;  c.operationSens = <span class="str">'SUPPLY'</span>;     <span class="kw">break</span>;
+      <span class="kw">case</span> <span class="str">'RAMASSAGE'</span>:                                c.operationSens = <span class="str">'COLLECTION'</span>; <span class="kw">break</span>;
+    }
+    <span class="kw">return</span> c;
+  }
+
+  <span class="kw">private</span> limitePeriode(code: string): Date | <span class="kw">null</span> {
+    <span class="kw">if</span> (code === <span class="str">'7J'</span>)  { <span class="kw">const</span> d = <span class="kw">new</span> Date(); d.setDate(d.getDate() - 7);  d.setHours(0, 0, 0, 0); <span class="kw">return</span> d; }
+    <span class="kw">if</span> (code === <span class="str">'30J'</span>) { <span class="kw">const</span> d = <span class="kw">new</span> Date(); d.setDate(d.getDate() - 30); d.setHours(0, 0, 0, 0); <span class="kw">return</span> d; }
+    <span class="kw">return null</span>;
+  }
+
+  <span class="com">/** LocalDateTime attendu par le backend (@DateTimeFormat ISO.DATE_TIME) — sans décalage UTC de toISOString(). */</span>
+  <span class="kw">private</span> isoLocal(d: Date): string {
+    <span class="kw">const</span> p = (n: number) =&gt; String(n).padStart(2, <span class="str">'0'</span>);
+    <span class="kw">return</span> <span class="str">`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`</span>;
+  }
+
+  <span class="com">// ===== Mapping API -> écran (aligné maquette) =====</span>
+
+  reference(d: DemandeFonds): string {
+    <span class="kw">return</span> d.uniqueRequestRef ?? <span class="str">'—'</span>;      <span class="com">// TODO résolu : la vraie référence RT-AAAA-NNNNNN</span>
+  }
+
+  dateDemande(d: DemandeFonds): string | <span class="kw">undefined</span> {
+    <span class="kw">return</span> d.createdAt;                    <span class="com">// TODO résolu : date au niveau demande</span>
+  }
+
+  <span class="com">// estUrgente(), chipsContenu(), libelleStatut(), telecharger(), voirDetail() : INCHANGÉS — garde tes versions.
+  // SUPPRIMER : les 5 toSignal(...), agences (computed), demandesFiltrees (computed) et l'import firstValueFrom.</span>
+}</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\fund-management-list\fund-management-list.component.html</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">&lt;!-- 1) Filtre agences : la source devient le référentiel (facade.agences()) --&gt;</span>
+&lt;mat-select [formControl]=<span class="str">"agenceControl"</span>&gt;
+  &lt;mat-option value=<span class="str">"TOUTES"</span>&gt;Toutes les agences&lt;/mat-option&gt;
+  &lt;mat-option *ngFor=<span class="str">"let a of facade.agences()"</span> [value]=<span class="str">"a"</span>&gt;{{ a }}&lt;/mat-option&gt;
+&lt;/mat-select&gt;
+
+<span class="com">&lt;!-- 2) Les 3 états + la table : demandesFiltrees() → facade.demandes() --&gt;</span>
+&lt;app-feedback-state
+  *ngIf=<span class="str">"!facade.loadingDemandes() &amp;&amp; !facade.errorDemandes() &amp;&amp; facade.demandes().length === 0"</span>
+  type=<span class="str">"empty"</span> title=<span class="str">"Aucune demande"</span>
+  message=<span class="str">"Aucune demande ne correspond aux filtres."</span>&gt;&lt;/app-feedback-state&gt;
+
+&lt;mat-card class=<span class="str">"carte"</span>
+          *ngIf=<span class="str">"!facade.loadingDemandes() &amp;&amp; !facade.errorDemandes() &amp;&amp; facade.demandes().length &gt; 0"</span>&gt;
+  &lt;table class=<span class="str">"tableau-demandes"</span>&gt;
+    <span class="com">&lt;!-- thead inchangé --&gt;</span>
+    &lt;tbody&gt;
+      &lt;tr *ngFor=<span class="str">"let d of facade.demandes()"</span>&gt;
+        <span class="com">&lt;!-- lignes inchangées : reference(d), estUrgente(d), d.branchCode, dateDemande(d) | date, chipsContenu(d), d.user, statut, actions --&gt;</span>
+      &lt;/tr&gt;
+    &lt;/tbody&gt;
+  &lt;/table&gt;
+
+  <span class="com">&lt;!-- 3) Pagination serveur --&gt;</span>
+  &lt;mat-paginator
+    [length]=<span class="str">"facade.totalDemandes()"</span>
+    [pageIndex]=<span class="str">"facade.pageDemandes()"</span>
+    [pageSize]=<span class="str">"tailleParDefaut"</span>
+    [hidePageSize]=<span class="str">"true"</span>
+    (page)=<span class="str">"changerPage($event)"</span>&gt;
+  &lt;/mat-paginator&gt;
+&lt;/mat-card&gt;
+
+<span class="com">&lt;!-- 4) Le message d'erreur peut maintenant afficher le message backend (errorDemandes porte e.message) : --&gt;</span>
+&lt;app-feedback-state *ngIf=<span class="str">"!facade.loadingDemandes() &amp;&amp; facade.errorDemandes()"</span>
+  type=<span class="str">"error"</span> title=<span class="str">"Impossible de charger les demandes"</span>
+  [message]=<span class="str">"facade.errorDemandes()!"</span>&gt;&lt;/app-feedback-state&gt;</code></pre>
+</div>
+<div class="note">La colonne « Contenu » (<code>chipsContenu</code>) et le CSV « Télécharger » ne changent pas : ils lisent la page courante du store. Le paginator Material est le seul ajout visuel ; s'il n'est pas dans la maquette, laisse-le — une liste sans pagination avec un filtre 7J par défaut restera courte, mais l'API le supporte dès maintenant.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">10</span>Ordre d'exécution &amp; checklist</h2>
+<ol>
+<li><b>Backend commun</b> : <code>PageResult</code>, <code>DemandeSearchCriteria</code>, <code>DemandeSpecifications</code>.</li>
+<li><b>Retail</b> : JpaRepository (spec executor + 2 requêtes) → port → adapter → use case → controller → handler → DTO/mappers (<code>uniqueRequestRef</code>, <code>createdAt</code>).</li>
+<li><b>Référentiels retail</b> : ports en common → marqueurs + use case + adapter + controller retail → idem corpo → scope des handlers.</li>
+<li><b>Corpo</b> : miroir recherche (4 fichiers) + miroir référentiels (5 fichiers).</li>
+<li><code>mvn clean verify</code> — corrige les tests <code>getAll</code> existants (retail + corpo) comme indiqué en 6.</li>
+<li>Postman : les 5 curls de la section 6.</li>
+<li><b>Front</b> : modèles → port → http.service (mocks supprimés) → store/query/actions/façade → composant + HTML → <code>ng serve</code>.</li>
+</ol>
+<ul class="check">
+<li>Console navigateur : plus aucun 500 sur <code>/cash/devises</code>, <code>/cash/operation</code>.</li>
+<li>Formulaire de création : coupures GAB = billets (24 → 3 devises confondues), coupures caisse = billets + pièces, codes identiques au seed → plus de 422 « coupure inconnue ». Si le formulaire doit filtrer par devise (MAD/EUR/USD) en attendant la FK, filtre côté front sur <code>denominationCode</code> (<code>BILLET_EUR_</code>, <code>BILLET_USD_</code>, sinon MAD).</li>
+<li>Liste : changer un filtre déclenche <b>un</b> appel <code>GET /cash?…</code> (Network) ; la saisie référence attend 300 ms ; page revient à 0.</li>
+<li><code>GET /cash/abc</code> → 400 et non 500.</li>
+<li><code>Ctrl+Shift+F "demandesFiltrees"</code> et <code>"mockDenominations"</code> → 0 résultat.</li>
+</ul>
+<div class="warn"><b>Points [VÉRIFIER] à cocher avant de coller</b> : (a) getters <code>DenominationEntity</code> retail + lien devise ; (c) champ <code>createdAt</code> sur l'agrégat <code>CashRequest</code> ; (d) constante 400 dans <code>RetailHttpStatus</code> ; (e) packages corpo ; (f) usages de <code>valeur</code>/<code>code</code>/<code>libelle</code> des anciens mocks dans le formulaire ; (g) forme des expositions dans <code>FundManagmentQuery</code>. Envoie-moi une capture de chacun si tu veux que je les valide avant.</div>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · microservice-fund-management + fund-management-front · filtres serveur retail/corpo · référentiels · 18/08/2026</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{ btn.textContent='Copié ✓'; setTimeout(()=>btn.textContent='Copier',1800); });
+}
+</script>
+</body>
+</html>
