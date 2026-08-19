@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coupure → Devise : FK currency_id sur denomination (retail + corpo) — QlickFlow Fund Management</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1e2a26;--code:#0f1a16;--muted:#5b6b64}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:28px 32px}
+header h1{margin:0 0 6px;font-size:1.6rem}
+header p{margin:0;opacity:.9}
+.badge{display:inline-block;background:var(--or);color:#fff;border-radius:4px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-top:10px}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+section{background:#fff;border:1px solid #e0e8e4;border-radius:8px;padding:20px 24px;margin-bottom:22px}
+h2{color:var(--vf);margin:0 0 14px;font-size:1.25rem;border-left:5px solid var(--or);padding-left:10px}
+h3{color:var(--v);margin:20px 0 8px;font-size:1.05rem}
+.num{display:inline-block;background:var(--v);color:#fff;border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px;font-size:.9rem;margin-right:8px}
+.note{background:#eef6f2;border-left:4px solid var(--v);padding:10px 14px;border-radius:4px;margin:12px 0}
+.warn{background:#fdf5e6;border-left:4px solid var(--or);padding:10px 14px;border-radius:4px;margin:12px 0}
+.code-bloc{margin:14px 0;border:1px solid #d9e2dd;border-radius:6px;overflow:hidden}
+.titre-fichier{display:flex;align-items:center;justify-content:space-between;background:#e6efeb;padding:6px 12px;font-family:Consolas,monospace;font-size:.82rem;color:var(--vf)}
+.tag{font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:3px;margin-left:8px;color:#fff}
+.tag.new{background:var(--v)}.tag.edit{background:var(--or)}.tag.full{background:#3d5a80}.tag.del{background:#b3261e}
+.btn-copier{background:var(--v);color:#fff;border:0;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:.78rem}
+.btn-copier:hover{background:var(--vf)}
+pre,.code-bloc pre{margin:0;padding:14px;background:#0f1a16 !important;color:#e8f0ec !important;overflow:auto;font-family:Consolas,"Courier New",monospace;font-size:.82rem;line-height:1.45}
+pre code{background:transparent !important;padding:0;border-radius:0;font-size:inherit;color:inherit;display:block}
+.kw{color:#c792ea}.str{color:#c3e88d}.com{color:#7f9a90;font-style:italic}.ann{color:#ffcb6b}.ty{color:#82aaff}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.9rem}
+th,td{border:1px solid #d9e2dd;padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#e6efeb;color:var(--vf)}
+code{background:#eef2f0;padding:1px 5px;border-radius:3px;font-family:Consolas,monospace;font-size:.86em}
+ul.check li{margin:4px 0}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>Coupure → Devise : FK <code>currency_id</code> sur <code>denomination</code></h1>
+<p>Option 1 — la devise devient une donnée de la coupure. Retail + corpo, back + front. Remplace le bloc « Référentiels coupures » du doc filtres.</p>
+<span class="badge">19/08/2026 · V0 : scripts V1/V2 édités en place</span>
+</header>
+<main>
+
+<section>
+<h2><span class="num">0</span>Ce que ça change</h2>
+<table>
+<tr><th>Avant</th><th>Après</th></tr>
+<tr><td><code>denomination</code> n'a pas de devise ; 24 coupures MAD/EUR/USD indiscernables ; le front reçoit tout et affiche 3× « 200 ».</td><td><code>denomination.currency_id</code> NOT NULL → <code>currency(id)</code>. <code>GET /cash/referentiels/coupures?devise=MAD&amp;type=BANKNOTE</code> renvoie exactement les coupures MAD. Le front demande <code>devise=MAD</code> pour Caisse/GAB (règle métier actuelle), pas de regex, pas de convention de nommage.</td></tr>
+</table>
+<p>Ordre : SQL (1) → entités (2) → DTO (3) → ports common (4) → retail (5) → corpo (6) → tests (7) → front (8). <code>flyway clean</code> obligatoire entre 1 et le redémarrage : on est en V0, les scripts sont réécrits, pas migrés.</p>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">1</span>Flyway — V1 retail et V2 corpo</h2>
+<div class="note">La colonne est créée nullable dans le <code>CREATE TABLE</code>, renseignée après les inserts du seed (qui restent tels quels), puis passée <code>NOT NULL</code>. Tu n'as pas à réécrire tes 24 lignes d'insert.</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-container\src\main\resources\db\migration\V1__create_retail_schema.sql</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">-- 1) Dans CREATE TABLE retail.denomination, ajouter la colonne (après id) :</span>
+    currency_id        UUID REFERENCES retail.currency(id),
+
+<span class="com">-- 2) APRÈS le bloc d'INSERT des 24 coupures (fin du seed denomination), ajouter :</span>
+UPDATE retail.denomination
+   SET currency_id = (SELECT id FROM retail.currency WHERE iso_code = 'EUR')
+ WHERE position('_EUR_' IN denomination_code) &gt; 0;
+
+UPDATE retail.denomination
+   SET currency_id = (SELECT id FROM retail.currency WHERE iso_code = 'USD')
+ WHERE position('_USD_' IN denomination_code) &gt; 0;
+
+UPDATE retail.denomination
+   SET currency_id = (SELECT id FROM retail.currency WHERE iso_code = 'MAD')
+ WHERE currency_id IS NULL;
+
+ALTER TABLE retail.denomination ALTER COLUMN currency_id SET NOT NULL;
+
+CREATE INDEX idx_retail_denomination_currency ON retail.denomination (currency_id);</code></pre>
+</div>
+
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-container\src\main\resources\db\migration\V2__create_corpo_schema.sql</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">-- 1) Dans CREATE TABLE corpo.denomination, ajouter :</span>
+    currency_id        UUID REFERENCES corpo.currency(id),
+
+<span class="com">-- 2) APRÈS le bloc d'INSERT des 11 coupures (seed MAD-only) :</span>
+UPDATE corpo.denomination
+   SET currency_id = (SELECT id FROM corpo.currency WHERE iso_code = 'MAD')
+ WHERE currency_id IS NULL;
+
+ALTER TABLE corpo.denomination ALTER COLUMN currency_id SET NOT NULL;
+
+CREATE INDEX idx_corpo_denomination_currency ON corpo.denomination (currency_id);</code></pre>
+</div>
+<div class="warn">Puis : <code>flyway clean</code> (ou ton script de reset) → démarrage → vérification : <code>select denomination_code, c.iso_code from retail.denomination d join retail.currency c on c.id = d.currency_id order by 2, d.face_value desc;</code> → 24 lignes, chacune avec sa devise, aucune NULL.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">2</span>Entités JPA</h2>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\dataaccess\retail\entity\DenominationEntity.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Ajouter le champ :</span>
+    <span class="ann">@ManyToOne</span>(fetch = FetchType.LAZY, optional = <span class="kw">false</span>)
+    <span class="ann">@JoinColumn</span>(name = <span class="str">"currency_id"</span>, nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> CurrencyEntity currency;
+
+<span class="com">// imports (jakarta.persistence.* est déjà importé en étoile dans tes entités ; sinon) :</span>
+<span class="kw">import</span> jakarta.persistence.FetchType;
+<span class="kw">import</span> jakarta.persistence.JoinColumn;
+<span class="kw">import</span> jakarta.persistence.ManyToOne;</code></pre>
+</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\dataaccess\corpo\entity\CorpoDenominationEntity.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="ann">@ManyToOne</span>(fetch = FetchType.LAZY, optional = <span class="kw">false</span>)
+    <span class="ann">@JoinColumn</span>(name = <span class="str">"currency_id"</span>, nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> CorpoCurrencyEntity currency;</code></pre>
+</div>
+<div class="note">Mappers MapStruct (<code>CashRequestPersistenceMapper.toDenominationDomain</code>, corpo idem) : la nouvelle propriété source <code>currency</code> n'a pas de cible dans le domaine <code>Denomination</code> → MapStruct l'ignore (seules les cibles non mappées génèrent un warning). Rien à toucher. Le <code>LAZY</code> est lu dans les adapters référentiel sous <code>@Transactional(readOnly = true)</code>, donc pas de <code>LazyInitializationException</code>.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">3</span>DTO commun</h2>
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-common\...\common\dto\DenominationDTO.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Ajouter (lecture : renvoyé par le référentiel ; en entrée de demande il reste null, pas de @NotBlank) :</span>
+    <span class="kw">private</span> String currencyIsoCode;</code></pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">4</span>Ports communs</h2>
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-common\...\common\referentiel\ReferentielRepository.java + ReferentielUseCase.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Dans les DEUX interfaces, remplacer la signature coupures par :</span>
+    List&lt;DenominationDTO&gt; coupures(String deviseIso, String itemType);   <span class="com">// null = pas de filtre</span></code></pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">5</span>Retail</h2>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\retail\RetailReferentielUseCaseImpl.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="ann">@Override</span> <span class="kw">public</span> List&lt;DenominationDTO&gt; coupures(String deviseIso, String itemType) {
+        <span class="kw">return</span> referentielRepository.coupures(deviseIso, itemType);
+    }</code></pre>
+</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\dataaccess\retail\adapter\RetailReferentielRepositoryImpl.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Remplacer la méthode coupures par :</span>
+    <span class="ann">@Override</span>
+    <span class="ann">@Transactional</span>(readOnly = <span class="kw">true</span>)
+    <span class="kw">public</span> List&lt;DenominationDTO&gt; coupures(String deviseIso, String itemType) {
+        <span class="kw">return</span> denominationJpaRepository.findAll().stream()
+                .filter(d -&gt; deviseIso == <span class="kw">null</span> || deviseIso.equalsIgnoreCase(d.getCurrency().getIsoCode()))
+                .filter(d -&gt; itemType == <span class="kw">null</span> || itemType.equalsIgnoreCase(d.getItemType()))
+                .sorted(Comparator.comparing(DenominationEntity::getFaceValue).reversed())
+                .map(d -&gt; DenominationDTO.builder()
+                        .id(d.getId())
+                        .denominationCode(d.getDenominationCode())
+                        .itemType(d.getItemType())
+                        .faceValue(d.getFaceValue())
+                        .denominationLabel(d.getDenominationLabel())
+                        .currencyIsoCode(d.getCurrency().getIsoCode())
+                        .build())
+                .toList();
+    }</code></pre>
+</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\application\rest\retail\RetailReferentielController.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="ann">@GetMapping</span>(<span class="str">"/coupures"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;List&lt;DenominationDTO&gt;&gt;&gt; coupures(
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String devise,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String type) {
+        <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(referentielUseCase.coupures(devise, type)));
+    }</code></pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">6</span>Corpo</h2>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\service\domain\corpo\CorpoReferentielUseCaseImpl.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="ann">@Override</span> <span class="kw">public</span> List&lt;DenominationDTO&gt; coupures(String deviseIso, String itemType) {
+        <span class="kw">return</span> referentielRepository.coupures(deviseIso, itemType);
+    }</code></pre>
+</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\dataaccess\corpo\adapter\CorpoReferentielRepositoryImpl.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="ann">@Override</span>
+    <span class="ann">@Transactional</span>(readOnly = <span class="kw">true</span>)
+    <span class="kw">public</span> List&lt;DenominationDTO&gt; coupures(String deviseIso, String itemType) {
+        <span class="kw">return</span> corpoDenominationJpaRepository.findAll().stream()
+                .filter(d -&gt; deviseIso == <span class="kw">null</span> || deviseIso.equalsIgnoreCase(d.getCurrency().getIsoCode()))
+                .filter(d -&gt; itemType == <span class="kw">null</span> || itemType.equalsIgnoreCase(d.getItemType()))
+                .sorted(Comparator.comparing(CorpoDenominationEntity::getFaceValue).reversed())
+                .map(d -&gt; DenominationDTO.builder()
+                        .id(d.getId())
+                        .denominationCode(d.getDenominationCode())
+                        .itemType(d.getItemType())
+                        .faceValue(d.getFaceValue())
+                        .denominationLabel(d.getDenominationLabel())
+                        .currencyIsoCode(d.getCurrency().getIsoCode())
+                        .build())
+                .toList();
+    }</code></pre>
+</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\application\rest\CorpoReferentielController.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="ann">@GetMapping</span>(<span class="str">"/coupures"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;List&lt;DenominationDTO&gt;&gt;&gt; coupures(
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String devise,
+            <span class="ann">@RequestParam</span>(required = <span class="kw">false</span>) String type) {
+        <span class="kw">return</span> ResponseEntity.ok(ApiResponse.success(referentielUseCase.coupures(devise, type)));
+    }</code></pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">7</span>Tests</h2>
+<div class="code-bloc">
+<div class="titre-fichier"><span>RetailReferentielControllerTest.java et CorpoReferentielControllerTest.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Remplacer coupuresFiltreesParType() — retail :</span>
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> coupuresFiltreesParDeviseEtType() <span class="kw">throws</span> Exception {
+        Mockito.when(referentielUseCase.coupures(<span class="str">"MAD"</span>, <span class="str">"BANKNOTE"</span>))
+                .thenReturn(List.of(DenominationDTO.builder()
+                        .denominationCode(<span class="str">"BILLET_200"</span>).faceValue(<span class="kw">new</span> BigDecimal(<span class="str">"200"</span>))
+                        .itemType(<span class="str">"BANKNOTE"</span>).denominationLabel(<span class="str">"Billet de 200 MAD"</span>).currencyIsoCode(<span class="str">"MAD"</span>).build()));
+        mockMvc.perform(MockMvcRequestBuilders.get(<span class="str">"/cash/referentiels/coupures"</span>)
+                        .param(<span class="str">"devise"</span>, <span class="str">"MAD"</span>).param(<span class="str">"type"</span>, <span class="str">"BANKNOTE"</span>))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath(<span class="str">"$.data[0].denominationCode"</span>).value(<span class="str">"BILLET_200"</span>))
+                .andExpect(MockMvcResultMatchers.jsonPath(<span class="str">"$.data[0].currencyIsoCode"</span>).value(<span class="str">"MAD"</span>));
+    }
+
+<span class="com">// Corpo : même test, URL "/corpo/cash/referentiels/coupures".</span></code></pre>
+</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-data-access\...\dataaccess\retail\adapter\RetailReferentielRepositoryImplTest.java</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.dataaccess.retail.adapter;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.common.dto.DenominationDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.entity.CurrencyEntity;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.entity.DenominationEntity;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.repository.CashDemandJpaRepository;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.repository.CurrencyJpaRepository;
+<span class="kw">import</span> com.bmci.workflow.fund.management.dataaccess.retail.repository.DenominationJpaRepository;
+<span class="kw">import</span> org.junit.jupiter.api.Test;
+<span class="kw">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="kw">import</span> org.mockito.InjectMocks;
+<span class="kw">import</span> org.mockito.Mock;
+<span class="kw">import</span> org.mockito.Mockito;
+<span class="kw">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="kw">import</span> java.math.BigDecimal;
+<span class="kw">import</span> java.util.List;
+
+<span class="kw">import static</span> org.junit.jupiter.api.Assertions.assertEquals;
+
+<span class="ann">@ExtendWith</span>(MockitoExtension.<span class="kw">class</span>)
+<span class="kw">class</span> <span class="ty">RetailReferentielRepositoryImplTest</span> {
+
+    <span class="ann">@Mock</span> <span class="kw">private</span> CurrencyJpaRepository currencyJpaRepository;
+    <span class="ann">@Mock</span> <span class="kw">private</span> DenominationJpaRepository denominationJpaRepository;
+    <span class="ann">@Mock</span> <span class="kw">private</span> CashDemandJpaRepository cashDemandJpaRepository;
+    <span class="ann">@InjectMocks</span> <span class="kw">private</span> RetailReferentielRepositoryImpl repository;
+
+    <span class="kw">private static</span> CurrencyEntity devise(String iso) {
+        CurrencyEntity c = <span class="kw">new</span> CurrencyEntity();
+        c.setIsoCode(iso);
+        <span class="kw">return</span> c;
+    }
+
+    <span class="kw">private static</span> DenominationEntity coupure(String code, String type, String valeur, CurrencyEntity devise) {
+        DenominationEntity d = <span class="kw">new</span> DenominationEntity();
+        d.setDenominationCode(code);
+        d.setItemType(type);
+        d.setFaceValue(<span class="kw">new</span> BigDecimal(valeur));
+        d.setDenominationLabel(code);
+        d.setCurrency(devise);
+        <span class="kw">return</span> d;
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> coupuresFiltreParDeviseEtTypeEtTrieParValeurDecroissante() {
+        CurrencyEntity mad = devise(<span class="str">"MAD"</span>);
+        CurrencyEntity eur = devise(<span class="str">"EUR"</span>);
+        Mockito.when(denominationJpaRepository.findAll()).thenReturn(List.of(
+                coupure(<span class="str">"BILLET_20"</span>,     <span class="str">"BANKNOTE"</span>, <span class="str">"20"</span>,  mad),
+                coupure(<span class="str">"BILLET_200"</span>,    <span class="str">"BANKNOTE"</span>, <span class="str">"200"</span>, mad),
+                coupure(<span class="str">"PIECE_10"</span>,      <span class="str">"COIN"</span>,     <span class="str">"10"</span>,  mad),
+                coupure(<span class="str">"BILLET_EUR_50"</span>, <span class="str">"BANKNOTE"</span>, <span class="str">"50"</span>,  eur)));
+
+        List&lt;DenominationDTO&gt; result = repository.coupures(<span class="str">"MAD"</span>, <span class="str">"BANKNOTE"</span>);
+
+        assertEquals(2, result.size());
+        assertEquals(<span class="str">"BILLET_200"</span>, result.get(0).getDenominationCode());
+        assertEquals(<span class="str">"BILLET_20"</span>,  result.get(1).getDenominationCode());
+        assertEquals(<span class="str">"MAD"</span>, result.get(0).getCurrencyIsoCode());
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> coupuresSansFiltreRenvoieTout() {
+        CurrencyEntity mad = devise(<span class="str">"MAD"</span>);
+        Mockito.when(denominationJpaRepository.findAll()).thenReturn(List.of(
+                coupure(<span class="str">"BILLET_200"</span>, <span class="str">"BANKNOTE"</span>, <span class="str">"200"</span>, mad),
+                coupure(<span class="str">"PIECE_10"</span>,   <span class="str">"COIN"</span>,     <span class="str">"10"</span>,  mad)));
+
+        assertEquals(2, repository.coupures(<span class="kw">null</span>, <span class="kw">null</span>).size());
+    }
+}</code></pre>
+</div>
+<div class="note">Ces adapters ne sont pas câblés sur une base dans les tests unitaires : le <code>LAZY</code> n'a aucun effet ici. La vérification réelle, c'est le <code>select</code> de la section 1 et le <code>curl</code> ci-dessous.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">8</span>Front</h2>
+<div class="code-bloc">
+<div class="titre-fichier"><span>src\app\features\fund-management\domain\domain-core\entities\operation.model.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">export interface</span> Denomination {
+  id: string;
+  denominationCode: string;
+  itemType: string;
+  faceValue: number;
+  denominationLabel: string;
+  currencyIsoCode: string;
+}</code></pre>
+</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\adapters\apiAdapters\fundManagement-http.service.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// SUPPRIMER CODES_DEVISE_ETRANGERE (si collé) et remplacer les 3 méthodes coupures par :</span>
+  <span class="kw">private static readonly</span> TYPE_BILLET = <span class="str">'BANKNOTE'</span>;
+  <span class="com">/** Règle métier actuelle : Alimentation Caisse / GAB se ventilent en coupures MAD. */</span>
+  <span class="kw">private static readonly</span> DEVISE_ALIMENTATION = <span class="str">'MAD'</span>;
+
+  <span class="com">/** GAB : billets MAD */</span>
+  getDenominationsGab(): Promise&lt;Denomination[]&gt; {
+    <span class="kw">return this</span>.getCoupures(FundHttpService.DEVISE_ALIMENTATION, FundHttpService.TYPE_BILLET);
+  }
+
+  <span class="com">/** Caisse : billets + pièces MAD */</span>
+  getDenominationsCaisse(): Promise&lt;Denomination[]&gt; {
+    <span class="kw">return this</span>.getCoupures(FundHttpService.DEVISE_ALIMENTATION);
+  }
+
+  <span class="kw">private</span> getCoupures(devise: string, type?: string): Promise&lt;Denomination[]&gt; {
+    <span class="kw">let</span> params = <span class="kw">new</span> HttpParams().set(<span class="str">'devise'</span>, devise);
+    <span class="kw">if</span> (type) { params = params.set(<span class="str">'type'</span>, type); }
+    <span class="kw">return</span> firstValueFrom(
+      <span class="kw">this</span>.http.get&lt;ApiResponse&lt;Denomination[]&gt;&gt;(<span class="kw">this</span>.refUrl + <span class="str">'/coupures'</span>, { params }).pipe(map(r =&gt; <span class="kw">this</span>.data(r)))
+    );
+  }</code></pre>
+</div>
+<div class="note">Le port <code>FundService</code>, les actions, la façade et le composant ne changent pas : <code>getDenominationsGab()</code> / <code>getDenominationsCaisse()</code> gardent leur signature. Si demain le métier veut ventiler une commande EUR, la façade exposera <code>loadCoupures(devise)</code> et le sélecteur existant alimentera le paramètre — le modèle est prêt.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">9</span>Vérification</h2>
+<ul class="check">
+<li><code>mvn clean verify</code> vert.</li>
+<li><code>select denomination_code, c.iso_code from retail.denomination d join retail.currency c on c.id = d.currency_id</code> → 24 lignes, 0 NULL ; idem corpo → 11 lignes MAD.</li>
+<li><code>curl "http://localhost:8300/cash/referentiels/coupures?devise=MAD&amp;type=BANKNOTE"</code> → 7 billets MAD, chacun avec <code>"currencyIsoCode":"MAD"</code>.</li>
+<li><code>curl "http://localhost:8300/cash/referentiels/coupures?devise=EUR"</code> → uniquement les EUR.</li>
+<li>Écran : Alimentation GAB = 7 cassettes, Alimentation Caisse = billets + pièces MAD, aucun doublon ; création d'une demande → 201.</li>
+</ul>
+<div class="warn"><b>À dire à Yassin</b> : « j'ai ajouté <code>currency_id</code> (FK, NOT NULL) sur <code>denomination</code> retail et corpo, V1/V2 éditées en place. Raison : une coupure sans devise rend le référentiel inexploitable dès qu'il est multi-devises, et la validation devise-opération / devise-coupures devient possible à la création. » C'est une décision de modèle, il doit la voir.</div>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · FK currency_id sur denomination · retail + corpo · back + front · 19/08/2026</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{ btn.textContent='Copié ✓'; setTimeout(()=>btn.textContent='Copier',1800); });
+}
+</script>
+</body>
+</html>
