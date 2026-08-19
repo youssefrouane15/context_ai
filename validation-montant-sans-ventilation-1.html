@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validation montant sans ventilation — commande devises &amp; ramassage (retail + corpo)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1e2a26;--muted:#5b6b64}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:28px 32px}
+header h1{margin:0 0 6px;font-size:1.6rem}
+header p{margin:0;opacity:.9}
+.badge{display:inline-block;background:var(--or);color:#fff;border-radius:4px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-top:10px}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+section{background:#fff;border:1px solid #e0e8e4;border-radius:8px;padding:20px 24px;margin-bottom:22px}
+h2{color:var(--vf);margin:0 0 14px;font-size:1.25rem;border-left:5px solid var(--or);padding-left:10px}
+h3{color:var(--v);margin:20px 0 8px;font-size:1.05rem}
+.num{display:inline-block;background:var(--v);color:#fff;border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px;font-size:.9rem;margin-right:8px}
+.note{background:#eef6f2;border-left:4px solid var(--v);padding:10px 14px;border-radius:4px;margin:12px 0}
+.warn{background:#fdf5e6;border-left:4px solid var(--or);padding:10px 14px;border-radius:4px;margin:12px 0}
+.code-bloc{margin:14px 0;border:1px solid #d9e2dd;border-radius:6px;overflow:hidden}
+.titre-fichier{display:flex;align-items:center;justify-content:space-between;background:#e6efeb;padding:6px 12px;font-family:Consolas,monospace;font-size:.82rem;color:var(--vf)}
+.tag{font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:3px;margin-left:8px;color:#fff}
+.tag.new{background:var(--v)}.tag.edit{background:var(--or)}.tag.full{background:#3d5a80}
+.btn-copier{background:var(--v);color:#fff;border:0;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:.78rem}
+.btn-copier:hover{background:var(--vf)}
+pre,.code-bloc pre{margin:0;padding:14px;background:#0f1a16 !important;color:#e8f0ec !important;overflow:auto;font-family:Consolas,"Courier New",monospace;font-size:.82rem;line-height:1.45}
+pre code{background:transparent !important;padding:0;border-radius:0;font-size:inherit;color:inherit;display:block}
+.kw{color:#c792ea}.str{color:#c3e88d}.com{color:#7f9a90;font-style:italic}.ann{color:#ffcb6b}.ty{color:#82aaff}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.9rem}
+th,td{border:1px solid #d9e2dd;padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#e6efeb;color:var(--vf)}
+code{background:#eef2f0;padding:1px 5px;border-radius:3px;font-family:Consolas,monospace;font-size:.86em}
+ul.check li{margin:4px 0}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>Validation du montant sans ventilation en coupures</h1>
+<p>Commande devises &amp; ramassage renvoient 422 « montant fourni (100) ne correspond pas au calculé (0) » — correction de la règle domaine, retail + corpo, + sens d'opération côté front</p>
+<span class="badge">19/08/2026</span>
+</header>
+<main>
+
+<section>
+<h2><span class="num">0</span>Diagnostic</h2>
+<table>
+<tr><th>Symptôme</th><th>Cause</th><th>Correction</th></tr>
+<tr><td><code>POST /cash</code> → 422 pour une commande devises (EUR, 100) ou un ramassage.</td><td><code>CashOperation.validateAndComputeTotal</code> recalcule <code>detailTotal</code> à partir des coupures et exige <code>totalAmountByCurrency == detailTotal</code>. Sans ventilation (<code>operationDenominations: []</code>), <code>detailTotal = 0</code>, donc tout montant saisi est rejeté.</td><td>La règle est portée par le <b>type + sens</b> de l'opération : GAB / caisse en approvisionnement → ventilation obligatoire et montant = somme des coupures ; devises / ramassage → montant déclaratif, obligatoire et strictement positif.</td></tr>
+<tr><td>La commande devises part avec <code>operationSens: "COLLECTION"</code>.</td><td>Construction du payload dans le composant : une commande est un approvisionnement (<code>SUPPLY</code>), <code>COLLECTION</code> est réservé au ramassage. Effet : la liste la classerait « RAMASSAGE » au lieu de « DEVISES ».</td><td>Forcer <code>SUPPLY</code> pour l'opération <code>CURRENCY</code> de la commande devises.</td></tr>
+</table>
+<p>Règle domaine après correction, par <code>OperationCurrencyDetail</code> :</p>
+<table>
+<tr><th>Cas</th><th>Règle</th><th>Montant retenu</th></tr>
+<tr><td><code>SUPPLY</code> + <code>ATM</code> ou <code>CASH_DESK</code> (alimentation GAB / caisse)</td><td>Ventilation obligatoire (≥ 1 coupure, sinon 422). Si un montant est fourni, il doit égaler la somme <code>faceValue × quantity</code> ; sinon 422. Chaque coupure doit exister dans le référentiel, quantité ≥ 0.</td><td>Somme calculée (écrase le montant fourni).</td></tr>
+<tr><td><code>CURRENCY</code> ou <code>COLLECTION</code> (commande devises, ramassage)</td><td>Le montant doit être fourni et &gt; 0 ; sinon erreur 422.</td><td>Montant fourni.</td></tr>
+</table>
+</section>
+
+<section>
+<h2><span class="num">1</span>Domaine retail — <code>CashOperation</code></h2>
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-domain-core\...\com\bmci\q360\domain\retail\entity\CashOperation.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// 1) AJOUTER le helper (à côté de validateAndComputeTotal) :</span>
+    <span class="com">/** GAB et caisse en approvisionnement se ventilent obligatoirement en coupures ; devises et ramassage sont déclaratifs. */</span>
+    <span class="kw">private boolean</span> exigeVentilation() {
+        <span class="kw">return</span> operationSens == RequestType.SUPPLY
+                &amp;&amp; (operationType == OperationType.ATM || operationType == OperationType.CASH_DESK);
+    }
+
+<span class="com">// 2) Dans validateAndComputeTotal, REMPLACER
+//      if (operationSens == RequestType.SUPPLY &amp;&amp; operationType == OperationType.CASH_DESK &amp;&amp; currencyDetails.isEmpty()) { throw ... }
+//    par :</span>
+        <span class="kw">if</span> (exigeVentilation() &amp;&amp; currencyDetails.isEmpty()) {
+            <span class="kw">throw new</span> RetailValidationException(
+                    <span class="str">"Les détails des coupures sont obligatoires pour alimenter un GAB ou une caisse"</span>);
+        }
+
+<span class="com">// 3) Dans la boucle for (OperationCurrencyDetail detail : currencyDetails), REMPLACER le bloc
+//      if (detail.getTotalAmountByCurrency() != null &amp;&amp; ...compareTo(detailTotal) != 0) { throw ... }
+//      detail.setTotalAmountByCurrency(detailTotal);
+//      computedTotal = computedTotal.add(detailTotal);
+//    par :</span>
+            <span class="kw">if</span> (exigeVentilation()) {
+                <span class="kw">if</span> (detail.getOperationDenominations().isEmpty()) {
+                    <span class="kw">throw new</span> RetailValidationException(
+                            <span class="str">"La ventilation en coupures est obligatoire pour alimenter un GAB ou une caisse"</span>);
+                }
+                <span class="kw">if</span> (detail.getTotalAmountByCurrency() != <span class="kw">null</span>
+                        &amp;&amp; detail.getTotalAmountByCurrency().compareTo(detailTotal) != 0) {
+                    <span class="kw">throw new</span> RetailValidationException(<span class="str">"Le montant par devise fourni ("</span>
+                            + detail.getTotalAmountByCurrency() + <span class="str">") ne correspond pas au calculé ("</span> + detailTotal + <span class="str">")"</span>);
+                }
+                detail.setTotalAmountByCurrency(detailTotal);
+            } <span class="kw">else</span> {
+                <span class="kw">if</span> (detail.getTotalAmountByCurrency() == <span class="kw">null</span>
+                        || detail.getTotalAmountByCurrency().compareTo(BigDecimal.ZERO) &lt;= 0) {
+                    <span class="kw">throw new</span> RetailValidationException(
+                            <span class="str">"Le montant par devise est obligatoire et doit être positif pour une commande devises ou un ramassage"</span>);
+                }
+                detailTotal = detail.getTotalAmountByCurrency();
+            }
+            computedTotal = computedTotal.add(detailTotal);
+<span class="com">// La fin de la méthode (totalAmount vs computedTotal, puis totalAmount = computedTotal) ne change pas.</span></code></pre>
+</div>
+</section>
+
+<section>
+<h2><span class="num">2</span>Domaine corpo — <code>CorpoCashOperation</code></h2>
+<div class="warn">Le corpo a un bug supplémentaire : <code>detail.setTotalAmountByCurrency(detailTotal)</code> est inconditionnel → pour un ramassage sans coupures le montant déclaré est écrasé par 0 (pas de 422, mais montant perdu en base). Corrigé par le même bloc.</div>
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-domain-core\...\com\bmci\q360\domain\corpo\entity\CorpoCashOperation.java</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// 1) AJOUTER le helper :</span>
+    <span class="kw">private boolean</span> exigeVentilation() {
+        <span class="kw">return</span> operationSens == CorpoRequestType.ALIMENTATION
+                &amp;&amp; (operationType == CorpoOperationType.ATM || operationType == CorpoOperationType.CASH_DESK);
+    }
+
+<span class="com">// 2) Dans la boucle for (CorpoOperationCurrencyDetail detail : currencyDetails), REMPLACER
+//      detail.setTotalAmountByCurrency(detailTotal);
+//      computed = computed.add(detailTotal);
+//    par :</span>
+            <span class="kw">if</span> (exigeVentilation()) {
+                <span class="kw">if</span> (detail.getOperationDenominations().isEmpty()) {
+                    <span class="kw">throw new</span> CorpoValidationException(
+                            <span class="str">"La ventilation en coupures est obligatoire pour alimenter un GAB ou une caisse"</span>);
+                }
+                <span class="kw">if</span> (detail.getTotalAmountByCurrency() != <span class="kw">null</span>
+                        &amp;&amp; detail.getTotalAmountByCurrency().compareTo(detailTotal) != 0) {
+                    <span class="kw">throw new</span> CorpoValidationException(<span class="str">"Le montant par devise fourni ("</span>
+                            + detail.getTotalAmountByCurrency() + <span class="str">") ne correspond pas au calculé ("</span> + detailTotal + <span class="str">")"</span>);
+                }
+                detail.setTotalAmountByCurrency(detailTotal);
+            } <span class="kw">else</span> {
+                <span class="kw">if</span> (detail.getTotalAmountByCurrency() == <span class="kw">null</span>
+                        || detail.getTotalAmountByCurrency().compareTo(BigDecimal.ZERO) &lt;= 0) {
+                    <span class="kw">throw new</span> CorpoValidationException(
+                            <span class="str">"Le montant par devise est obligatoire et doit être positif pour une commande devises ou un ramassage"</span>);
+                }
+                detailTotal = detail.getTotalAmountByCurrency();
+            }
+            computed = computed.add(detailTotal);
+
+<span class="com">// 3) REMPLACER le bloc final
+//      if (operationSens == CorpoRequestType.ALIMENTATION) { ... } else if (this.totalAmount == null) { this.totalAmount = BigDecimal.ZERO; }
+//    par un contrôle unique (le montant déclaratif est maintenant dans computed, la règle vaut pour tous les sens) :</span>
+        <span class="kw">if</span> (totalAmount != <span class="kw">null</span> &amp;&amp; totalAmount.compareTo(BigDecimal.ZERO) != 0
+                &amp;&amp; totalAmount.compareTo(computed) != 0) {
+            <span class="kw">throw new</span> CorpoValidationException(<span class="str">"Le montant fourni ("</span> + totalAmount
+                    + <span class="str">") ne correspond pas à la ventilation ("</span> + computed + <span class="str">")"</span>);
+        }
+        <span class="kw">this</span>.totalAmount = computed;</code></pre>
+</div>
+<div class="note">Si l'enum corpo des types d'opération porte un autre nom que <code>CorpoOperationType</code>, utilise celui déclaré sur le champ <code>operationType</code> de la classe — les constantes <code>ATM</code> / <code>CASH_DESK</code> sont celles du seed corpo.</div>
+</section>
+
+<section>
+<h2><span class="num">3</span>Tests domaine</h2>
+<div class="code-bloc">
+<div class="titre-fichier"><span>fund-management-domain-core\src\test\java\com\bmci\q360\domain\retail\entity\CashOperationTest.java</span><span class="tag edit">ÉDITION (ajouter ; créer le fichier s'il n'existe pas avec ces imports)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.q360.domain.retail.entity;
+
+<span class="kw">import</span> com.bmci.q360.domain.retail.enums.OperationType;
+<span class="kw">import</span> com.bmci.q360.domain.retail.enums.RequestType;
+<span class="kw">import</span> com.bmci.q360.domain.retail.exceptions.RetailValidationException;
+<span class="kw">import</span> org.junit.jupiter.api.Test;
+
+<span class="kw">import</span> java.math.BigDecimal;
+<span class="kw">import</span> java.util.ArrayList;
+<span class="kw">import</span> java.util.List;
+<span class="kw">import</span> java.util.Map;
+
+<span class="kw">import static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="kw">import static</span> org.junit.jupiter.api.Assertions.assertThrows;
+
+<span class="kw">class</span> <span class="ty">CashOperationTest</span> {
+
+    <span class="kw">private static</span> CashOperation operationDevise(BigDecimal montant) {
+        Currency eur = <span class="kw">new</span> Currency();
+        eur.setIsoCode(<span class="str">"EUR"</span>);
+        OperationCurrencyDetail detail = <span class="kw">new</span> OperationCurrencyDetail();
+        detail.setCurrency(eur);
+        detail.setTotalAmountByCurrency(montant);
+        detail.setOperationDenominations(<span class="kw">new</span> ArrayList&lt;&gt;());
+
+        CashOperation op = <span class="kw">new</span> CashOperation();
+        op.setOperationType(OperationType.CURRENCY);
+        op.setOperationSens(RequestType.SUPPLY);
+        op.setCurrencyDetails(<span class="kw">new</span> ArrayList&lt;&gt;(List.of(detail)));
+        <span class="kw">return</span> op;
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> sansVentilationLeMontantDeclareEstRetenu() {
+        CashOperation op = operationDevise(<span class="kw">new</span> BigDecimal(<span class="str">"100"</span>));
+
+        op.validateAndComputeTotal(Map.of());
+
+        assertEquals(0, <span class="kw">new</span> BigDecimal(<span class="str">"100"</span>).compareTo(op.getTotalAmount()));
+        assertEquals(0, <span class="kw">new</span> BigDecimal(<span class="str">"100"</span>).compareTo(op.getCurrencyDetails().get(0).getTotalAmountByCurrency()));
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> sansVentilationLeMontantEstObligatoire() {
+        CashOperation op = operationDevise(<span class="kw">null</span>);
+        assertThrows(RetailValidationException.<span class="kw">class</span>, () -&gt; op.validateAndComputeTotal(Map.of()));
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> sansVentilationLeMontantDoitEtrePositif() {
+        CashOperation op = operationDevise(BigDecimal.ZERO);
+        assertThrows(RetailValidationException.<span class="kw">class</span>, () -&gt; op.validateAndComputeTotal(Map.of()));
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> alimentationGabSansCoupuresEstRefusee() {
+        CashOperation op = operationDevise(<span class="kw">new</span> BigDecimal(<span class="str">"100"</span>));
+        op.setOperationType(OperationType.ATM);   <span class="com">// SUPPLY + ATM, detail sans coupures → 422</span>
+        assertThrows(RetailValidationException.<span class="kw">class</span>, () -&gt; op.validateAndComputeTotal(Map.of()));
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> avecVentilationLeMontantDeclareDoitEgalerLaSommeDesCoupures() {
+        Denomination billet200 = <span class="kw">new</span> Denomination();
+        billet200.setDenominationCode(<span class="str">"BILLET_200"</span>);
+        OperationDenomination ligne = <span class="kw">new</span> OperationDenomination();
+        ligne.setDenomination(billet200);
+        ligne.setQuantity(2);
+
+        CashOperation op = operationDevise(<span class="kw">new</span> BigDecimal(<span class="str">"300"</span>));   <span class="com">// faux : 2 × 200 = 400</span>
+        op.setOperationType(OperationType.CASH_DESK);
+        op.getCurrencyDetails().get(0).setOperationDenominations(<span class="kw">new</span> ArrayList&lt;&gt;(List.of(ligne)));
+
+        assertThrows(RetailValidationException.<span class="kw">class</span>,
+                () -&gt; op.validateAndComputeTotal(Map.of(<span class="str">"BILLET_200"</span>, <span class="kw">new</span> BigDecimal(<span class="str">"200"</span>))));
+    }
+}</code></pre>
+</div>
+<div class="note">Corpo : même classe <code>CorpoCashOperationTest</code> dans <code>com.bmci.q360.domain.corpo.entity</code>, avec <code>CorpoCashOperation</code>, <code>CorpoCurrency</code>, <code>CorpoOperationCurrencyDetail</code>, <code>CorpoOperationDenomination</code>, <code>CorpoDenomination</code>, <code>CorpoOperationType</code>, <code>CorpoRequestType</code>, <code>CorpoValidationException</code> — mêmes 5 cas. Pour les cas « déclaratifs » corpo, utilise <code>CorpoRequestType.RAMASSAGE</code> comme sens (le corpo n'a pas forcément de type <code>CURRENCY</code>).</div>
+</section>
+
+<section>
+<h2><span class="num">4</span>Front — sens de l'opération « commande devises »</h2>
+<div class="code-bloc">
+<div class="titre-fichier"><span>...\presenter\pages\fund-management\fund-management.component.ts — construction du payload (≈ l.300-320)</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Bloc commande devises : une commande est un APPROVISIONNEMENT → SUPPLY.
+// COLLECTION est réservé au bloc Ramassage (qui, lui, reste COLLECTION).</span>
+    <span class="kw">if</span> (<span class="kw">this</span>.commandeDeviseLignes.length &gt; 0) {
+      operations.push({
+        operationType: <span class="str">'CURRENCY'</span>,
+        operationSens: <span class="str">'SUPPLY'</span>,
+        isUrgent: urgent,
+        cashDeskNumber: CONTEXTE_AGENCE.cashDeskNumber,
+        currencyDetails: <span class="kw">this</span>.commandeDeviseLignes.controls.map(g =&gt; ({
+          currency: { isoCode: g.get(<span class="str">'deviseCode'</span>)!.value },
+          totalAmountByCurrency: Number(g.get(<span class="str">'montant'</span>)!.value),
+          operationDenominations: []
+        }))
+      });
+    }</code></pre>
+</div>
+<div class="warn">Si ton bloc existant diffère dans la forme (nom de la constante de contexte, nom du FormArray), ne change que la ligne <code>operationSens</code> : <code>'COLLECTION'</code> → <code>'SUPPLY'</code>. Le bloc <b>Ramassage</b> garde <code>operationSens: 'COLLECTION'</code>.</div>
+</section>
+
+<section>
+<h2><span class="num">5</span>Vérification</h2>
+<ul class="check">
+<li><code>mvn clean verify</code> vert (5 nouveaux tests retail, 5 corpo).</li>
+<li>Commande devises EUR 100, aucune coupure → <code>POST /cash</code> 201 ; en base <code>operation_currency.total_amount_by_currency = 100</code>, <code>cash_operation.total_amount = 100</code>, <code>operation_sens = 'SUPPLY'</code>.</li>
+<li>Ramassage MAD 5000 → 201, <code>operation_sens = 'COLLECTION'</code>.</li>
+<li>Alimentation caisse avec coupures et total cohérent → 201 ; avec un total falsifié (ex. montant 300 pour 2 × 200) → 422 « ne correspond pas au calculé (400) ».</li>
+<li>Commande devises avec montant vide → 422 « montant obligatoire et positif ». Alimentation GAB avec un montant mais aucune coupure → 422 « ventilation obligatoire ».</li>
+<li>Liste : la commande devises s'affiche en chip « DEVISES », le ramassage en « RAMASSAGE ».</li>
+</ul>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · validation montant sans ventilation · retail + corpo · 19/08/2026</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{ btn.textContent='Copié ✓'; setTimeout(()=>btn.textContent='Copier',1800); });
+}
+</script>
+</body>
+</html>
