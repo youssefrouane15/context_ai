@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapping visuel — Règle métier → BPMN → Code → Interface</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1e2a26;--muted:#5b6b64;--bleu:#3d5a80;--rouge:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:28px 34px}
+header h1{margin:0 0 6px;font-size:1.5rem}
+header p{margin:0;opacity:.92}
+.badge{display:inline-block;background:var(--or);color:#fff;border-radius:4px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-top:10px}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+section{background:#fff;border:1px solid #e0e8e4;border-radius:8px;padding:22px 26px;margin-bottom:24px}
+h2{color:var(--vf);margin:0 0 16px;font-size:1.22rem;border-left:5px solid var(--or);padding-left:10px}
+.num{display:inline-block;background:var(--v);color:#fff;border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px;font-size:.9rem;margin-right:8px}
+code{background:#eef2f0;padding:1px 5px;border-radius:3px;font-family:Consolas,monospace;font-size:.85em}
+/* ---- carte règle ---- */
+.regle{border:1px solid #d9e2dd;border-radius:10px;margin:18px 0;overflow:hidden}
+.regle-titre{display:flex;align-items:center;gap:10px;background:#e6efeb;padding:10px 14px;font-weight:700;color:var(--vf)}
+.etat{margin-left:auto;font-size:.75rem;font-weight:800;padding:3px 10px;border-radius:12px;color:#fff;white-space:nowrap}
+.etat.ok{background:var(--v)}.etat.partiel{background:var(--or)}.etat.todo{background:var(--rouge)}
+.pipeline{display:flex;flex-wrap:wrap;gap:0;padding:14px}
+.cellule{flex:1 1 200px;min-width:200px;padding:10px 12px;position:relative}
+.cellule + .cellule{border-left:2px dashed #d9e2dd}
+.cellule .lane{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.5px;padding:2px 8px;border-radius:3px;color:#fff;margin-bottom:6px}
+.lane.po{background:var(--muted)}.lane.bpmn{background:var(--bleu)}.lane.java{background:var(--v)}.lane.ui{background:var(--or)}
+.cellule p{margin:0;font-size:.87rem}
+.cellule .plus{color:var(--muted);font-size:.8rem;margin-top:4px}
+/* ---- schémas ---- */
+.schema{background:#0f1a16;color:#e8f0ec;border-radius:8px;padding:16px;font-family:Consolas,monospace;font-size:.8rem;line-height:1.55;overflow:auto;margin:12px 0;white-space:pre}
+.note{background:#eef6f2;border-left:4px solid var(--v);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.92rem}
+.warn{background:#fdf5e6;border-left:4px solid var(--or);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.92rem}
+.danger{background:#fdecea;border-left:4px solid var(--rouge);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.92rem}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.87rem}
+th,td{border:1px solid #d9e2dd;padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#e6efeb;color:var(--vf)}
+.mini{font-size:.8rem;color:var(--muted)}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>Règle métier → BPMN → Code → Interface</h1>
+<p>Une carte par règle. Quatre couloirs. Ce qui existe, qui appuie sur le bouton, ce qui manque.</p>
+<span class="badge">27/08/2026 · lecture : PO (gris) → BPMN (bleu) → JAVA (vert) → INTERFACE (or)</span>
+</header>
+<main>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">1</span>Les 10 règles, une carte chacune</h2>
+
+<!-- R1 -->
+<div class="regle">
+<div class="regle-titre">R1 — Soumettre = engager la demande dans le circuit <span class="etat ok">COUVERT</span></div>
+<div class="pipeline">
+<div class="cellule"><span class="lane po">RÈGLE PO</span><p>La demande saisie est soumise. Avant : brouillon libre. Après : le circuit la possède.</p></div>
+<div class="cellule"><span class="lane bpmn">BPMN</span><p>Start event « Demande saisie et soumise ».</p><p class="plus">Rien ne démarre tant qu'on n'appelle pas le moteur.</p></div>
+<div class="cellule"><span class="lane java">JAVA</span><p>Saga <code>soumission-demande</code> : ① statut → SUBMITTED ② start instance (businessKey = UUID).</p><p class="plus">CashDemandUseCaseImpl.soumettre()</p></div>
+<div class="cellule"><span class="lane ui">INTERFACE</span><p>Aujourd'hui : Postman <code>PATCH /cash/{id}/submit</code>.</p><p class="plus">À FAIRE : bouton « Soumettre » sur les demandes INITIATED de la liste.</p></div>
+</div>
+</div>
+
+<!-- R2 -->
+<div class="regle">
+<div class="regle-titre">R2 — Après 16h, la demande part sur le jour ouvré suivant <span class="etat ok">COUVERT</span></div>
+<div class="pipeline">
+<div class="cellule"><span class="lane po">RÈGLE PO</span><p>Cutoff 16h00 : trop tard pour aujourd'hui.</p></div>
+<div class="cellule"><span class="lane bpmn">BPMN</span><p>Gateway lit <code>apresCutoff16</code> → branche « Reporter » → service task <code>gdf-reporter-jour-suivant</code>.</p></div>
+<div class="cellule"><span class="lane java">JAVA</span><p><code>InitialiserDemandeHandler</code> calcule <code>apresCutoff16</code> (heure &gt; 16h ?).<br><code>ReporterJourSuivantHandler</code> pose <code>dateEffet</code> = J+1 (saute sam/dim).</p></div>
+<div class="cellule"><span class="lane ui">INTERFACE</span><p>Automatique. Personne ne clique.</p><p class="plus">Visible : variable <code>dateEffet</code> dans Cockpit.</p></div>
+</div>
+</div>
+
+<!-- R3 -->
+<div class="regle">
+<div class="regle-titre">R3 — Urgence interdite après 10h (agence standard) <span class="etat ok">COUVERT</span></div>
+<div class="pipeline">
+<div class="cellule"><span class="lane po">RÈGLE PO</span><p>Une agence normale ne peut pas exiger l'urgence après 10h. On ne bloque pas : on retire l'urgence.</p></div>
+<div class="cellule"><span class="lane bpmn">BPMN</span><p>Gateways <code>apresCutoff10</code> + type d'agence → service task <code>gdf-normaliser-urgence</code>.</p></div>
+<div class="cellule"><span class="lane java">JAVA</span><p><code>NormaliserUrgenceHandler</code> : hors BP → <code>urgent = false</code>. Point final.</p></div>
+<div class="cellule"><span class="lane ui">INTERFACE</span><p>Automatique.</p><p class="plus">À trancher PO : informer l'agence que son urgence a été retirée ? (notification non spécifiée)</p></div>
+</div>
+</div>
+
+<!-- R4 -->
+<div class="regle">
+<div class="regle-titre">R4 — Exception Banque Privée : le Responsable BP décide <span class="etat partiel">PARTIEL</span></div>
+<div class="pipeline">
+<div class="cellule"><span class="lane po">RÈGLE PO</span><p>Banque Privée : l'urgence après 10h passe par une validation humaine.</p></div>
+<div class="cellule"><span class="lane bpmn">BPMN</span><p>User task « Valider l'urgence » (groupe <code>RESPONSABLE_BANQUE_PRIVEE</code>) → pose <code>urgenceApprouvee</code>.</p></div>
+<div class="cellule"><span class="lane java">JAVA</span><p><code>NormaliserUrgenceHandler</code> applique la décision : <code>urgent = urgenceApprouvee</code>.</p><p class="plus">MANQUE : on envoie <code>typeAgence</code> en dur (RETAIL) — pas de référentiel agence→type.</p></div>
+<div class="cellule"><span class="lane ui">INTERFACE</span><p>Aujourd'hui : Cockpit (compléter la task + variable).</p><p class="plus">À FAIRE : corbeille « Responsable BP » dans notre app.</p></div>
+</div>
+</div>
+
+<!-- R5 -->
+<div class="regle">
+<div class="regle-titre">R5 — Corporate : direct Caisse Centrale, pas d'urgence <span class="etat ok">COUVERT</span></div>
+<div class="pipeline">
+<div class="cellule"><span class="lane po">RÈGLE PO</span><p>Les demandes corporate (natures 5/6) sautent tout le circuit urgence.</p></div>
+<div class="cellule"><span class="lane bpmn">BPMN</span><p>Gateway type : <code>typeDemande == CORPORATE</code> → flèche directe vers la Caisse Centrale.</p></div>
+<div class="cellule"><span class="lane java">JAVA</span><p><code>DemarrerProcessusCorpoStep</code> envoie <code>typeDemande=CORPORATE</code>, <code>urgent=false</code>.</p></div>
+<div class="cellule"><span class="lane ui">INTERFACE</span><p><code>PATCH /corpo/cash/{id}/submit</code>. Vérifié : le jeton atterrit directement sur la Caisse Centrale.</p></div>
+</div>
+</div>
+
+<!-- R6 -->
+<div class="regle">
+<div class="regle-titre">R6 — La Caisse Centrale traite ou annule (motif ≥ 10 car.) <span class="etat partiel">PARTIEL</span></div>
+<div class="pipeline">
+<div class="cellule"><span class="lane po">RÈGLE PO</span><p>Décision finale : Traitée → demande validée. Annulée → motif obligatoire, min 10 caractères.</p></div>
+<div class="cellule"><span class="lane bpmn">BPMN</span><p>User task « Traiter la demande » (groupe <code>CAISSE_CENTRALE</code>) → gateway sur <code>decisionCaisseCentrale</code> → <code>gdf-cloturer-demande</code> OU <code>gdf-annuler-demande</code>.</p></div>
+<div class="cellule"><span class="lane java">JAVA</span><p>TRAITEE → <code>changerStatut(VALIDATED)</code>.<br>ANNULEE → <code>cancel(id)</code>, motif loggé.</p><p class="plus">MANQUE : validation « ≥ 10 car. » + persistance du motif (colonne à créer).</p></div>
+<div class="cellule"><span class="lane ui">INTERFACE</span><p>Aujourd'hui : Cockpit.</p><p class="plus">À FAIRE : corbeille « Caisse Centrale » (2 boutons Traiter / Annuler + champ motif contrôlé).</p></div>
+</div>
+</div>
+
+<!-- R7 -->
+<div class="regle">
+<div class="regle-titre">R7 — À 16h, les agences perdent la main <span class="etat ok">COUVERT</span></div>
+<div class="pipeline">
+<div class="cellule"><span class="lane po">RÈGLE PO</span><p>Après 16h : plus d'annulation ni de modification par l'agence.</p></div>
+<div class="cellule"><span class="lane bpmn">BPMN</span><p>Timer <code>${dateCutoff16h}</code> → <code>gdf-cloturer-journee</code>. Les sous-processus agence sont conditionnés par <code>${!journeeCloturee}</code>.</p></div>
+<div class="cellule"><span class="lane java">JAVA</span><p>La saga fournit <code>dateCutoff16h</code> au démarrage. <code>CloturerJourneeHandler</code> pose <code>journeeCloturee=true</code> → la porte se ferme.</p></div>
+<div class="cellule"><span class="lane ui">INTERFACE</span><p>Automatique.</p><p class="plus">À prévoir côté front : masquer les actions agence après 16h (cohérence visuelle).</p></div>
+</div>
+</div>
+
+<!-- R8 -->
+<div class="regle">
+<div class="regle-titre">R8 — Annuler / modifier / commenter après soumission (avant 16h) <span class="etat todo">PRÉPARÉ</span></div>
+<div class="pipeline">
+<div class="cellule"><span class="lane po">RÈGLE PO</span><p>L'agence garde la main sur sa demande soumise jusqu'à 16h.</p></div>
+<div class="cellule"><span class="lane bpmn">BPMN</span><p>Messages <code>msgAnnulerDemande</code> / <code>msgModifierDemande</code> / <code>msgAjouterCommentaire</code> → topics <code>gdf-*</code> correspondants.</p></div>
+<div class="cellule"><span class="lane java">JAVA</span><p><code>correlerMessage()</code> prêt dans le port (tenant-aware). Handlers en squelette tracé.</p><p class="plus">MANQUE : use cases « annuler/modifier une demande SUBMITTED » qui corrèlent le message.</p></div>
+<div class="cellule"><span class="lane ui">INTERFACE</span><p>Rien aujourd'hui.</p><p class="plus">À FAIRE : boutons sur les demandes SUBMITTED de la liste.</p></div>
+</div>
+</div>
+
+<!-- R9 -->
+<div class="regle">
+<div class="regle-titre">R9 — GAB hors site : éclatement des besoins <span class="etat todo">SQUELETTE</span></div>
+<div class="pipeline">
+<div class="cellule"><span class="lane po">RÈGLE PO</span><p>Une demande GAB hors site s'éclate en besoins par GAB.</p></div>
+<div class="cellule"><span class="lane bpmn">BPMN</span><p>Branche <code>typeDemande == GAB_HORS_SITE</code> → <code>gdf-eclater-besoins-gab</code>.</p></div>
+<div class="cellule"><span class="lane java">JAVA</span><p><code>TacheTraceeHandler</code> : log + complete (le flux ne bloque pas).</p><p class="plus">MANQUE : tout le modèle (aucune table, aucun écran GAB hors site).</p></div>
+<div class="cellule"><span class="lane ui">INTERFACE</span><p>Rien.</p><p class="plus">À trancher PO : spec complète du circuit GAB hors site.</p></div>
+</div>
+</div>
+
+<!-- R10 -->
+<div class="regle">
+<div class="regle-titre">R10 — Moteur indisponible : rien n'est perdu <span class="etat ok">COUVERT</span></div>
+<div class="pipeline">
+<div class="cellule"><span class="lane po">RÈGLE PO</span><p>(Implicite mais vital) Une panne du workflow ne doit ni perdre ni bloquer une demande.</p></div>
+<div class="cellule"><span class="lane bpmn">BPMN</span><p>—</p></div>
+<div class="cellule"><span class="lane java">JAVA</span><p>Compensation de saga : échec du start → statut restauré INITIATED → 502 explicite.</p><p class="plus">Prouvé en réel (contrainte CHECK manquante).</p></div>
+<div class="cellule"><span class="lane ui">INTERFACE</span><p>L'utilisateur voit l'erreur, sa demande est intacte, il re-soumet plus tard.</p></div>
+</div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">2</span>Concepts décodés (les 4 questions que tout le monde pose)</h2>
+
+<h3 style="color:var(--v)">② Comment une external task se déclenche, techniquement ?</h3>
+<p><b>Le moteur ne nous appelle jamais. C'est nous qui frappons à sa porte, en permanence.</b></p>
+<div class="schema">LE JETON                LA BOÎTE AUX LETTRES              NOTRE WORKER (thread démarré
+(instance BPMN)          (table du moteur)                  à ApplicationReadyEvent)
+
+jeton arrive sur   ──►  le moteur DÉPOSE une tâche
+la service task          topic = gdf-initialiser-demande
+                         état  = disponible
+                                   ▲
+                                   │  fetchAndLock (long polling)
+                                   │  « du travail pour moi sur gdf-* ? »
+                                   │  la question RESTE OUVERTE 20 s
+                                   │  → réponse immédiate dès qu'une tâche arrive
+                                   │
+                         le moteur VERROUILLE la tâche     ◄── notre worker la reçoit
+                         (lock 30 s, réservée pour nous)       exécute le handler
+                                                               puis complete(variables)
+jeton AVANCE       ◄──  tâche terminée, variables posées
+
+Si le handler explose : handleFailure → retry (3× / 10 s) → INCIDENT rouge en Cockpit.
+Si notre pod meurt   : le lock expire (30 s) → la tâche redevient disponible. Rien de perdu.</div>
+<div class="note"><b>Le déclencheur, en une phrase</b> : le trigger n'est pas un appel entrant — c'est <b>l'arrivée du jeton sur la tâche</b> côté moteur, combinée à <b>notre boucle de polling</b> (ouverte au démarrage de l'app par <code>GdfWorkerConfig</code>) qui ramasse la tâche dans la seconde.</div>
+
+<h3 style="color:var(--v)">② « Timer armé au démarrage » — version simple</h3>
+<p><b>Le timer 16h, c'est un réveil. On règle le réveil au moment où l'instance naît — pas plus tard.</b></p>
+<div class="schema">PATCH /submit
+     │
+     ▼
+Instance créée ─────────────► le moteur RÈGLE LE RÉVEIL immédiatement
+     │                         heure de sonnerie = ${dateCutoff16h}
+     │                         ⚠ si la variable n'existe pas À CET INSTANT → crash
+     │
+     │   ... la demande avance dans le circuit ...
+     │
+     ▼
+16h00 : DRING ──► gdf-cloturer-journee ──► journeeCloturee = true ──► portes agence fermées</div>
+<div class="note"><b>Conséquence de design</b> : <code>dateCutoff16h</code> ne peut pas être calculée par une tâche du process (trop tard : le réveil est déjà en train d'être réglé). C'est pour ça que <b>notre saga la fournit dans les variables de démarrage</b>. Idem <code>journeeCloturee=false</code> : la condition des portes doit exister dès la naissance.</div>
+
+<h3 style="color:var(--v)">③ Pourquoi « TRAITEE » ? D'où sort cette valeur ?</h3>
+<p><b>C'est un contrat de valeurs écrit dans le BPMN. Le code Java ne la connaît pas — la gateway, si.</b></p>
+<div class="schema">User task « Traiter la demande »
+   complétée AVEC la variable decisionCaisseCentrale
+        │
+        ▼
+Gateway XOR du BPMN (c'est ELLE qui compare) :
+   ${decisionCaisseCentrale == 'TRAITEE'}  ──►  gdf-cloturer-demande  ──►  VALIDATED
+   ${decisionCaisseCentrale == 'ANNULEE'}  ──►  gdf-annuler-demande   ──►  CANCELLED
+   autre valeur / faute de frappe          ──►  AUCUNE branche ne matche
+                                                → le jeton se FIGE (incident gateway)</div>
+<table>
+<tr><th>Qui pose la valeur ?</th><th>Aujourd'hui</th><th>Demain</th></tr>
+<tr><td><code>decisionCaisseCentrale</code></td><td>Toi, à la main, dans Cockpit (c'est ce que tu as fait — comportement nominal, pas un contournement)</td><td>Notre écran Caisse Centrale : bouton « Traiter » envoie <code>POST /task/{id}/complete</code> avec <code>TRAITEE</code>, bouton « Annuler » envoie <code>ANNULEE</code> + motif contrôlé (≥ 10 car.). L'utilisateur ne tape jamais la valeur.</td></tr>
+</table>
+<div class="danger"><b>À trancher avec le PO/Yassin</b> : la gateway n'a pas de branche par défaut. Une valeur inattendue fige l'instance. Deux protections possibles : (a) default flow vers l'annulation dans le BPMN, (b) l'écran est la seule porte d'entrée et n'envoie que les 2 valeurs. Recommandation : les deux.</div>
+
+<h3 style="color:var(--v)">④ C'est quoi, exactement, nos compensations aujourd'hui ?</h3>
+<p><b>Une seule saga existe : la soumission (retail + corpo). Deux étapes, deux compensations.</b></p>
+<table>
+<tr><th>Étape</th><th>executer()</th><th>compenser() — joué SEULEMENT si une étape SUIVANTE échoue</th></tr>
+<tr><td>① ChangerStatutDemandeStep</td><td>Garde (INITIATED sinon conflit) puis statut → SUBMITTED</td><td>Restaure l'ancien statut (retour INITIATED)</td></tr>
+<tr><td>② DemarrerProcessusStep</td><td>Start de l'instance (businessKey = UUID)</td><td>Supprime l'instance (<code>DELETE /process-instance/{id}</code>)</td></tr>
+</table>
+<div class="schema">Cas réel vécu :   ① OK (SUBMITTED écrit)   ② ÉCHEC (moteur KO)
+                  → l'orchestrateur rejoue ① À L'ENVERS : statut ré-écrit INITIATED
+                  → réponse 502 « la demande est restée dans son état initial »
+
+Ordre inverse toujours :  exec ① ② ③ …   |   échec ③ → comp ② puis ①
+Compensation qui échoue elle-même → loggée ERROR, on continue les autres (trace pour intervention).</div>
+<div class="note"><b>Et les workers ?</b> Pas de compensation côté handlers — ce n'est pas le même outil : eux ont <b>retries + incident</b> (la tâche reste au moteur, rien à « défaire »). Compensation = sagas (écritures multi-systèmes). Retry = external tasks (travail rejouable).</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">3</span>Qui appuie sur quoi — la matrice interface</h2>
+<table>
+<tr><th>Action</th><th>Canal AUJOURD'HUI</th><th>Canal CIBLE</th><th>Statut</th></tr>
+<tr><td>Créer une demande</td><td>Écran formulaire ✔</td><td>idem</td><td class="mini">fait</td></tr>
+<tr><td>Soumettre</td><td>Postman <code>PATCH /submit</code></td><td>Bouton « Soumettre » (liste, demandes INITIATED)</td><td class="mini">back fait · front à faire</td></tr>
+<tr><td>Valider l'urgence (BP)</td><td>Cockpit (task + <code>urgenceApprouvee</code>)</td><td>Corbeille Responsable BP</td><td class="mini">à faire</td></tr>
+<tr><td>Traiter / Annuler (Caisse Centrale)</td><td>Cockpit (task + <code>decisionCaisseCentrale</code>)</td><td>Corbeille Caisse Centrale (2 boutons + motif contrôlé)</td><td class="mini">à faire</td></tr>
+<tr><td>Annuler / modifier / commenter (agence, post-soumission)</td><td>—</td><td>Boutons sur demandes SUBMITTED → messages BPMN</td><td class="mini">port prêt · use cases + front à faire</td></tr>
+<tr><td>Surveiller / débloquer (incidents, retry)</td><td>Cockpit ✔ (canal DÉFINITIF pour l'exploitation)</td><td>idem</td><td class="mini">fait</td></tr>
+</table>
+<div class="note"><b>Règle de lecture</b> : Cockpit = console d'exploitation (incidents, monitoring) pour toujours ; Cockpit = interface MÉTIER seulement en attendant nos écrans.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">4</span>Tout ce qui manque ou reste à trancher — la liste unique</h2>
+<table>
+<tr><th>#</th><th>Sujet</th><th>Type</th><th>Détail</th></tr>
+<tr><td>1</td><td>Bouton « Soumettre » front</td><td>À développer</td><td>façade → actions → http.service → <code>PATCH /submit</code> ; chip « Soumise » ; toast sur 502.</td></tr>
+<tr><td>2</td><td>Référentiel typeAgence</td><td><b>À trancher (Yassin)</b></td><td>Comment savoir qu'une agence est BANQUE_PRIVEE / CENTRE_AFFAIRES ? Aujourd'hui envoyé en dur → le circuit BP ne se déclenche jamais en réel.</td></tr>
+<tr><td>3</td><td>Motif d'annulation</td><td>À développer + <b>PO</b></td><td>Validation ≥ 10 caractères (dans notre futur écran) + persistance : colonne <code>cancellation_reason</code> sur la demande ? À confirmer.</td></tr>
+<tr><td>4</td><td>Gateway décision sans défaut</td><td><b>À trancher (PO)</b></td><td>Valeur inattendue = instance figée. Default flow dans le BPMN ou écran comme seule porte ? (reco : les deux).</td></tr>
+<tr><td>5</td><td>Corbeilles user tasks</td><td>À développer</td><td>Liste des tasks par candidateGroup (<code>GET /task?candidateGroup=...</code> + tenant) + complétion. Deux écrans : Responsable BP, Caisse Centrale.</td></tr>
+<tr><td>6</td><td>Événements agence post-soumission</td><td>À développer</td><td>Use cases annuler/modifier/commenter une demande SUBMITTED via <code>correlerMessage</code>.</td></tr>
+<tr><td>7</td><td>Notification « urgence retirée »</td><td><b>À trancher (PO)</b></td><td>R3 retire l'urgence en silence. L'agence doit-elle être prévenue ?</td></tr>
+<tr><td>8</td><td>GAB hors site</td><td><b>À trancher (PO)</b></td><td>Aucun modèle. Spec complète nécessaire avant tout code.</td></tr>
+<tr><td>9</td><td>Valeur du tenant</td><td>À confirmer</td><td>Reprendre la valeur exacte du yaml de dérogation-tarifaire (Hamza) pour staging.</td></tr>
+<tr><td>10</td><td>Jours fériés dans « jour ouvré »</td><td><b>À trancher (PO)</b></td><td><code>dateEffet</code> saute sam/dim seulement. Calendrier des fériés Maroc ?</td></tr>
+</table>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · mapping règles → BPMN → code → interface · 27/08/2026</footer>
+</body>
+</html>
