@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Front — Soumettre une demande au workflow (bouton « Soumettre » de la liste)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1e2a26;--muted:#5b6b64}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}
+header h1{margin:0 0 6px;font-size:1.45rem}
+header p{margin:0;opacity:.9}
+.badge{display:inline-block;background:var(--or);color:#fff;border-radius:4px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-top:10px}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+section{background:#fff;border:1px solid #e0e8e4;border-radius:8px;padding:20px 24px;margin-bottom:22px}
+h2{color:var(--vf);margin:0 0 14px;font-size:1.2rem;border-left:5px solid var(--or);padding-left:10px}
+h3{color:var(--v);margin:18px 0 8px;font-size:1.02rem}
+.num{display:inline-block;background:var(--v);color:#fff;border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px;font-size:.9rem;margin-right:8px}
+.note{background:#eef6f2;border-left:4px solid var(--v);padding:10px 14px;border-radius:4px;margin:12px 0}
+.warn{background:#fdf5e6;border-left:4px solid var(--or);padding:10px 14px;border-radius:4px;margin:12px 0}
+.code-bloc{margin:14px 0;border:1px solid #d9e2dd;border-radius:6px;overflow:hidden}
+.titre-fichier{display:flex;align-items:center;justify-content:space-between;background:#e6efeb;padding:6px 12px;font-family:Consolas,monospace;font-size:.82rem;color:var(--vf)}
+.tag{font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:3px;margin-left:8px;color:#fff}
+.tag.new{background:var(--v)}.tag.edit{background:var(--or)}.tag.full{background:#3d5a80}
+.btn-copier{background:var(--v);color:#fff;border:0;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:.78rem}
+.btn-copier:hover{background:var(--vf)}
+pre,.code-bloc pre{margin:0;padding:14px;background:#0f1a16 !important;color:#e8f0ec !important;overflow:auto;font-family:Consolas,"Courier New",monospace;font-size:.8rem;line-height:1.45}
+pre code{background:transparent !important;padding:0;border-radius:0;font-size:inherit;color:inherit;display:block}
+.kw{color:#c792ea}.str{color:#c3e88d}.com{color:#7f9a90;font-style:italic}.ann{color:#ffcb6b}.ty{color:#82aaff}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.88rem}
+th,td{border:1px solid #d9e2dd;padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#e6efeb;color:var(--vf)}
+code{background:#eef2f0;padding:1px 5px;border-radius:3px;font-family:Consolas,monospace;font-size:.86em}
+.schema{background:#0f1a16;color:#e8f0ec;border-radius:8px;padding:14px;font-family:Consolas,monospace;font-size:.8rem;line-height:1.5;overflow:auto;margin:12px 0;white-space:pre}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>Front — Soumettre une demande au workflow</h1>
+<p>Bouton « Soumettre » sur les demandes INITIATED de la liste → <code>PATCH /cash/{id}/submit</code> → chip « Soumise ». Chaîne complète port → adapter HTTP → store / query / actions / façade → composant + dialogue de confirmation.</p>
+<span class="badge">01/09/2026 · retail (fund-management-front) · 8 fichiers touchés, 1 créé</span>
+</header>
+<main>
+
+<section>
+<h2><span class="num">0</span>Ce qu'on construit</h2>
+<div class="schema">Liste des demandes
+  ligne INITIATED ──► [ ✈ Soumettre ] ──► dialogue "Confirmer la soumission ?"
+                                              │ Confirmer
+                                              ▼
+                       facade.soumettreDemande(id)
+                         → actions : soumissionEnCours = id
+                         → http : PATCH /cash/{id}/submit  (corps vide)
+                              200 → { success:true, data: demande SUBMITTED }
+                              502 → { success:false, message:"La soumission a échoué (workflow indisponible)…" }
+                              409 → { success:false, message:"Seule une demande INITIATED peut être soumise…" }
+                         → store.demandes : la ligne est remplacée par la version SUBMITTED
+                         → snackbar succès / erreur (message du backend)
+  ligne SUBMITTED ──► chip "Soumise", plus de bouton</div>
+<table>
+<tr><th>Fichier</th><th>Action</th></tr>
+<tr><td><code>domain-core\entities\operation.model.ts</code></td><td>ÉDITION — type <code>StatutDemande</code> + libellés centralisés</td></tr>
+<tr><td><code>domain-application-services\output\fundManagement.service.ts</code></td><td>ÉDITION — <code>soumettreDemande</code> sur le port</td></tr>
+<tr><td><code>adapters\apiAdapters\fundManagement-http.service.ts</code></td><td>ÉDITION — appel PATCH + conversion des erreurs HTTP en <code>ErreurApi</code></td></tr>
+<tr><td><code>adapters\localState\fundMangement.store.ts / .query.ts / .actions.ts / .facade.ts</code></td><td>ÉDITION — signal <code>soumissionEnCours</code> + action</td></tr>
+<tr><td><code>shared\presenter\components\confirmation-dialog\confirmation-dialog.component.ts</code></td><td>NOUVEAU — dialogue générique de confirmation</td></tr>
+<tr><td><code>presenter\pages\fund-management-list\fund-management-list.component.ts / .html / .scss</code></td><td>ÉDITION — bouton, méthode, chip</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">1</span>Modèle — statuts et libellés au même endroit</h2>
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\features\fund-management\domain\domain-core\entities\operation.model.ts</span><span class="tag edit">ÉDITION — À AJOUTER en fin de fichier</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// ===== Statuts d'une demande (miroir de RequestStatus backend) =====</span>
+<span class="kw">export type</span> StatutDemande = <span class="str">'INITIATED'</span> | <span class="str">'SUBMITTED'</span> | <span class="str">'VALIDATED'</span> | <span class="str">'CANCELLED'</span>;
+
+<span class="kw">export const</span> LIBELLES_STATUT: Record&lt;StatutDemande, string&gt; = {
+  INITIATED: <span class="str">'En attente'</span>,
+  SUBMITTED: <span class="str">'Soumise'</span>,
+  VALIDATED: <span class="str">'Validée'</span>,
+  CANCELLED: <span class="str">'Archivée'</span>
+};
+
+<span class="com">/** Seule une demande INITIATED (brouillon) peut être soumise au workflow — même garde que le backend. */</span>
+<span class="kw">export function</span> estSoumissible(d: DemandeFonds): <span class="kw">boolean</span> {
+  <span class="kw">return</span> d.requestStatus === <span class="str">'INITIATED'</span>;
+}</code></pre></div>
+<div class="note"><code>DemandeFonds.requestStatus</code> est déjà une <code>string</code> : pas besoin de changer le type existant, <code>StatutDemande</code> sert aux libellés et au filtre.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">2</span>Port <code>FundService</code></h2>
+<div class="code-bloc"><div class="titre-fichier"><span>...\domain\domain-application-services\output\fundManagement.service.ts</span><span class="tag edit">ÉDITION — À AJOUTER dans l'interface</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>  <span class="com">/** Engage la demande dans le workflow (PATCH /cash/{id}/submit). Renvoie la demande à jour (SUBMITTED). */</span>
+  soumettreDemande(id: string): Promise&lt;DemandeFonds&gt;;</code></pre></div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">3</span>Adapter HTTP</h2>
+<div class="code-bloc"><div class="titre-fichier"><span>...\adapters\apiAdapters\fundManagement-http.service.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// 1) imports à compléter (ajoute ce qui manque à tes lignes d'import existantes) :</span>
+<span class="kw">import</span> { HttpErrorResponse } <span class="kw">from</span> <span class="str">'@angular/common/http'</span>;
+<span class="kw">import</span> { catchError, throwError } <span class="kw">from</span> <span class="str">'rxjs'</span>;
+
+<span class="com">// 2) À AJOUTER dans la classe, à côté de getDemandes :</span>
+
+  <span class="com">// ===== Soumission — PATCH /cash/{id}/submit → { success, data: DemandeFonds } =====</span>
+  soumettreDemande(id: string): Promise&lt;DemandeFonds&gt; {
+    <span class="kw">return</span> firstValueFrom(
+      <span class="kw">this</span>.http.patch&lt;ApiResponse&lt;DemandeFonds&gt;&gt;(<span class="str">`${this.apiUrl}/${id}/submit`</span>, {}).pipe(
+        map(r =&gt; <span class="kw">this</span>.data(r)),
+        catchError(e =&gt; throwError(() =&gt; <span class="kw">this</span>.enErreurApi(e)))
+      )
+    );
+  }
+
+  <span class="com">/**
+   * Convertit une erreur HTTP en ErreurApi en lisant l'enveloppe socle renvoyée par nos handlers
+   * (502 workflow indisponible, 409 statut non soumissible, 404 introuvable…).
+   * Un ErreurApi déjà levé par data() est renvoyé tel quel.
+   */</span>
+  <span class="kw">private</span> enErreurApi(e: unknown): ErreurApi {
+    <span class="kw">if</span> (e <span class="kw">instanceof</span> ErreurApi) { <span class="kw">return</span> e; }
+    <span class="kw">if</span> (e <span class="kw">instanceof</span> HttpErrorResponse) {
+      <span class="kw">const</span> corps = e.error <span class="kw">as</span> Partial&lt;ApiResponse&lt;unknown&gt;&gt; | <span class="kw">null</span>;
+      <span class="kw">const</span> code = corps?.error ?? String(e.status);
+      <span class="kw">const</span> message = corps?.message
+        ?? (e.status === 0 ? <span class="str">'Serveur injoignable.'</span> : <span class="str">`Erreur ${e.status} lors de l'appel au serveur.`</span>);
+      <span class="kw">return new</span> ErreurApi(code, message);
+    }
+    <span class="kw">return new</span> ErreurApi(<span class="str">'ERR'</span>, <span class="str">'Erreur inattendue.'</span>);
+  }</code></pre></div>
+<div class="note"><code>apiUrl</code> est déjà la base <code>/cash</code> (c'est celle utilisée par <code>getDemandes</code>) ; <code>data()</code> et <code>ErreurApi</code> existent déjà (doc filtres). Le corps <code>{}</code> est volontaire : le backend n'attend rien, mais un PATCH sans corps est rejeté par certains proxies.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">4</span>localState — store, query, actions, façade</h2>
+<div class="code-bloc"><div class="titre-fichier"><span>...\adapters\localState\fundMangement.store.ts</span><span class="tag edit">ÉDITION — À AJOUTER dans FunManagmentStore</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>  <span class="com">/** id de la demande dont la soumission est en cours (désactive le bouton de cette ligne), null sinon */</span>
+  soumissionEnCours = signal&lt;string | <span class="kw">null</span>&gt;(<span class="kw">null</span>);</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\adapters\localState\fundMangement.query.ts</span><span class="tag edit">ÉDITION — À AJOUTER dans FundManagmentQuery</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>  soumissionEnCours = <span class="kw">this</span>.store.soumissionEnCours.asReadonly();</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\adapters\localState\fundMangement.actions.ts</span><span class="tag edit">ÉDITION — À AJOUTER dans FundManagementActions</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>  <span class="com">/**
+   * Soumet la demande au workflow. En succès, remplace la ligne dans la page courante par la version SUBMITTED.
+   * En échec, relance l'ErreurApi (message backend) : le composant l'affiche, la liste n'est pas modifiée
+   * (côté serveur la saga a déjà restauré INITIATED).
+   */</span>
+  <span class="kw">async</span> soumettreDemande(id: string): Promise&lt;DemandeFonds&gt; {
+    <span class="kw">this</span>.store.soumissionEnCours.set(id);
+    <span class="kw">try</span> {
+      <span class="kw">const</span> demandeMaj = <span class="kw">await this</span>.serviceHttp.soumettreDemande(id);
+      <span class="kw">this</span>.store.demandes.update(liste =&gt; liste.map(d =&gt; d.id === demandeMaj.id ? demandeMaj : d));
+      <span class="kw">return</span> demandeMaj;
+    } <span class="kw">finally</span> {
+      <span class="kw">this</span>.store.soumissionEnCours.set(<span class="kw">null</span>);
+    }
+  }</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\adapters\localState\fundMangement.facade.ts</span><span class="tag edit">ÉDITION — À AJOUTER dans FunManagementFacade</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>  soumissionEnCours = <span class="kw">this</span>.query.soumissionEnCours;
+
+  soumettreDemande(id: string) { <span class="kw">return this</span>.actions.soumettreDemande(id); }</code></pre></div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">5</span>Dialogue de confirmation (composant partagé)</h2>
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\shared\presenter\components\confirmation-dialog\confirmation-dialog.component.ts</span><span><span class="tag new">NOUVEAU</span><span class="tag full">FICHIER COMPLET</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">import</span> { ChangeDetectionStrategy, Component, Inject } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } <span class="kw">from</span> <span class="str">'@angular/material/dialog'</span>;
+<span class="kw">import</span> { MatButtonModule } <span class="kw">from</span> <span class="str">'@angular/material/button'</span>;
+
+<span class="kw">export interface</span> ConfirmationDialogData {
+  titre: string;
+  message: string;
+  libelleConfirmer?: string;
+  libelleAnnuler?: string;
+}
+
+<span class="ann">@Component</span>({
+  selector: <span class="str">'app-confirmation-dialog'</span>,
+  standalone: <span class="kw">true</span>,
+  imports: [MatDialogModule, MatButtonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: <span class="str">`
+    &lt;h2 mat-dialog-title&gt;{{ data.titre }}&lt;/h2&gt;
+    &lt;mat-dialog-content&gt;&lt;p&gt;{{ data.message }}&lt;/p&gt;&lt;/mat-dialog-content&gt;
+    &lt;mat-dialog-actions align="end"&gt;
+      &lt;button mat-button (click)="dialogRef.close(false)"&gt;{{ data.libelleAnnuler ?? 'Annuler' }}&lt;/button&gt;
+      &lt;button mat-flat-button color="primary" (click)="dialogRef.close(true)"&gt;{{ data.libelleConfirmer ?? 'Confirmer' }}&lt;/button&gt;
+    &lt;/mat-dialog-actions&gt;
+  `</span>
+})
+<span class="kw">export class</span> <span class="ty">ConfirmationDialogComponent</span> {
+  <span class="kw">constructor</span>(
+    <span class="kw">public</span> dialogRef: MatDialogRef&lt;ConfirmationDialogComponent, <span class="kw">boolean</span>&gt;,
+    <span class="ann">@Inject</span>(MAT_DIALOG_DATA) <span class="kw">public</span> data: ConfirmationDialogData
+  ) {}
+}</code></pre></div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">6</span>Composant liste</h2>
+<div class="code-bloc"><div class="titre-fichier"><span>...\presenter\pages\fund-management-list\fund-management-list.component.ts</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// 1) imports à ajouter :</span>
+<span class="kw">import</span> { MatDialog, MatDialogModule } <span class="kw">from</span> <span class="str">'@angular/material/dialog'</span>;
+<span class="kw">import</span> { MatTooltipModule } <span class="kw">from</span> <span class="str">'@angular/material/tooltip'</span>;
+<span class="kw">import</span> { filter, firstValueFrom } <span class="kw">from</span> <span class="str">'rxjs'</span>;
+<span class="kw">import</span> { ErreurApi, LIBELLES_STATUT, StatutDemande, estSoumissible } <span class="kw">from</span> <span class="str">'../../../domain/domain-core/entities/operation.model'</span>;
+<span class="kw">import</span> { ConfirmationDialogComponent, ConfirmationDialogData } <span class="kw">from</span> <span class="str">'../../../../../shared/presenter/components/confirmation-dialog/confirmation-dialog.component'</span>;
+<span class="com">//   (si `filter` est déjà importé de rxjs, ne le duplique pas ; ErreurApi est dans operation.model comme pour les actions)</span>
+
+<span class="com">// 2) dans le tableau imports du @Component, ajouter :</span>
+    MatDialogModule, MatTooltipModule,
+
+<span class="com">// 3) REMPLACER le tableau statuts par (SUBMITTED ajouté, libellés centralisés) :</span>
+  <span class="kw">readonly</span> statuts: { code: <span class="str">'TOUS'</span> | StatutDemande; libelle: string }[] = [
+    { code: <span class="str">'TOUS'</span>,      libelle: <span class="str">'Tous les statuts'</span> },
+    { code: <span class="str">'INITIATED'</span>, libelle: LIBELLES_STATUT.INITIATED },
+    { code: <span class="str">'SUBMITTED'</span>, libelle: LIBELLES_STATUT.SUBMITTED },
+    { code: <span class="str">'VALIDATED'</span>, libelle: LIBELLES_STATUT.VALIDATED },
+    { code: <span class="str">'CANCELLED'</span>, libelle: LIBELLES_STATUT.CANCELLED }
+  ];
+
+<span class="com">// 4) constructeur : ajouter MatDialog</span>
+  <span class="kw">constructor</span>(
+    <span class="kw">public</span> facade: FunManagementFacade,
+    <span class="kw">private</span> snackBar: MatSnackBar,
+    <span class="kw">private</span> dialog: MatDialog
+  ) {}
+
+<span class="com">// 5) REMPLACER libelleStatut par :</span>
+  libelleStatut(code: string): string {
+    <span class="kw">return</span> LIBELLES_STATUT[code <span class="kw">as</span> StatutDemande] ?? code;
+  }
+
+<span class="com">// 6) À AJOUTER (section Soumission) :</span>
+
+  <span class="com">// ===== Soumission au workflow =====</span>
+
+  peutSoumettre(d: DemandeFonds): <span class="kw">boolean</span> {
+    <span class="kw">return</span> estSoumissible(d);
+  }
+
+  soumissionEnCours(d: DemandeFonds): <span class="kw">boolean</span> {
+    <span class="kw">return this</span>.facade.soumissionEnCours() === d.id;
+  }
+
+  <span class="kw">async</span> soumettre(d: DemandeFonds): Promise&lt;<span class="kw">void</span>&gt; {
+    <span class="kw">if</span> (!<span class="kw">this</span>.peutSoumettre(d) || <span class="kw">this</span>.soumissionEnCours(d)) { <span class="kw">return</span>; }
+
+    <span class="kw">const</span> donnees: ConfirmationDialogData = {
+      titre: <span class="str">'Soumettre la demande'</span>,
+      message: <span class="str">`Soumettre la demande ${this.reference(d)} au circuit de traitement ? `</span>
+             + <span class="str">`Elle ne sera plus modifiable directement depuis cet écran.`</span>,
+      libelleConfirmer: <span class="str">'Soumettre'</span>
+    };
+    <span class="kw">const</span> confirme = <span class="kw">await</span> firstValueFrom(
+      <span class="kw">this</span>.dialog.open(ConfirmationDialogComponent, { data: donnees, width: <span class="str">'440px'</span> }).afterClosed()
+    );
+    <span class="kw">if</span> (!confirme) { <span class="kw">return</span>; }
+
+    <span class="kw">try</span> {
+      <span class="kw">await this</span>.facade.soumettreDemande(d.id);
+      <span class="kw">this</span>.snackBar.open(<span class="str">`Demande ${this.reference(d)} soumise au workflow.`</span>, <span class="str">'Fermer'</span>, { duration: 4000 });
+    } <span class="kw">catch</span> (e) {
+      <span class="kw">const</span> message = e <span class="kw">instanceof</span> ErreurApi ? e.message : <span class="str">'La soumission a échoué.'</span>;
+      <span class="kw">this</span>.snackBar.open(message, <span class="str">'Fermer'</span>, { duration: 8000 });
+    }
+  }</code></pre></div>
+<div class="warn">Si ta classe utilise déjà un import <code>filter</code> de rxjs ou n'a pas de méthode <code>libelleStatut</code> sous ce nom, adapte le nom en conséquence — le reste ne dépend de rien d'autre que ce qui est dans le doc filtres (<code>reference(d)</code>, <code>facade</code>, <code>snackBar</code>).</div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\fund-management-list\fund-management-list.component.html</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>&lt;!-- 1) Colonne STATUT : la chip prend une classe par statut (ajoute [class] si ta chip n'en a pas) --&gt;
+&lt;td&gt;
+  &lt;span class="chip-statut" [class]="'chip-statut chip-statut--' + d.requestStatus.toLowerCase()"&gt;
+    {{ libelleStatut(d.requestStatus) }}
+  &lt;/span&gt;
+&lt;/td&gt;
+
+&lt;!-- 2) Colonne ACTIONS : AJOUTER ce bouton en premier, à côté de tes boutons existants (voir / télécharger) --&gt;
+&lt;td class="actions"&gt;
+  &lt;button mat-icon-button color="primary"
+          *ngIf="peutSoumettre(d)"
+          [disabled]="soumissionEnCours(d)"
+          matTooltip="Soumettre au workflow"
+          (click)="soumettre(d)"&gt;
+    &lt;mat-icon&gt;{{ soumissionEnCours(d) ? 'hourglass_top' : 'send' }}&lt;/mat-icon&gt;
+  &lt;/button&gt;
+  &lt;!-- ... tes boutons existants inchangés ... --&gt;
+&lt;/td&gt;</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\fund-management-list\fund-management-list.component.scss</span><span class="tag edit">ÉDITION — À AJOUTER</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// Chip par statut (si tes classes existantes s'appellent autrement, garde les tiennes et ajoute seulement --submitted)</span>
+.chip-statut {
+  display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: .78rem; font-weight: 600;
+  &amp;--initiated { background: #eef2f0; color: #5b6b64; }
+  &amp;--submitted { background: #e3ecf6; color: #3d5a80; }
+  &amp;--validated { background: #e6f4ee; color: #0B6B4F; }
+  &amp;--cancelled { background: #f3e5e5; color: #b3261e; }
+}</code></pre></div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">7</span>Pourquoi ces choix</h2>
+<table>
+<tr><th>Choix</th><th>Raison</th></tr>
+<tr><td>Bouton sur la liste (pas à la création)</td><td>Instruction du tech lead + fidèle au BPMN (brouillon → soumission = deux actes). La création reste possible même moteur éteint.</td></tr>
+<tr><td><code>estSoumissible</code> dans le domaine front</td><td>Même garde que <code>ChangerStatutDemandeStep</code> côté back : le bouton n'apparaît que sur INITIATED. Le back reste le juge (409 si contournement).</td></tr>
+<tr><td>Signal <code>soumissionEnCours</code> = id</td><td>Désactive UNIQUEMENT la ligne concernée, pas toute la liste ; empêche le double-clic.</td></tr>
+<tr><td>Mise à jour en place du store</td><td>Pas de rechargement de page : la ligne passe « Soumise » instantanément, la pagination et les filtres ne bougent pas.</td></tr>
+<tr><td>Message d'erreur = message backend</td><td>Le 502 dit « la demande est restée dans son état initial », le 409 dit pourquoi : l'utilisateur comprend sans traduction front.</td></tr>
+<tr><td>Dialogue de confirmation partagé</td><td>Réutilisable pour Annuler/Traiter des corbeilles à venir.</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">8</span>Test</h2>
+<table>
+<tr><th>Étape</th><th>Attendu</th></tr>
+<tr><td>Backend (8300) + moteur (3030) démarrés, <code>ng serve --proxy-config</code></td><td>Compilation OK (aucune erreur de template).</td></tr>
+<tr><td>Liste : demande INITIATED</td><td>Icône « send » visible ; chip « En attente ».</td></tr>
+<tr><td>Clic → dialogue → « Soumettre »</td><td>Icône devient sablier le temps de l'appel ; puis snackbar « Demande RT-… soumise au workflow » ; chip « Soumise » ; le bouton disparaît. Instance visible dans Cockpit.</td></tr>
+<tr><td>Filtre statut « Soumise »</td><td>Ne montre que les SUBMITTED (le backend filtre déjà sur le nom du statut).</td></tr>
+<tr><td>Moteur éteint → soumettre une autre demande</td><td>Snackbar avec le message du 502 ; la ligne reste « En attente » ; le bouton reste disponible ; re-soumission possible moteur rallumé.</td></tr>
+<tr><td>Onglets : ouvrir la même demande dans 2 onglets, soumettre dans le 1er, puis dans le 2nd</td><td>2nd : snackbar 409 « Seule une demande INITIATED… » ; un « Actualiser » fait passer la chip à « Soumise ».</td></tr>
+</table>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · front soumission d'une demande au workflow · 01/09/2026</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{ btn.textContent='Copié ✓'; setTimeout(()=>btn.textContent='Copier',1800); });
+}
+</script>
+</body>
+</html>
