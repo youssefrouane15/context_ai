@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix — Coupures effacées au retour sur la vue (effect) + chips statut sans couleur</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1e2a26;--muted:#5b6b64;--bleu:#3d5a80;--rouge:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.55}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}
+header h1{margin:0 0 6px;font-size:1.42rem}
+header p{margin:0;opacity:.92}
+.badge{display:inline-block;background:var(--or);color:#fff;border-radius:4px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-top:10px}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+section{background:#fff;border:1px solid #e0e8e4;border-radius:8px;padding:20px 24px;margin-bottom:22px}
+h2{color:var(--vf);margin:0 0 14px;font-size:1.2rem;border-left:5px solid var(--or);padding-left:10px}
+h3{color:var(--v);margin:18px 0 8px;font-size:1.02rem}
+.num{display:inline-block;background:var(--v);color:#fff;border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px;font-size:.9rem;margin-right:8px}
+.note{background:#eef6f2;border-left:4px solid var(--v);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.93rem}
+.warn{background:#fdf5e6;border-left:4px solid var(--or);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.93rem}
+.danger{background:#fdecea;border-left:4px solid var(--rouge);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.93rem}
+.code-bloc{margin:14px 0;border:1px solid #d9e2dd;border-radius:6px;overflow:hidden}
+.titre-fichier{display:flex;align-items:center;justify-content:space-between;background:#e6efeb;padding:6px 12px;font-family:Consolas,monospace;font-size:.82rem;color:var(--vf)}
+.tag{font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:3px;margin-left:8px;color:#fff}
+.tag.edit{background:var(--or)}.tag.add{background:var(--v)}.tag.del{background:var(--rouge)}
+.btn-copier{background:var(--v);color:#fff;border:0;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:.78rem}
+.btn-copier:hover{background:var(--vf)}
+pre{margin:0;padding:14px;background:#0f1a16 !important;color:#e8f0ec !important;overflow:auto;font-family:Consolas,"Courier New",monospace;font-size:.8rem;line-height:1.5}
+pre code{background:transparent !important;color:inherit;display:block}
+.kw{color:#c792ea}.str{color:#c3e88d}.com{color:#7f9a90;font-style:italic}.ann{color:#ffcb6b}.ty{color:#82aaff}
+code{background:#eef2f0;padding:1px 5px;border-radius:3px;font-family:Consolas,monospace;font-size:.85em}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.88rem}
+th,td{border:1px solid #d9e2dd;padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#e6efeb;color:var(--vf)}
+.schema{background:#0f1a16;color:#e8f0ec;border-radius:8px;padding:14px;font-family:Consolas,monospace;font-size:.8rem;line-height:1.5;overflow:auto;margin:12px 0;white-space:pre}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>Fix — Coupures effacées au switch Historique ↔ Nouvelle demande + chips statut sans couleur</h1>
+<p>Cause racine : un <code>effect</code> monolithique qui reconstruit les FormArrays à chaque émission de signal. Fix : séparation en deux effects + synchronisation idempotente par comparaison de <code>denominationCode</code>. Bonus : chips statut alignées template ↔ SCSS avec SUBMITTED et VALIDATED.</p>
+<span class="badge">02/09/2026 · fund-management-front (retail) · 2 fichiers touchés</span>
+</header>
+<main>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">1</span>Le bug expliqué simplement</h2>
+<p>Un <code>effect</code> Angular re-tourne à chaque changement de <b>n'importe quel signal lu dedans</b>. Ton effect du constructeur lit <code>devises()</code>, <code>coupuresGab()</code> et <code>coupuresCaisse()</code>, et à chaque tour il fait <code>clear()</code> puis <code>push(...)</code> sur les FormArrays.</p>
+<div class="schema">PREMIÈRE VISITE (store vide)                RETOUR DEPUIS L'HISTORIQUE (store déjà rempli — providedIn: 'root')
+────────────────────────────                ────────────────────────────────────────────────
+effect → store vide → rien à construire     effect → construit les lignes IMMÉDIATEMENT
+loadCoupures/loadDevises terminent          ngOnInit → loadCoupures() + loadDevises() relancés
+effect → construit les lignes               tu tapes tes quantités... ✍
+TU TAPES APRÈS → rien ne t'efface ✔         les appels reviennent (500 → fallback mock)
+                                            chaque set() = NOUVELLE référence de tableau
+                                            effect re-tourne → clear() → quantités = 0 ✘
+                                            submit → « au moins un type (gab, etc.) » ✘</div>
+<div class="danger"><b>Aggravant</b> : comme <code>devises()</code> est lu dans le même effect, même le simple rechargement des devises efface les coupures saisies. Trois signaux, un seul effect = trois occasions d'écraser la saisie.</div>
+<div class="note"><b>Le fix clean</b> : un effect = une responsabilité. Effet 1 pour les devises (ne touche jamais aux coupures). Effet 2 pour les coupures, avec une synchronisation <b>idempotente</b> : on ne reconstruit que si la liste des <code>denominationCode</code> a réellement changé. Référentiel identique → aucun <code>clear()</code> → la saisie survit. C'est le même principe que le fix du rebond <code>demandeCreee</code> : un signal consommé sans discernement provoque des effets de bord non voulus.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">2</span>fund-management.component.ts — séparer l'effect en deux</h2>
+<div class="note">Aucun nouvel import : <code>effect</code>, <code>FormArray</code> et <code>Denomination</code> sont déjà importés dans ton fichier.</div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.ts</span><span><span class="tag del">SUPPRIMER</span></span></div>
+<pre><code><span class="com">// Dans le constructor : SUPPRIMER tout le PREMIER effect (lignes ~79 à 103),
+// celui qui commence par :
+//     effect(() => {
+//       const coupuresCaisse = this.facade.coupuresCaisse();
+//       const coupuresGab = this.facade.coupuresGab();
+//       this.devisesDisponibles = this.facade.devises();
+//       this.gabCoupures.clear();
+//       this.caisseCoupures.clear();
+//       ...
+// et se termine par :
+//       this.cdr.markForCheck();
+//     });
+//
+// ⚠ NE PAS toucher au second effect (succès/erreur, allowSignalWrites: true).</span></code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.ts</span><span><span class="tag add">À AJOUTER — dans le constructor, à la place de l'effect supprimé</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="com">// Effet 1 — Référentiel devises uniquement (ne touche jamais aux coupures)</span>
+    effect(() => {
+      <span class="kw">this</span>.devisesDisponibles = <span class="kw">this</span>.facade.devises();
+
+      <span class="kw">if</span> (!<span class="kw">this</span>.commandeDevisesGroup.get(<span class="str">'deviseCode'</span>)?.value && <span class="kw">this</span>.devisesDisponibles.length) {
+        <span class="kw">const</span> parDefaut = <span class="kw">this</span>.devisesDisponibles.find(d => d.isoCode !== <span class="str">'MAD'</span>)
+          ?? <span class="kw">this</span>.devisesDisponibles[0];
+        <span class="kw">this</span>.commandeDevisesGroup.patchValue(
+          { deviseCode: parDefaut.isoCode },
+          { emitEvent: <span class="kw">false</span> }
+        );
+      }
+      <span class="kw">this</span>.cdr.markForCheck();
+    });
+
+    <span class="com">// Effet 2 — Coupures : reconstruit SEULEMENT si le référentiel a changé,
+    // sinon la saisie de l'utilisateur est préservée</span>
+    effect(() => {
+      <span class="kw">const</span> coupuresGab = <span class="kw">this</span>.facade.coupuresGab();
+      <span class="kw">const</span> coupuresCaisse = <span class="kw">this</span>.facade.coupuresCaisse();
+
+      <span class="kw">this</span>.synchroniserCoupures(<span class="kw">this</span>.gabCoupures, coupuresGab);
+      <span class="kw">const</span> caisseReconstruite = <span class="kw">this</span>.synchroniserCoupures(<span class="kw">this</span>.caisseCoupures, coupuresCaisse);
+      <span class="kw">if</span> (caisseReconstruite) {
+        <span class="kw">this</span>.repartirCoupuresCaisse();
+      }
+      <span class="kw">this</span>.cdr.markForCheck();
+    });</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.ts</span><span><span class="tag add">À AJOUTER — section « Helpers privés », juste au-dessus de creerLigneCoupure</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>  <span class="com">/**
+   * Aligne un FormArray de coupures sur le référentiel reçu.
+   * Si les codes sont identiques (même liste, même ordre), on ne touche à rien :
+   * les quantités déjà saisies sont préservées. Sinon on reconstruit.
+   * Retourne true si une reconstruction a eu lieu.
+   */</span>
+  <span class="kw">private</span> synchroniserCoupures(tableau: FormArray, coupures: Denomination[]): <span class="ty">boolean</span> {
+    <span class="kw">const</span> codesActuels = tableau.controls.map(l => l.get(<span class="str">'code'</span>)?.value).join(<span class="str">'|'</span>);
+    <span class="kw">const</span> codesCibles = coupures.map(c => c.denominationCode).join(<span class="str">'|'</span>);
+
+    <span class="kw">if</span> (codesActuels === codesCibles) {
+      <span class="kw">return false</span>;
+    }
+
+    tableau.clear();
+    coupures.forEach(c => tableau.push(<span class="kw">this</span>.creerLigneCoupure(c)));
+    <span class="kw">return true</span>;
+  }</code></pre></div>
+
+<h3>Pourquoi ça règle le bug</h3>
+<table>
+<tr><th>Moment</th><th>Avant</th><th>Après</th></tr>
+<tr><td>Retour sur la vue, store déjà rempli</td><td>Lignes construites, puis <b>écrasées</b> quand les reloads reviennent</td><td>Effet 2 construit une fois (FormArray vide ≠ codes cibles), puis les reloads renvoient les mêmes codes → <code>codesActuels === codesCibles</code> → <b>aucun clear</b></td></tr>
+<tr><td>Rechargement des devises</td><td>Effaçait aussi les coupures (même effect)</td><td>Effet 1 isolé : ne touche jamais aux FormArrays de coupures</td></tr>
+<tr><td>Référentiel réellement modifié (nouvelle coupure en base)</td><td>—</td><td>Codes différents → reconstruction propre + <code>repartirCoupuresCaisse()</code></td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">3</span>Bonus — chips statut : template et SCSS ne se parlaient pas</h2>
+<p>Ton template liste génère <code>chip-statut--initiated</code> (minuscules, double tiret) mais ton SCSS définit <code>&.statut-CREATED</code> / <code>statut-INITIATED</code> / <code>statut-CANCELLED</code> (majuscules, simple tiret) : <b>ces sélecteurs ne matchent jamais</b>. Il y a aussi deux blocs <code>.chip-statut</code> dupliqués, et il manque SUBMITTED et VALIDATED.</p>
+
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\features\fund-management\presenter\pages\fund-management-list\fund-management-list.component.scss</span><span><span class="tag del">SUPPRIMER</span></span></div>
+<pre><code><span class="com">/* SUPPRIMER LES DEUX blocs .chip-statut existants :
+   1) celui avec  &.statut-CREATED { ... } &.statut-INITIATED { ... } &.statut-CANCELLED { ... }
+   2) celui en display: inline-flex avec  svg { flex: none; }
+   (ils seront remplacés par le bloc unique ci-dessous) */</span></code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\features\fund-management\presenter\pages\fund-management-list\fund-management-list.component.scss</span><span><span class="tag add">À AJOUTER — bloc unique de remplacement</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">/* ===== Chips Statut ===== */</span>
+.chip-statut {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  svg { flex: none; }
+
+  &.chip-statut--initiated { background: #fff8e1; color: #d97706; }  <span class="com">// En attente (jaune)</span>
+  &.chip-statut--submitted { background: #e3ecf6; color: #3d5a80; }  <span class="com">// Soumise (bleu)</span>
+  &.chip-statut--validated { background: #e3efe9; color: #00915a; }  <span class="com">// Validée (vert)</span>
+  &.chip-statut--cancelled { background: #f1f1f1; color: #5d5f5f; }  <span class="com">// Archivée (gris)</span>
+}</code></pre></div>
+<div class="warn">Si le backend peut encore renvoyer <code>CREATED</code> sur d'anciennes lignes, ajoute simplement <code>&.chip-statut--created { background: #e3efe9; color: #00915a; }</code> dans le même bloc. Sinon inutile.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">4</span>Plan de test (3 minutes)</h2>
+<table>
+<tr><th>#</th><th>Étape</th><th>Attendu</th></tr>
+<tr><td>1</td><td>Backend (8300) démarré, <code>ng serve --proxy-config</code>, ouvrir Nouvelle demande</td><td>Lignes de coupures affichées, saisie OK, totaux OK, envoi OK.</td></tr>
+<tr><td>2</td><td><b>Le test du bug</b> : aller sur Historique, revenir sur Nouvelle demande, taper immédiatement des quantités dans Alimentation Caisse, attendre ~2 s (le temps des 500 + fallback mock)</td><td>Les quantités <b>restent</b>, Total Saisi se calcule, Envoyer fonctionne (avant le fix : quantités remises à 0 + « au moins un type »).</td></tr>
+<tr><td>3</td><td>Refaire l'aller-retour Historique ↔ Nouvelle demande 2-3 fois de suite</td><td>Comportement stable, aucun effacement, aucune erreur console NG0600.</td></tr>
+<tr><td>4</td><td>Ouvrir l'Historique</td><td>Les chips ont leurs couleurs : jaune (En attente), bleu (Soumise) après une soumission, gris (Archivée).</td></tr>
+</table>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · fix effect coupures + chips statut · 02/09/2026</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{ btn.textContent='Copié ✓'; setTimeout(()=>btn.textContent='Copier',1800); });
+}
+</script>
+</body>
+</html>
