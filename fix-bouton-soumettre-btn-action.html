@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix — Bouton Soumettre aligné sur le pattern btn-action (tooltip + affichage au survol)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1e2a26;--muted:#5b6b64;--bleu:#3d5a80;--rouge:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.55}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}
+header h1{margin:0 0 6px;font-size:1.42rem}
+header p{margin:0;opacity:.92}
+.badge{display:inline-block;background:var(--or);color:#fff;border-radius:4px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-top:10px}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+section{background:#fff;border:1px solid #e0e8e4;border-radius:8px;padding:20px 24px;margin-bottom:22px}
+h2{color:var(--vf);margin:0 0 14px;font-size:1.2rem;border-left:5px solid var(--or);padding-left:10px}
+h3{color:var(--v);margin:18px 0 8px;font-size:1.02rem}
+.num{display:inline-block;background:var(--v);color:#fff;border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px;font-size:.9rem;margin-right:8px}
+.note{background:#eef6f2;border-left:4px solid var(--v);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.93rem}
+.warn{background:#fdf5e6;border-left:4px solid var(--or);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.93rem}
+.code-bloc{margin:14px 0;border:1px solid #d9e2dd;border-radius:6px;overflow:hidden}
+.titre-fichier{display:flex;align-items:center;justify-content:space-between;background:#e6efeb;padding:6px 12px;font-family:Consolas,monospace;font-size:.82rem;color:var(--vf)}
+.tag{font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:3px;margin-left:8px;color:#fff}
+.tag.edit{background:var(--or)}.tag.add{background:var(--v)}.tag.del{background:var(--rouge)}
+.btn-copier{background:var(--v);color:#fff;border:0;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:.78rem}
+.btn-copier:hover{background:var(--vf)}
+pre{margin:0;padding:14px;background:#0f1a16 !important;color:#e8f0ec !important;overflow:auto;font-family:Consolas,"Courier New",monospace;font-size:.8rem;line-height:1.5}
+pre code{background:transparent !important;color:inherit;display:block}
+.kw{color:#c792ea}.str{color:#c3e88d}.com{color:#7f9a90;font-style:italic}
+code{background:#eef2f0;padding:1px 5px;border-radius:3px;font-family:Consolas,monospace;font-size:.85em}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.88rem}
+th,td{border:1px solid #d9e2dd;padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#e6efeb;color:var(--vf)}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>Fix — Bouton Soumettre aligné sur le pattern btn-action</h1>
+<p>Le bouton actuel est un <code>mat-icon-button</code> + <code>matTooltip</code> : son tooltip ne s'affiche pas et il reste visible en permanence, contrairement à tes boutons Voir/Télécharger. On le remplace par un clone exact de ton bouton Télécharger (mêmes classes, tooltip natif <code>title</code>, apparition au survol de la ligne), avec un seul ajout SCSS : rester visible pendant la soumission.</p>
+<span class="badge">02/09/2026 · fund-management-front (retail) · fund-management-list : html + scss + ts</span>
+</header>
+<main>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">1</span>Pourquoi le bouton actuel ne se comporte pas comme les autres</h2>
+<table>
+<tr><th>Comportement</th><th>Tes boutons Voir / Télécharger</th><th>Bouton Soumettre actuel</th></tr>
+<tr><td>Tooltip</td><td><code>title="..."</code> natif du navigateur → s'affiche</td><td><code>matTooltip</code> → ne s'affiche pas (module/config non câblés pour ce contexte)</td></tr>
+<tr><td>Visibilité</td><td><code>.btn-action { opacity: 0 }</code> + <code>tbody tr:hover .btn-action { opacity: 1 }</code> → apparaît au survol de la ligne</td><td><code>mat-icon-button</code> sans la classe <code>btn-action</code> → toujours visible</td></tr>
+<tr><td>Style</td><td>SVG inline 18×18, <code>stroke="currentColor"</code>, hover vert</td><td>Icône Material, ripple, taille différente</td></tr>
+</table>
+<div class="note"><b>Principe du fix</b> : hériter du markup existant au lieu d'en imposer un nouveau. En clonant le bouton Télécharger (mêmes classes, même mécanisme), le tooltip et l'apparition au survol viennent gratuitement de ton SCSS actuel. Un seul cas particulier à couvrir : ton SCSS a <code>&:disabled { opacity: 0 !important }</code> — pendant la soumission le bouton disparaîtrait complètement. On ajoute donc une classe d'état <code>est-en-cours</code> qui le maintient visible avec un sablier.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">2</span>fund-management-list.component.html — remplacer le bouton</h2>
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\features\fund-management\presenter\pages\fund-management-list\fund-management-list.component.html</span><span><span class="tag del">SUPPRIMER</span></span></div>
+<pre><code><span class="com">&lt;!-- SUPPRIMER tout le bouton mat-icon-button Soumettre dans la cellule col-actions :
+&lt;button mat-icon-button color="primary"
+        *ngIf="peutSoumettre(d)"
+        [disabled]="soumissionEnCours(d)"
+        matTooltip="Soumettre au workflow"
+        (click)="soumettre(d)"&gt;
+  &lt;mat-icon&gt;{{ soumissionEnCours(d) ? 'hourglass_top' : 'send' }}&lt;/mat-icon&gt;
+&lt;/button&gt;
+--&gt;</span></code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\features\fund-management\presenter\pages\fund-management-list\fund-management-list.component.html</span><span><span class="tag add">À AJOUTER — au même endroit, en premier dans la cellule col-actions, avant le bouton « Voir le détail »</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>          &lt;button class=<span class="str">"btn-action"</span> type=<span class="str">"button"</span> title=<span class="str">"Soumettre au workflow"</span>
+                  *ngIf=<span class="str">"peutSoumettre(d)"</span>
+                  [class.est-en-cours]=<span class="str">"soumissionEnCours(d)"</span>
+                  [disabled]=<span class="str">"soumissionEnCours(d)"</span>
+                  (click)=<span class="str">"soumettre(d)"</span>&gt;
+            <span class="com">&lt;!-- Avion en papier (envoyer) --&gt;</span>
+            &lt;svg *ngIf=<span class="str">"!soumissionEnCours(d)"</span> width=<span class="str">"18"</span> height=<span class="str">"18"</span> viewBox=<span class="str">"0 0 24 24"</span> fill=<span class="str">"none"</span> stroke=<span class="str">"currentColor"</span>
+                 stroke-width=<span class="str">"2"</span> stroke-linecap=<span class="str">"round"</span> stroke-linejoin=<span class="str">"round"</span>&gt;
+              &lt;line x1=<span class="str">"22"</span> y1=<span class="str">"2"</span> x2=<span class="str">"11"</span> y2=<span class="str">"13"</span>/&gt;
+              &lt;polygon points=<span class="str">"22 2 15 22 11 13 2 9 22 2"</span>/&gt;
+            &lt;/svg&gt;
+            <span class="com">&lt;!-- Horloge (soumission en cours) --&gt;</span>
+            &lt;svg *ngIf=<span class="str">"soumissionEnCours(d)"</span> width=<span class="str">"18"</span> height=<span class="str">"18"</span> viewBox=<span class="str">"0 0 24 24"</span> fill=<span class="str">"none"</span> stroke=<span class="str">"currentColor"</span>
+                 stroke-width=<span class="str">"2"</span> stroke-linecap=<span class="str">"round"</span> stroke-linejoin=<span class="str">"round"</span>&gt;
+              &lt;circle cx=<span class="str">"12"</span> cy=<span class="str">"12"</span> r=<span class="str">"10"</span>/&gt;
+              &lt;polyline points=<span class="str">"12 6 12 12 16 14"</span>/&gt;
+            &lt;/svg&gt;
+          &lt;/button&gt;</code></pre></div>
+<div class="note">Même structure exacte que ton bouton Télécharger : <code>class="btn-action"</code>, <code>type="button"</code>, <code>title</code> natif, SVG 18×18 <code>stroke="currentColor"</code>. Le tooltip s'affiche et le bouton apparaît au survol de la ligne, automatiquement, parce qu'il bénéficie de tes règles SCSS existantes.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">3</span>fund-management-list.component.scss — l'état « en cours » reste visible</h2>
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\features\fund-management\presenter\pages\fund-management-list\fund-management-list.component.scss</span><span><span class="tag add">À AJOUTER — à l'intérieur du bloc .btn-action existant, juste après la ligne &:disabled { ... }</span></span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>  <span class="com">// Soumission en cours : le bouton est disabled mais doit rester visible (sablier)</span>
+  &.est-en-cours { opacity: 1 !important; cursor: wait; }</code></pre></div>
+<div class="warn">Sans cette ligne, ta règle existante <code>&:disabled { opacity: 0 !important }</code> ferait disparaître le bouton pendant l'appel — l'utilisateur croirait que rien ne se passe. Avec elle : clic → l'avion devient une horloge, visible, non cliquable → puis la ligne passe « Soumise » et le bouton disparaît (le <code>*ngIf="peutSoumettre(d)"</code> devient faux car le statut n'est plus INITIATED).</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">4</span>fund-management-list.component.ts — nettoyage des imports</h2>
+<div class="code-bloc"><div class="titre-fichier"><span>src\app\features\fund-management\presenter\pages\fund-management-list\fund-management-list.component.ts</span><span><span class="tag del">SUPPRIMER</span></span></div>
+<pre><code><span class="com">// 1) SUPPRIMER l'import en haut du fichier (il n'a plus aucun usage) :
+//    import { MatTooltipModule } from '@angular/material/tooltip';
+//
+// 2) SUPPRIMER MatTooltipModule du tableau imports du @Component.
+//
+// ⚠ GARDER MatIconModule et MatSnackBarModule : mat-icon est encore utilisé
+//   pour l'icône « warning » de la colonne Urgent, et le snackbar pour les messages.</span></code></pre></div>
+<div class="note">Vérification rapide avant de supprimer : Ctrl+Maj+F sur <code>matTooltip</code> dans le dossier <code>fund-management-list</code> — s'il ne reste aucune occurrence après le remplacement du bouton, l'import part. Un module importé sans usage, c'est du poids mort dans le bundle et du bruit à la relecture.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">5</span>Plan de test (2 minutes)</h2>
+<table>
+<tr><th>#</th><th>Étape</th><th>Attendu</th></tr>
+<tr><td>1</td><td>Ouvrir l'Historique, ne pas survoler les lignes</td><td>Aucun bouton d'action visible (Soumettre inclus) — comme Voir/Télécharger.</td></tr>
+<tr><td>2</td><td>Survoler une ligne INITIATED</td><td>Les trois boutons apparaissent ensemble : avion, œil, téléchargement — même taille, même style, même hover vert.</td></tr>
+<tr><td>3</td><td>Laisser la souris sur l'avion ~1 s</td><td>Tooltip natif « Soumettre au workflow » s'affiche (comme « Télécharger » sur le sien).</td></tr>
+<tr><td>4</td><td>Cliquer sur l'avion</td><td>L'avion devient une horloge, reste visible, curseur wait, re-clic impossible ; puis chip « Soumise » et le bouton disparaît de la ligne.</td></tr>
+<tr><td>5</td><td>Survoler une ligne SUBMITTED / VALIDATED / CANCELLED</td><td>Seuls œil + téléchargement apparaissent, pas d'avion.</td></tr>
+<tr><td>6</td><td>Compilation</td><td>Aucune erreur après suppression de MatTooltipModule.</td></tr>
+</table>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · fix bouton Soumettre pattern btn-action · 02/09/2026</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{ btn.textContent='Copié ✓'; setTimeout(()=>btn.textContent='Copier',1800); });
+}
+</script>
+</body>
+</html>
