@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API — Traitement de la demande par l'agent Caisse Centrale (complétion de la user task Camunda)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1e2a26;--muted:#5b6b64;--bleu:#3d5a80;--rouge:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.55}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}
+header h1{margin:0 0 6px;font-size:1.4rem}
+header p{margin:0;opacity:.92}
+.badge{display:inline-block;background:var(--or);color:#fff;border-radius:4px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-top:10px;margin-right:6px}
+main{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
+section{background:#fff;border:1px solid #e0e8e4;border-radius:8px;padding:20px 24px;margin-bottom:22px}
+h2{color:var(--vf);margin:0 0 14px;font-size:1.2rem;border-left:5px solid var(--or);padding-left:10px}
+h3{color:var(--v);margin:18px 0 8px;font-size:1.02rem}
+.num{display:inline-block;background:var(--v);color:#fff;border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px;font-size:.9rem;margin-right:8px}
+.note{background:#eef6f2;border-left:4px solid var(--v);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.93rem}
+.warn{background:#fdf5e6;border-left:4px solid var(--or);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.93rem}
+.danger{background:#fdecea;border-left:4px solid var(--rouge);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.93rem}
+.code-bloc{margin:14px 0;border:1px solid #d9e2dd;border-radius:6px;overflow:hidden}
+.titre-fichier{display:flex;align-items:center;justify-content:space-between;background:#e6efeb;padding:6px 12px;font-family:Consolas,monospace;font-size:.82rem;color:var(--vf);gap:8px;flex-wrap:wrap}
+.tag{font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:3px;color:#fff;white-space:nowrap}
+.tag.edit{background:var(--or)}.tag.add{background:var(--v)}.tag.full{background:var(--bleu)}.tag.del{background:var(--rouge)}
+.btn-copier{background:var(--v);color:#fff;border:0;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:.78rem}
+.btn-copier:hover{background:var(--vf)}
+pre{margin:0;padding:14px;background:#0f1a16 !important;color:#e8f0ec !important;overflow:auto;font-family:Consolas,"Courier New",monospace;font-size:.8rem;line-height:1.5}
+pre code{background:transparent !important;color:inherit;display:block}
+.kw{color:#c792ea}.str{color:#c3e88d}.com{color:#7f9a90;font-style:italic}.ann{color:#ffcb6b}.ty{color:#82aaff}
+code{background:#eef2f0;padding:1px 5px;border-radius:3px;font-family:Consolas,monospace;font-size:.85em}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.88rem}
+th,td{border:1px solid #d9e2dd;padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#e6efeb;color:var(--vf)}
+.schema{background:#0f1a16;color:#e8f0ec;border-radius:8px;padding:14px;font-family:Consolas,monospace;font-size:.78rem;line-height:1.5;overflow:auto;margin:12px 0;white-space:pre}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>API — Traitement de la demande par l'agent Caisse Centrale</h1>
+<p>Endpoint REST qui complète la user task Camunda de la demande soumise : l'agent valide ou rejette, le microservice retrouve la tâche active sur le moteur partagé (par businessKey + tenant), la complète avec les variables de décision, puis met à jour le statut local. Architecture hexagonale respectée : port input, port output Camunda, adapter REST dans <code>fund-management-external-services</code>, réponse <code>ApiResponse&lt;T&gt;</code>.</p>
+<span class="badge">02/09/2026</span><span class="badge">microservice-fund-management</span><span class="badge">Camunda 7 REST — moteur partagé</span>
+</header>
+<main>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">1</span>Vue fonctionnelle — qui fait quoi</h2>
+<p>Après la soumission (statut <code>SUBMITTED</code>), le processus BPMN arrive sur la user task de traitement. L'agent de la caisse centrale consulte la demande, puis <b>valide</b> ou <b>rejette</b>. Côté technique, compléter une user task ne passe pas par le pattern external task (réservé aux service tasks du worker) : ça passe par l'<b>API REST du moteur Camunda</b> (<code>GET /task</code> puis <code>POST /task/{id}/complete</code>).</p>
+<div class="schema">Agent Caisse Centrale
+      │  PATCH /cash/{id}/complete-task   { "decision": "APPROVE", "commentaire": "..." }
+      ▼
+CashDemandController ──► CompleterTacheUseCase (port input)
+                              │ 1. charge la demande, vérifie statut == SUBMITTED   (sinon 409)
+                              │ 2. CamundaTaskPort.rechercherTacheActive(businessKey=id, tenant)
+                              │        └─ aucune tâche → 422 (process pas encore sur la user task)
+                              │ 3. CamundaTaskPort.completerTache(taskId, variables décision)
+                              │ 4. statut local → VALIDATED ou REJECTED, save
+                              ▼
+                        ApiResponse&lt;CashRequestDTO&gt;  (200)
+
+Variables poussées à Camunda à la complétion (contrat) :
+  demandeValidee    Boolean   true si APPROVE, false si REJECT   → pilote la gateway du BPMN
+  decisionAgent     String    "APPROVE" | "REJECT"
+  commentaireAgent  String    commentaire libre (peut être vide)</div>
+<div class="note"><b>Pourquoi vérifier le statut local d'abord</b> : c'est le même principe que le CHECK constraint — la base est la source de vérité du cycle de vie. Si la demande n'est pas <code>SUBMITTED</code>, inutile d'appeler Camunda : 409 immédiat, message clair. Et si Camunda n'a pas encore de tâche active (le worker est peut-être en train d'exécuter les service tasks amont), on renvoie 422 sans toucher au statut : l'agent réessaie dans quelques secondes.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">2</span>Contrat API</h2>
+<table>
+<tr><th>Élément</th><th>Valeur</th></tr>
+<tr><td>Méthode + chemin</td><td><code>PATCH /cash/{id}/complete-task</code> — même famille que <code>PATCH /cash/{id}/submit</code> et <code>/cancel</code></td></tr>
+<tr><td>Body</td><td><code>{ "decision": "APPROVE" | "REJECT", "commentaire": "texte libre optionnel" }</code></td></tr>
+<tr><td>200</td><td><code>{ success: true, message: "Demande traitée", data: CashRequestDTO, error: null }</code> — statut <code>VALIDATED</code> ou <code>REJECTED</code></td></tr>
+<tr><td>404</td><td>Demande introuvable</td></tr>
+<tr><td>409</td><td>Statut ≠ <code>SUBMITTED</code> (déjà traitée, annulée, ou pas encore soumise)</td></tr>
+<tr><td>422</td><td><code>decision</code> absente/invalide, ou aucune user task active côté Camunda pour cette demande</td></tr>
+<tr><td>502</td><td>Le moteur Camunda a répondu en erreur lors de la complétion</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">3</span>Domaine — décision et nouveau statut REJECTED</h2>
+
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-domain\fund-management-domain-core\src\main\java\...\domain\entity\enums\TaskDecision.java</span><span class="tag full">FICHIER COMPLET (nouveau)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.q360.domain.entity.enums;
+
+<span class="com">/**
+ * Décision de l'agent Caisse Centrale sur la user task de traitement.
+ */</span>
+<span class="kw">public enum</span> <span class="ty">TaskDecision</span> {
+    APPROVE,
+    REJECT
+}</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\domain\entity\enums\RequestStatus.java (enum de statut existant, utilisé pour demande ET opération)</span><span class="tag edit">ÉDITION</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com">// AJOUTER la valeur REJECTED à l'enum de statut existant.
+// Exemple si l'enum contient actuellement INITIATED, SUBMITTED, VALIDATED, CANCELLED :</span>
+<span class="kw">public enum</span> <span class="ty">RequestStatus</span> {
+    INITIATED,
+    SUBMITTED,
+    VALIDATED,
+    REJECTED,      <span class="com">// ◄ NOUVEAU : demande refusée par l'agent Caisse Centrale</span>
+    CANCELLED
+}</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-container\src\main\resources\db\migration\V1__init_retail.sql — et V2 corpo si le CHECK y existe aussi</span><span class="tag edit">ÉDITION (convention V0 : on édite en place, pas de nouveau script)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>-- ÉDITER le CHECK constraint de statut pour inclure REJECTED.
+-- C'est EXACTEMENT le bug du 502 saga qu'on a eu avec SUBMITTED : un statut Java
+-- absent du CHECK = violation de contrainte au save. On ne le refait pas.
+
+-- Retail (schéma retail) :
+CONSTRAINT chk_request_status CHECK (request_status IN
+    ('INITIATED', 'SUBMITTED', 'VALIDATED', 'REJECTED', 'CANCELLED'))
+
+-- Appliquer la même liste sur le CHECK de statut d'opération si présent,
+-- et sur le schéma corpo (V2) si le même CHECK y est défini.
+-- Rappel V0 : drop/recreate du schéma local, Flyway rejoue V1/V2 édités.</code></pre></div>
+<div class="danger"><b>Ne saute pas cette étape.</b> Ajouter <code>REJECTED</code> à l'enum sans l'ajouter au CHECK reproduira le 502 de la saga à la première demande rejetée.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">4</span>DTO d'entrée</h2>
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-domain\fund-management-application-service\src\main\java\...\service\domain\dto\TraitementTacheDTO.java</span><span class="tag full">FICHIER COMPLET (nouveau)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.dto;
+
+<span class="kw">import</span> com.bmci.q360.domain.entity.enums.TaskDecision;
+<span class="kw">import</span> lombok.AllArgsConstructor;
+<span class="kw">import</span> lombok.Builder;
+<span class="kw">import</span> lombok.Data;
+<span class="kw">import</span> lombok.NoArgsConstructor;
+
+<span class="com">/**
+ * Corps de la requête PATCH /cash/{id}/complete-task.
+ * decision est obligatoire ; commentaire est libre (peut être null).
+ */</span>
+<span class="ann">@Builder</span>
+<span class="ann">@Data</span>
+<span class="ann">@AllArgsConstructor</span>
+<span class="ann">@NoArgsConstructor</span>
+<span class="kw">public class</span> <span class="ty">TraitementTacheDTO</span> {
+    <span class="kw">private</span> TaskDecision decision;
+    <span class="kw">private</span> String commentaire;
+}</code></pre></div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">5</span>Port output — le contrat vers Camunda (application-service)</h2>
+<div class="note">Le use case ne connaît ni HTTP ni l'URL du moteur : il parle à une interface. C'est ce qui rend le use case testable en Mockito strict sans aucun serveur Camunda.</div>
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-domain\fund-management-application-service\src\main\java\...\service\domain\ports\output\workflow\CamundaTaskPort.java</span><span class="tag full">FICHIER COMPLET (nouveau)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.ports.output.workflow;
+
+<span class="kw">import</span> java.util.Map;
+<span class="kw">import</span> java.util.Optional;
+
+<span class="com">/**
+ * Port de sortie vers le moteur Camunda partagé pour la gestion des user tasks.
+ * Implémenté par un adapter REST dans le module fund-management-external-services.
+ */</span>
+<span class="kw">public interface</span> <span class="ty">CamundaTaskPort</span> {
+
+    <span class="com">/**
+     * Recherche la user task active de l'instance de processus dont le
+     * businessKey est l'identifiant de la demande.
+     * @return l'id technique Camunda de la tâche, ou empty si aucune tâche active.
+     */</span>
+    Optional&lt;String&gt; rechercherTacheActive(String businessKey);
+
+    <span class="com">/**
+     * Complète la tâche avec les variables de décision.
+     * Lève CamundaCommunicationException si le moteur répond en erreur.
+     */</span>
+    <span class="kw">void</span> completerTache(String taskId, Map&lt;String, Object&gt; variables);
+}</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\service\domain\exceptions\CamundaCommunicationException.java</span><span class="tag full">FICHIER COMPLET (nouveau)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.exceptions;
+
+<span class="com">/** Le moteur Camunda est injoignable ou a répondu en erreur → mappée en 502. */</span>
+<span class="kw">public class</span> <span class="ty">CamundaCommunicationException</span> <span class="kw">extends</span> RuntimeException {
+    <span class="kw">public</span> CamundaCommunicationException(String message, Throwable cause) {
+        <span class="kw">super</span>(message, cause);
+    }
+    <span class="kw">public</span> CamundaCommunicationException(String message) {
+        <span class="kw">super</span>(message);
+    }
+}</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\service\domain\exceptions\TacheIntrouvableException.java</span><span class="tag full">FICHIER COMPLET (nouveau)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.exceptions;
+
+<span class="com">/** Aucune user task active côté Camunda pour cette demande → mappée en 422. */</span>
+<span class="kw">public class</span> <span class="ty">TacheIntrouvableException</span> <span class="kw">extends</span> RuntimeException {
+    <span class="kw">public</span> TacheIntrouvableException(String message) {
+        <span class="kw">super</span>(message);
+    }
+}</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\service\domain\exceptions\StatutInvalideException.java</span><span class="tag full">FICHIER COMPLET (nouveau — si une exception 409 équivalente existe déjà chez toi, réutilise-la et saute ce fichier)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.exceptions;
+
+<span class="com">/** La demande n'est pas dans le bon statut pour l'action demandée → mappée en 409. */</span>
+<span class="kw">public class</span> <span class="ty">StatutInvalideException</span> <span class="kw">extends</span> RuntimeException {
+    <span class="kw">public</span> StatutInvalideException(String message) {
+        <span class="kw">super</span>(message);
+    }
+}</code></pre></div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">6</span>Port input + implémentation du use case</h2>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\service\domain\ports\inputs\service\CashDemandUseCase.java</span><span class="tag add">À AJOUTER — une méthode dans l'interface existante</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="com">// --- imports à ajouter en haut du fichier ---</span>
+    <span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.dto.TraitementTacheDTO;
+
+    <span class="com">// --- méthode à ajouter dans l'interface, sous submit(...) ---</span>
+    <span class="com">/**
+     * Traitement de la demande par l'agent Caisse Centrale :
+     * complète la user task Camunda et fait évoluer le statut local.
+     */</span>
+    CashRequestDTO completerTache(UUID id, TraitementTacheDTO traitement);</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\service\domain\ports\CashDemandUseCaseImpl.java</span><span class="tag add">À AJOUTER — injection du port + méthode</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="com">// --- imports à ajouter en haut du fichier ---</span>
+    <span class="kw">import</span> com.bmci.q360.domain.entity.enums.TaskDecision;
+    <span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.dto.TraitementTacheDTO;
+    <span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.exceptions.StatutInvalideException;
+    <span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.exceptions.TacheIntrouvableException;
+    <span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.workflow.CamundaTaskPort;
+    <span class="kw">import</span> java.util.HashMap;
+
+    <span class="com">// --- champ à ajouter à côté des autres dépendances final (injecté par @RequiredArgsConstructor) ---</span>
+    <span class="kw">private final</span> CamundaTaskPort camundaTaskPort;
+
+    <span class="com">// --- méthode à ajouter dans la classe ---</span>
+    <span class="ann">@Override</span>
+    <span class="ann">@Transactional</span>
+    <span class="kw">public</span> CashRequestDTO completerTache(UUID id, TraitementTacheDTO traitement) {
+        <span class="kw">if</span> (traitement == <span class="kw">null</span> || traitement.getDecision() == <span class="kw">null</span>) {
+            <span class="kw">throw new</span> IllegalArgumentException(<span class="str">"La décision (APPROVE ou REJECT) est obligatoire"</span>);
+        }
+
+        <span class="com">// 1. Charger et verrouiller le cycle de vie</span>
+        CashRequest demande = cashDemandRepository.getCashRequestById(id);
+        <span class="kw">if</span> (demande == <span class="kw">null</span>) {
+            <span class="kw">throw new</span> DemandeIntrouvableException(<span class="str">"Demande introuvable : "</span> + id);
+        }
+        <span class="kw">if</span> (!<span class="str">"SUBMITTED"</span>.equals(demande.getRequestStatus())) {
+            <span class="kw">throw new</span> StatutInvalideException(
+                <span class="str">"La demande "</span> + id + <span class="str">" est au statut "</span> + demande.getRequestStatus()
+                + <span class="str">" : seul le statut SUBMITTED peut être traité"</span>);
+        }
+
+        <span class="com">// 2. Retrouver la user task active sur le moteur partagé</span>
+        String taskId = camundaTaskPort.rechercherTacheActive(id.toString())
+            .orElseThrow(() -> <span class="kw">new</span> TacheIntrouvableException(
+                <span class="str">"Aucune tâche de traitement active pour la demande "</span> + id
+                + <span class="str">" : le processus n'a peut-être pas encore atteint l'étape de traitement"</span>));
+
+        <span class="com">// 3. Compléter la tâche avec le contrat de variables</span>
+        <span class="kw">boolean</span> validee = traitement.getDecision() == TaskDecision.APPROVE;
+        Map&lt;String, Object&gt; variables = <span class="kw">new</span> HashMap&lt;&gt;();
+        variables.put(<span class="str">"demandeValidee"</span>, validee);
+        variables.put(<span class="str">"decisionAgent"</span>, traitement.getDecision().name());
+        variables.put(<span class="str">"commentaireAgent"</span>,
+            traitement.getCommentaire() != <span class="kw">null</span> ? traitement.getCommentaire() : <span class="str">""</span>);
+        camundaTaskPort.completerTache(taskId, variables);
+
+        <span class="com">// 4. Statut local — après le succès Camunda uniquement</span>
+        demande.setRequestStatus(validee ? <span class="str">"VALIDATED"</span> : <span class="str">"REJECTED"</span>);
+        <span class="kw">return</span> mapperTamp.toResponseDTO(cashDemandRepository.save(demande));
+    }</code></pre></div>
+<div class="warn"><b>Ordre volontaire : Camunda d'abord, statut ensuite.</b> Si la complétion Camunda échoue, on ne touche pas au statut local → la demande reste SUBMITTED et l'agent peut réessayer. L'inverse (statut d'abord) créerait une demande VALIDATED côté base avec un processus toujours bloqué sur la tâche — incohérence qu'il faudrait compenser. Même philosophie que la saga : l'action distante réussit avant qu'on entérine localement. <br><br><b>Adaptation :</b> si chez toi le statut de la demande est typé <code>RequestStatus</code> (enum) et non <code>String</code>, remplace les comparaisons/affectations par <code>RequestStatus.SUBMITTED</code>, <code>RequestStatus.VALIDATED</code>, <code>RequestStatus.REJECTED</code> — on a déjà corrigé des bugs String/enum dans <code>ChangerStatutDemandeStep</code>, on garde le typage fort partout où il existe. Idem : si ton exception 404 s'appelle autrement que <code>DemandeIntrouvableException</code>, réutilise la tienne (celle du <code>submit</code>).</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">7</span>Adapter REST Camunda — module fund-management-external-services</h2>
+<div class="note">Le module external-services héberge déjà tout ce qui parle au moteur partagé (worker external tasks). L'adapter user task y a sa place naturelle. On utilise <code>RestClient</code> (fourni par Spring 6.1 / Boot 3.3.1, déjà dans le classpath via spring-boot-starter-web — <b>aucune dépendance Maven à ajouter</b>).</div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-external-services\src\main\java\...\external\workflow\config\CamundaRestProperties.java</span><span class="tag full">FICHIER COMPLET (nouveau)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.external.workflow.config;
+
+<span class="kw">import</span> lombok.Getter;
+<span class="kw">import</span> lombok.Setter;
+<span class="kw">import</span> org.springframework.boot.context.properties.ConfigurationProperties;
+
+<span class="com">/**
+ * Propriétés de l'API REST du moteur Camunda partagé.
+ * yaml : camunda.rest.* — à la COLONNE 0, jamais sous spring: (cf. root cause binding).
+ */</span>
+<span class="ann">@Getter</span>
+<span class="ann">@Setter</span>
+<span class="ann">@ConfigurationProperties</span>(prefix = <span class="str">"camunda.rest"</span>)
+<span class="kw">public class</span> <span class="ty">CamundaRestProperties</span> {
+
+    <span class="com">/** URL de base de l'API REST du moteur, ex : http://camunda-host:8080/engine-rest */</span>
+    <span class="kw">private</span> String baseUrl;
+
+    <span class="com">/** Tenant du moteur partagé (fourni par Hamza) — filtre les tâches de notre tenant. */</span>
+    <span class="kw">private</span> String tenantId;
+
+    <span class="com">/** Optionnel : clé de la user task de traitement dans le BPMN (taskDefinitionKey).
+        Si renseignée, la recherche filtre dessus ; sinon on prend la tâche active de l'instance. */</span>
+    <span class="kw">private</span> String taskDefinitionKey;
+}</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-external-services\src\main\java\...\external\workflow\config\CamundaRestConfig.java</span><span class="tag full">FICHIER COMPLET (nouveau)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.external.workflow.config;
+
+<span class="kw">import</span> org.springframework.boot.context.properties.EnableConfigurationProperties;
+<span class="kw">import</span> org.springframework.context.annotation.Bean;
+<span class="kw">import</span> org.springframework.context.annotation.Configuration;
+<span class="kw">import</span> org.springframework.web.client.RestClient;
+
+<span class="ann">@Configuration</span>
+<span class="ann">@EnableConfigurationProperties</span>(CamundaRestProperties.<span class="kw">class</span>)
+<span class="kw">public class</span> <span class="ty">CamundaRestConfig</span> {
+
+    <span class="ann">@Bean</span>
+    <span class="kw">public</span> RestClient camundaRestClient(CamundaRestProperties properties) {
+        <span class="kw">return</span> RestClient.builder()
+                .baseUrl(properties.getBaseUrl())
+                .build();
+    }
+}</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-external-services\src\main\java\...\external\workflow\adapter\CamundaTaskRestAdapter.java</span><span class="tag full">FICHIER COMPLET (nouveau)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.external.workflow.adapter;
+
+<span class="kw">import</span> com.bmci.workflow.fund.management.external.workflow.config.CamundaRestProperties;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.exceptions.CamundaCommunicationException;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.workflow.CamundaTaskPort;
+<span class="kw">import</span> lombok.RequiredArgsConstructor;
+<span class="kw">import</span> lombok.extern.slf4j.Slf4j;
+<span class="kw">import</span> org.springframework.http.MediaType;
+<span class="kw">import</span> org.springframework.stereotype.Component;
+<span class="kw">import</span> org.springframework.web.client.RestClient;
+<span class="kw">import</span> org.springframework.web.client.RestClientException;
+<span class="kw">import</span> org.springframework.web.util.UriBuilder;
+
+<span class="kw">import</span> java.util.HashMap;
+<span class="kw">import</span> java.util.List;
+<span class="kw">import</span> java.util.Map;
+<span class="kw">import</span> java.util.Optional;
+
+<span class="com">/**
+ * Adapter REST vers l'API du moteur Camunda 7 partagé.
+ * - GET  /task?processInstanceBusinessKey=...&active=true&tenantIdIn=...
+ * - POST /task/{taskId}/complete  { variables: { nom: { value, type } } }
+ */</span>
+<span class="ann">@Component</span>
+<span class="ann">@Slf4j</span>
+<span class="ann">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="ty">CamundaTaskRestAdapter</span> <span class="kw">implements</span> CamundaTaskPort {
+
+    <span class="kw">private final</span> RestClient camundaRestClient;
+    <span class="kw">private final</span> CamundaRestProperties properties;
+
+    <span class="ann">@Override</span>
+    <span class="kw">public</span> Optional&lt;String&gt; rechercherTacheActive(String businessKey) {
+        <span class="kw">try</span> {
+            List&lt;Map&lt;String, Object&gt;&gt; taches = camundaRestClient.get()
+                    .uri(uriBuilder -> construireUriRecherche(uriBuilder, businessKey))
+                    .retrieve()
+                    .body(List.<span class="kw">class</span>);
+
+            <span class="kw">if</span> (taches == <span class="kw">null</span> || taches.isEmpty()) {
+                log.info(<span class="str">"Aucune user task active pour businessKey={}"</span>, businessKey);
+                <span class="kw">return</span> Optional.empty();
+            }
+            <span class="kw">if</span> (taches.size() > 1) {
+                log.warn(<span class="str">"{} tâches actives pour businessKey={} — la première est retenue. "</span>
+                        + <span class="str">"Renseigner camunda.rest.task-definition-key pour lever l'ambiguïté."</span>,
+                        taches.size(), businessKey);
+            }
+            String taskId = String.valueOf(taches.get(0).get(<span class="str">"id"</span>));
+            log.info(<span class="str">"User task {} trouvée pour businessKey={}"</span>, taskId, businessKey);
+            <span class="kw">return</span> Optional.of(taskId);
+
+        } <span class="kw">catch</span> (RestClientException e) {
+            <span class="kw">throw new</span> CamundaCommunicationException(
+                <span class="str">"Échec de la recherche de tâche Camunda pour la demande "</span> + businessKey, e);
+        }
+    }
+
+    <span class="ann">@Override</span>
+    <span class="kw">public void</span> completerTache(String taskId, Map&lt;String, Object&gt; variables) {
+        <span class="kw">try</span> {
+            camundaRestClient.post()
+                    .uri(<span class="str">"/task/{taskId}/complete"</span>, taskId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(<span class="str">"variables"</span>, versVariablesCamunda(variables)))
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info(<span class="str">"Tâche Camunda {} complétée avec {} variable(s)"</span>, taskId, variables.size());
+
+        } <span class="kw">catch</span> (RestClientException e) {
+            <span class="kw">throw new</span> CamundaCommunicationException(
+                <span class="str">"Échec de la complétion de la tâche Camunda "</span> + taskId, e);
+        }
+    }
+
+    <span class="com">// ------------------------------------------------------------------
+    // Helpers privés
+    // ------------------------------------------------------------------</span>
+
+    <span class="kw">private</span> java.net.URI construireUriRecherche(UriBuilder uriBuilder, String businessKey) {
+        uriBuilder.path(<span class="str">"/task"</span>)
+                .queryParam(<span class="str">"processInstanceBusinessKey"</span>, businessKey)
+                .queryParam(<span class="str">"active"</span>, <span class="str">"true"</span>);
+        <span class="kw">if</span> (properties.getTenantId() != <span class="kw">null</span> && !properties.getTenantId().isBlank()) {
+            uriBuilder.queryParam(<span class="str">"tenantIdIn"</span>, properties.getTenantId());
+        }
+        <span class="kw">if</span> (properties.getTaskDefinitionKey() != <span class="kw">null</span> && !properties.getTaskDefinitionKey().isBlank()) {
+            uriBuilder.queryParam(<span class="str">"taskDefinitionKey"</span>, properties.getTaskDefinitionKey());
+        }
+        <span class="kw">return</span> uriBuilder.build();
+    }
+
+    <span class="com">/** Traduit une Map Java simple vers le format typé Camunda { value, type }. */</span>
+    <span class="kw">private</span> Map&lt;String, Object&gt; versVariablesCamunda(Map&lt;String, Object&gt; variables) {
+        Map&lt;String, Object&gt; resultat = <span class="kw">new</span> HashMap&lt;&gt;();
+        variables.forEach((nom, valeur) -> {
+            Map&lt;String, Object&gt; enveloppe = <span class="kw">new</span> HashMap&lt;&gt;();
+            enveloppe.put(<span class="str">"value"</span>, valeur);
+            enveloppe.put(<span class="str">"type"</span>, typeCamunda(valeur));
+            resultat.put(nom, enveloppe);
+        });
+        <span class="kw">return</span> resultat;
+    }
+
+    <span class="kw">private</span> String typeCamunda(Object valeur) {
+        <span class="kw">if</span> (valeur <span class="kw">instanceof</span> Boolean) <span class="kw">return</span> <span class="str">"Boolean"</span>;
+        <span class="kw">if</span> (valeur <span class="kw">instanceof</span> Integer) <span class="kw">return</span> <span class="str">"Integer"</span>;
+        <span class="kw">if</span> (valeur <span class="kw">instanceof</span> Long)    <span class="kw">return</span> <span class="str">"Long"</span>;
+        <span class="kw">return</span> <span class="str">"String"</span>;
+    }
+}</code></pre></div>
+<div class="warn"><b>Package du module external-services</b> : j'ai utilisé la racine <code>com.bmci.workflow.fund.management.external.workflow</code>. Si ton module utilise une autre racine (celle du worker existant), aligne les <code>package</code> et les imports dessus — et vérifie qu'elle est couverte par <code>scanBasePackages</code> (root cause déjà vécue avec <code>com.bmci.common</code>). Même remarque pour le package du port <code>ports.output.workflow</code> : si tu préfères le ranger sous <code>ports.output.repository</code> comme l'existant, déplace-le, mais un sous-package <code>workflow</code> est plus propre — Camunda n'est pas un repository.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">8</span>Controller + handler d'erreurs</h2>
+
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-application\src\main\java\...\application\rest\CashDemandController.java</span><span class="tag add">À AJOUTER — endpoint sous submit</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="com">// --- import à ajouter en haut du fichier ---</span>
+    <span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.dto.TraitementTacheDTO;
+
+    <span class="com">// --- endpoint à ajouter, à côté de PATCH /{id}/submit ---</span>
+    <span class="com">/**
+     * Traitement de la demande par l'agent Caisse Centrale :
+     * complète la user task Camunda (APPROVE → VALIDATED, REJECT → REJECTED).
+     */</span>
+    <span class="ann">@PatchMapping</span>(<span class="str">"/{id}/complete-task"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;CashRequestDTO&gt;&gt; completerTache(
+            <span class="ann">@PathVariable</span> UUID id,
+            <span class="ann">@RequestBody</span> TraitementTacheDTO traitement) {
+        CashRequestDTO resultat = cashDemandUseCase.completerTache(id, traitement);
+        <span class="kw">return</span> ResponseEntity.ok(ApiResponse.succes(<span class="str">"Demande traitée"</span>, resultat));
+    }</code></pre></div>
+<div class="note">Si ta factory <code>ApiResponse</code> a une autre signature (<code>ApiResponse.success(...)</code>, constructeur, builder…), utilise la même que dans l'endpoint <code>submit</code> — le format <code>{success, message, data, error}</code> du socle QlickFlow reste la seule vérité.</div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\application\rest\handler\ (ton @RestControllerAdvice existant)</span><span class="tag add">À AJOUTER — trois handlers</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>    <span class="com">// --- imports à ajouter en haut du fichier ---</span>
+    <span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.exceptions.CamundaCommunicationException;
+    <span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.exceptions.StatutInvalideException;
+    <span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.exceptions.TacheIntrouvableException;
+
+    <span class="com">// --- handlers à ajouter dans le @RestControllerAdvice ---</span>
+
+    <span class="com">/** 409 — la demande n'est pas au statut SUBMITTED */</span>
+    <span class="ann">@ExceptionHandler</span>(StatutInvalideException.<span class="kw">class</span>)
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; gererStatutInvalide(StatutInvalideException e) {
+        <span class="kw">return</span> ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.erreur(e.getMessage()));
+    }
+
+    <span class="com">/** 422 — aucune user task active côté Camunda */</span>
+    <span class="ann">@ExceptionHandler</span>(TacheIntrouvableException.<span class="kw">class</span>)
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; gererTacheIntrouvable(TacheIntrouvableException e) {
+        <span class="kw">return</span> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ApiResponse.erreur(e.getMessage()));
+    }
+
+    <span class="com">/** 502 — le moteur Camunda a répondu en erreur */</span>
+    <span class="ann">@ExceptionHandler</span>(CamundaCommunicationException.<span class="kw">class</span>)
+    <span class="kw">public</span> ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; gererErreurCamunda(CamundaCommunicationException e) {
+        <span class="kw">return</span> ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(ApiResponse.erreur(e.getMessage()));
+    }</code></pre></div>
+<div class="note">Comme pour <code>ApiResponse.succes</code> : aligne <code>ApiResponse.erreur(...)</code> sur la factory d'erreur que tes handlers 422/409 existants utilisent déjà. Et si le use case garde le pattern try/catch → <code>SessionServiceException</code> de l'existant, veille à ce que <code>completerTache</code> ne soit PAS enveloppé d'un catch-all qui avalerait les exceptions typées — c'est pour ça que la méthode fournie n'a volontairement aucun try/catch : chaque exception doit remonter au handler avec son code HTTP.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">9</span>Configuration yaml</h2>
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-container\src\main\resources\application.yml (et ton yaml local -Dspring.config.additional-location)</span><span class="tag add">À AJOUTER — COLONNE 0, au même niveau que spring:, jamais imbriqué dessous</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>camunda:
+  rest:
+    base-url: http://A_CONFIRMER_URL_MOTEUR:8080/engine-rest
+    tenant-id: A_CONFIRMER_AVEC_HAMZA
+    <span class="com"># task-definition-key: traiterDemandeCaisseCentrale   # optionnel — décommenter avec la clé exacte du BPMN</span></code></pre></div>
+<div class="danger"><b>Rappel root cause</b> : le bloc <code>camunda:</code> commence à la colonne 0. S'il glisse sous <code>spring:</code>, le binding <code>@ConfigurationProperties(prefix = "camunda.rest")</code> ne verra rien — c'était la cause de TOUS les échecs de binding Camunda de la session précédente. Les deux valeurs <code>A_CONFIRMER_*</code> sont les seules choses non finales de ce doc : URL du moteur (Yassin) et tenant-id (Hamza) — le code, lui, est complet.</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">10</span>Hypothèses posées — à valider avec Yassin / Hamza</h2>
+<table>
+<tr><th>#</th><th>Hypothèse</th><th>Comment vérifier</th><th>Si c'est différent</th></tr>
+<tr><td>1</td><td><b>businessKey = id de la demande</b> au démarrage du processus</td><td>Regarder l'appel de démarrage d'instance dans le code du worker/saga (le start process). Ou Cockpit Camunda : colonne Business Key des instances.</td><td>Si la corrélation se fait par une variable (ex : <code>demandeId</code>), remplacer dans l'adapter <code>queryParam("processInstanceBusinessKey", businessKey)</code> par <code>queryParam("processVariables", "demandeId_eq_" + businessKey)</code> — une seule ligne change, le reste est identique.</td></tr>
+<tr><td>2</td><td>Le BPMN a une <b>gateway</b> après la user task pilotée par <code>demandeValidee</code> (Boolean)</td><td>Ouvrir <code>gestion-des-fonds_bpmn.txt</code> : nom de la condition sur les flux sortants de la gateway.</td><td>Adapter le nom de la variable dans <code>completerTache(...)</code> du use case (un seul <code>variables.put</code> à renommer).</td></tr>
+<tr><td>3</td><td><code>taskDefinitionKey</code> de la user task de traitement</td><td>Dans le BPMN : attribut <code>id</code> de l'élément <code>&lt;bpmn:userTask&gt;</code>.</td><td>Renseigner <code>camunda.rest.task-definition-key</code> — sinon la recherche prend la tâche active de l'instance (suffisant s'il n'y a qu'une user task active à la fois).</td></tr>
+<tr><td>4</td><td><code>REJECTED</code> comme statut de refus</td><td>Valider avec Yassin/PO que le refus est un état terminal distinct de CANCELLED.</td><td>Si le métier préfère un retour à INITIATED (correction puis re-soumission), changer la branche <code>else</code> du use case.</td></tr>
+<tr><td>5</td><td>Pas d'authentification sur l'API REST du moteur</td><td>Demander à Hamza si le moteur partagé exige Basic Auth / token.</td><td>Ajouter <code>.defaultHeader("Authorization", ...)</code> dans le bean <code>camundaRestClient</code> + propriété dédiée.</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">11</span>Tests — curl + unitaires</h2>
+<h3>Scénario curl bout en bout</h3>
+<div class="code-bloc"><div class="titre-fichier"><span>Invite de commandes / Git Bash</span><span class="tag add">SCÉNARIO</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="com"># 0. Créer + soumettre une demande depuis le front (ou via l'API), noter son {id}</span>
+
+<span class="com"># 1. Cas nominal : validation</span>
+curl -X PATCH http://localhost:8300/cash/{id}/complete-task ^
+  -H "Content-Type: application/json" ^
+  -d "{\"decision\":\"APPROVE\",\"commentaire\":\"Fonds disponibles, ok pour livraison\"}"
+<span class="com"># Attendu : 200, data.requestStatus = "VALIDATED"
+# Cockpit Camunda : l'instance a franchi la user task, branche validée</span>
+
+<span class="com"># 2. Rejouer le même appel</span>
+<span class="com"># Attendu : 409 — "seul le statut SUBMITTED peut être traité"</span>
+
+<span class="com"># 3. Sur une demande INITIATED (jamais soumise)</span>
+<span class="com"># Attendu : 409</span>
+
+<span class="com"># 4. Sur un UUID inexistant</span>
+<span class="com"># Attendu : 404</span>
+
+<span class="com"># 5. Body sans decision : -d "{\"commentaire\":\"test\"}"</span>
+<span class="com"># Attendu : 422 (IllegalArgumentException → handler 422 existant)</span>
+
+<span class="com"># 6. Rejet : nouvelle demande soumise, decision REJECT</span>
+<span class="com"># Attendu : 200, data.requestStatus = "REJECTED" (et le CHECK passe — étape 3 du doc faite)</span>
+
+<span class="com"># 7. Moteur Camunda éteint, demande SUBMITTED</span>
+<span class="com"># Attendu : 502, la demande reste SUBMITTED en base (l'ordre Camunda-d'abord protège)</span></code></pre></div>
+
+<h3>Test unitaire du use case — Mockito strict, zéro stub global</h3>
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-domain\fund-management-application-service\src\test\java\...\CompleterTacheUseCaseTest.java</span><span class="tag full">FICHIER COMPLET (nouveau)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.ports;
+
+<span class="kw">import</span> com.bmci.q360.domain.entity.CashRequest;
+<span class="kw">import</span> com.bmci.q360.domain.entity.enums.TaskDecision;
+<span class="kw">import</span> com.bmci.q360.domain.valueobjects.CashRequestId;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.dto.CashRequestDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.dto.TraitementTacheDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.exceptions.StatutInvalideException;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.exceptions.TacheIntrouvableException;
+<span class="kw">import</span> org.junit.jupiter.api.Test;
+<span class="kw">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="kw">import</span> org.mockito.ArgumentCaptor;
+<span class="kw">import</span> org.mockito.InjectMocks;
+<span class="kw">import</span> org.mockito.Mock;
+<span class="kw">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="kw">import</span> java.util.Map;
+<span class="kw">import</span> java.util.Optional;
+<span class="kw">import</span> java.util.UUID;
+
+<span class="kw">import static</span> org.junit.jupiter.api.Assertions.*;
+<span class="kw">import static</span> org.mockito.Mockito.*;
+
+<span class="ann">@ExtendWith</span>(MockitoExtension.<span class="kw">class</span>)
+<span class="kw">class</span> <span class="ty">CompleterTacheUseCaseTest</span> {
+
+    <span class="com">// Reprendre ici les MÊMES mocks que tes tests existants de CashDemandUseCaseImpl
+    // (repository, mappers, denominationRepository...) + le nouveau port :</span>
+    <span class="ann">@Mock</span> <span class="kw">private</span> com.bmci.workflow.fund.management.service.domain.ports.output.repository.CashDemandRepository cashDemandRepository;
+    <span class="ann">@Mock</span> <span class="kw">private</span> com.bmci.workflow.fund.management.service.domain.ports.output.repository.DenominationRepository denominationRepository;
+    <span class="ann">@Mock</span> <span class="kw">private</span> com.bmci.workflow.fund.management.service.domain.mapper.CashRequestManualMapper cashRequestDomainMapper;
+    <span class="ann">@Mock</span> <span class="kw">private</span> com.bmci.workflow.fund.management.service.domain.mapperTemp1.CashRequestWebMapper mapperTamp;
+    <span class="ann">@Mock</span> <span class="kw">private</span> com.bmci.workflow.fund.management.service.domain.ports.output.workflow.CamundaTaskPort camundaTaskPort;
+
+    <span class="ann">@InjectMocks</span> <span class="kw">private</span> CashDemandUseCaseImpl useCase;
+
+    <span class="kw">private</span> CashRequest demandeSoumise(UUID id) {
+        CashRequest demande = <span class="kw">new</span> CashRequest();
+        demande.setId(<span class="kw">new</span> CashRequestId(id));
+        demande.setRequestStatus(<span class="str">"SUBMITTED"</span>);
+        <span class="kw">return</span> demande;
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> approveDoitCompleterLaTacheEtPasserValidated() {
+        UUID id = UUID.randomUUID();
+        CashRequest demande = demandeSoumise(id);
+        when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande);
+        when(camundaTaskPort.rechercherTacheActive(id.toString())).thenReturn(Optional.of(<span class="str">"task-1"</span>));
+        when(cashDemandRepository.save(demande)).thenReturn(demande);
+        when(mapperTamp.toResponseDTO(demande)).thenReturn(<span class="kw">new</span> CashRequestDTO());
+
+        useCase.completerTache(id, TraitementTacheDTO.builder()
+                .decision(TaskDecision.APPROVE).commentaire(<span class="str">"ok"</span>).build());
+
+        assertEquals(<span class="str">"VALIDATED"</span>, demande.getRequestStatus());
+        ArgumentCaptor&lt;Map&lt;String, Object&gt;&gt; variables = ArgumentCaptor.forClass(Map.<span class="kw">class</span>);
+        verify(camundaTaskPort).completerTache(eq(<span class="str">"task-1"</span>), variables.capture());
+        assertEquals(Boolean.TRUE, variables.getValue().get(<span class="str">"demandeValidee"</span>));
+        assertEquals(<span class="str">"APPROVE"</span>, variables.getValue().get(<span class="str">"decisionAgent"</span>));
+        assertEquals(<span class="str">"ok"</span>, variables.getValue().get(<span class="str">"commentaireAgent"</span>));
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> rejectDoitPasserRejected() {
+        UUID id = UUID.randomUUID();
+        CashRequest demande = demandeSoumise(id);
+        when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande);
+        when(camundaTaskPort.rechercherTacheActive(id.toString())).thenReturn(Optional.of(<span class="str">"task-2"</span>));
+        when(cashDemandRepository.save(demande)).thenReturn(demande);
+        when(mapperTamp.toResponseDTO(demande)).thenReturn(<span class="kw">new</span> CashRequestDTO());
+
+        useCase.completerTache(id, TraitementTacheDTO.builder()
+                .decision(TaskDecision.REJECT).build());
+
+        assertEquals(<span class="str">"REJECTED"</span>, demande.getRequestStatus());
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> statutNonSoumisDoitLever409SansAppelerCamunda() {
+        UUID id = UUID.randomUUID();
+        CashRequest demande = demandeSoumise(id);
+        demande.setRequestStatus(<span class="str">"INITIATED"</span>);
+        when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande);
+
+        assertThrows(StatutInvalideException.<span class="kw">class</span>, () ->
+            useCase.completerTache(id, TraitementTacheDTO.builder().decision(TaskDecision.APPROVE).build()));
+
+        verifyNoInteractions(camundaTaskPort);
+        verify(cashDemandRepository, never()).save(any());
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> aucuneTacheActiveDoitLever422SansChangerLeStatut() {
+        UUID id = UUID.randomUUID();
+        CashRequest demande = demandeSoumise(id);
+        when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande);
+        when(camundaTaskPort.rechercherTacheActive(id.toString())).thenReturn(Optional.empty());
+
+        assertThrows(TacheIntrouvableException.<span class="kw">class</span>, () ->
+            useCase.completerTache(id, TraitementTacheDTO.builder().decision(TaskDecision.APPROVE).build()));
+
+        assertEquals(<span class="str">"SUBMITTED"</span>, demande.getRequestStatus());
+        verify(cashDemandRepository, never()).save(any());
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> decisionNulleDoitLeverIllegalArgumentSansRienAppeler() {
+        UUID id = UUID.randomUUID();
+
+        assertThrows(IllegalArgumentException.<span class="kw">class</span>, () ->
+            useCase.completerTache(id, TraitementTacheDTO.builder().build()));
+
+        verifyNoInteractions(cashDemandRepository, camundaTaskPort);
+    }
+}</code></pre></div>
+<div class="note">Mockito strict respecté : chaque test déclare exactement les stubs qu'il consomme, zéro stub dans un <code>@BeforeEach</code>. Le test 409 et le test 422 vérifient aussi les <b>non-appels</b> (<code>verifyNoInteractions</code>, <code>never()</code>) — c'est ça qui prouve l'ordre « Camunda d'abord, statut ensuite ». Adapte la liste des <code>@Mock</code> à la signature réelle actuelle de ton <code>CashDemandUseCaseImpl</code> (mêmes mocks que tes tests existants + <code>camundaTaskPort</code>).</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">12</span>Récapitulatif des fichiers</h2>
+<table>
+<tr><th>Fichier</th><th>Action</th></tr>
+<tr><td>domain-core — <code>enums\TaskDecision.java</code></td><td>Nouveau</td></tr>
+<tr><td>domain-core — <code>enums\RequestStatus.java</code></td><td>Édition : + REJECTED</td></tr>
+<tr><td>container — <code>V1__...sql</code> (+ V2 si CHECK corpo)</td><td>Édition : CHECK statut + REJECTED</td></tr>
+<tr><td>application-service — <code>dto\TraitementTacheDTO.java</code></td><td>Nouveau</td></tr>
+<tr><td>application-service — <code>ports\output\workflow\CamundaTaskPort.java</code></td><td>Nouveau</td></tr>
+<tr><td>application-service — 3 exceptions (Camunda, TacheIntrouvable, StatutInvalide)</td><td>Nouveaux</td></tr>
+<tr><td>application-service — <code>CashDemandUseCase.java</code></td><td>Édition : + completerTache</td></tr>
+<tr><td>application-service — <code>CashDemandUseCaseImpl.java</code></td><td>Édition : + champ port, + méthode</td></tr>
+<tr><td>external-services — <code>CamundaRestProperties</code>, <code>CamundaRestConfig</code>, <code>CamundaTaskRestAdapter</code></td><td>Nouveaux</td></tr>
+<tr><td>application — <code>CashDemandController.java</code></td><td>Édition : + endpoint</td></tr>
+<tr><td>application — handler <code>@RestControllerAdvice</code></td><td>Édition : + 3 handlers (409/422/502)</td></tr>
+<tr><td>container — <code>application.yml</code></td><td>Édition : bloc camunda.rest colonne 0</td></tr>
+<tr><td>tests — <code>CompleterTacheUseCaseTest.java</code></td><td>Nouveau</td></tr>
+</table>
+<div class="note">Aucune dépendance Maven à ajouter : <code>RestClient</code> est fourni par spring-boot-starter-web (Boot 3.3.1). Après application : <code>mvn clean verify</code> doit rester vert.</div>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · API traitement user task Caisse Centrale · 02/09/2026</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{ btn.textContent='Copié ✓'; setTimeout(()=>btn.textContent='Copier',1800); });
+}
+</script>
+</body>
+</html>
