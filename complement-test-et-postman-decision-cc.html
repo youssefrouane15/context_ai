@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complément — Classe de test complète + corrections 422 + plan Postman (Décision Caisse Centrale)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1e2a26;--muted:#5b6b64;--bleu:#3d5a80;--rouge:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.55}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}
+header h1{margin:0 0 6px;font-size:1.35rem}
+header p{margin:0;opacity:.92}
+.badge{display:inline-block;background:var(--or);color:#fff;border-radius:4px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-top:10px;margin-right:6px}
+main{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
+section{background:#fff;border:1px solid #e0e8e4;border-radius:8px;padding:20px 24px;margin-bottom:22px}
+h2{color:var(--vf);margin:0 0 14px;font-size:1.2rem;border-left:5px solid var(--or);padding-left:10px}
+h3{color:var(--v);margin:18px 0 8px;font-size:1.02rem}
+.num{display:inline-block;background:var(--v);color:#fff;border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px;font-size:.9rem;margin-right:8px}
+.note{background:#eef6f2;border-left:4px solid var(--v);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.93rem}
+.warn{background:#fdf5e6;border-left:4px solid var(--or);padding:10px 14px;border-radius:4px;margin:12px 0;font-size:.93rem}
+.code-bloc{margin:14px 0;border:1px solid #d9e2dd;border-radius:6px;overflow:hidden}
+.titre-fichier{display:flex;align-items:center;justify-content:space-between;background:#e6efeb;padding:6px 12px;font-family:Consolas,monospace;font-size:.82rem;color:var(--vf);gap:8px;flex-wrap:wrap}
+.tag{font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:3px;color:#fff;white-space:nowrap}
+.tag.edit{background:var(--or)}.tag.full{background:var(--bleu)}.tag.del{background:var(--rouge)}
+.btn-copier{background:var(--v);color:#fff;border:0;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:.78rem}
+.btn-copier:hover{background:var(--vf)}
+pre{margin:0;padding:14px;background:#0f1a16 !important;color:#e8f0ec !important;overflow:auto;font-family:Consolas,"Courier New",monospace;font-size:.8rem;line-height:1.5}
+pre code{background:transparent !important;color:inherit;display:block}
+.kw{color:#c792ea}.str{color:#c3e88d}.com{color:#7f9a90;font-style:italic}.ann{color:#ffcb6b}.ty{color:#82aaff}
+code{background:#eef2f0;padding:1px 5px;border-radius:3px;font-family:Consolas,monospace;font-size:.85em}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.88rem}
+th,td{border:1px solid #d9e2dd;padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#e6efeb;color:var(--vf)}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>Complément — test compilable, correction des gardes 422, plan Postman</h1>
+<p>Corrige les deux manques du doc v2 : la classe de test livrée sans imports ni déclaration des mocks, et le plan de test en curl alors que ton outil est Postman. Bonus retrouvé dans l'existant : ton exception 422 est <code>RetailValidationException</code> (trio Validation/NotFound/Conflict → 422/404/409) — les gardes du use case sont corrigées en conséquence.</p>
+<span class="badge">02/09/2026</span><span class="badge">complète le doc api-decision-caisse-centrale-v2</span><span class="badge">+ collection Postman importable fournie</span>
+</header>
+<main>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">1</span>Correction des gardes — RetailValidationException au lieu d'IllegalArgumentException</h2>
+<p>Ton handler traduit les exceptions typées : <b>RetailValidationException → 422</b>, RetailNotFoundException → 404, RetailConflictException → 409. Les gardes de payload doivent donc lever la Validation, pas une IllegalArgumentException générique (qui finirait dans le catch-all 500).</p>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\service\domain\retail\ports\CashDemandUseCaseImpl.java — dans completerTacheCaisseCentrale</span><span class="tag edit">À REMPLACER — la Garde 1 du doc v2</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>        <span class="com">// Garde 1 — payload (RetailValidationException → 422 via ton handler existant)</span>
+        <span class="kw">if</span> (decision == <span class="kw">null</span> || decision.getDecision() == <span class="kw">null</span>) {
+            <span class="kw">throw new</span> RetailValidationException(<span class="str">"La décision (TRAITEE ou ANNULEE) est obligatoire"</span>);
+        }
+        <span class="kw">boolean</span> annulation = decision.getDecision() == DecisionCaisseCentrale.ANNULEE;
+        <span class="kw">if</span> (annulation && (decision.getMotifAnnulation() == <span class="kw">null</span>
+                || decision.getMotifAnnulation().trim().length() < 10)) {
+            <span class="kw">throw new</span> RetailValidationException(
+                <span class="str">"Le motif d'annulation est obligatoire (10 caractères minimum)"</span>);
+        }</code></pre></div>
+
+<div class="code-bloc"><div class="titre-fichier"><span>...\service\domain\corpo\ports\CorpoDemandUseCaseImpl.java — dans completerTacheCaisseCentrale</span><span class="tag edit">À REMPLACER — la Garde 1 du doc v2, version corpo</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code>        <span class="com">// Garde 1 — payload (CorpoValidationException → 422 via ton handler corpo existant)</span>
+        <span class="kw">if</span> (decision == <span class="kw">null</span> || decision.getDecision() == <span class="kw">null</span>) {
+            <span class="kw">throw new</span> CorpoValidationException(<span class="str">"La décision (TRAITEE ou ANNULEE) est obligatoire"</span>);
+        }
+        <span class="kw">boolean</span> annulation = decision.getDecision() == DecisionCaisseCentrale.ANNULEE;
+        <span class="kw">if</span> (annulation && (decision.getMotifAnnulation() == <span class="kw">null</span>
+                || decision.getMotifAnnulation().trim().length() < 10)) {
+            <span class="kw">throw new</span> CorpoValidationException(
+                <span class="str">"Le motif d'annulation est obligatoire (10 caractères minimum)"</span>);
+        }</code></pre></div>
+<div class="note">Ajoute l'import de <code>RetailValidationException</code> / <code>CorpoValidationException</code> à côté des imports NotFound/Conflict déjà demandés par le doc v2 — même package que ces deux-là (Ctrl+clic sur RetailNotFoundException dans le use case pour le chemin exact).</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">2</span>La classe de test — FICHIER COMPLET, imports et mocks inclus</h2>
+<p>Les <code>@Mock</code> couvrent la <b>totalité</b> des dépendances du constructeur de <code>CashDemandUseCaseImpl</code> (les 3 historiques : <code>cashDemandRepository</code>, <code>denominationRepository</code>, <code>webMapper</code> ; les 3 de la saga de soumission : <code>sagaOrchestrator</code>, <code>changerStatutDemandeStep</code>, <code>demarrerProcessusStep</code> ; + le nouveau <code>processusWorkflowPort</code>). C'est obligatoire : <code>@InjectMocks</code> injecte par constructeur, un mock manquant = champ null = NPE. Mockito strict ne râle pas sur un mock déclaré non stubé — seulement sur un stub non consommé.</p>
+
+<div class="code-bloc"><div class="titre-fichier"><span>fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\ports\CompleterTacheCaisseCentraleTest.java</span><span class="tag full">FICHIER COMPLET (nouveau)</span><button class="btn-copier" onclick="copier(this)">Copier</button></div>
+<pre><code><span class="kw">package</span> com.bmci.workflow.fund.management.service.domain.retail.ports;
+
+<span class="kw">import</span> com.bmci.q360.domain.retail.entity.CashRequest;
+<span class="kw">import</span> com.bmci.q360.domain.retail.valueobjects.CashRequestId;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.common.DecisionCaisseCentrale;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.common.DecisionCaisseCentraleDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.mapperTemp1.CashRequestWebMapper;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.workflow.ProcessusWorkflowPort;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.exceptions.RetailConflictException;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.exceptions.RetailNotFoundException;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.exceptions.RetailValidationException;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.inputs.service.CashDemandUseCase;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.CashDemandRepository;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.DenominationRepository;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.saga.ChangerStatutDemandeStep;
+<span class="kw">import</span> com.bmci.workflow.fund.management.service.domain.retail.saga.DemarrerProcessusStep;
+<span class="kw">import</span> com.bmci.common.workflow.SagaOrchestrator;
+<span class="kw">import</span> org.junit.jupiter.api.Test;
+<span class="kw">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="kw">import</span> org.mockito.ArgumentCaptor;
+<span class="kw">import</span> org.mockito.InjectMocks;
+<span class="kw">import</span> org.mockito.Mock;
+<span class="kw">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="kw">import</span> java.util.Map;
+<span class="kw">import</span> java.util.Optional;
+<span class="kw">import</span> java.util.UUID;
+
+<span class="kw">import static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="kw">import static</span> org.junit.jupiter.api.Assertions.assertFalse;
+<span class="kw">import static</span> org.junit.jupiter.api.Assertions.assertThrows;
+<span class="kw">import static</span> org.mockito.ArgumentMatchers.any;
+<span class="kw">import static</span> org.mockito.ArgumentMatchers.eq;
+<span class="kw">import static</span> org.mockito.Mockito.never;
+<span class="kw">import static</span> org.mockito.Mockito.verify;
+<span class="kw">import static</span> org.mockito.Mockito.verifyNoInteractions;
+<span class="kw">import static</span> org.mockito.Mockito.when;
+
+<span class="com">/**
+ * completerTacheCaisseCentrale — Mockito strict : chaque test declare exactement
+ * ce qu'il consomme, zero stub en @BeforeEach.
+ * Les @Mock couvrent TOUT le constructeur de CashDemandUseCaseImpl :
+ * les non-utilises ici (denominationRepository, saga) servent uniquement l'injection.
+ */</span>
+<span class="ann">@ExtendWith</span>(MockitoExtension.<span class="kw">class</span>)
+<span class="kw">class</span> <span class="ty">CompleterTacheCaisseCentraleTest</span> {
+
+    <span class="ann">@Mock</span> <span class="kw">private</span> CashDemandRepository cashDemandRepository;
+    <span class="ann">@Mock</span> <span class="kw">private</span> DenominationRepository denominationRepository;
+    <span class="ann">@Mock</span> <span class="kw">private</span> CashRequestWebMapper webMapper;
+    <span class="ann">@Mock</span> <span class="kw">private</span> SagaOrchestrator sagaOrchestrator;
+    <span class="ann">@Mock</span> <span class="kw">private</span> ChangerStatutDemandeStep changerStatutDemandeStep;
+    <span class="ann">@Mock</span> <span class="kw">private</span> DemarrerProcessusStep demarrerProcessusStep;
+    <span class="ann">@Mock</span> <span class="kw">private</span> ProcessusWorkflowPort processusWorkflowPort;
+
+    <span class="ann">@InjectMocks</span>
+    <span class="kw">private</span> CashDemandUseCaseImpl useCase;
+
+    <span class="kw">private</span> CashRequest demandeAuStatut(UUID id, String statut) {
+        CashRequest demande = <span class="kw">new</span> CashRequest();
+        demande.setId(<span class="kw">new</span> CashRequestId(id));
+        demande.setRequestStatus(statut);
+        <span class="kw">return</span> demande;
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> traiteeDoitCompleterLaTacheSansEcrireLeStatut() {
+        UUID id = UUID.randomUUID();
+        CashRequest demande = demandeAuStatut(id, <span class="str">"SUBMITTED"</span>);
+        when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande);
+        when(processusWorkflowPort.rechercherTacheActive(id.toString())).thenReturn(Optional.of(<span class="str">"task-1"</span>));
+        when(webMapper.toResponseDTO(demande)).thenReturn(<span class="kw">new</span> CashRequestDTO());
+
+        useCase.completerTacheCaisseCentrale(id,
+            DecisionCaisseCentraleDTO.builder().decision(DecisionCaisseCentrale.TRAITEE).build());
+
+        <span class="com">// La preuve du design : la variable part, le statut local NE BOUGE PAS, aucun save.</span>
+        <span class="ann">@SuppressWarnings</span>(<span class="str">"unchecked"</span>)
+        ArgumentCaptor&lt;Map&lt;String, Object&gt;&gt; variables =
+            ArgumentCaptor.forClass((Class&lt;Map&lt;String, Object&gt;&gt;) (Class&lt;?&gt;) Map.<span class="kw">class</span>);
+        verify(processusWorkflowPort).completerTache(eq(<span class="str">"task-1"</span>), variables.capture());
+        assertEquals(<span class="str">"TRAITEE"</span>, variables.getValue().get(<span class="str">"decisionCaisseCentrale"</span>));
+        assertFalse(variables.getValue().containsKey(<span class="str">"motifAnnulation"</span>));
+        assertEquals(<span class="str">"SUBMITTED"</span>, demande.getRequestStatus());
+        verify(cashDemandRepository, never()).save(any());
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> annuleeDoitTransmettreLeMotif() {
+        UUID id = UUID.randomUUID();
+        CashRequest demande = demandeAuStatut(id, <span class="str">"SUBMITTED"</span>);
+        when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande);
+        when(processusWorkflowPort.rechercherTacheActive(id.toString())).thenReturn(Optional.of(<span class="str">"task-2"</span>));
+        when(webMapper.toResponseDTO(demande)).thenReturn(<span class="kw">new</span> CashRequestDTO());
+
+        useCase.completerTacheCaisseCentrale(id, DecisionCaisseCentraleDTO.builder()
+            .decision(DecisionCaisseCentrale.ANNULEE)
+            .motifAnnulation(<span class="str">"Stock insuffisant en caisse centrale"</span>)
+            .build());
+
+        <span class="ann">@SuppressWarnings</span>(<span class="str">"unchecked"</span>)
+        ArgumentCaptor&lt;Map&lt;String, Object&gt;&gt; variables =
+            ArgumentCaptor.forClass((Class&lt;Map&lt;String, Object&gt;&gt;) (Class&lt;?&gt;) Map.<span class="kw">class</span>);
+        verify(processusWorkflowPort).completerTache(eq(<span class="str">"task-2"</span>), variables.capture());
+        assertEquals(<span class="str">"ANNULEE"</span>, variables.getValue().get(<span class="str">"decisionCaisseCentrale"</span>));
+        assertEquals(<span class="str">"Stock insuffisant en caisse centrale"</span>,
+            variables.getValue().get(<span class="str">"motifAnnulation"</span>));
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> annuleeSansMotifValideDoitLever422SansRienAppeler() {
+        UUID id = UUID.randomUUID();
+
+        assertThrows(RetailValidationException.<span class="kw">class</span>, () ->
+            useCase.completerTacheCaisseCentrale(id, DecisionCaisseCentraleDTO.builder()
+                .decision(DecisionCaisseCentrale.ANNULEE)
+                .motifAnnulation(<span class="str">"court"</span>)
+                .build()));
+
+        verifyNoInteractions(cashDemandRepository, processusWorkflowPort);
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> decisionAbsenteDoitLever422SansRienAppeler() {
+        UUID id = UUID.randomUUID();
+
+        assertThrows(RetailValidationException.<span class="kw">class</span>, () ->
+            useCase.completerTacheCaisseCentrale(id, DecisionCaisseCentraleDTO.builder().build()));
+
+        verifyNoInteractions(cashDemandRepository, processusWorkflowPort);
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> statutNonSoumisDoitLever409SansAppelerCamunda() {
+        UUID id = UUID.randomUUID();
+        when(cashDemandRepository.getCashRequestById(id)).thenReturn(demandeAuStatut(id, <span class="str">"INITIATED"</span>));
+
+        assertThrows(RetailConflictException.<span class="kw">class</span>, () ->
+            useCase.completerTacheCaisseCentrale(id,
+                DecisionCaisseCentraleDTO.builder().decision(DecisionCaisseCentrale.TRAITEE).build()));
+
+        verifyNoInteractions(processusWorkflowPort);
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> aucuneTacheActiveDoitLever409SansCompleter() {
+        UUID id = UUID.randomUUID();
+        when(cashDemandRepository.getCashRequestById(id)).thenReturn(demandeAuStatut(id, <span class="str">"SUBMITTED"</span>));
+        when(processusWorkflowPort.rechercherTacheActive(id.toString())).thenReturn(Optional.empty());
+
+        assertThrows(RetailConflictException.<span class="kw">class</span>, () ->
+            useCase.completerTacheCaisseCentrale(id,
+                DecisionCaisseCentraleDTO.builder().decision(DecisionCaisseCentrale.TRAITEE).build()));
+
+        verify(processusWorkflowPort, never()).completerTache(any(), any());
+    }
+
+    <span class="ann">@Test</span>
+    <span class="kw">void</span> demandeIntrouvableDoitLever404() {
+        UUID id = UUID.randomUUID();
+        when(cashDemandRepository.getCashRequestById(id)).thenReturn(<span class="kw">null</span>);
+
+        assertThrows(RetailNotFoundException.<span class="kw">class</span>, () ->
+            useCase.completerTacheCaisseCentrale(id,
+                DecisionCaisseCentraleDTO.builder().decision(DecisionCaisseCentrale.TRAITEE).build()));
+    }
+}</code></pre></div>
+<div class="warn"><b>4 imports à vérifier par Ctrl+clic depuis ton IDE</b> (les seuls dont le package exact peut différer chez toi — la classe est la bonne, seul le chemin peut varier) : <code>CashRequestWebMapper</code> (prends l'import qu'utilise <code>CashDemandUseCaseImpl</code>), les 3 exceptions retail (prends le package où vivent tes Retail*Exception), <code>SagaOrchestrator</code> (chez toi : <code>com.bmci.common.workflow</code> — confirmé par ta décision scanBasePackages), et <code>ChangerStatutDemandeStep</code>/<code>DemarrerProcessusStep</code> (le package de ta saga retail). Si IntelliJ souligne un import en rouge : Alt+Entrée → il te propose le bon. Pour la version corpo : duplique le fichier, remplace Retail→Corpo, CashRequest→CorpoCashRequest, RequestStatus→CorpoRequestStatus, et les steps corpo (<code>ChangerStatutCorpoStep</code>/<code>DemarrerProcessusCorpoStep</code>).</div>
+</section>
+
+<!-- ============================================================ -->
+<section>
+<h2><span class="num">3</span>Plan de test Postman</h2>
+<p>Une <b>collection prête à importer</b> est fournie à côté de ce doc : <code>decision-caisse-centrale.postman_collection.json</code>. Import : Postman → <b>Import</b> → glisser le fichier. Chaque requête embarque ses assertions (onglet Tests) : code HTTP attendu + vérification du corps.</p>
+
+<h3>3.1 Préparation (une seule fois)</h3>
+<table>
+<tr><th>Variable de collection</th><th>Valeur à coller</th><th>Comment l'obtenir</th></tr>
+<tr><td><code>baseUrl</code></td><td><code>http://localhost:8300</code></td><td>Déjà renseignée.</td></tr>
+<tr><td><code>demandeTraitee</code></td><td>UUID demande retail <b>SUBMITTED</b> n°1</td><td>Front : créer + soumettre ; copier l'id depuis la liste (ou le snackbar de création).</td></tr>
+<tr><td><code>demandeAnnulee</code></td><td>UUID demande retail <b>SUBMITTED</b> n°2</td><td>Idem, deuxième demande.</td></tr>
+<tr><td><code>demandeInitiated</code></td><td>UUID demande retail <b>jamais soumise</b></td><td>Créer sans soumettre.</td></tr>
+<tr><td><code>corpoDemande</code></td><td>UUID demande corpo <b>SUBMITTED</b></td><td><code>POST /corpo/cash</code> puis <code>PATCH /corpo/cash/{id}/submit</code> (tes requêtes Postman de la session Camunda).</td></tr>
+</table>
+<div class="note">Les variables se remplissent dans Postman : clic sur la collection → onglet <b>Variables</b> → colonne « Current value » → Save. Moteur Camunda + worker démarrés pour tout sauf le scénario 08.</div>
+
+<h3>3.2 Les 9 requêtes de la collection, dans l'ordre</h3>
+<table>
+<tr><th>#</th><th>Requête</th><th>Body</th><th>Assertions embarquées</th><th>Vérifs hors Postman</th></tr>
+<tr><td>01</td><td><code>PATCH {{baseUrl}}/cash/{{demandeTraitee}}/complete-task</code></td><td><code>{"decision":"TRAITEE"}</code></td><td>200 · success=true · <code>data.requestStatus == "SUBMITTED"</code> (asynchronisme)</td><td>Console backend : <code>[gdf-cloturer-demande] demande {uuid} traitée par la Caisse Centrale</code> · ~1 s après : base <code>VALIDATED</code>, chip « Validée » au front, instance terminée en Cockpit. <b>= ton étape 6 Cockpit, sans Cockpit.</b></td></tr>
+<tr><td>02</td><td><code>.../cash/{{demandeAnnulee}}/complete-task</code></td><td><code>{"decision":"ANNULEE","motifAnnulation":"Stock insuffisant en caisse centrale"}</code></td><td>200 · success=true</td><td>Log <code>[gdf-annuler-demande] ... origine=CAISSE_CENTRALE</code> · base <code>CANCELLED</code> (demande + opérations).</td></tr>
+<tr><td>03</td><td><code>.../cash/{{demandeInitiated}}/complete-task</code></td><td><code>{"decision":"ANNULEE","motifAnnulation":"court"}</code></td><td>422 · success=false</td><td>Règle PO ≥ 10 : la garde 1 refuse AVANT toute lecture — rien en base, rien en Cockpit.</td></tr>
+<tr><td>04</td><td>Rejoue 01 (demande devenue VALIDATED)</td><td><code>{"decision":"TRAITEE"}</code></td><td>409</td><td>Message « Seule une demande SUBMITTED peut être traitée… ».</td></tr>
+<tr><td>05</td><td><code>.../cash/{{demandeInitiated}}/complete-task</code></td><td><code>{"decision":"TRAITEE"}</code></td><td>409</td><td>Garde statut : INITIATED refusé, aucun appel moteur.</td></tr>
+<tr><td>06</td><td><code>.../cash/00000000-0000-0000-0000-000000000000/complete-task</code></td><td><code>{"decision":"TRAITEE"}</code></td><td>404</td><td>—</td></tr>
+<tr><td>07</td><td><code>.../cash/{{demandeInitiated}}/complete-task</code></td><td><code>{"motifAnnulation":"test sans decision fournie"}</code></td><td>422</td><td>Décision absente → garde 1.</td></tr>
+<tr><td>08</td><td><b>Manuel</b> : couper le moteur Camunda d'abord, puis rejouer sur une demande SUBMITTED (réutilise <code>{{demandeAnnulee}}</code> si tu refais un cycle, ou change la variable)</td><td><code>{"decision":"TRAITEE"}</code></td><td>502 · message contient « indisponible »</td><td>Base : demande toujours <code>SUBMITTED</code> · moteur relancé → la même requête passe en 200 (rejouabilité).</td></tr>
+<tr><td>09</td><td><code>PATCH {{baseUrl}}/corpo/cash/{{corpoDemande}}/complete-task</code></td><td><code>{"decision":"TRAITEE"}</code></td><td>200 · statut encore SUBMITTED dans la réponse</td><td>Base corpo → <code>VALIDATED</code> ~1 s après (routage <code>typeDemande</code> par le handler).</td></tr>
+</table>
+<div class="warn"><b>Deux scénarios dépendent d'un état préparé</b> : le 04 exige que le 01 ait été joué (et le worker passé — attends 1-2 s), le 08 exige le moteur éteint. Si tu lances la collection entière d'un coup (Run collection), joue plutôt 01→07 et 09 automatiquement, et 08 à la main. Après le cycle complet, pour rejouer : recrée des demandes fraîches et remets les UUID dans les variables.</div>
+</section>
+
+</main>
+<footer>QlickFlow — Squad Q360 · complément test + Postman décision Caisse Centrale · 02/09/2026</footer>
+<script>
+function copier(btn){
+  const code = btn.closest('.code-bloc').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(()=>{ btn.textContent='Copié ✓'; setTimeout(()=>btn.textContent='Copier',1800); });
+}
+</script>
+</body>
+</html>
