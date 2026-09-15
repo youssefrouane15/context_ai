@@ -1,0 +1,134 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Console × Gestion des Fonds — Comprendre le besoin : agences, zones, prestataires</title>
+<style>
+:root{
+  --bg:#0c1512;--bg2:#10201a;--panel:#132a22;--panel2:#0f221b;
+  --ink:#e6efe9;--ink2:#a9bfb3;--ink3:#6f8a7c;
+  --green:#0B6B4F;--green2:#0e8a66;--green3:#17b487;--deep:#07402F;--gold:#B8892C;--gold2:#e2b55a;
+  --red:#d9534f;--blue:#4ea3d9;--line:#1f3a30;
+  --mono:"JetBrains Mono","Cascadia Code",Consolas,"Courier New",monospace;
+  --sans:"Segoe UI",Inter,system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55}
+a{color:var(--green3)}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav{position:sticky;top:0;height:100vh;overflow:auto;background:var(--deep);border-right:1px solid var(--line);padding:22px 18px}
+nav .brand{font-weight:700;font-size:13px;letter-spacing:.02em;color:var(--gold2);margin-bottom:4px}
+nav .ticket{font-size:22px;font-weight:800;color:#fff;line-height:1.1}
+nav .sub{font-size:12px;color:#bcd6cb;margin:6px 0 18px}
+nav a{display:block;color:#d7e8df;text-decoration:none;padding:6px 8px;border-radius:6px;font-size:13.5px;margin:1px 0}
+nav a:hover{background:rgba(255,255,255,.07)}
+nav a.l2{padding-left:22px;font-size:12.5px;color:#b3cbc0}
+nav .prog{margin-top:18px;font-size:12px;color:#bcd6cb}
+nav .bar{height:6px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;margin-top:6px}
+nav .bar i{display:block;height:100%;width:0;background:var(--gold2);transition:width .25s}
+main{padding:32px 44px 90px;max-width:1120px}
+h1{font-size:30px;margin:0 0 6px;font-weight:800;color:#fff}
+h1 small{display:block;font-size:14px;font-weight:500;color:var(--ink2);margin-top:6px}
+h2{font-size:21px;margin:44px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--green);color:#fff}
+h3{font-size:16px;margin:26px 0 8px;color:var(--gold2)}
+p{margin:8px 0;max-width:80ch}
+ul,ol{max-width:82ch}
+li{margin:4px 0}
+code{font-family:var(--mono);font-size:13px;background:#0a1a14;padding:1px 5px;border-radius:4px;color:#d3e7dc;border:1px solid var(--line)}
+.box{border-left:4px solid var(--green);background:var(--panel2);padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0;max-width:86ch}
+.box.warn{border-color:var(--gold);background:#1d1a0f}
+.box.danger{border-color:var(--red);background:#22120f}
+.box.info{border-color:var(--blue);background:#0f1c24}
+.box b:first-child{display:block;margin-bottom:4px}
+table{border-collapse:collapse;width:100%;max-width:100ch;margin:10px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--deep);color:#fff}
+td code{white-space:nowrap}
+.file{margin:22px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.file header{display:flex;align-items:center;gap:10px;padding:9px 12px;background:#0a1e17;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tag{font-size:11px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:4px;color:#fff;white-space:nowrap}
+.tag.complet{background:var(--green)}
+.tag.ajouter{background:#1f6fa8}
+.tag.edition{background:var(--gold);color:#1b1300}
+.tag.supprimer{background:var(--red)}
+.path{font-family:var(--mono);font-size:12.5px;color:#cfe3d8;word-break:break-all;flex:1}
+.file button{margin-left:auto;background:var(--green);color:#fff;border:0;border-radius:6px;padding:5px 11px;font-size:12px;cursor:pointer;font-weight:600}
+.file button:hover{background:var(--green2)}
+.file button.ok{background:var(--gold);color:#1b1300}
+.file .note{padding:8px 12px;font-size:13px;color:var(--ink2);border-bottom:1px solid var(--line);background:#0d1f18}
+pre{margin:0;padding:14px 16px;overflow:auto;background:#07100d !important;color:#dbe9e1;font-family:var(--mono);font-size:12.8px;line-height:1.5;tab-size:4}
+.k{color:#c792ea}.s{color:#c3e88d}.c{color:#6f8a7c;font-style:italic}.a{color:#ffcb6b}.n{color:#f78c6c}.t{color:#82aaff}
+.steps{list-style:none;padding:0;margin:10px 0;max-width:90ch}
+.steps li{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;background:var(--panel2)}
+.steps input{margin-top:4px;accent-color:var(--gold)}
+.steps li.done{opacity:.55;text-decoration:line-through}
+.pill{display:inline-block;font-family:var(--mono);font-size:12px;padding:2px 7px;border-radius:4px;background:#0a1a14;border:1px solid var(--line);margin-right:6px}
+.get{color:#4ea3d9}.post{color:#17b487}.put{color:#e2b55a}.patch{color:#c792ea}
+details{border:1px solid var(--line);border-radius:8px;margin:10px 0;background:var(--panel2)}
+summary{cursor:pointer;padding:9px 12px;font-weight:600;color:#fff}
+details > div{padding:4px 14px 12px}
+.kv{display:grid;grid-template-columns:200px 1fr;gap:4px 14px;max-width:90ch;font-size:14px}
+.kv b{color:var(--ink2);font-weight:600}
+footer{margin-top:60px;font-size:12px;color:var(--ink3);border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav{position:static;height:auto}main{padding:20px 16px 70px}.kv{grid-template-columns:1fr}}
+</style></head><body><div class="layout">
+<nav><div class="brand">QlickFlow · utilisateurs-ci</div><div class="ticket">Console × Gestion des Fonds</div><div class="sub">Comprendre le besoin : agences, zones, prestataires</div>
+<a href="#pq">1. La question de départ : « ça n'existait pas déjà ? »</a><a href="#metier">2. Le métier : la gestion des fonds en cinq phrases</a><a href="#modele">3. Le modèle : ce que porte une agence après les tickets</a><a href="#tickets">4. Les tickets et leurs dépendances</a><a href="#fm">5. Le lien avec fund-management</a><a href="#gloss">6. Glossaire</a><div class="prog">Étapes cochées : <span>0 / 0</span><div class="bar"><i></i></div></div></nav>
+<main><h1>Comprendre le besoin : agences, zones, prestataires<small>Note de cadrage métier — ce que demandent les tickets console, ce qui existait, et le lien avec fund-management</small></h1><h2 id="pq">1. La question de départ : « ça n'existait pas déjà ? »</h2><p>Si, en partie — et c’est exactement ce qui rend les tickets déroutants. Le microservice <code>utilisateurs-ci</code> est le <b>backend de la console d’administration</b> de QlickFlow : il gère les utilisateurs, leurs profils et habilitations, et l’<b>organisation</b> de la banque (zones, groupes, agences). Cette organisation a été construite pour rattacher un utilisateur à son agence et dérouler les habilitations (un DA voit son agence, un DZ sa zone). <code>AgenceController</code>, <code>ZoneController</code> et les ~300 agences seedées en V5 viennent de là.</p><p>Les tickets console de l’épopée Gestion des Fonds demandent autre chose : <b>des informations logistiques</b> sur chaque agence, dont la gestion des fonds a besoin et que la console n’avait aucune raison de connaître jusqu’ici. Les titres Jira (« BDD et API CRUD Agence », « Référentiel Zones ») ont été écrits comme si tout était à créer ; la réalité est un mélange d’existant à enrichir et de nouveautés.</p><table><tr><th>Concept</th><th>Existait avant les tickets ?</th><th>Ce que les tickets ajoutent</th></tr><tr><td>Agence</td><td><b>Oui</b> — <code>orga_unit</code> type AGENCE, CRUD complet, ~300 agences</td><td>3 attributs : zone de distribution, prestataire, coût de déplacement (271)</td></tr><tr><td>Zone <i>d’organisation</i></td><td><b>Oui</b> — <code>orga_unit</code> type ZONE, 6 zones (Casa Ouest, Rabat-Nord…), <code>ZoneController</code></td><td><b>Rien.</b> Ce n’est pas la zone dont parlent les tickets.</td></tr><tr><td>Zone <i>de distribution</i></td><td><b>Non</b></td><td>Nouvelle table + CRUD (270), écran (268)</td></tr><tr><td>Prestataire</td><td><b>Non</b></td><td>Enum Brink’s / G4S + API de listing (269), écran (260)</td></tr></table><div class="box danger"><b>Le piège de vocabulaire</b>Le mot <b>« zone »</b> désigne deux choses différentes. La <b>zone d’organisation</b> est un niveau hiérarchique de management (Zone → Groupe → Agence, avec un Directeur de Zone). La <b>zone de distribution</b> est un secteur logistique de livraison des fonds (« Zone Casablanca », « Zone Rabat-Salé »). Une agence a les deux, indépendamment l’une de l’autre. C’est pour ça que le tech lead a tranché : table dédiée, pas de réutilisation de <code>orga_unit</code>.</div><h2 id="metier">2. Le métier : la gestion des fonds en cinq phrases</h2><p>Une <b>agence BMCI</b> a besoin de billets et de pièces pour servir ses clients, ou au contraire d’évacuer un excédent d’espèces. Elle saisit une <b>demande de fonds</b> dans QlickFlow. La <b>Caisse Centrale</b> — seule entité de traitement — reçoit toutes les demandes du réseau et les organise avec un <b>prestataire de transport de fonds</b> (Brink’s ou G4S), qui fait physiquement la livraison ou l’enlèvement dans un véhicule blindé. La Caisse Centrale clôture ensuite la demande (traitée) ou l’annule.</p><div class="flow"><span class="n">Agence saisit une demande</span><span class="ar">→</span><span class="n">Soumission (cutoff 10h urgence / 16h clôture)</span><span class="ar">→</span><span class="n">Caisse Centrale traite</span><span class="ar">→</span><span class="n ext">Prestataire livre / enlève</span><span class="ar">→</span><span class="n">Demande traitée ou annulée</span></div><h3>Les trois types de demandes</h3><table><tr><th>Type</th><th>Qui</th><th>Particularités</th></tr><tr><td>Demande Agence (natures 1 à 4)</td><td>Agences du réseau retail — DA ou Chef de Caisse</td><td>Notion d’urgence avant 10h ; exception Banque Privée avec validation du Responsable BP</td></tr><tr><td>Demande Corporate (natures 5 et 6)</td><td>Centres d’Affaires — DA, RM, Directeur de Zone en secours</td><td>Ni urgence ni cutoff 10h</td></tr><tr><td>Alimentation GAB Hors Site</td><td>Opérateur créateur</td><td>1 demande = n besoins (un par GAB), 4 cassettes</td></tr></table><h3>Pourquoi l’agence doit porter ces trois informations</h3><table><tr><th>Attribut</th><th>Ce qu’il représente</th><th>À quoi il sert</th></tr><tr><td><b>Prestataire</b></td><td>Le transporteur de fonds contractuellement affecté à l’agence</td><td>La Caisse Centrale sait à qui confier la demande sans le chercher ; base d’une future consolidation par prestataire</td></tr><tr><td><b>Zone de distribution</b></td><td>Le secteur logistique de l’agence, c’est-à-dire la tournée / le périmètre géographique de livraison</td><td>Regrouper les demandes d’un même secteur, planifier les passages du prestataire</td></tr><tr><td><b>Coût fixe de déplacement</b></td><td>Ce que coûte un passage du prestataire à cette agence, en MAD (montant avec décimales)</td><td>Valoriser une demande, piloter le coût du réseau, arbitrer urgences et regroupements</td></tr></table><div class="box warn"><b>Ce que les tickets ne disent pas</b>Les tickets décrivent <b>la saisie</b> de ces informations par un administrateur (« afin de disposer de ses données dans l’application »). Ils ne disent pas encore <b>comment fund-management les consommera</b> : valorisation automatique d’une demande, affichage dans l’écran Caisse Centrale (266), export consolidé… Les usages listés ci-dessus sont les usages plausibles, pas des exigences écrites. Question à poser au tech lead avant l’écran Caisse Centrale.</div><h2 id="modele">3. Le modèle : ce que porte une agence après les tickets</h2><style>
+.diag{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:16px 0;max-width:100ch}
+.tree{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.tree h4{margin:0 0 10px;color:#fff;font-size:14px}
+.tree .lvl{margin-left:0;padding:6px 10px;border-left:3px solid var(--green);margin-bottom:6px;background:#0a1a14;border-radius:0 6px 6px 0}
+.tree .lvl.l2{margin-left:18px}.tree .lvl.l3{margin-left:36px}
+.tree .lvl b{color:var(--gold2)}
+.tree .lvl small{display:block;color:var(--ink2)}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0;max-width:100ch}
+.flow .n{background:var(--deep);border:1px solid var(--green);border-radius:8px;padding:8px 12px;color:#fff;font-size:13.5px}
+.flow .n.alt{background:#1d1a0f;border-color:var(--gold)}
+.flow .n.ext{background:#0f1c24;border-color:var(--blue)}
+.flow .ar{color:var(--ink3);font-size:18px}
+.dep{border-collapse:collapse}
+.st{font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;color:#fff;white-space:nowrap}
+.st.done{background:var(--green)}.st.wip{background:var(--gold);color:#1b1300}.st.todo{background:#3b4a44}.st.other{background:var(--red)}
+@media (max-width:900px){.diag{grid-template-columns:1fr}}
+</style><div class="diag"><div class="tree"><h4>Organisation (existante, table orga_unit)</h4><div class="lvl"><b>ZONE</b> d’organisation — ex. Zone Casa Ouest<small>niveau de management, Directeur de Zone</small></div><div class="lvl l2"><b>GROUPE</b> — ex. Groupe Casa Maarif<small>regroupement d’agences</small></div><div class="lvl l3"><b>AGENCE</b> — ex. 1422 Nations Unies<small>code, libellé, manager, actif</small></div></div><div class="tree"><h4>Logistique (ajoutée par 269 / 270 / 271)</h4><div class="lvl"><b>Zone de distribution</b> — table zone_distribution<small>CASA « Zone Casablanca », RABAT « Zone Rabat-Salé »</small></div><div class="lvl"><b>Prestataire</b> — enum<small>BRINKS « Brink’s », G4S « G4S »</small></div><div class="lvl"><b>Coût de déplacement</b> — numeric(12,2)<small>ex. 350,00 MAD</small></div></div></div><p>L’agence est le point de jonction : elle garde son rattachement hiérarchique (parent = GROUPE) <b>et</b> reçoit trois colonnes logistiques. Rien n’est retiré, rien n’est déplacé.</p><h3>Pourquoi ces choix de modélisation</h3><ul><li><b>Zone de distribution en table</b> : la liste évoluera (nouvelles zones, désactivation), un administrateur doit pouvoir la gérer à l’écran (268). Le seed CASA / RABAT vient de la maquette ; la liste réelle est à demander.</li><li><b>Prestataire en enum</b> : deux acteurs contractuels, stables dans le temps, sans attributs propres à ce stade. Un référentiel en base serait de la sur-ingénierie. Conséquence : ajouter un prestataire est un déploiement, pas une saisie.</li><li><b>Coût nullable en base</b> : les 300 agences existantes n’en ont pas ; on ne peut pas inventer une valeur.</li></ul><h2 id="tickets">4. Les tickets et leurs dépendances</h2><p>Chaque référentiel est découpé en un ticket backend (BDD + API) et un ticket front. Les flèches se lisent « a besoin de ».</p><div class="flow"><span class="n">270 zones (back)</span><span class="ar">→</span><span class="n">271 agence (back)</span><span class="ar">→</span><span class="n alt">259 config agences (front)</span></div><div class="flow"><span class="n">269 prestataires (back)</span><span class="ar">→</span><span class="n">271 agence (back)</span></div><div class="flow"><span class="n">270 zones (back)</span><span class="ar">→</span><span class="n alt">268 référentiel zones (front)</span> &nbsp;&nbsp; <span class="n">269 prestataires (back)</span><span class="ar">→</span><span class="n alt">260 référentiel prestataires (front)</span></div><table class="dep"><tr><th>Ticket</th><th>Titre</th><th>Pts</th><th>État</th><th>En clair</th></tr><tr><td>AER_LM-270</td><td>Console – BDD et API Référentiel Zones</td><td>8</td><td><span class="st done">livré (doc)</span></td><td>Créer la table des zones de distribution et son CRUD. Socle de tout le reste.</td></tr><tr><td>AER_LM-269</td><td>Console – BDD et API Référentiel Prestataires</td><td>8</td><td><span class="st done">livré (doc)</span></td><td>Exposer la liste Brink’s / G4S. Réduit à une enum + un GET par décision du tech lead ; les 8 points ne tiennent plus.</td></tr><tr><td>AER_LM-271</td><td>Console – BDD et API CRUD Agence</td><td>5</td><td><span class="st done">livré (doc)</span></td><td>Enrichir l’agence existante des 3 attributs. Le CRUD existait ; c’est une adaptation.</td></tr><tr><td>AER_LM-259</td><td>Console – Front Configuration des agences</td><td>5</td><td><span class="st wip">à faire</span></td><td>Le dialog « Modifier » : code en lecture seule, libellé, dropdown zone, dropdown prestataire, coût, case Actif.</td></tr><tr><td>AER_LM-268</td><td>Console – Front Référentiel Zones</td><td>8</td><td><span class="st todo">backlog</span></td><td>Onglet « Zones » du paramétrage : tableau code / libellé / actif, Nouveau, Modifier, Désactiver.</td></tr><tr><td>AER_LM-260</td><td>Console – Front Référentiel Prestataires</td><td>8</td><td><span class="st todo">backlog</span></td><td>Onglet « Prestataires » : avec l’enum, ce sera une liste en lecture seule.</td></tr><tr><td>AER_LM-267</td><td>Écran Agence – consultation et modification</td><td>13</td><td><span class="st other">autre dev</span></td><td>Écran voisin qui appelle déjà <code>PUT /agences</code>. Le PUT enrichi de 271 reste compatible (champs optionnels, null = inchangé).</td></tr><tr><td>AER_LM-261</td><td>Authentification et rôles utilisateurs</td><td>13</td><td><span class="st todo">backlog</span></td><td>Transverse : qui a le droit de faire quoi dans la console. En attendant, les nouveaux endpoints réutilisent les permissions user existantes.</td></tr><tr><td>AER_LM-266</td><td>Écran Caisse Centrale – listing des demandes</td><td>8</td><td><span class="st todo">backlog</span></td><td>Côté fund-management : l’écran qui consommera <code>complete-task</code>. Premier endroit où prestataire / zone / coût deviendront visibles côté métier.</td></tr><tr><td>AER_LM-273</td><td>BPM – Adapter le workflow au périmètre MVP</td><td>5</td><td><span class="st todo">backlog</span></td><td>Peut réviser le BPMN et les handlers livrés.</td></tr></table><h2 id="fm">5. Le lien avec fund-management</h2><p>Aujourd’hui les deux microservices <b>ne se parlent pas</b>. <code>microservice-fund-management</code> a son propre mini-référentiel <code>establishment</code> (2 agences seedées) et stocke sur chaque demande un <code>branch_code</code>. <code>utilisateurs-ci</code> a le vrai référentiel : ~300 agences avec leur code BMCI (<code>orga_unit.code</code>, ex. <code>1422</code>). Le point de jointure naturel est <b><code>cash_request.branch_code</code> = <code>orga_unit.code</code></b> — à confirmer, rien ne l’écrit encore.</p><div class="flow"><span class="n ext">portail-ci (console)</span><span class="ar">→</span><span class="n ext">api-gateway-ci</span><span class="ar">→</span><span class="n">utilisateurs-ci<br><small>référentiels agence / zone / prestataire</small></span><span class="ar">?</span><span class="n alt">microservice-fund-management<br><small>demandes, Camunda, Caisse Centrale</small></span></div><p>Trois façons pour fund-management de consommer les données de l’agence, aucune n’est décidée :</p><table><tr><th>Option</th><th>Principe</th><th>Pour</th><th>Contre</th></tr><tr><td>Appel synchrone</td><td>À la création ou à l’affichage d’une demande, fund-management interroge <code>GET /orga/agences/{id}</code> via la gateway</td><td>Toujours à jour, zéro duplication</td><td>Couplage runtime, latence, dépendance à la dispo de utilisateurs-ci</td></tr><tr><td>Copie à la demande</td><td>Le front (qui a déjà chargé l’agence) envoie prestataire / zone / coût dans le payload de la demande</td><td>Simple, snapshot cohérent avec la date de la demande</td><td>Le front devient porteur de données de référence ; donnée modifiable côté client</td></tr><tr><td>Réplication</td><td>fund-management enrichit sa table <code>establishment</code> et se synchronise</td><td>Autonomie du microservice</td><td>Deux vérités, mécanisme de synchro à construire</td></tr></table><div class="box warn"><b>Ce qu’il faut trancher avec le tech lead avant AER_LM-266</b>Comment l’écran Caisse Centrale et le workflow accèdent au prestataire, à la zone et au coût d’une demande. La réponse conditionne aussi 273 (le BPMN pourrait router par prestataire ou par zone) et l’export consolidé « Demande Agence + Demande Corporate de la même agence et du même jour » mentionné dans le BPMN.</div><h3>Pourquoi ce n’est pas dans fund-management</h3><p>Parce que ce sont des données <b>d’administration</b> (qui administre les agences, c’est la console) et non des données <b>de flux</b> (les demandes). Séparer les deux évite que fund-management devienne propriétaire du référentiel agence, qui sert aussi aux habilitations et aux utilisateurs.</p><h2 id="gloss">6. Glossaire</h2><div class="kv"><b>Caisse Centrale</b><span>Service central de la banque qui approvisionne le réseau en espèces et traite toutes les demandes de fonds. Seule entité de traitement dans le workflow.</span><b>Prestataire</b><span>Société de transport de fonds sous contrat (Brink’s, G4S) : convoyage en véhicule blindé entre la Caisse Centrale et les agences.</span><b>Zone de distribution</b><span>Secteur géographique de livraison utilisé pour organiser les tournées du prestataire. Nouvelle notion, table dédiée.</span><b>Zone d’organisation</b><span>Premier niveau de la hiérarchie du réseau (Zone → Groupe → Agence), dirigé par un Directeur de Zone. Existait déjà, ne change pas.</span><b>Groupe</b><span>Regroupement d’agences sous une zone d’organisation.</span><b>Agence</b><span>Point de vente BMCI, identifié par son code (ex. 1422). Retail, Centre d’Affaires ou Banque Privée selon les cas.</span><b>Coût fixe de déplacement</b><span>Montant en MAD facturé pour un passage du prestataire à une agence, indépendant du montant transporté.</span><b>DA / DZ / RM / Chef de Caisse</b><span>Directeur d’Agence, Directeur de Zone, Responsable (corporate), Chef de Caisse — les profils habilités à saisir ou valider une demande.</span><b>Cutoff 10h / 16h</b><span>10h : au-delà, plus d’urgence possible (sauf Banque Privée). 16h : clôture de journée, l’agence perd la main, la Caisse Centrale finit hors outil avec le prestataire.</span><b>Coupures</b><span>Billets et pièces demandés, identifiés par un code stable (BILLET_200, PIECE_10…).</span><b>GAB hors site</b><span>Distributeur automatique installé hors d’une agence, alimenté par une demande dédiée (4 cassettes).</span><b>Console</b><span>Application d’administration de QlickFlow (utilisateurs, habilitations, organisation, paramétrage), front dans <code>portail-ci</code>, back dans <code>utilisateurs-ci</code>.</span></div>
+<footer>Document d'implémentation généré le 14/09/2026 — microservice <code>utilisateurs-ci</code>, package <code>com.bnpp.irb.qlickflow.admin</code>. Palette BMCI. Tout le code est copiable tel quel ; les chemins sont Windows.</footer>
+</main></div><script>
+(function(){
+  const KW = {
+    java:/\b(package|import|public|private|protected|class|interface|enum|extends|implements|return|new|if|else|throw|throws|var|void|boolean|int|long|final|static|this|null|true|false|for|while|try|catch|default|case|switch)\b/g,
+    sql:/\b(create|table|if|not|exists|sequence|start|with|increment|by|bigint|varchar|boolean|timestamp|time|zone|numeric|default|nextval|primary|key|constraint|unique|references|foreign|alter|add|column|check|in|insert|into|values|now|null|true|false|comment|on|is)\b/gi,
+    json:/\b(true|false|null)\b/g,
+    yaml:/\b(true|false)\b/g
+  };
+  function hl(el){
+    const lang=el.dataset.lang||'java';
+    let src=el.textContent;
+    let s=src.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const comment = lang==='sql' ? /(--[^\n]*)/g : /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g;
+    const tokens=[];
+    const enc=n=>{let r='';do{r=String.fromCharCode(97+n%26)+r;n=Math.floor(n/26);}while(n>0);return 'zq'+r;};
+    const stash=(cls,txt)=>{tokens.push('<span class="'+cls+'">'+txt+'</span>');return '\uE000'+enc(tokens.length-1)+'\uE001';};
+    s=s.replace(comment,m=>stash('c',m));
+    s=s.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,m=>stash('s',m));
+    if(lang==='java') s=s.replace(/(@[A-Za-z_][\w.]*)/g,m=>stash('a',m));
+    s=s.replace(KW[lang]||KW.java,m=>stash('k',m));
+    s=s.replace(/\b(\d+(?:\.\d+)?)\b/g,m=>stash('n',m));
+    if(lang==='java') s=s.replace(/\b([A-Z][A-Za-z0-9_]+)\b/g,m=>stash('t',m));
+    const dec=t=>{let n=0;for(const ch of t.slice(2))n=n*26+(ch.charCodeAt(0)-97);return n;};
+    s=s.replace(/\uE000(zq[a-z]+)\uE001/g,(m,t)=>tokens[dec(t)]);
+    el.innerHTML=s;
+  }
+  document.querySelectorAll('pre code').forEach(hl);
+  document.querySelectorAll('.file').forEach(f=>{
+    const btn=f.querySelector('button'), pre=f.querySelector('pre');
+    if(!btn||!pre) return;
+    const raw=pre.textContent;
+    btn.addEventListener('click',()=>{
+      navigator.clipboard.writeText(raw).then(()=>{btn.textContent='Copié ✓';btn.classList.add('ok');setTimeout(()=>{btn.textContent='Copier';btn.classList.remove('ok')},1500)});
+    });
+  });
+  const boxes=[...document.querySelectorAll('.steps input')];
+  const bar=document.querySelector('nav .bar i'), lab=document.querySelector('nav .prog span');
+  function upd(){const d=boxes.filter(b=>b.checked).length;if(bar)bar.style.width=(boxes.length?100*d/boxes.length:0)+'%';if(lab)lab.textContent=d+' / '+boxes.length;boxes.forEach(b=>b.closest('li').classList.toggle('done',b.checked));}
+  boxes.forEach(b=>b.addEventListener('change',upd)); upd();
+})();
+</script></body></html>
