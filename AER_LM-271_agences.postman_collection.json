@@ -1,0 +1,648 @@
+{
+  "info": {
+    "name": "AER_LM-271 — Agences (zone, prestataire, coût)",
+    "description": "Adaptation API agence — utilisateurs-ci",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1a. Référentiel zones actives",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/referentiels/zones-distribution/actives",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "referentiels",
+            "zones-distribution",
+            "actives"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"au moins CASA\", () => pm.expect(pm.response.json().data.map(z => z.code)).to.include(\"CASA\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1b. Référentiel prestataires",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/referentiels/prestataires",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "referentiels",
+            "prestataires"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Création agence complète",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/orga/agences",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "orga",
+            "agences"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Agence Test 271\",\n  \"code\": \"T271\",\n  \"groupeId\": \"{{groupeId}}\",\n  \"zoneDistributionId\": 1,\n  \"prestataire\": \"BRINKS\",\n  \"coutDeplacement\": 350.0\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "pm.test(\"success = true\", () => pm.expect(pm.response.json().success).to.eql(true));",
+              "const d = pm.response.json().data; pm.collectionVariables.set(\"agenceId\", d.id);",
+              "pm.test(\"3 champs 271 présents\", () => { pm.expect(d.zoneDistribution.id).to.eql(1); pm.expect(d.prestataire.id).to.eql(\"BRINKS\"); pm.expect(Number(d.coutDeplacement)).to.eql(350); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Consultation",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/orga/agences/{{agenceId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "orga",
+            "agences",
+            "{{agenceId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const d = pm.response.json().data;",
+              "pm.test(\"zone CASA / BRINKS\", () => { pm.expect(d.zoneDistribution.code).to.eql(\"CASA\"); pm.expect(d.prestataire.id).to.eql(\"BRINKS\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4a. PUT sans les 3 champs (écran 267)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/orga/agences",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "orga",
+            "agences"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"{{agenceId}}\",\n  \"nom\": \"Agence Test 271 bis\",\n  \"code\": \"T271\",\n  \"groupeId\": \"{{groupeId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4b. Les 3 champs sont conservés",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/orga/agences/{{agenceId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "orga",
+            "agences",
+            "{{agenceId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const d = pm.response.json().data;",
+              "pm.test(\"null = inchangé\", () => { pm.expect(d.zoneDistribution.code).to.eql(\"CASA\"); pm.expect(d.prestataire.id).to.eql(\"BRINKS\"); pm.expect(Number(d.coutDeplacement)).to.eql(350); pm.expect(d.nom).to.eql(\"Agence Test 271 bis\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5a. PUT zone 2 + G4S + 420.50",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/orga/agences",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "orga",
+            "agences"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"{{agenceId}}\",\n  \"nom\": \"Agence Test 271 bis\",\n  \"code\": \"T271\",\n  \"groupeId\": \"{{groupeId}}\",\n  \"zoneDistributionId\": 2,\n  \"prestataire\": \"G4S\",\n  \"coutDeplacement\": 420.5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5b. Vérification RABAT / G4S",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/orga/agences/{{agenceId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "orga",
+            "agences",
+            "{{agenceId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const d = pm.response.json().data;",
+              "pm.test(\"RABAT / G4S / 420.5\", () => { pm.expect(d.zoneDistribution.code).to.eql(\"RABAT\"); pm.expect(d.prestataire.id).to.eql(\"G4S\"); pm.expect(Number(d.coutDeplacement)).to.eql(420.5); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. PUT zone inconnue",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/orga/agences",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "orga",
+            "agences"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"{{agenceId}}\",\n  \"nom\": \"Agence Test 271 bis\",\n  \"code\": \"T271\",\n  \"groupeId\": \"{{groupeId}}\",\n  \"zoneDistributionId\": 9999\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"success = false\", () => pm.expect(pm.response.json().success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. POST coût négatif",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/orga/agences",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "orga",
+            "agences"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Négatif\",\n  \"code\": \"T271N\",\n  \"groupeId\": \"{{groupeId}}\",\n  \"zoneDistributionId\": 1,\n  \"prestataire\": \"BRINKS\",\n  \"coutDeplacement\": -1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"error cite coutDeplacement\", () => pm.expect(pm.response.json().error).to.include(\"coutDeplacement\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. POST prestataire inconnu",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/orga/agences",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "orga",
+            "agences"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Enum KO\",\n  \"code\": \"T271P\",\n  \"groupeId\": \"{{groupeId}}\",\n  \"zoneDistributionId\": 1,\n  \"prestataire\": \"BRINK\",\n  \"coutDeplacement\": 350.0\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"success = false\", () => pm.expect(pm.response.json().success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. POST code déjà utilisé",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/orga/agences",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "orga",
+            "agences"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Doublon code\",\n  \"code\": \"T271\",\n  \"groupeId\": \"{{groupeId}}\",\n  \"zoneDistributionId\": 1,\n  \"prestataire\": \"BRINKS\",\n  \"coutDeplacement\": 350.0\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+              "pm.test(\"success = false\", () => pm.expect(pm.response.json().success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8091"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "groupeId",
+      "value": "7"
+    },
+    {
+      "key": "agenceId",
+      "value": ""
+    }
+  ]
+}
