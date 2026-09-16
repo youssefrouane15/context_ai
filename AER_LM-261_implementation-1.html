@@ -1,0 +1,377 @@
+<!doctype html><html lang='fr'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>AER_LM-261 — Authentification et rôles utilisateurs — Implémentation</title><style>
+:root{--g:#0B6B4F;--deep:#07402F;--gold:#B8892C;--bg:#0f1512;--panel:#141d18;--panel2:#1b2620;--line:#25332c;--txt:#e6ede8;--muted:#9fb0a6;--code:#0a100d}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+a{color:#8fd3b8}code,pre{font-family:Consolas,"Cascadia Code","JetBrains Mono",monospace}
+header.hero{background:linear-gradient(135deg,var(--deep),var(--g));padding:34px 40px 26px;border-bottom:4px solid var(--gold)}
+header.hero h1{margin:0 0 6px;font-size:26px;font-weight:600;letter-spacing:.2px}
+header.hero .sub{color:#d7e7df;max-width:900px}
+header.hero .meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:14px;color:#cfe0d7;font-size:13px}
+.layout{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:22px 16px;background:var(--panel);border-right:1px solid var(--line)}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:6px 10px;border-left:2px solid transparent;font-size:13.5px}
+nav.toc a:hover,nav.toc a.on{color:#fff;border-left-color:var(--gold);background:var(--panel2)}
+main{padding:30px 44px 80px;max-width:1120px}
+section{margin-bottom:54px;scroll-margin-top:12px}
+h2{font-size:21px;font-weight:600;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);color:#fff}
+h3{font-size:16px;margin:26px 0 8px;color:#cfe6da}
+p{margin:8px 0}ul{margin:6px 0 10px 20px}li{margin:3px 0}
+code{background:#1f2b25;padding:1px 5px;border-radius:4px;font-size:.92em;color:#d9ecd2}
+pre{background:var(--code);color:#e3ebe6;padding:16px 18px;margin:0;overflow:auto;border-radius:0 0 8px 8px;font-size:13px;line-height:1.55;tab-size:4}
+pre code{background:none;padding:0;color:inherit;font-size:inherit}
+.k{color:#7fb3ff}.s{color:#c7e59a}.c{color:#7f8f87;font-style:italic}.a{color:#e6c07b}.n{color:#f2a2a2}
+figure.fb{margin:16px 0 22px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+figcaption{display:flex;align-items:center;gap:12px;padding:9px 12px;border-bottom:1px solid var(--line)}
+.fb-title{flex:1;font-weight:600;font-size:14px}.fb-path{font-family:Consolas,monospace;font-size:12px;color:var(--muted);padding:6px 12px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.tag{font-size:11px;font-weight:700;letter-spacing:.4px;padding:3px 8px;border-radius:4px;color:#0b1410}
+.t-complet{background:#8fd3b8}.t-ajouter{background:#e6c07b}.t-edition{background:#9ec5ff}.t-supprimer{background:#f2a2a2}.t-local{background:#d9a3f0}
+button.copy{background:var(--g);color:#fff;border:0;border-radius:5px;padding:5px 11px;cursor:pointer;font-size:12.5px}
+button.copy:hover{background:#0e8664}button.copy.ok{background:var(--gold)}
+.box{border-left:4px solid var(--gold);background:var(--panel);padding:12px 16px;margin:14px 0;border-radius:0 8px 8px 0}
+.box-title{font-weight:700;margin-bottom:4px}.box-info{border-left-color:#7fb3ff}.box-warn{border-left-color:var(--gold)}.box-danger{border-left-color:#f2a2a2}.box-ok{border-left-color:#8fd3b8}
+table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:14px}th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{background:var(--panel2);color:#fff}
+.m{display:inline-block;font-weight:700;font-size:11.5px;padding:2px 7px;border-radius:4px;color:#0b1410}.m-get{background:#8fd3b8}.m-post{background:#e6c07b}.m-put{background:#9ec5ff}.m-patch{background:#d9a3f0}.m-delete{background:#f2a2a2}
+.flow{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:14px 18px;font-family:Consolas,monospace;font-size:13px;white-space:pre;overflow:auto;color:#cfe6da}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto}main{padding:20px}.grid2{grid-template-columns:1fr}}
+</style></head><body><header class='hero'><h1>AER_LM-261 — Authentification et rôles utilisateurs — Implémentation</h1><div class='sub'>Gestion des Fonds : plateforme, permissions et profils GDF (V16), contexte utilisateur <code>GET /me/context</code>, route gateway fund-management. Repos <code>utilisateurs-ci</code> et <code>api-gateway-ci</code>.</div><div class='meta'><span>Squad Q360 · BMCI</span><span>16/09/2026</span><span>Ordre : enums → V16 → API → gateway</span><span>Prérequis : 270 / 269 / 271 mergés (V14, V15, GlobalExceptionHandler)</span><span>Révision 2 — vérifiée sur le code réel</span></div></header><div class='layout'><nav class='toc'><a href="#cadrage">1. Cadrage</a><a href="#flux">2. Flux d'authentification et de contexte</a><a href="#modele">3. Modèle d'habilitations (Java)</a><a href="#v16">4. Migration Flyway V16</a><a href="#api">5. API GET /me/context</a><a href="#gateway">6. Gateway — route fund-management</a><a href="#tests">7. Vérification locale (Postman)</a><a href="#suite">8. Hors périmètre et points d'attention</a></nav><main><section id="cadrage"><h2>1. Cadrage</h2><p><b>AER_LM-261 — Authentification et rôles utilisateurs</b> (Story, 13 pts, Sprint 3). « ETQ application, je veux authentifier l'utilisateur et récupérer son rôle parmi : Directeur d'agence, Chef de caisse, Caisse Centrale, Support. » Critères : l'authentification ramène <b>identité + rôle + agence</b> ; l'application s'en sert pour les droits sur les écrans et le parcours.</p><h3>Ce qui existe déjà et qu'on ne réécrit pas</h3><ul><li><b>Identité</b> : gateway BFF (mode <code>oauth</code> = CASSO, mode <code>mock</code> = <code>POST /mock-auth/login?uid=</code>) → JWT relayé en <code>Bearer</code> vers utilisateurs-ci → <code>QfJwtAuthenticationConverter</code> / <code>QfSimplifiedAuthFilter</code> chargent l'utilisateur <b>en base</b> depuis <code>sub</code> et construisent les authorities depuis ses permissions. Le token ne porte aucun rôle : rien à changer.</li><li><b>Modèle d'habilitations</b> : <code>Platform</code> → <code>RoleEntity</code> (<code>Set&lt;Permission&gt;</code>) → <code>ProfileEntity</code> → <code>UserEntity</code> (+ <code>organizationUnit</code>). Gestion des Fonds devient simplement la 4<sup>e</sup> plateforme.</li><li><b>Profil DA</b> (id 2, niveau AGENCE, manager) existe déjà : on lui ajoute le rôle GDF, on ne le duplique pas.</li><li><b>Canal service-à-service</b> : <code>GET /api/v1/internal/users/{uid}</code> → <code>InternalUserDTO {profile, orgaUnit}</code>, non routé par la gateway (inaccessible de l'extérieur). C'est ce que fund-management consommera.</li></ul><h3>Matrice métier → modèle</h3><table><thead><tr><th>Acteur (Jira)</th><th>Profil (<code>hab_profiles.code</code>)</th><th>Rôle GDF</th><th>Permissions</th><th>Périmètre</th></tr></thead><tbody><tr><td>Directeur d'agence</td><td><code>DA</code> (existant, id 2)</td><td>10 « GDF Agence »</td><td>CONSULTER, CREER, MODIFIER, ANNULER</td><td>son agence</td></tr><tr><td>Chef de caisse</td><td><code>CHEF_CAISSE</code> (nouveau, id 9)</td><td>10 « GDF Agence »</td><td>CONSULTER, CREER, MODIFIER, ANNULER</td><td>son agence</td></tr><tr><td>Caisse Centrale</td><td><code>CAISSE_CENTRALE</code> (nouveau, id 10)</td><td>11 « GDF Caisse Centrale »</td><td>CONSULTER, TRAITER, ANNULER, TOUTES_AGENCES</td><td>toutes agences</td></tr><tr><td>Support</td><td><code>SUPPORT</code> (nouveau, id 11)</td><td>12 « GDF Support »</td><td>CONSULTER, TOUTES_AGENCES</td><td>toutes agences</td></tr></tbody></table><h3>Décisions (validées par défaut le 15/09, « go » le 16/09)</h3><table><thead><tr><th>#</th><th>Décision</th><th>Pourquoi</th></tr></thead><tbody><tr><td>D1</td><td>Périmètre = <b>utilisateurs-ci + gateway</b>. Le côté fund-management (validation du Bearer, client interne <code>uid → InternalUserDTO</code>, filtrage par agence) fait l'objet d'un doc séparé.</td><td>Deux repos, deux conventions de packages ; le contrat exposé ici est ce que fund-management consommera.</td></tr><tr><td>D2</td><td><code>Platform.GESTION_FONDS</code> + 6 permissions <code>GDF_*</code> + V16 (3 rôles, 3 profils, DA rattaché).</td><td>C'est le chemin prévu par le socle (DTRP est déjà une plateforme métier). Seed en INSERT + <code>setval</code> comme V6→V10.</td></tr><tr><td>D3</td><td>Nouveau <code>GET /api/v1/public/users/me/context</code> en <code>ApiResponse</code>, <code>/me</code> intact.</td><td><code>/me</code> renvoie un <code>UserDTO</code> nu consommé par le portail ; on ne casse pas son contrat. Le nouveau DTO est plat, taillé pour le front Gestion des Fonds.</td></tr><tr><td>D4</td><td>Route gateway <code>qf-fund-management</code> avec <code>RewritePath</code> <code>/api/v1/public/fund-management/**</code> → <code>/**</code>.</td><td>Les contrôleurs fund-management sont sur <code>/cash</code> et <code>/corpo/cash</code> (sans <code>/api/</code>) or <code>QfTokenRelayFilter</code> ne relaie le Bearer que sur <code>/api/**</code>. Le rewrite règle les deux sans toucher fund-management.</td></tr><tr><td>D5</td><td>V16 supprime le CHECK SQL sur <code>hab_role_permission.permission</code> (et <code>_aud</code>) ; le CHECK <code>platform</code> est recréé avec 4 valeurs.</td><td>Le CHECK dupliquait l'enum Java et c'est le piège n°1 déjà rencontré (statut/permission ajoutés sans le CHECK). <code>ddl-auto: validate</code> ne le contrôle pas ; <code>@Enumerated(STRING)</code> reste la source de vérité. La liste <code>platform</code> est courte et stable : on la garde.</td></tr></tbody></table><aside class="box box-ok"><div class="box-title">Vérifié sur le code réel le 16/09 — plus aucune hypothèse dans ce document</div><div><ul><li><code>Platform(String name, String desc)</code> ; <code>getPermissions()</code> renvoie <code>Set&lt;Permission&gt;</code> via <code>permission.getPlatform()</code>.</li><li><code>ProfileEnum(String code, OrganizationUnitType orgaUnitType, boolean managerProfile)</code>.</li><li><code>ProfileEntity.roles</code> est une <code>List&lt;RoleEntity&gt;</code> (EAGER, <code>hab_profile_role</code>) ; <code>RoleEntity.permissions</code> est un <code>Set&lt;Permission&gt;</code> (<code>@ElementCollection</code> EAGER, <code>hab_role_permission.permission</code> varchar 100) ; <code>platform</code> varchar 50 ; <code>name</code> unique sur les deux tables.</li><li>V6 : <code>hab_roles (id, name, description, actif, created_at, updated_at, platform)</code> · V8 : <code>hab_profiles (id, profile_type, name, code, description, actif, created_at, updated_at)</code> — V16 reprend ces deux ordres de colonnes.</li><li>Les nouveaux profils sont hors <code>ProfileEnum.includedCodes()</code> (AU, SA, AP) : ils sortent donc automatiquement dans <code>/non-admin-profiles</code>, sans modification.</li></ul></div></aside></section><section id="flux"><h2>2. Flux d'authentification et de contexte</h2><p>Rien ne change dans la chaîne d'identité. 261 ajoute une <b>lecture</b> (le contexte) et des <b>données</b> (rôles/profils GDF).</p><div class="flow">Portail (Angular)                Gateway 9090                     utilisateurs-ci 8091                 fund-management 8300
+─────────────────                ────────────                     ────────────────────                 ────────────────────
+[mock]  POST /mock-auth/login?uid=g10002
+                              ─► MockJwtService.generateToken(uid)
+                                 PUT ms-admin /api/v1/internal/oauth-sessions
+                              ◄─ cookie QF_MOCK_SESSION = JWT (sub = uid)
+
+[oauth] GET /oauth2/authorization/qlickflow ─► CASSO ─► QfOAuth2LoginSuccessHandler ─► 302 frontendBaseUrl
+                                 MsUsersReactiveOauth2AuthorizedClientService ⇄ oauth_session (utilisateurs-ci)
+
+GET /api/v1/public/users/me/context
+   cookie                     ─► QfMockTokenRelayFilter | QfTokenRelayFilter
+                                 Authorization: Bearer &lt;JWT&gt;          ─► QfSimplifiedAuthFilter | QfJwtDecoder
+                                                                          uid = sub → UserEntity (profil → rôles → permissions)
+                                                                          UserController.getMyContext
+                                                                     ◄─ ApiResponse&lt;UserContextGdfDTO&gt;
+   {uid, profileCode, agence, permissions, toutesAgences}
+
+GET /api/v1/public/fund-management/cash/...          (route qf-fund-management, D4)
+                              ─► RewritePath → /cash/...  + Bearer relayé                              ─► fund-management
+                                                                          (doc séparé) GET /api/v1/internal/users/{sub} ◄─┘
+</div><aside class="box box-info"><div class="box-title">Ce que le front lit dans le contexte</div><div><code>profileCode</code> = le rôle métier du ticket (<code>DA</code>, <code>CHEF_CAISSE</code>, <code>CAISSE_CENTRALE</code>, <code>SUPPORT</code>) · <code>permissions</code> = les <code>GDF_*</code> pour activer/masquer les actions · <code>toutesAgences</code> = <code>true</code> pour Caisse Centrale et Support · <code>agence</code> = <code>null</code> quand le profil n'est pas rattaché à une agence. Un utilisateur sans profil GDF (ex. le super admin <code>h11111</code>) reçoit <code>permissions = []</code> : c'est au front d'afficher l'accès refusé.</div></aside></section><section id="modele"><h2>3. Modèle d'habilitations (Java)</h2><p>Trois éditions d'enums. Le nom des constantes est le contrat avec la base (V16) et avec le front (<code>permissions</code> du contexte) : ne pas le modifier après merge sans nouveau script Flyway.</p><figure class="fb"><figcaption><span class="tag t-edition">ÉDITION</span><span class="fb-title">Platform.java — 4e plateforme</span><button class="copy" data-target="code-1" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\entities\habilitations\Platform.java</div><pre><code id="code-1" class="lang-java"><span class="c">// ÉDITION — entities/habilitations/Platform.java</span>
+<span class="c">// 1) remplacer le ';' qui termine ML_CHAB par ','</span>
+<span class="c">// 2) ajouter la constante (constructeur Platform(String name, String desc))</span>
+
+    CONSOLE_ADMIN(<span class="s">"Console d'admin"</span>, <span class="s">"Console d'admin"</span>),
+    DTRP(<span class="s">"Dérogation Tarifaire Retail Package"</span>, <span class="s">"Dérogation Tarifaire Retail Package"</span>),
+    ML_CHAB(<span class="s">"Mainlevée CHAB"</span>, <span class="s">"Mainlevée Crédit Habitat"</span>),
+    GESTION_FONDS(<span class="s">"Gestion des Fonds"</span>, <span class="s">"Gestion des Fonds - demandes de fonds des agences"</span>);</code></pre></figure><figure class="fb"><figcaption><span class="tag t-edition">ÉDITION</span><span class="fb-title">Permission.java — 6 permissions GDF</span><button class="copy" data-target="code-2" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\entities\habilitations\Permission.java</div><pre><code id="code-2" class="lang-java"><span class="c">// ÉDITION — entities/habilitations/Permission.java</span>
+<span class="c">// Ajouter à la fin de la liste des constantes (même constructeur que</span>
+<span class="c">// CONSOLE_ADMIN_EDIT_ADMIN(Platform.CONSOLE_ADMIN, "Modifier Administrateur")).</span>
+
+    <span class="c">// ---- Gestion des Fonds (AER_LM-261) ----</span>
+    GDF_CONSULTER_DEMANDE(Platform.GESTION_FONDS, <span class="s">"Consulter les demandes de fonds"</span>),
+    GDF_CREER_DEMANDE(Platform.GESTION_FONDS, <span class="s">"Créer une demande de fonds"</span>),
+    GDF_MODIFIER_DEMANDE(Platform.GESTION_FONDS, <span class="s">"Modifier une demande de fonds"</span>),
+    GDF_ANNULER_DEMANDE(Platform.GESTION_FONDS, <span class="s">"Annuler une demande de fonds"</span>),
+    GDF_TRAITER_DEMANDE(Platform.GESTION_FONDS, <span class="s">"Traiter une demande de fonds (Caisse Centrale)"</span>),
+    GDF_TOUTES_AGENCES(Platform.GESTION_FONDS, <span class="s">"Périmètre : toutes les agences"</span>),</code></pre></figure><figure class="fb"><figcaption><span class="tag t-edition">ÉDITION</span><span class="fb-title">ProfileEnum.java — 3 profils</span><button class="copy" data-target="code-3" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\enums\ProfileEnum.java</div><pre><code id="code-3" class="lang-java"><span class="c">// ÉDITION — enums/ProfileEnum.java</span>
+<span class="c">// 1) remplacer le ';' qui termine AP par ','</span>
+<span class="c">// 2) ajouter les trois profils (constructeur ProfileEnum(String code, OrganizationUnitType orgaUnitType, boolean managerProfile))</span>
+<span class="c">//    CHEF_CAISSE = niveau AGENCE, non manager (le manager de l'agence reste le DA) ; les deux autres = NONE.</span>
+
+    AP(<span class="s">"AP"</span>, OrganizationUnitType.NONE, <span class="k">false</span>),
+    CHEF_CAISSE(<span class="s">"CHEF_CAISSE"</span>, OrganizationUnitType.AGENCE, <span class="k">false</span>),
+    CAISSE_CENTRALE(<span class="s">"CAISSE_CENTRALE"</span>, OrganizationUnitType.NONE, <span class="k">false</span>),
+    SUPPORT(<span class="s">"SUPPORT"</span>, OrganizationUnitType.NONE, <span class="k">false</span>);</code></pre></figure><aside class="box box-info"><div class="box-title">Pourquoi GDF_TOUTES_AGENCES est une permission et pas une règle sur le profil</div><div>Le périmètre « toutes agences » doit être lisible par fund-management sans connaître la liste des profils. Une permission voyage dans <code>InternalUserDTO.profile.roles[].permissions</code> et dans le contexte ; un test <code>ProfileEnum == CAISSE_CENTRALE</code> dispersé dans deux repos serait le piège classique. Le filtrage par agence côté fund-management se réduit à : <code>GDF_TOUTES_AGENCES</code> absent ⇒ <code>branch_code = agence.code</code>.</div></aside></section><section id="v16"><h2>4. Migration Flyway V16</h2><p>Suite de V15 (colonnes agence de 271). Le script est <b>idempotent sur les contraintes</b> (bloc <code>DO</code> qui ne suppose pas les noms générés par Hibernate) et suit la convention de seed <code>INSERT</code> + <code>setval</code>.</p><figure class="fb"><figcaption><span class="tag t-complet">FICHIER COMPLET</span><span class="fb-title">V16__create_gdf_habilitations.sql</span><button class="copy" data-target="code-4" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\main\resources\db\migration\V16__create_gdf_habilitations.sql</div><pre><code id="code-4" class="lang-sql"><span class="c">-- ============================================================</span>
+<span class="c">-- AER_LM-261 - Gestion des Fonds : plateforme, permissions,</span>
+<span class="c">--              roles et profils (Chef de caisse, Caisse Centrale, Support)</span>
+<span class="c">-- ============================================================</span>
+
+<span class="c">-- ------------------------------------------------------------</span>
+<span class="c">-- 1. CHECK herites de V1 (noms generes par Hibernate, on ne les suppose pas :</span>
+<span class="c">--    on supprime tout CHECK portant sur platform / permission, quel que soit son nom)</span>
+<span class="c">--    - platform   : recree avec la 4e plateforme GESTION_FONDS</span>
+<span class="c">--    - permission : supprime, l'enum Java Permission est la seule source de verite (decision D5)</span>
+<span class="c">-- ------------------------------------------------------------</span>
+<span class="k">do</span> $$
+<span class="k">declare</span>
+    r <span class="k">record</span>;
+<span class="k">begin</span>
+    <span class="k">for</span> r <span class="k">in</span>
+        <span class="k">select</span> t.relname, c.conname
+        <span class="k">from</span> pg_constraint c
+        <span class="k">join</span> pg_class     t <span class="k">on</span> t.oid = c.conrelid
+        <span class="k">join</span> pg_namespace n <span class="k">on</span> n.oid = t.relnamespace
+        <span class="k">where</span> c.contype = <span class="s">'c'</span>
+          <span class="k">and</span> n.nspname = <span class="k">current_schema</span>()
+          <span class="k">and</span> (
+                (t.relname <span class="k">in</span> (<span class="s">'hab_roles'</span>, <span class="s">'hab_roles_aud'</span>)
+                     <span class="k">and</span> pg_get_constraintdef(c.oid) <span class="k">ilike</span> <span class="s">'%platform%'</span>)
+             <span class="k">or</span> (t.relname <span class="k">in</span> (<span class="s">'hab_role_permission'</span>, <span class="s">'hab_role_permission_aud'</span>)
+                     <span class="k">and</span> pg_get_constraintdef(c.oid) <span class="k">ilike</span> <span class="s">'%permission%'</span>)
+          )
+    <span class="k">loop</span>
+        <span class="k">execute</span> <span class="k">format</span>(<span class="s">'alter table %I drop constraint %I'</span>, r.relname, r.conname);
+    <span class="k">end</span> <span class="k">loop</span>;
+<span class="k">end</span> $$;
+
+<span class="k">alter</span> <span class="k">table</span> hab_roles
+    <span class="k">add</span> <span class="k">constraint</span> hab_roles_platform_check
+    <span class="k">check</span> (platform <span class="k">in</span> (<span class="s">'CONSOLE_ADMIN'</span>, <span class="s">'DTRP'</span>, <span class="s">'ML_CHAB'</span>, <span class="s">'GESTION_FONDS'</span>));
+
+<span class="k">alter</span> <span class="k">table</span> hab_roles_aud
+    <span class="k">add</span> <span class="k">constraint</span> hab_roles_aud_platform_check
+    <span class="k">check</span> (platform <span class="k">in</span> (<span class="s">'CONSOLE_ADMIN'</span>, <span class="s">'DTRP'</span>, <span class="s">'ML_CHAB'</span>, <span class="s">'GESTION_FONDS'</span>));
+
+<span class="c">-- ------------------------------------------------------------</span>
+<span class="c">-- 2. Roles GDF (ids 10-12, suite de V6)</span>
+<span class="c">-- ------------------------------------------------------------</span>
+<span class="c">-- GESTION_FONDS (memes colonnes et meme ordre que V6)</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> hab_roles (id, name, description, actif, created_at, updated_at, platform)
+<span class="k">values</span>
+    (<span class="n">10</span>, <span class="s">'GDF Agence'</span>,          <span class="s">'Rôle Gestion des Fonds - demandes de l''agence (DA, Chef de caisse)'</span>,     <span class="k">TRUE</span>, <span class="k">NOW</span>(), <span class="k">NOW</span>(), <span class="s">'GESTION_FONDS'</span>),
+    (<span class="n">11</span>, <span class="s">'GDF Caisse Centrale'</span>, <span class="s">'Rôle Gestion des Fonds - traitement des demandes de toutes les agences'</span>, <span class="k">TRUE</span>, <span class="k">NOW</span>(), <span class="k">NOW</span>(), <span class="s">'GESTION_FONDS'</span>),
+    (<span class="n">12</span>, <span class="s">'GDF Support'</span>,         <span class="s">'Rôle Gestion des Fonds - consultation de toutes les agences'</span>,            <span class="k">TRUE</span>, <span class="k">NOW</span>(), <span class="k">NOW</span>(), <span class="s">'GESTION_FONDS'</span>);
+
+<span class="k">insert</span> <span class="k">into</span> hab_role_permission (role_id, permission) <span class="k">values</span>
+    (<span class="n">10</span>, <span class="s">'GDF_CONSULTER_DEMANDE'</span>),
+    (<span class="n">10</span>, <span class="s">'GDF_CREER_DEMANDE'</span>),
+    (<span class="n">10</span>, <span class="s">'GDF_MODIFIER_DEMANDE'</span>),
+    (<span class="n">10</span>, <span class="s">'GDF_ANNULER_DEMANDE'</span>),
+    (<span class="n">11</span>, <span class="s">'GDF_CONSULTER_DEMANDE'</span>),
+    (<span class="n">11</span>, <span class="s">'GDF_TRAITER_DEMANDE'</span>),
+    (<span class="n">11</span>, <span class="s">'GDF_ANNULER_DEMANDE'</span>),
+    (<span class="n">11</span>, <span class="s">'GDF_TOUTES_AGENCES'</span>),
+    (<span class="n">12</span>, <span class="s">'GDF_CONSULTER_DEMANDE'</span>),
+    (<span class="n">12</span>, <span class="s">'GDF_TOUTES_AGENCES'</span>);
+
+<span class="c">-- ------------------------------------------------------------</span>
+<span class="c">-- 3. Profils GDF (ids 9-11, suite de V8) - STANDARD_USER comme DA / CONSEILLER (profileType par defaut de l'entite)</span>
+<span class="c">-- ------------------------------------------------------------</span>
+<span class="c">-- memes colonnes et meme ordre que V8 ; name est UNIQUE (comme code)</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> hab_profiles (id, profile_type, name, code, description, actif, created_at, updated_at) <span class="k">values</span>
+    (<span class="n">9</span>,  <span class="s">'STANDARD_USER'</span>, <span class="s">'CHEF DE CAISSE'</span>,  <span class="s">'CHEF_CAISSE'</span>,     <span class="s">'Profil Chef de caisse'</span>,  <span class="k">TRUE</span>, <span class="k">NOW</span>(), <span class="k">NOW</span>()),
+    (<span class="n">10</span>, <span class="s">'STANDARD_USER'</span>, <span class="s">'CAISSE CENTRALE'</span>, <span class="s">'CAISSE_CENTRALE'</span>, <span class="s">'Profil Caisse Centrale'</span>, <span class="k">TRUE</span>, <span class="k">NOW</span>(), <span class="k">NOW</span>()),
+    (<span class="n">11</span>, <span class="s">'STANDARD_USER'</span>, <span class="s">'SUPPORT'</span>,         <span class="s">'SUPPORT'</span>,         <span class="s">'Profil Support'</span>,         <span class="k">TRUE</span>, <span class="k">NOW</span>(), <span class="k">NOW</span>());
+
+<span class="c">-- ------------------------------------------------------------</span>
+<span class="c">-- 4. Rattachement profil -&gt; role (le profil DA existant recoit le role GDF Agence)</span>
+<span class="c">-- ------------------------------------------------------------</span>
+<span class="k">insert</span> <span class="k">into</span> hab_profile_role (profile_id, role_id) <span class="k">values</span>
+    (<span class="n">2</span>,  <span class="n">10</span>),  <span class="c">-- DA              -&gt; GDF Agence</span>
+    (<span class="n">9</span>,  <span class="n">10</span>),  <span class="c">-- CHEF_CAISSE     -&gt; GDF Agence</span>
+    (<span class="n">10</span>, <span class="n">11</span>),  <span class="c">-- CAISSE_CENTRALE -&gt; GDF Caisse Centrale</span>
+    (<span class="n">11</span>, <span class="n">12</span>);  <span class="c">-- SUPPORT         -&gt; GDF Support</span>
+
+<span class="c">-- ------------------------------------------------------------</span>
+<span class="c">-- 5. Sequences (convention V6 / V8 / V10)</span>
+<span class="c">-- ------------------------------------------------------------</span>
+<span class="k">select</span> <span class="k">setval</span>(<span class="s">'hab_roles_seq'</span>,    (<span class="k">select</span> <span class="k">coalesce</span>(<span class="k">max</span>(id), <span class="n">1</span>) <span class="k">from</span> hab_roles),    <span class="k">true</span>);
+<span class="k">select</span> <span class="k">setval</span>(<span class="s">'hab_profiles_seq'</span>, (<span class="k">select</span> <span class="k">coalesce</span>(<span class="k">max</span>(id), <span class="n">1</span>) <span class="k">from</span> hab_profiles), <span class="k">true</span>);</code></pre></figure><aside class="box box-info"><div class="box-title">Avant d'exécuter : une requête d'une minute</div><div>Lancer la première requête ci-dessous sur la base locale : elle affiche exactement les CHECK que le bloc <code>DO</code> va supprimer. On attend au plus 4 lignes (2 <code>platform</code>, 2 <code>permission</code>). Les colonnes des <code>INSERT</code> sont celles de V6 et V8, vérifiées.</div></aside><figure class="fb"><figcaption><span class="tag t-local">LOCAL — NE PAS COMMITTER</span><span class="fb-title">Requêtes de vérification (avant / après V16)</span><button class="copy" data-target="code-5" type="button">Copier</button></figcaption><pre><code id="code-5" class="lang-sql"><span class="c">-- A executer AVANT V16 sur la base locale : liste les CHECK qui seront supprimes par le bloc DO</span>
+<span class="k">select</span> t.relname, c.conname, pg_get_constraintdef(c.oid)
+<span class="k">from</span> pg_constraint c
+<span class="k">join</span> pg_class t <span class="k">on</span> t.oid = c.conrelid
+<span class="k">where</span> c.contype = <span class="s">'c'</span>
+  <span class="k">and</span> t.relname <span class="k">in</span> (<span class="s">'hab_roles'</span>, <span class="s">'hab_roles_aud'</span>, <span class="s">'hab_role_permission'</span>, <span class="s">'hab_role_permission_aud'</span>);
+
+<span class="c">-- A executer APRES V16 : le contexte attendu par profil</span>
+<span class="k">select</span> p.code <span class="k">as</span> profil, r.name <span class="k">as</span> role, rp.permission
+<span class="k">from</span> hab_profiles p
+<span class="k">join</span> hab_profile_role pr <span class="k">on</span> pr.profile_id = p.id
+<span class="k">join</span> hab_roles r         <span class="k">on</span> r.id = pr.role_id
+<span class="k">join</span> hab_role_permission rp <span class="k">on</span> rp.role_id = r.id
+<span class="k">where</span> r.platform = <span class="s">'GESTION_FONDS'</span>
+<span class="k">order</span> <span class="k">by</span> p.id, r.id, rp.permission;</code></pre></figure><aside class="box box-info"><div class="box-title">Envers</div><div>Les seeds V6→V9 n'écrivent pas dans les tables <code>_aud</code> ; V16 non plus. Les révisions démarreront à la première modification par l'application.</div></aside></section><section id="api"><h2>5. API GET /me/context</h2><p>Base : <code>/api/v1/public/users</code> (classe <code>UserController</code>, routée par la gateway via <code>qf-admin</code>). Un seul endpoint, lecture seule, sans <code>@PreAuthorize</code>.</p><table><tr><th>Méthode</th><th>Chemin</th><th>Rôle</th></tr><tr><td><span class="m m-get">GET</span></td><td><code>/api/v1/public/users/me/context</code></td><td>Contexte GDF de l'utilisateur du token (<code>sub</code>). 200 ; 404 si le <code>uid</code> n'existe plus en base ; 401 en amont (filtre) si absent ou inactif.</td></tr></table><h3>Ordre d'ajout</h3><ol><li><code>AgenceContextDTO</code> puis <code>UserContextGdfDTO</code> (nouveaux fichiers)</li><li><code>UserMapper.toContextGdfDto</code></li><li><code>UserFacade</code> + <code>UserFacadeImpl</code></li><li><code>UserController</code></li></ol><figure class="fb"><figcaption><span class="tag t-complet">FICHIER COMPLET</span><span class="fb-title">AgenceContextDTO.java</span><button class="copy" data-target="code-6" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\dto\user\AgenceContextDTO.java</div><pre><code id="code-6" class="lang-java"><span class="k">package</span> com.bnpp.irb.qlickflow.admin.dto.user;
+
+<span class="k">import</span> lombok.AllArgsConstructor;
+<span class="k">import</span> lombok.Builder;
+<span class="k">import</span> lombok.Data;
+<span class="k">import</span> lombok.NoArgsConstructor;
+
+<span class="c">/** Vue minimale de l'agence dans le contexte utilisateur (AER_LM-261). */</span>
+<span class="a">@Data</span>
+<span class="a">@Builder</span>
+<span class="a">@NoArgsConstructor</span>
+<span class="a">@AllArgsConstructor</span>
+<span class="k">public</span> <span class="k">class</span> AgenceContextDTO {
+
+    <span class="k">private</span> Long id;
+    <span class="c">/** Code agence BMCI (ex. 1422) — clé de filtrage des demandes côté fund-management. */</span>
+    <span class="k">private</span> String code;
+    <span class="k">private</span> String nom;
+}</code></pre></figure><figure class="fb"><figcaption><span class="tag t-complet">FICHIER COMPLET</span><span class="fb-title">UserContextGdfDTO.java</span><button class="copy" data-target="code-7" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\dto\user\UserContextGdfDTO.java</div><pre><code id="code-7" class="lang-java"><span class="k">package</span> com.bnpp.irb.qlickflow.admin.dto.user;
+
+<span class="k">import</span> lombok.AllArgsConstructor;
+<span class="k">import</span> lombok.Builder;
+<span class="k">import</span> lombok.Data;
+<span class="k">import</span> lombok.NoArgsConstructor;
+
+<span class="k">import</span> java.util.Set;
+
+<span class="c">/**
+ * Contexte de l'utilisateur connecté pour l'application Gestion des Fonds (AER_LM-261).
+ * Réponse plate : identité, rôle métier (code du profil), agence de rattachement, permissions GDF.
+ */</span>
+<span class="a">@Data</span>
+<span class="a">@Builder</span>
+<span class="a">@NoArgsConstructor</span>
+<span class="a">@AllArgsConstructor</span>
+<span class="k">public</span> <span class="k">class</span> UserContextGdfDTO {
+
+    <span class="k">private</span> String uid;
+    <span class="k">private</span> String firstName;
+    <span class="k">private</span> String lastName;
+    <span class="k">private</span> String email;
+
+    <span class="c">/** Code du profil : DA, CHEF_CAISSE, CAISSE_CENTRALE, SUPPORT (ou tout autre profil console). */</span>
+    <span class="k">private</span> String profileCode;
+    <span class="k">private</span> String profileName;
+
+    <span class="c">/** Agence de rattachement, null si l'unité d'organisation de l'utilisateur n'est pas une agence. */</span>
+    <span class="k">private</span> AgenceContextDTO agence;
+
+    <span class="c">/** Permissions de la plateforme GESTION_FONDS uniquement, triées (ex. GDF_CREER_DEMANDE). */</span>
+    <span class="k">private</span> Set&lt;String&gt; permissions;
+
+    <span class="c">/** true si l'utilisateur porte GDF_TOUTES_AGENCES (Caisse Centrale, Support). */</span>
+    <span class="k">private</span> <span class="k">boolean</span> toutesAgences;
+}</code></pre></figure><figure class="fb"><figcaption><span class="tag t-ajouter">À AJOUTER</span><span class="fb-title">UserMapper.java — toContextGdfDto</span><button class="copy" data-target="code-8" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\mapper\UserMapper.java</div><pre><code id="code-8" class="lang-java"><span class="c">// À AJOUTER — mapper/UserMapper.java</span>
+<span class="c">// Imports à ajouter en tête de fichier :</span>
+<span class="c">//   import com.bnpp.irb.qlickflow.admin.dto.user.AgenceContextDTO;</span>
+<span class="c">//   import com.bnpp.irb.qlickflow.admin.dto.user.UserContextGdfDTO;</span>
+<span class="c">//   import com.bnpp.irb.qlickflow.admin.entities.habilitations.Permission;</span>
+<span class="c">//   import com.bnpp.irb.qlickflow.admin.entities.habilitations.Platform;</span>
+<span class="c">//   import com.bnpp.irb.qlickflow.admin.entities.orga.OrganizationUnitType;</span>
+<span class="c">//   import java.util.Collections;</span>
+<span class="c">//   import java.util.Set;</span>
+<span class="c">//   import java.util.TreeSet;</span>
+<span class="c">//   import java.util.stream.Collectors;</span>
+
+    <span class="c">/**
+     * Contexte Gestion des Fonds (AER_LM-261) : identité + code profil + agence + permissions GDF.
+     * Seules les permissions de la plateforme GESTION_FONDS traversent, triées pour un contrat stable.
+     */</span>
+    <span class="k">public</span> UserContextGdfDTO toContextGdfDto(UserEntity user) {
+        <span class="k">var</span> profile = user.getProfile();
+
+        Set&lt;String&gt; permissions = profile == <span class="k">null</span> || profile.getRoles() == <span class="k">null</span>
+                ? Collections.emptySet()
+                : profile.getRoles().stream()
+                        .filter(role -&gt; role.getPermissions() != <span class="k">null</span>)
+                        .flatMap(role -&gt; role.getPermissions().stream())
+                        .filter(permission -&gt; permission.getPlatform() == Platform.GESTION_FONDS)
+                        .map(Enum::name)
+                        .collect(Collectors.toCollection(TreeSet::<span class="k">new</span>));
+
+        <span class="k">var</span> orgaUnit = user.getOrganizationUnit();
+        AgenceContextDTO agence = orgaUnit == <span class="k">null</span> || orgaUnit.getType() != OrganizationUnitType.AGENCE
+                ? <span class="k">null</span>
+                : AgenceContextDTO.builder()
+                        .id(orgaUnit.getId())
+                        .code(orgaUnit.getCode())
+                        .nom(orgaUnit.getName())
+                        .build();
+
+        <span class="k">return</span> UserContextGdfDTO.builder()
+                .uid(user.getUid())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .profileCode(profile == <span class="k">null</span> ? <span class="k">null</span> : profile.getCode())
+                .profileName(profile == <span class="k">null</span> ? <span class="k">null</span> : profile.getName())
+                .agence(agence)
+                .permissions(permissions)
+                .toutesAgences(permissions.contains(Permission.GDF_TOUTES_AGENCES.name()))
+                .build();
+    }</code></pre></figure><figure class="fb"><figcaption><span class="tag t-ajouter">À AJOUTER</span><span class="fb-title">UserFacade.java — findContextGdfByUid</span><button class="copy" data-target="code-9" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\facade\UserFacade.java</div><pre><code id="code-9" class="lang-java"><span class="c">// À AJOUTER — facade/UserFacade.java (interface)</span>
+<span class="c">// Import : com.bnpp.irb.qlickflow.admin.dto.user.UserContextGdfDTO</span>
+
+    <span class="c">/** Contexte Gestion des Fonds de l'utilisateur identifié par son uid (AER_LM-261). */</span>
+    Optional&lt;UserContextGdfDTO&gt; findContextGdfByUid(String uid);</code></pre></figure><figure class="fb"><figcaption><span class="tag t-ajouter">À AJOUTER</span><span class="fb-title">UserFacadeImpl.java — findContextGdfByUid</span><button class="copy" data-target="code-10" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\facade\impl\UserFacadeImpl.java</div><pre><code id="code-10" class="lang-java"><span class="c">// À AJOUTER — facade/impl/UserFacadeImpl.java</span>
+<span class="c">// Import : com.bnpp.irb.qlickflow.admin.dto.user.UserContextGdfDTO</span>
+<span class="c">// (userService et userMapper sont déjà injectés dans la facade)</span>
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> Optional&lt;UserContextGdfDTO&gt; findContextGdfByUid(String uid) {
+        <span class="k">return</span> userService.findByUid(uid)
+                .map(userMapper::toContextGdfDto);
+    }</code></pre></figure><figure class="fb"><figcaption><span class="tag t-ajouter">À AJOUTER</span><span class="fb-title">UserController.java — GET /me/context</span><button class="copy" data-target="code-11" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\controller\publicapi\UserController.java</div><pre><code id="code-11" class="lang-java"><span class="c">// À AJOUTER — controller/publicapi/UserController.java, à côté de GET /me</span>
+<span class="c">// Imports : com.bnpp.irb.qlickflow.admin.dto.user.UserContextGdfDTO, org.springframework.http.HttpStatus</span>
+<span class="c">// (Authentication et ApiResponse sont déjà importés pour /me)</span>
+
+    <span class="c">/**
+     * Contexte de l'utilisateur connecté pour Gestion des Fonds (AER_LM-261).
+     * Aucun @PreAuthorize : tout utilisateur authentifié peut lire son propre contexte ;
+     * un profil sans permission GDF reçoit permissions = [] et le front refuse l'accès.
+     */</span>
+    <span class="a">@GetMapping</span>(<span class="s">"/me/context"</span>)
+    <span class="k">public</span> ResponseEntity&lt;ApiResponse&lt;UserContextGdfDTO&gt;&gt; getMyContext(Authentication authentication) {
+        String uid = authentication.getName();
+        <span class="k">return</span> userFacade.findContextGdfByUid(uid)
+                .map(context -&gt; ResponseEntity.ok(
+                        ApiResponse.success(context, <span class="s">"User context retrieved successfully"</span>)))
+                .orElseGet(() -&gt; ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error(<span class="s">"User not found for uid : "</span> + uid)));
+    }</code></pre></figure><h3>Contrats JSON</h3><div class="grid2"><figure class="fb"><figcaption><span class="tag t-complet">FICHIER COMPLET</span><span class="fb-title">Réponse — Chef de caisse (agence 1422)</span><button class="copy" data-target="code-12" type="button">Copier</button></figcaption><pre><code id="code-12" class="lang-json">{
+  <span class="k">"success"</span>: <span class="n">true</span>,
+  <span class="k">"message"</span>: <span class="s">"User context retrieved successfully"</span>,
+  <span class="k">"data"</span>: {
+    <span class="k">"uid"</span>: <span class="s">"g10002"</span>,
+    <span class="k">"firstName"</span>: <span class="s">"Salma"</span>,
+    <span class="k">"lastName"</span>: <span class="s">"CAISSE"</span>,
+    <span class="k">"email"</span>: <span class="s">"gdf.caisse@bmci.ma"</span>,
+    <span class="k">"profileCode"</span>: <span class="s">"CHEF_CAISSE"</span>,
+    <span class="k">"profileName"</span>: <span class="s">"CHEF DE CAISSE"</span>,
+    <span class="k">"agence"</span>: { <span class="k">"id"</span>: <span class="n">57</span>, <span class="k">"code"</span>: <span class="s">"1422"</span>, <span class="k">"nom"</span>: <span class="s">"AGENCE 1422"</span> },
+    <span class="k">"permissions"</span>: [
+      <span class="s">"GDF_ANNULER_DEMANDE"</span>,
+      <span class="s">"GDF_CONSULTER_DEMANDE"</span>,
+      <span class="s">"GDF_CREER_DEMANDE"</span>,
+      <span class="s">"GDF_MODIFIER_DEMANDE"</span>
+    ],
+    <span class="k">"toutesAgences"</span>: <span class="n">false</span>
+  },
+  <span class="k">"error"</span>: <span class="n">null</span>
+}</code></pre></figure><figure class="fb"><figcaption><span class="tag t-complet">FICHIER COMPLET</span><span class="fb-title">Réponse — Caisse Centrale (toutes agences)</span><button class="copy" data-target="code-13" type="button">Copier</button></figcaption><pre><code id="code-13" class="lang-json">{
+  <span class="k">"success"</span>: <span class="n">true</span>,
+  <span class="k">"message"</span>: <span class="s">"User context retrieved successfully"</span>,
+  <span class="k">"data"</span>: {
+    <span class="k">"uid"</span>: <span class="s">"g10003"</span>,
+    <span class="k">"firstName"</span>: <span class="s">"Karim"</span>,
+    <span class="k">"lastName"</span>: <span class="s">"CENTRALE"</span>,
+    <span class="k">"email"</span>: <span class="s">"gdf.cc@bmci.ma"</span>,
+    <span class="k">"profileCode"</span>: <span class="s">"CAISSE_CENTRALE"</span>,
+    <span class="k">"profileName"</span>: <span class="s">"CAISSE CENTRALE"</span>,
+    <span class="k">"agence"</span>: <span class="n">null</span>,
+    <span class="k">"permissions"</span>: [
+      <span class="s">"GDF_ANNULER_DEMANDE"</span>,
+      <span class="s">"GDF_CONSULTER_DEMANDE"</span>,
+      <span class="s">"GDF_TOUTES_AGENCES"</span>,
+      <span class="s">"GDF_TRAITER_DEMANDE"</span>
+    ],
+    <span class="k">"toutesAgences"</span>: <span class="n">true</span>
+  },
+  <span class="k">"error"</span>: <span class="n">null</span>
+}</code></pre></figure></div><aside class="box box-info"><div class="box-title">Pourquoi la facade passe par userService.findByUid et pas par /me</div><div><code>UserService.findByUid</code> renvoie déjà <code>Optional&lt;UserEntity&gt;</code> avec profil et unité d'organisation (EAGER) : aucune requête supplémentaire. <code>/me</code> lève <code>EntityNotFoundException</code> (500 aujourd'hui, 404 avec le <code>GlobalExceptionHandler</code> de 271) et renvoie un <code>UserDTO</code> nu ; on ne reproduit pas cette incohérence, on suit le pattern <code>getUserByUid</code> (<code>Optional</code> → 200 / 404 en <code>ApiResponse</code>).</div></aside><aside class="box box-warn"><div class="box-title">Rôles inactifs</div><div>Le mapper ne filtre pas <code>RoleEntity.actif</code> pour rester aligné avec la construction des authorities de <code>QfJwtAuthenticationConverter</code> (non filtrée non plus, d'après les captures). Si le tech lead veut que la désactivation d'un rôle retire ses permissions, il faut le faire aux deux endroits en même temps.</div></aside></section><section id="gateway"><h2>6. Gateway — route fund-management</h2><p>Le routage est <b>par préfixe</b> ; <code>/api/v1/public/users/**</code> couvre déjà <code>/me/context</code> et les <code>/referentiels/**</code> de 270/269. Seul fund-management n'a pas de route.</p><figure class="fb"><figcaption><span class="tag t-ajouter">À AJOUTER</span><span class="fb-title">application.yml — URL cible</span><button class="copy" data-target="code-14" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\api-gateway-ci\src\main\resources\application.yml</div><pre><code id="code-14" class="lang-yaml"><span class="c"># À AJOUTER — en tête d'application.yml, à la suite de QF_MS_DOCUMENTS_URL</span>
+<span class="k">QF_MS_FUND_MANAGEMENT_URL</span>: http://localhost:8300</code></pre></figure><figure class="fb"><figcaption><span class="tag t-ajouter">À AJOUTER</span><span class="fb-title">application.yml — route qf-fund-management</span><button class="copy" data-target="code-15" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\api-gateway-ci\src\main\resources\application.yml</div><pre><code id="code-15" class="lang-yaml"><span class="c"># À AJOUTER — spring.cloud.gateway.server.webflux.routes, à la suite de qf-wf-derog-tarif-ret_pack</span>
+        - <span class="k">id</span>: qf-fund-management
+          <span class="k">uri</span>: <span class="a">${QF_MS_FUND_MANAGEMENT_URL}</span>
+          <span class="k">predicates</span>:
+            - Path=/api/v1/public/fund-management/**
+          <span class="k">filters</span>:
+<span class="c">            # /api/v1/public/fund-management/cash/{id}/submit -&gt; /cash/{id}/submit</span>
+<span class="c">            # Le prefixe /api/ garantit le relais du Bearer (QfTokenRelayFilter ne relaie que /api/**)</span>
+            - RewritePath=/api/v1/public/fund-management/(?&lt;segment&gt;.*), /<span class="a">${segment}</span>
+            - PreserveHostHeader</code></pre></figure><table><thead><tr><th>Appel du portail</th><th>Reçu par fund-management</th><th>Bearer</th></tr></thead><tbody><tr><td><code>GET /api/v1/public/fund-management/cash?page=0</code></td><td><code>GET /cash?page=0</code></td><td>relayé</td></tr><tr><td><code>PATCH /api/v1/public/fund-management/corpo/cash/{id}/complete-task</code></td><td><code>PATCH /corpo/cash/{id}/complete-task</code></td><td>relayé</td></tr><tr><td><code>GET /cash</code> (sans préfixe)</td><td>— aucune route, 404 gateway</td><td>—</td></tr></tbody></table><aside class="box box-warn"><div class="box-title">Trois points hors de ce fichier</div><div><ul><li><code>application-local.yml</code> (non vu) : s'il redéfinit les <code>QF_MS_*_URL</code>, y ajouter la même clé.</li><li>Déploiement : la variable d'environnement <code>QF_MS_FUND_MANAGEMENT_URL</code> doit être ajoutée au chart Helm de la gateway (repo <code>api-gateway</code> sans <code>-ci</code>, values par environnement).</li><li>CORS : <code>globalcors</code> est sur <code>[/**]</code>, la nouvelle route en hérite.</li></ul></div></aside></section><section id="tests"><h2>7. Vérification locale (Postman)</h2><p>Collection <b>AER_LM-261_auth-roles.postman_collection.json</b> livrée avec ce document. Même mécanique que 270/269/271 : un script de pré-requête fabrique le JWT (<code>sub</code> = uid) accepté par <code>QfSimplifiedAuthFilter</code> en <code>auth-mode: mock</code> ; chaque requête embarque son propre uid.</p><h3>Pré-requis</h3><ol><li>V16 appliquée (démarrage de <code>QlickflowAdminApplication</code> avec le profil <code>local</code>).</li><li>Utilisateurs de test insérés avec le script ci-dessous (ils n'existent pas en base : V16 ne seed que rôles et profils).</li></ol><figure class="fb"><figcaption><span class="tag t-local">LOCAL — NE PAS COMMITTER</span><span class="fb-title">seed-local-gdf-users.sql</span><button class="copy" data-target="code-16" type="button">Copier</button></figcaption><pre><code id="code-16" class="lang-sql"><span class="c">-- Utilisateurs de test locaux pour AER_LM-261 (base locale uniquement).</span>
+<span class="c">-- Agence 1422 = premier code agence BMCI vu dans le seed V5 ; profils 2/9/10/11 = DA / CHEF_CAISSE / CAISSE_CENTRALE / SUPPORT.</span>
+<span class="k">insert</span> <span class="k">into</span> users (actif, created_at, id, organization_unit_id, profile_id, updated_at, email, first_name, last_name, uid) <span class="k">values</span>
+    (<span class="k">true</span>, <span class="k">now</span>(), <span class="k">nextval</span>(<span class="s">'hab_users_seq'</span>), (<span class="k">select</span> id <span class="k">from</span> orga_unit <span class="k">where</span> type = <span class="s">'AGENCE'</span> <span class="k">and</span> code = <span class="s">'1422'</span>), <span class="n">2</span>,  <span class="k">now</span>(), <span class="s">'gdf.da@bmci.ma'</span>,      <span class="s">'Amine'</span>, <span class="s">'DA'</span>,       <span class="s">'g10001'</span>),
+    (<span class="k">true</span>, <span class="k">now</span>(), <span class="k">nextval</span>(<span class="s">'hab_users_seq'</span>), (<span class="k">select</span> id <span class="k">from</span> orga_unit <span class="k">where</span> type = <span class="s">'AGENCE'</span> <span class="k">and</span> code = <span class="s">'1422'</span>), <span class="n">9</span>,  <span class="k">now</span>(), <span class="s">'gdf.caisse@bmci.ma'</span>,  <span class="s">'Salma'</span>, <span class="s">'CAISSE'</span>,   <span class="s">'g10002'</span>),
+    (<span class="k">true</span>, <span class="k">now</span>(), <span class="k">nextval</span>(<span class="s">'hab_users_seq'</span>), <span class="k">null</span>,                                                                <span class="n">10</span>, <span class="k">now</span>(), <span class="s">'gdf.cc@bmci.ma'</span>,      <span class="s">'Karim'</span>, <span class="s">'CENTRALE'</span>, <span class="s">'g10003'</span>),
+    (<span class="k">true</span>, <span class="k">now</span>(), <span class="k">nextval</span>(<span class="s">'hab_users_seq'</span>), <span class="k">null</span>,                                                                <span class="n">11</span>, <span class="k">now</span>(), <span class="s">'gdf.support@bmci.ma'</span>, <span class="s">'Nadia'</span>, <span class="s">'SUPPORT'</span>,  <span class="s">'g10004'</span>);</code></pre></figure><table><thead><tr><th>Requête</th><th>uid</th><th>Attendu</th></tr></thead><tbody><tr><td>Contexte — Chef de caisse</td><td><code>g10002</code></td><td>200 ; <code>profileCode = CHEF_CAISSE</code> ; <code>agence.code = 1422</code> ; 4 permissions ; <code>toutesAgences = false</code></td></tr><tr><td>Contexte — DA</td><td><code>g10001</code></td><td>200 ; <code>profileCode = DA</code> ; agence 1422 ; mêmes 4 permissions (rôle 10 rattaché au profil existant)</td></tr><tr><td>Contexte — Caisse Centrale</td><td><code>g10003</code></td><td>200 ; <code>agence = null</code> ; contient <code>GDF_TRAITER_DEMANDE</code> et <code>GDF_TOUTES_AGENCES</code> ; <code>toutesAgences = true</code></td></tr><tr><td>Contexte — Support</td><td><code>g10004</code></td><td>200 ; exactement <code>GDF_CONSULTER_DEMANDE</code> + <code>GDF_TOUTES_AGENCES</code></td></tr><tr><td>Contexte — Super admin</td><td><code>h11111</code></td><td>200 ; <code>profileCode = SA</code> ; <code>permissions = []</code> ; <code>agence = null</code></td></tr><tr><td>Contexte — uid inconnu</td><td><code>zzz999</code></td><td>401 (filtre : « User not found or disabled »)</td></tr><tr><td>Plateformes</td><td><code>h11111</code></td><td>200 ; la réponse contient <code>GESTION_FONDS</code></td></tr></tbody></table><aside class="box box-info"><div class="box-title">Test bout en bout via la gateway (optionnel)</div><div>Gateway en <code>auth-mode: mock</code> : <code>POST http://localhost:9090/mock-auth/login?uid=g10002</code> pose le cookie, puis <code>GET http://localhost:9090/api/v1/public/users/me/context</code> avec ce cookie renvoie le même contexte. C'est le parcours exact du portail.</div></aside></section><section id="suite"><h2>8. Hors périmètre et points d'attention</h2><h3>Doc séparé — fund-management (à produire après validation de celui-ci)</h3><ul><li>Validation du <code>Bearer</code> reçu de la gateway (resource server ou filtre simplifié, selon ce qui existe dans fund-management — non vu).</li><li>Client interne <code>GET {ms-admin}/api/v1/internal/users/{sub}</code> → <code>InternalUserDTO</code>, avec cache court.</li><li>Filtrage des demandes : <code>GDF_TOUTES_AGENCES</code> absent ⇒ <code>branch_code = orgaUnit.code</code> ; gardes par permission sur create / update / cancel / complete-task.</li></ul><h3>Constaté pendant l'analyse, non corrigé ici (hors périmètre 261)</h3><table><thead><tr><th>Où</th><th>Quoi</th><th>Impact</th></tr></thead><tbody><tr><td><code>UserMapper.toUserInfoDto</code></td><td>retourne <code>null</code> (stub), 2 usages</td><td><code>getUserInfo</code> renvoie un <code>Optional</code> vide silencieusement</td></tr><tr><td><code>UserMapper.toDto</code></td><td><code>username</code> jamais alimenté</td><td>champ mort dans <code>UserDTO</code></td></tr><tr><td><code>UserMapper.mapDto(UpdateUserDTO)</code></td><td>pas de garde null sur <code>orgaUnitId</code> (le create l'a)</td><td>PUT sans agence → <code>IllegalArgumentException</code> au lieu de « inchangé »</td></tr><tr><td>gateway <code>MsUsersReactiveOauth2AuthorizedClientService</code></td><td><code>isRefreshTokenExpired</code> retourne <code>false</code> en dur</td><td>une session expirée n'est jamais purgée par ce chemin (le job <code>CleanUpExpiredSessionJob</code> compense côté utilisateurs-ci)</td></tr><tr><td>gateway <code>application.yml</code></td><td>un secret OAuth réel en commentaire</td><td>à retirer de l'historique git</td></tr><tr><td>gateway <code>MockJwtService</code></td><td><code>@Value("mock-key-id")</code> etc. en littéraux : le bloc <code>qlickflow.security.mock.*</code> n'est bindé que pour <code>client-id</code></td><td>config morte, sans effet en mock</td></tr></tbody></table><h3>Checklist de livraison</h3><ol><li>Enums <code>Platform</code>, <code>Permission</code>, <code>ProfileEnum</code> (section 3) — compiler.</li><li>V16 (section 4) — requête « avant », démarrer, contrôler avec la requête « après V16 ».</li><li>DTO, mapper, facade, contrôleur (section 5) — compiler, seed local, collection Postman verte.</li><li>Gateway (section 6) — variable + route, test bout en bout optionnel.</li><li>Tests unitaires : document <b>AER_LM-261 — Tests</b> (livraison suivante), même style que <code>UserControllerTest</code> / <code>UserFacadeImplTest</code> / <code>ZoneMapperTest</code>.</li></ol></section></main></div><script>
+document.querySelectorAll('button.copy').forEach(b=>b.addEventListener('click',()=>{
+  const el=document.getElementById(b.dataset.target);
+  navigator.clipboard.writeText(el.textContent).then(()=>{b.textContent='Copié';b.classList.add('ok');setTimeout(()=>{b.textContent='Copier';b.classList.remove('ok')},1400)});
+}));
+const links=[...document.querySelectorAll('nav.toc a')];
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.toggle('on',l.getAttribute('href')==='#'+e.target.id))}})},{rootMargin:'-10% 0px -80% 0px'});
+document.querySelectorAll('main section').forEach(s=>obs.observe(s));
+</script></body></html>
