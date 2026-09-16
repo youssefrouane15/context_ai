@@ -1,0 +1,315 @@
+<!doctype html><html lang='fr'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>AER_LM-261 — Authentification et rôles utilisateurs — Tests</title><style>
+:root{--g:#0B6B4F;--deep:#07402F;--gold:#B8892C;--bg:#0f1512;--panel:#141d18;--panel2:#1b2620;--line:#25332c;--txt:#e6ede8;--muted:#9fb0a6;--code:#0a100d}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+a{color:#8fd3b8}code,pre{font-family:Consolas,"Cascadia Code","JetBrains Mono",monospace}
+header.hero{background:linear-gradient(135deg,var(--deep),var(--g));padding:34px 40px 26px;border-bottom:4px solid var(--gold)}
+header.hero h1{margin:0 0 6px;font-size:26px;font-weight:600;letter-spacing:.2px}
+header.hero .sub{color:#d7e7df;max-width:900px}
+header.hero .meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:14px;color:#cfe0d7;font-size:13px}
+.layout{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:22px 16px;background:var(--panel);border-right:1px solid var(--line)}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:6px 10px;border-left:2px solid transparent;font-size:13.5px}
+nav.toc a:hover,nav.toc a.on{color:#fff;border-left-color:var(--gold);background:var(--panel2)}
+main{padding:30px 44px 80px;max-width:1120px}
+section{margin-bottom:54px;scroll-margin-top:12px}
+h2{font-size:21px;font-weight:600;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);color:#fff}
+h3{font-size:16px;margin:26px 0 8px;color:#cfe6da}
+p{margin:8px 0}ul{margin:6px 0 10px 20px}li{margin:3px 0}
+code{background:#1f2b25;padding:1px 5px;border-radius:4px;font-size:.92em;color:#d9ecd2}
+pre{background:var(--code);color:#e3ebe6;padding:16px 18px;margin:0;overflow:auto;border-radius:0 0 8px 8px;font-size:13px;line-height:1.55;tab-size:4}
+pre code{background:none;padding:0;color:inherit;font-size:inherit}
+.k{color:#7fb3ff}.s{color:#c7e59a}.c{color:#7f8f87;font-style:italic}.a{color:#e6c07b}.n{color:#f2a2a2}
+figure.fb{margin:16px 0 22px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+figcaption{display:flex;align-items:center;gap:12px;padding:9px 12px;border-bottom:1px solid var(--line)}
+.fb-title{flex:1;font-weight:600;font-size:14px}.fb-path{font-family:Consolas,monospace;font-size:12px;color:var(--muted);padding:6px 12px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.tag{font-size:11px;font-weight:700;letter-spacing:.4px;padding:3px 8px;border-radius:4px;color:#0b1410}
+.t-complet{background:#8fd3b8}.t-ajouter{background:#e6c07b}.t-edition{background:#9ec5ff}.t-supprimer{background:#f2a2a2}.t-local{background:#d9a3f0}
+button.copy{background:var(--g);color:#fff;border:0;border-radius:5px;padding:5px 11px;cursor:pointer;font-size:12.5px}
+button.copy:hover{background:#0e8664}button.copy.ok{background:var(--gold)}
+.box{border-left:4px solid var(--gold);background:var(--panel);padding:12px 16px;margin:14px 0;border-radius:0 8px 8px 0}
+.box-title{font-weight:700;margin-bottom:4px}.box-info{border-left-color:#7fb3ff}.box-warn{border-left-color:var(--gold)}.box-danger{border-left-color:#f2a2a2}.box-ok{border-left-color:#8fd3b8}
+table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:14px}th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{background:var(--panel2);color:#fff}
+.m{display:inline-block;font-weight:700;font-size:11.5px;padding:2px 7px;border-radius:4px;color:#0b1410}.m-get{background:#8fd3b8}.m-post{background:#e6c07b}.m-put{background:#9ec5ff}.m-patch{background:#d9a3f0}.m-delete{background:#f2a2a2}
+.flow{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:14px 18px;font-family:Consolas,monospace;font-size:13px;white-space:pre;overflow:auto;color:#cfe6da}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto}main{padding:20px}.grid2{grid-template-columns:1fr}}
+</style></head><body><header class='hero'><h1>AER_LM-261 — Authentification et rôles utilisateurs — Tests</h1><div class='sub'>Couverture unitaire de <code>GET /me/context</code> : contrôleur, facade et mapper, dans le style de <code>UserControllerTest</code>, <code>UserFacadeImplTest</code> et <code>ZoneMapperTest</code>.</div><div class='meta'><span>Squad Q360 · BMCI</span><span>16/09/2026</span><span>JUnit 5 · Mockito strict · AssertJ</span><span>Compagnon de : AER_LM-261 — Implémentation</span></div></header><div class='layout'><nav class='toc'><a href="#cadrage">1. Ce qui est couvert</a><a href="#controller">2. Contrôleur — UserControllerTest</a><a href="#facade">3. Facade — UserFacadeImplTest</a><a href="#mapper">4. Mapper — UserMapperTest</a><a href="#run">5. Exécution</a></nav><main><section id="cadrage"><h2>1. Ce qui est couvert</h2><p>Couverture unitaire de la livraison <b>AER_LM-261 — Implémentation</b>, dans le style des classes existantes (auteur Abdelhadi LEMZOURI) : appel direct du contrôleur, Mockito strict sans stub global, <code>@Nested</code> par méthode, <code>@DisplayName</code> en français.</p><table><thead><tr><th>Couche</th><th>Classe de test</th><th>Tag</th><th>Cas</th></tr></thead><tbody><tr><td>Contrôleur</td><td><code>UserControllerTest</code></td><td>À AJOUTER</td><td>200 avec contexte · 404 uid absent</td></tr><tr><td>Facade</td><td><code>UserFacadeImplTest</code></td><td>À AJOUTER</td><td>Optional présent · Optional vide sans appel au mapper</td></tr><tr><td>Mapper</td><td><code>UserMapperTest</code></td><td>FICHIER COMPLET (ou À AJOUTER si la classe existe)</td><td>identité + profil + agence · filtrage GESTION_FONDS et tri · toutesAgences · unité non-agence · sans unité ni rôle · sans profil</td></tr></tbody></table><p>Non couvert par des tests unitaires, et pourquoi : les enums (pas de logique), V16 (vérifiée par la requête « après V16 » du doc d'implémentation et par le démarrage en <code>ddl-auto: validate</code>), la route gateway (YAML, vérifiée par le parcours Postman bout en bout).</p><aside class="box box-warn"><div class="box-title">Deux imports à ajuster à la main dans UserMapperTest</div><div><code>OrganizationService</code> et <code>ProfileService</code> sont dans <code>service/orga/</code> et <code>service/hab/</code> mais je n'ai pas vu leurs packages exacts en capture : si l'import proposé ne compile pas, reprendre les deux lignes d'import de <code>UserFacadeImplTest</code> / <code>UserServiceImplTest</code>. Idem pour <code>RoleEntity.setPermissions</code> : déduit de <code>RoleDTO.permissions</code> et de Lombok.</div></aside></section><section id="controller"><h2>2. Contrôleur — UserControllerTest</h2><p>Le contrôleur reçoit un <code>Authentication</code> ; on passe un <code>UsernamePasswordAuthenticationToken</code> réel plutôt qu'un mock : <code>getName()</code> renvoie le principal, aucun stub à déclarer, Mockito strict reste satisfait.</p><figure class="fb"><figcaption><span class="tag t-ajouter">À AJOUTER</span><span class="fb-title">UserControllerTest.java — @Nested GetMyContext</span><button class="copy" data-target="code-1" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\test\java\com\bnpp\irb\qlickflow\admin\controller\publicapi\UserControllerTest.java</div><pre><code id="code-1" class="lang-java"><span class="c">// À AJOUTER — UserControllerTest.java, à la suite des @Nested existants</span>
+<span class="c">// Imports à ajouter :</span>
+<span class="c">//   import com.bnpp.irb.qlickflow.admin.dto.user.UserContextGdfDTO;</span>
+<span class="c">//   import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;</span>
+<span class="c">//   import org.springframework.security.core.Authentication;</span>
+<span class="c">//   import java.util.Set;</span>
+
+    <span class="c">// —— getMyContext ————————————————————————————————————————————————</span>
+
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"GET /me/context"</span>)
+    <span class="k">class</span> GetMyContext {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"Retourne 200 avec le contexte de l'utilisateur porté par le token"</span>)
+        <span class="k">void</span> shouldReturn200WhenFound() {
+            Authentication authentication = <span class="k">new</span> UsernamePasswordAuthenticationToken(<span class="s">"h12345"</span>, <span class="s">"n/a"</span>);
+            UserContextGdfDTO context = UserContextGdfDTO.builder()
+                    .uid(<span class="s">"h12345"</span>)
+                    .profileCode(<span class="s">"CHEF_CAISSE"</span>)
+                    .permissions(Set.of(<span class="s">"GDF_CONSULTER_DEMANDE"</span>))
+                    .toutesAgences(<span class="k">false</span>)
+                    .build();
+            when(userFacade.findContextGdfByUid(<span class="s">"h12345"</span>)).thenReturn(Optional.of(context));
+
+            ResponseEntity&lt;ApiResponse&lt;UserContextGdfDTO&gt;&gt; response = controller.getMyContext(authentication);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody().isSuccess()).isTrue();
+            assertThat(response.getBody().getData().getProfileCode()).isEqualTo(<span class="s">"CHEF_CAISSE"</span>);
+            assertThat(response.getBody().getMessage()).isEqualTo(<span class="s">"User context retrieved successfully"</span>);
+            verify(userFacade).findContextGdfByUid(<span class="s">"h12345"</span>);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"Retourne 404 si l'uid du token n'existe plus en base"</span>)
+        <span class="k">void</span> shouldReturn404WhenNotFound() {
+            Authentication authentication = <span class="k">new</span> UsernamePasswordAuthenticationToken(<span class="s">"UNKNOWN"</span>, <span class="s">"n/a"</span>);
+            when(userFacade.findContextGdfByUid(<span class="s">"UNKNOWN"</span>)).thenReturn(Optional.empty());
+
+            ResponseEntity&lt;ApiResponse&lt;UserContextGdfDTO&gt;&gt; response = controller.getMyContext(authentication);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(response.getBody().isSuccess()).isFalse();
+            assertThat(response.getBody().getData()).isNull();
+        }
+    }</code></pre></figure></section><section id="facade"><h2>3. Facade — UserFacadeImplTest</h2><p>Les fixtures <code>userEntity</code> / <code>userDTO</code> du <code>setUp</code> existant sont réutilisées. Le second test vérifie que le mapper n'est jamais sollicité quand l'utilisateur est absent.</p><figure class="fb"><figcaption><span class="tag t-ajouter">À AJOUTER</span><span class="fb-title">UserFacadeImplTest.java — @Nested FindContextGdfByUid</span><button class="copy" data-target="code-2" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\test\java\com\bnpp\irb\qlickflow\admin\facade\UserFacadeImplTest.java</div><pre><code id="code-2" class="lang-java"><span class="c">// À AJOUTER — UserFacadeImplTest.java, à la suite des @Nested existants</span>
+<span class="c">// Imports à ajouter :</span>
+<span class="c">//   import com.bnpp.irb.qlickflow.admin.dto.user.UserContextGdfDTO;</span>
+<span class="c">//   import static org.mockito.ArgumentMatchers.any;</span>
+<span class="c">//   import static org.mockito.Mockito.never;</span>
+
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"findContextGdfByUid"</span>)
+    <span class="k">class</span> FindContextGdfByUid {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"findContextGdfByUid - retourne Optional&lt;UserContextGdfDTO&gt; si l'uid existe"</span>)
+        <span class="k">void</span> shouldReturnContextWhenFound() {
+            UserContextGdfDTO context = UserContextGdfDTO.builder().uid(<span class="s">"uid-001"</span>).build();
+            when(userService.findByUid(<span class="s">"uid-001"</span>)).thenReturn(Optional.of(userEntity));
+            when(userMapper.toContextGdfDto(userEntity)).thenReturn(context);
+
+            Optional&lt;UserContextGdfDTO&gt; result = userFacade.findContextGdfByUid(<span class="s">"uid-001"</span>);
+
+            assertThat(result).contains(context);
+            verify(userMapper).toContextGdfDto(userEntity);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"findContextGdfByUid - retourne vide si absent, sans appeler le mapper"</span>)
+        <span class="k">void</span> shouldReturnEmptyWhenNotFound() {
+            when(userService.findByUid(<span class="s">"UNKNOWN"</span>)).thenReturn(Optional.empty());
+
+            Optional&lt;UserContextGdfDTO&gt; result = userFacade.findContextGdfByUid(<span class="s">"UNKNOWN"</span>);
+
+            assertThat(result).isEmpty();
+            verify(userMapper, never()).toContextGdfDto(any());
+        }
+    }</code></pre></figure></section><section id="mapper"><h2>4. Mapper — UserMapperTest</h2><p><code>UserMapper</code> est un <code>@Component</code> à quatre dépendances injectées par constructeur : contrairement à <code>ZoneMapperTest</code> (<code>new ZoneMapper()</code>), il faut <code>@InjectMocks</code>. Aucune dépendance n'est stubbée : <code>toContextGdfDto</code> ne les touche pas, et Mockito strict échouerait sinon.</p><figure class="fb"><figcaption><span class="tag t-complet">FICHIER COMPLET</span><span class="fb-title">UserMapperTest.java</span><button class="copy" data-target="code-3" type="button">Copier</button></figcaption><div class="fb-path">C:\dev\utilisateurs-ci\src\test\java\com\bnpp\irb\qlickflow\admin\mapper\UserMapperTest.java</div><pre><code id="code-3" class="lang-java"><span class="k">package</span> com.bnpp.irb.qlickflow.admin.mapper;
+
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.dto.user.UserContextGdfDTO;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.UserEntity;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.habilitations.Permission;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.habilitations.ProfileEntity;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.habilitations.RoleEntity;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.orga.OrganizationUnitEntity;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.orga.OrganizationUnitType;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.service.hab.ProfileService;          <span class="c">// à ajuster si le package diffère (voir UserFacadeImplTest)</span>
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.service.orga.OrganizationService;    <span class="c">// idem</span>
+<span class="k">import</span> org.junit.jupiter.api.BeforeEach;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.InjectMocks;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> java.util.Arrays;
+<span class="k">import</span> java.util.HashSet;
+<span class="k">import</span> java.util.Set;
+
+<span class="k">import</span> <span class="k">static</span> org.assertj.core.api.Assertions.assertThat;
+
+<span class="a">@ExtendWith</span>(MockitoExtension.<span class="k">class</span>)
+<span class="a">@DisplayName</span>(<span class="s">"UserMapper - Tests unitaires"</span>)
+<span class="k">class</span> UserMapperTest {
+
+    <span class="c">// Dépendances du constructeur (@RequiredArgsConstructor) — non sollicitées par toContextGdfDto</span>
+    <span class="a">@Mock</span> <span class="k">private</span> OrganizationService organizationService;
+    <span class="a">@Mock</span> <span class="k">private</span> ProfileService profileService;
+    <span class="a">@Mock</span> <span class="k">private</span> OrgaUnitMapper orgaUnitMapper;
+    <span class="a">@Mock</span> <span class="k">private</span> ProfileMapper profileMapper;
+
+    <span class="a">@InjectMocks</span>
+    <span class="k">private</span> UserMapper mapper;
+
+    <span class="k">private</span> UserEntity user;
+    <span class="k">private</span> ProfileEntity profile;
+    <span class="k">private</span> OrganizationUnitEntity agence;
+
+    <span class="a">@BeforeEach</span>
+    <span class="k">void</span> setUp() {
+        agence = OrganizationUnitEntity.builder()
+                .id(<span class="n">57L</span>)
+                .code(<span class="s">"1422"</span>)
+                .name(<span class="s">"AGENCE 1422"</span>)
+                .actif(<span class="k">true</span>)
+                .type(OrganizationUnitType.AGENCE)
+                .build();
+
+        profile = <span class="k">new</span> ProfileEntity();
+        profile.setId(<span class="n">9L</span>);
+        profile.setCode(<span class="s">"CHEF_CAISSE"</span>);
+        profile.setName(<span class="s">"Chef de caisse"</span>);
+        profile.setRoles(Set.of(role(
+                Permission.GDF_CONSULTER_DEMANDE,
+                Permission.GDF_CREER_DEMANDE,
+                Permission.GDF_MODIFIER_DEMANDE,
+                Permission.GDF_ANNULER_DEMANDE)));
+
+        user = <span class="k">new</span> UserEntity();
+        user.setId(<span class="n">1L</span>);
+        user.setUid(<span class="s">"g10002"</span>);
+        user.setFirstName(<span class="s">"Salma"</span>);
+        user.setLastName(<span class="s">"CAISSE"</span>);
+        user.setEmail(<span class="s">"gdf.caisse@bmci.ma"</span>);
+        user.setActif(<span class="k">true</span>);
+        user.setProfile(profile);
+        user.setOrganizationUnit(agence);
+    }
+
+    <span class="k">private</span> <span class="k">static</span> RoleEntity role(Permission... permissions) {
+        RoleEntity role = <span class="k">new</span> RoleEntity();
+        role.setPermissions(<span class="k">new</span> HashSet&lt;&gt;(Arrays.asList(permissions)));
+        <span class="k">return</span> role;
+    }
+
+    <span class="c">// ------------------------------------------------------------------</span>
+    <span class="c">// toContextGdfDto</span>
+    <span class="c">// ------------------------------------------------------------------</span>
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"toContextGdfDto - identité, code profil et agence correctement mappés"</span>)
+    <span class="k">void</span> toContextGdfDtoShouldMapIdentityProfileAndAgence() {
+        UserContextGdfDTO dto = mapper.toContextGdfDto(user);
+
+        assertThat(dto).isNotNull();
+        assertThat(dto.getUid()).isEqualTo(<span class="s">"g10002"</span>);
+        assertThat(dto.getFirstName()).isEqualTo(<span class="s">"Salma"</span>);
+        assertThat(dto.getLastName()).isEqualTo(<span class="s">"CAISSE"</span>);
+        assertThat(dto.getEmail()).isEqualTo(<span class="s">"gdf.caisse@bmci.ma"</span>);
+        assertThat(dto.getProfileCode()).isEqualTo(<span class="s">"CHEF_CAISSE"</span>);
+        assertThat(dto.getProfileName()).isEqualTo(<span class="s">"Chef de caisse"</span>);
+        assertThat(dto.getAgence()).isNotNull();
+        assertThat(dto.getAgence().getId()).isEqualTo(<span class="n">57L</span>);
+        assertThat(dto.getAgence().getCode()).isEqualTo(<span class="s">"1422"</span>);
+        assertThat(dto.getAgence().getNom()).isEqualTo(<span class="s">"AGENCE 1422"</span>);
+        assertThat(dto.isToutesAgences()).isFalse();
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"toContextGdfDto - seules les permissions GESTION_FONDS traversent, triées par nom"</span>)
+    <span class="k">void</span> toContextGdfDtoShouldKeepOnlyGdfPermissionsSorted() {
+        profile.setRoles(Set.of(
+                role(Permission.GDF_MODIFIER_DEMANDE, Permission.CONSOLE_ADMIN_EDIT_USER),
+                role(Permission.GDF_CONSULTER_DEMANDE, Permission.GDF_ANNULER_DEMANDE)));
+
+        UserContextGdfDTO dto = mapper.toContextGdfDto(user);
+
+        assertThat(dto.getPermissions()).containsExactly(
+                <span class="s">"GDF_ANNULER_DEMANDE"</span>,
+                <span class="s">"GDF_CONSULTER_DEMANDE"</span>,
+                <span class="s">"GDF_MODIFIER_DEMANDE"</span>);
+        assertThat(dto.getPermissions()).doesNotContain(<span class="s">"CONSOLE_ADMIN_EDIT_USER"</span>);
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"toContextGdfDto - toutesAgences = true dès que GDF_TOUTES_AGENCES est portée"</span>)
+    <span class="k">void</span> toContextGdfDtoShouldFlagToutesAgences() {
+        profile.setCode(<span class="s">"CAISSE_CENTRALE"</span>);
+        profile.setRoles(Set.of(role(
+                Permission.GDF_CONSULTER_DEMANDE,
+                Permission.GDF_TRAITER_DEMANDE,
+                Permission.GDF_ANNULER_DEMANDE,
+                Permission.GDF_TOUTES_AGENCES)));
+        user.setOrganizationUnit(<span class="k">null</span>);
+
+        UserContextGdfDTO dto = mapper.toContextGdfDto(user);
+
+        assertThat(dto.isToutesAgences()).isTrue();
+        assertThat(dto.getAgence()).isNull();
+        assertThat(dto.getPermissions()).contains(<span class="s">"GDF_TRAITER_DEMANDE"</span>, <span class="s">"GDF_TOUTES_AGENCES"</span>);
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"toContextGdfDto - agence = null si l'unité d'organisation n'est pas une AGENCE"</span>)
+    <span class="k">void</span> toContextGdfDtoShouldIgnoreNonAgenceUnit() {
+        user.setOrganizationUnit(OrganizationUnitEntity.builder()
+                .id(<span class="n">7L</span>)
+                .code(<span class="s">"G01"</span>)
+                .name(<span class="s">"Groupe Casa Ouest"</span>)
+                .actif(<span class="k">true</span>)
+                .type(OrganizationUnitType.GROUPE)
+                .build());
+
+        UserContextGdfDTO dto = mapper.toContextGdfDto(user);
+
+        assertThat(dto.getAgence()).isNull();
+        assertThat(dto.getProfileCode()).isEqualTo(<span class="s">"CHEF_CAISSE"</span>);
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"toContextGdfDto - sans unité ni rôle (cas super admin) : agence null, permissions vides"</span>)
+    <span class="k">void</span> toContextGdfDtoShouldHandleUserWithoutUnitNorRoles() {
+        profile.setCode(<span class="s">"SA"</span>);
+        profile.setRoles(<span class="k">null</span>);
+        user.setOrganizationUnit(<span class="k">null</span>);
+
+        UserContextGdfDTO dto = mapper.toContextGdfDto(user);
+
+        assertThat(dto.getProfileCode()).isEqualTo(<span class="s">"SA"</span>);
+        assertThat(dto.getAgence()).isNull();
+        assertThat(dto.getPermissions()).isEmpty();
+        assertThat(dto.isToutesAgences()).isFalse();
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"toContextGdfDto - sans profil : profileCode null, permissions vides, pas d'exception"</span>)
+    <span class="k">void</span> toContextGdfDtoShouldHandleUserWithoutProfile() {
+        user.setProfile(<span class="k">null</span>);
+
+        UserContextGdfDTO dto = mapper.toContextGdfDto(user);
+
+        assertThat(dto.getProfileCode()).isNull();
+        assertThat(dto.getProfileName()).isNull();
+        assertThat(dto.getPermissions()).isEmpty();
+        assertThat(dto.getAgence()).isNotNull();
+    }
+}</code></pre></figure><figure class="fb"><figcaption><span class="tag t-ajouter">À AJOUTER</span><span class="fb-title">Variante si UserMapperTest existe déjà</span><button class="copy" data-target="code-4" type="button">Copier</button></figcaption><pre><code id="code-4" class="lang-java"><span class="c">// À AJOUTER — si UserMapperTest.java existe déjà : coller ce bloc @Nested dans la classe existante</span>
+<span class="c">// (avec les fixtures agence / profile / user du setUp et la méthode utilitaire role(...) ci-dessus).</span>
+
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"toContextGdfDto"</span>)
+    <span class="k">class</span> ToContextGdfDto {
+        <span class="c">// … reprendre tels quels les six @Test du fichier complet, sans le préfixe « toContextGdfDto - » dans les DisplayName</span>
+    }</code></pre></figure><aside class="box box-info"><div class="box-title">Ce que ces six cas verrouillent</div><div><ul><li>Le contrat JSON du doc d'implémentation (identité, <code>profileCode</code>, agence <code>{id, code, nom}</code>).</li><li>Le filtre plateforme : une permission <code>CONSOLE_ADMIN_*</code> présente sur le même profil ne fuit pas dans le contexte GDF.</li><li>Le tri (<code>TreeSet</code>) : le front peut comparer des listes stables.</li><li>Les quatre chemins null : unité non-agence, unité absente, rôles absents, profil absent — le cas <code>h11111</code> réel et les utilisateurs créés via <code>CreateAdminUserDTO</code> (sans orga).</li></ul></div></aside></section><section id="run"><h2>5. Exécution</h2><figure class="fb"><figcaption><span class="tag t-local">LOCAL — NE PAS COMMITTER</span><span class="fb-title">Lancer uniquement les classes touchées</span><button class="copy" data-target="code-5" type="button">Copier</button></figcaption><pre><code id="code-5" class="lang-js">cd C:\dev\utilisateurs-ci
+mvn -q -Dtest=UserControllerTest,UserFacadeImplTest,UserMapperTest test
+
+# suite complète avant push
+mvn clean verify</code></pre></figure><table><thead><tr><th>Symptôme</th><th>Cause probable</th><th>Correction</th></tr></thead><tbody><tr><td><code>UnnecessaryStubbingException</code></td><td>un stub déclaré dans un test n'est pas consommé</td><td>retirer le stub ; ne jamais le déplacer dans <code>setUp</code></td></tr><tr><td><code>NullPointerException</code> dans <code>toContextGdfDto</code> sur <code>getRoles()</code></td><td>le getter de <code>ProfileEntity</code> ne s'appelle pas <code>getRoles</code></td><td>aligner le mapper et le test sur le nom réel (voir hypothèse 3 du doc d'implémentation)</td></tr><tr><td><code>cannot find symbol setPermissions</code></td><td><code>RoleEntity</code> sans setter Lombok</td><td>utiliser le builder ou le constructeur de <code>RoleEntity</code> dans <code>role(...)</code></td></tr><tr><td>import <code>OrganizationService</code> / <code>ProfileService</code> introuvable</td><td>package différent de celui supposé</td><td>reprendre les imports de <code>UserFacadeImplTest</code></td></tr></tbody></table><aside class="box box-ok"><div class="box-title">Suite</div><div>Le doc de tests de rattrapage <b>270 / 269 / 271</b> (zones de distribution, prestataires, agence) est la livraison suivante : dis « rattrapage » et j'enchaîne.</div></aside></section></main></div><script>
+document.querySelectorAll('button.copy').forEach(b=>b.addEventListener('click',()=>{
+  const el=document.getElementById(b.dataset.target);
+  navigator.clipboard.writeText(el.textContent).then(()=>{b.textContent='Copié';b.classList.add('ok');setTimeout(()=>{b.textContent='Copier';b.classList.remove('ok')},1400)});
+}));
+const links=[...document.querySelectorAll('nav.toc a')];
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.toggle('on',l.getAttribute('href')==='#'+e.target.id))}})},{rootMargin:'-10% 0px -80% 0px'});
+document.querySelectorAll('main section').forEach(s=>obs.observe(s));
+</script></body></html>
