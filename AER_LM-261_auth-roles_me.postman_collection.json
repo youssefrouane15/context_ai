@@ -1,0 +1,462 @@
+{
+  "info": {
+    "name": "AER_LM-261 - Authentification et rôles (GET /me enrichi)",
+    "description": "Prérequis : V16 appliquée + seed-local-gdf-users.sql (g10001..g10004). auth-mode: mock. Le JWT est fabriqué par le script de pré-requête de chaque appel. Remplace la collection /me/context.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Me - Chef de caisse (g10002)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Mode local (qf.security.auth-mode = mock) : QfSimplifiedAuthFilter lit seulement le claim `sub`",
+              "// et ne verifie pas la signature. On fabrique un JWT HS256 avec sub = uid a chaque appel.",
+              "const uid = 'g10002';",
+              "const b64url = words => CryptoJS.enc.Base64.stringify(words).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+              "const header  = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));",
+              "const payload = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: uid, iss: 'postman-mock', iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600 })));",
+              "const signature = b64url(CryptoJS.HmacSHA256(header + '.' + payload, 'mock-secret'));",
+              "pm.variables.set('token', header + '.' + payload + '.' + signature);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "const permsGdf = Array.from(new Set((body.profile?.roles ?? [])",
+              "  .filter(r => r.platform === 'GESTION_FONDS')",
+              "  .flatMap(r => r.permissions ?? [])",
+              "  .map(p => p.code))).sort();",
+              "pm.test('uid present', () => pm.expect(body.uid).to.be.a('string'));",
+              "pm.test('profile.code = CHEF_CAISSE', () => pm.expect(body.profile.code).to.eql('CHEF_CAISSE'));",
+              "pm.test('profile.roles est un tableau non vide (ProfileMapper mappe bien les roles)', () => { pm.expect(body.profile.roles).to.be.an('array'); pm.expect(body.profile.roles.length).to.be.above(0); });",
+              "pm.test('permissions GESTION_FONDS exactes', () => pm.expect(permsGdf).to.eql([\"GDF_ANNULER_DEMANDE\", \"GDF_CONSULTER_DEMANDE\", \"GDF_CREER_DEMANDE\", \"GDF_MODIFIER_DEMANDE\"]));",
+              "pm.test('orgaUnit.code = 1422, type AGENCE', () => { pm.expect(body.orgaUnit.code).to.eql('1422'); pm.expect(body.orgaUnit.type).to.eql('AGENCE'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Me - DA (g10001)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Mode local (qf.security.auth-mode = mock) : QfSimplifiedAuthFilter lit seulement le claim `sub`",
+              "// et ne verifie pas la signature. On fabrique un JWT HS256 avec sub = uid a chaque appel.",
+              "const uid = 'g10001';",
+              "const b64url = words => CryptoJS.enc.Base64.stringify(words).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+              "const header  = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));",
+              "const payload = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: uid, iss: 'postman-mock', iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600 })));",
+              "const signature = b64url(CryptoJS.HmacSHA256(header + '.' + payload, 'mock-secret'));",
+              "pm.variables.set('token', header + '.' + payload + '.' + signature);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "const permsGdf = Array.from(new Set((body.profile?.roles ?? [])",
+              "  .filter(r => r.platform === 'GESTION_FONDS')",
+              "  .flatMap(r => r.permissions ?? [])",
+              "  .map(p => p.code))).sort();",
+              "pm.test('uid present', () => pm.expect(body.uid).to.be.a('string'));",
+              "pm.test('profile.code = DA', () => pm.expect(body.profile.code).to.eql('DA'));",
+              "pm.test('profile.roles est un tableau non vide (ProfileMapper mappe bien les roles)', () => { pm.expect(body.profile.roles).to.be.an('array'); pm.expect(body.profile.roles.length).to.be.above(0); });",
+              "pm.test('permissions GESTION_FONDS exactes', () => pm.expect(permsGdf).to.eql([\"GDF_ANNULER_DEMANDE\", \"GDF_CONSULTER_DEMANDE\", \"GDF_CREER_DEMANDE\", \"GDF_MODIFIER_DEMANDE\"]));",
+              "pm.test('orgaUnit.code = 1422, type AGENCE', () => { pm.expect(body.orgaUnit.code).to.eql('1422'); pm.expect(body.orgaUnit.type).to.eql('AGENCE'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Me - Caisse Centrale (g10003)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Mode local (qf.security.auth-mode = mock) : QfSimplifiedAuthFilter lit seulement le claim `sub`",
+              "// et ne verifie pas la signature. On fabrique un JWT HS256 avec sub = uid a chaque appel.",
+              "const uid = 'g10003';",
+              "const b64url = words => CryptoJS.enc.Base64.stringify(words).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+              "const header  = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));",
+              "const payload = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: uid, iss: 'postman-mock', iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600 })));",
+              "const signature = b64url(CryptoJS.HmacSHA256(header + '.' + payload, 'mock-secret'));",
+              "pm.variables.set('token', header + '.' + payload + '.' + signature);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "const permsGdf = Array.from(new Set((body.profile?.roles ?? [])",
+              "  .filter(r => r.platform === 'GESTION_FONDS')",
+              "  .flatMap(r => r.permissions ?? [])",
+              "  .map(p => p.code))).sort();",
+              "pm.test('uid present', () => pm.expect(body.uid).to.be.a('string'));",
+              "pm.test('profile.code = CAISSE_CENTRALE', () => pm.expect(body.profile.code).to.eql('CAISSE_CENTRALE'));",
+              "pm.test('profile.roles est un tableau non vide (ProfileMapper mappe bien les roles)', () => { pm.expect(body.profile.roles).to.be.an('array'); pm.expect(body.profile.roles.length).to.be.above(0); });",
+              "pm.test('permissions GESTION_FONDS exactes', () => pm.expect(permsGdf).to.eql([\"GDF_ANNULER_DEMANDE\", \"GDF_CONSULTER_DEMANDE\", \"GDF_TOUTES_AGENCES\", \"GDF_TRAITER_DEMANDE\"]));",
+              "pm.test('orgaUnit = null', () => pm.expect(body.orgaUnit).to.eql(null));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Me - Support (g10004)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Mode local (qf.security.auth-mode = mock) : QfSimplifiedAuthFilter lit seulement le claim `sub`",
+              "// et ne verifie pas la signature. On fabrique un JWT HS256 avec sub = uid a chaque appel.",
+              "const uid = 'g10004';",
+              "const b64url = words => CryptoJS.enc.Base64.stringify(words).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+              "const header  = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));",
+              "const payload = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: uid, iss: 'postman-mock', iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600 })));",
+              "const signature = b64url(CryptoJS.HmacSHA256(header + '.' + payload, 'mock-secret'));",
+              "pm.variables.set('token', header + '.' + payload + '.' + signature);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "const permsGdf = Array.from(new Set((body.profile?.roles ?? [])",
+              "  .filter(r => r.platform === 'GESTION_FONDS')",
+              "  .flatMap(r => r.permissions ?? [])",
+              "  .map(p => p.code))).sort();",
+              "pm.test('uid present', () => pm.expect(body.uid).to.be.a('string'));",
+              "pm.test('profile.code = SUPPORT', () => pm.expect(body.profile.code).to.eql('SUPPORT'));",
+              "pm.test('profile.roles est un tableau non vide (ProfileMapper mappe bien les roles)', () => { pm.expect(body.profile.roles).to.be.an('array'); pm.expect(body.profile.roles.length).to.be.above(0); });",
+              "pm.test('permissions GESTION_FONDS exactes', () => pm.expect(permsGdf).to.eql([\"GDF_CONSULTER_DEMANDE\", \"GDF_TOUTES_AGENCES\"]));",
+              "pm.test('orgaUnit = null', () => pm.expect(body.orgaUnit).to.eql(null));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Me - Super admin ({{uid}})",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Mode local (qf.security.auth-mode = mock) : QfSimplifiedAuthFilter lit seulement le claim `sub`",
+              "// et ne verifie pas la signature. On fabrique un JWT HS256 avec sub = uid a chaque appel.",
+              "const uid = pm.collectionVariables.get('uid') || 'h11111';",
+              "const b64url = words => CryptoJS.enc.Base64.stringify(words).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+              "const header  = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));",
+              "const payload = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: uid, iss: 'postman-mock', iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600 })));",
+              "const signature = b64url(CryptoJS.HmacSHA256(header + '.' + payload, 'mock-secret'));",
+              "pm.variables.set('token', header + '.' + payload + '.' + signature);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "const permsGdf = Array.from(new Set((body.profile?.roles ?? [])",
+              "  .filter(r => r.platform === 'GESTION_FONDS')",
+              "  .flatMap(r => r.permissions ?? [])",
+              "  .map(p => p.code))).sort();",
+              "pm.test('uid present', () => pm.expect(body.uid).to.be.a('string'));",
+              "pm.test('profile.code = SA', () => pm.expect(body.profile.code).to.eql('SA'));",
+              "pm.test('permissions GESTION_FONDS exactes', () => pm.expect(permsGdf).to.eql([]));",
+              "pm.test('unite non-agence ou absente', () => pm.expect(body.orgaUnit == null || body.orgaUnit.type !== 'AGENCE').to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Me - uid inconnu (zzz999) -> 401",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Mode local (qf.security.auth-mode = mock) : QfSimplifiedAuthFilter lit seulement le claim `sub`",
+              "// et ne verifie pas la signature. On fabrique un JWT HS256 avec sub = uid a chaque appel.",
+              "const uid = 'zzz999';",
+              "const b64url = words => CryptoJS.enc.Base64.stringify(words).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+              "const header  = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));",
+              "const payload = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: uid, iss: 'postman-mock', iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600 })));",
+              "const signature = b64url(CryptoJS.HmacSHA256(header + '.' + payload, 'mock-secret'));",
+              "pm.variables.set('token', header + '.' + payload + '.' + signature);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('401 (QfSimplifiedAuthFilter : user not found or disabled)', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Plateformes - contient GESTION_FONDS",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Mode local (qf.security.auth-mode = mock) : QfSimplifiedAuthFilter lit seulement le claim `sub`",
+              "// et ne verifie pas la signature. On fabrique un JWT HS256 avec sub = uid a chaque appel.",
+              "const uid = pm.collectionVariables.get('uid') || 'h11111';",
+              "const b64url = words => CryptoJS.enc.Base64.stringify(words).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+              "const header  = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));",
+              "const payload = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: uid, iss: 'postman-mock', iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600 })));",
+              "const signature = b64url(CryptoJS.HmacSHA256(header + '.' + payload, 'mock-secret'));",
+              "pm.variables.set('token', header + '.' + payload + '.' + signature);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200));",
+              "pm.test('GESTION_FONDS present', () => pm.expect(pm.response.text()).to.include('GESTION_FONDS'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/public/users/habilitations/platforms",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "public",
+            "users",
+            "habilitations",
+            "platforms"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8091"
+    },
+    {
+      "key": "uid",
+      "value": "h11111"
+    }
+  ]
+}
