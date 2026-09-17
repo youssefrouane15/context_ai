@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>AER_LM-268 — Console : onglet Zone Transporteur (front)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><style>
+:root{--g1:#0B6B4F;--g2:#07402F;--gold:#B8892C;--ink:#1c2a25;--muted:#5d6e68;--line:#d8e3de;--bg:#f4f8f6}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
+header{background:linear-gradient(120deg,var(--g2),var(--g1));color:#fff;padding:28px 40px;border-bottom:4px solid var(--gold)}
+header h1{margin:0 0 6px;font-size:26px;font-weight:600}
+header .sub{opacity:.9;font-size:14px}
+header .meta{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+header .meta span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:14px;padding:3px 10px;font-size:12px}
+.wrap{display:grid;grid-template-columns:250px 1fr;gap:0}
+nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:#fff;border-right:1px solid var(--line);padding:18px 14px}
+nav a{display:block;color:var(--g2);text-decoration:none;font-size:13px;padding:6px 8px;border-radius:6px}
+nav a:hover{background:var(--bg)}
+main{padding:26px 40px 80px;max-width:1150px}
+h2{color:var(--g2);border-left:5px solid var(--gold);padding-left:12px;margin:38px 0 14px;font-size:21px}
+h3{color:var(--g1);margin:26px 0 10px;font-size:16px}
+p,li{font-size:14.5px}
+code{font-family:Consolas,"JetBrains Mono",monospace;font-size:13px;background:#e6efeb;padding:1px 5px;border-radius:4px;color:var(--g2)}
+pre{margin:0;background:#0f1a17!important;color:#e6efeb;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55;border-radius:0 0 10px 10px}
+pre code{background:none;color:inherit;padding:0;font-size:13px}
+.fb{margin:16px 0 22px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.fb-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-radius:10px 10px 0 0;flex-wrap:wrap}
+.fb-title{font-weight:600;font-size:14px;color:var(--g2)}
+.fb-path{font-family:Consolas,monospace;font-size:12px;color:var(--muted);flex-basis:100%}
+.fb-note{padding:8px 14px;background:#fff8e6;border-top:1px solid #f0dfb0;border-bottom:1px solid #f0dfb0;font-size:13px}
+.copy{margin-left:auto;background:var(--g1);color:#fff;border:0;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer}
+.copy:hover{background:var(--g2)}
+.tag{font-size:11px;font-weight:700;letter-spacing:.5px;padding:3px 9px;border-radius:5px;color:#fff}
+.tag-complet{background:var(--g1)}.tag-ajouter{background:#1f6fb2}.tag-edition{background:#c07f1a}.tag-supprimer{background:#b23a3a}.tag-info{background:#5d6e68}
+.hc{color:#7f9a8f;font-style:italic}.hs{color:#c9e5a3}.hk{color:#8fd3ff}.hd{color:#f0c674}.hn{color:#f2a1a1}.ht{color:#8fd3ff}.ha{color:#f0c674}
+.box{border-radius:10px;padding:12px 16px;margin:14px 0;border:1px solid;font-size:14px}
+.box-title{font-weight:700;margin-bottom:4px}
+.box-ok{background:#eaf6f0;border-color:#a9d6c0;color:#0f3f2e}
+.box-warn{background:#fff8e6;border-color:#f0dfb0;color:#5a4200}
+.box-danger{background:#fdecec;border-color:#f2b8b8;color:#6b1c1c}
+.box-info{background:#eaf1f8;border-color:#b9d0e8;color:#153a5b}
+table{border-collapse:collapse;width:100%;margin:12px 0 18px;background:#fff;font-size:13.5px}
+th{background:var(--g2);color:#fff;text-align:left;padding:8px 10px;font-weight:600}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:#f9fbfa}
+.step{display:inline-block;background:var(--gold);color:#fff;border-radius:50%;width:26px;height:26px;text-align:center;line-height:26px;font-size:13px;margin-right:8px}
+ul.check li{list-style:none;margin:5px 0}ul.check{padding-left:4px}
+ul.check li:before{content:"☐";margin-right:8px;color:var(--g1)}
+kbd{background:#eee;border:1px solid #ccc;border-radius:4px;padding:0 5px;font-size:12px}
+footer{color:var(--muted);font-size:12px;padding:20px 40px;border-top:1px solid var(--line)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}nav{position:static;height:auto}}
+</style></head>
+<body><header><h1>AER_LM-268 — Console : onglet Zone Transporteur (front)</h1><div class="sub">portail-ci · ConsoleAgenceComponent · 4ᵉ onglet, CRUD du référentiel zones de distribution · branche feature/AER_LM-268 (depuis feature/AER_LM-259)</div><div class="meta"><span>Squad Q360</span><span>Angular (NgModule) · TypeScript 4.9</span><span>Backend : utilisateurs-ci AER_LM-270</span><span>17/09/2026</span></div></header>
+<div class="wrap"><nav><a href="#ctx">1. Contexte et décisions</a><a href="#api">2. Contrat backend consommé</a><a href="#files">3. Fichiers impactés</a><a href="#s1">4. Étape 1 — referentiel.interface.ts</a><a href="#s2">5. Étape 2 — referentiel.service.ts</a><a href="#s3">6. Étape 3 — console-agence.component.ts</a><a href="#s4">7. Étape 4 — console-agence.component.html</a><a href="#git">8. Branche et livraison</a><a href="#check">9. Vérifications manuelles</a><a href="#limits">10. Points d'attention</a></nav><main><section id="ctx"><h2>1. Contexte et décisions</h2><p><b>AER_LM-268</b> — écran d'administration du référentiel des zones (backend <b>AER_LM-270</b>, table <code>zone_distribution</code>). Côté front il devient un <b>4ᵉ onglet « Zone Transporteur »</b> dans l'écran existant <code>/admin/agence</code>, même gabarit que les onglets Agence(s) / Groupe(s) / Zone(s) : liste, recherche, ajout, toggle Actif, édition, pagination.</p><div class="box box-ok"><div class="box-title">Ce que cette branche livre</div><div class="box-body"><ul><li>2 DTO d'écriture dans <code>referentiel.interface.ts</code> et 4 méthodes CRUD dans <code>ReferentielService</code> (créés par la 259).</li><li>Un 4ᵉ onglet + son <code>content-card</code> + sa modale (code + libellé) dans <code>ConsoleAgenceComponent</code>.</li><li>Aucune route, aucun composant, aucun module, aucun SCSS nouveau : tout est réutilisé.</li></ul></div></div><div class="box box-warn"><div class="box-title">Décisions</div><div class="box-body"><ul><li>L'onglet <b>Zone(s)</b> existant (zones de la hiérarchie d'organisation, <code>orga_unit</code> type ZONE) est <b>conservé tel quel</b> ; « Zone Transporteur » est un référentiel distinct — à confirmer avec le tech lead que les deux coexistent à l'écran.</li><li>Colonnes : <b>Code / Libellé / Actif / Actions</b> (la zone de distribution n'a pas de rattachement, contrairement aux autres unités).</li><li>Bouton SUPPRIMER présent mais <b>inerte</b>, comme sur les trois autres onglets (pas de <code>DELETE</code> exposé pour ce référentiel).</li><li>Code saisi en <b>majuscules</b> (lettres, chiffres, <code>-</code>, <code>_</code>) : la contrainte d'unicité serveur est insensible à la casse, on évite « casa » / « CASA ».</li><li>Recherche client sur code et libellé (même mécanique que les autres onglets : filtre sur la page courante).</li></ul></div></div><div class="box box-danger"><div class="box-title">Dépendance</div><div class="box-body">Branche créée <b>depuis <code>feature/AER_LM-259</code></b> : elle suppose <code>referentiel.interface.ts</code>, <code>ReferentielService</code> et l'injection de <code>referentielService</code> dans le composant. Merge dans <code>develop-omega</code> après la 259.</div></div></section><section id="api"><h2>2. Contrat backend consommé</h2><p>Base : <code>{gateway}/api/v1/public/users/referentiels/zones-distribution</code> (contrôleur <code>ZoneDistributionController</code>, AER_LM-270).</p><table><thead><tr><th>Méthode</th><th>Chemin</th><th>Retour</th><th>Usage</th></tr></thead><tbody><tr><td>GET</td><td><code>/pages?page=0&size=4</code></td><td><code>ApiResponse&lt;Page&lt;ZoneDistributionDTO&gt;&gt;</code></td><td>Liste de l'onglet</td></tr><tr><td>POST</td><td><code>/</code> — <code>{code, nom}</code></td><td>201 <code>ApiResponse&lt;ZoneDistributionDTO&gt;</code></td><td>Modale ajout ; 409 si code ou libellé existe</td></tr><tr><td>PUT</td><td><code>/</code> — <code>{id, code, nom}</code></td><td><code>ApiResponse&lt;String&gt;</code> (message)</td><td>Modale modification ; 404 / 409</td></tr><tr><td>PATCH</td><td><code>/{id}/toggle-activation</code></td><td><code>ApiResponse&lt;String&gt;</code></td><td>Toggle Actif</td></tr><tr><td>GET</td><td><code>/actives</code></td><td>—</td><td>Déjà consommé par la 259 (select agence)</td></tr></tbody></table><div class="fb">
+  <div class="fb-head"><span class="tag tag-info">RÉFÉRENCE</span><span class="fb-title">Réponse — GET /pages</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-json">{
+  &quot;success&quot;: <span class="hk">true</span>,
+  &quot;message&quot;: <span class="hk">null</span>,
+  &quot;data&quot;: {
+    &quot;content&quot;: [
+      { &quot;id&quot;: <span class="hn">1</span>, &quot;code&quot;: &quot;CASA&quot;, &quot;nom&quot;: &quot;Zone Casablanca&quot;, &quot;actif&quot;: <span class="hk">true</span> },
+      { &quot;id&quot;: <span class="hn">2</span>, &quot;code&quot;: &quot;RABAT&quot;, &quot;nom&quot;: &quot;Zone Rabat-Salé&quot;, &quot;actif&quot;: <span class="hk">true</span> }
+    ],
+    &quot;totalPages&quot;: <span class="hn">1</span>,
+    &quot;totalElements&quot;: <span class="hn">2</span>,
+    &quot;size&quot;: <span class="hn">4</span>,
+    &quot;number&quot;: <span class="hn">0</span>
+  },
+  &quot;error&quot;: <span class="hk">null</span>
+}</code></pre>
+</div></section><section id="files"><h2>3. Fichiers impactés</h2><table><thead><tr><th>Fichier</th><th>Action</th><th>Rôle</th></tr></thead><tbody><tr><td><code>C:\dev\portail-ci\src\app\shared\interfaces\referentiel.interface.ts</code></td><td><span class="tag tag-ajouter">À AJOUTER</span></td><td><code>CreateZoneDistributionDTO</code>, <code>UpdateZoneDistributionDTO</code></td></tr><tr><td><code>C:\dev\portail-ci\src\app\core\services\console\referentiel\referentiel.service.ts</code></td><td><span class="tag tag-ajouter">À AJOUTER</span></td><td>Imports + 4 méthodes CRUD</td></tr><tr><td><code>C:\dev\portail-ci\src\app\console\components\console-agence\console-agence.component.ts</code></td><td><span class="tag tag-edition">ÉDITION</span></td><td>Onglet, état, chargement, filtre, pagination, toggle, modale</td></tr><tr><td><code>C:\dev\portail-ci\src\app\console\components\console-agence\console-agence.component.html</code></td><td><span class="tag tag-ajouter">À AJOUTER</span></td><td>Bouton d'onglet, content-card, modale</td></tr></tbody></table></section><section id="s1"><h2>4. Étape 1 — referentiel.interface.ts</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">En fin de fichier, après PrestataireDTO</span><div class="fb-path">C:\dev\portail-ci\src\app\shared\interfaces\referentiel.interface.ts</div><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts"><span class="hc">// ---- AER_LM-268 : écriture (CRUD onglet Zone Transporteur)</span>
+<span class="hk">export</span> <span class="hk">interface</span> CreateZoneDistributionDTO {
+  code: <span class="hk">string</span>;
+  nom: <span class="hk">string</span>;
+}
+
+<span class="hk">export</span> <span class="hk">interface</span> UpdateZoneDistributionDTO {
+  id: <span class="hk">number</span>;
+  code: <span class="hk">string</span>;
+  nom: <span class="hk">string</span>;
+}
+</code></pre>
+</div></section><section id="s2"><h2>5. Étape 2 — referentiel.service.ts</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-edition">ÉDITION</span><span class="fb-title">Imports (lignes 5–10) — remplacer par</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Ajouts : <code>Page</code> depuis <code>habilitation.interface</code>, et les deux DTO d'écriture.</div>
+  <pre><code class="lang-ts"><span class="hk">import</span> { ApiResponse } <span class="hk">from</span> &#x27;../../../../shared/interfaces/derogation.<span class="hk">interface</span>&#x27;;
+<span class="hk">import</span> { ApiConfigService } <span class="hk">from</span> &#x27;../../api-config.service&#x27;;
+<span class="hk">import</span> { Page } <span class="hk">from</span> &#x27;../../../../shared/interfaces/habilitation.<span class="hk">interface</span>&#x27;;
+<span class="hk">import</span> {
+  CreateZoneDistributionDTO,
+  PrestataireDTO,
+  UpdateZoneDistributionDTO,
+  ZoneDistributionDTO
+} <span class="hk">from</span> &#x27;../../../../shared/interfaces/referentiel.<span class="hk">interface</span>&#x27;;</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">Méthodes — après getZonesDistributionActives(), avant le bloc « PRESTATAIRES »</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note"><code>updateZoneDistribution</code> et <code>toggleZoneDistributionActivation</code> ne font pas de <code>map(r =&gt; r.data)</code> : le serveur renvoie <code>ApiResponse&lt;String&gt;</code> avec un message, comme <code>toggleZoneActivation</code> dans <code>OrganizationService</code>.</div>
+  <pre><code class="lang-ts">  <span class="hc">// ---- AER_LM-268 : CRUD des zones de distribution (onglet Zone Transporteur)</span>
+
+  <span class="hc">// Récupérer les zones de distribution paginées</span>
+  getZonesDistributionPages(page: <span class="hk">number</span>, size: <span class="hk">number</span>): Observable&lt;Page&lt;ZoneDistributionDTO&gt;&gt; {
+    <span class="hk">return</span> <span class="hk">this</span>.http.<span class="hk">get</span>&lt;ApiResponse&lt;Page&lt;ZoneDistributionDTO&gt;&gt;&gt;(
+      <span class="hs">`${this.baseUrl}/zones-distribution/pages?page=${page}&amp;size=${size}`</span>
+    ).pipe(
+      map(response =&gt; response.data),
+      catchError(<span class="hk">this</span>.handleError)
+    );
+  }
+
+  <span class="hc">// Créer une zone de distribution (201)</span>
+  createZoneDistribution(zone: CreateZoneDistributionDTO): Observable&lt;ZoneDistributionDTO&gt; {
+    <span class="hk">return</span> <span class="hk">this</span>.http.post&lt;ApiResponse&lt;ZoneDistributionDTO&gt;&gt;(
+      <span class="hs">`${this.baseUrl}/zones-distribution`</span>,
+      zone
+    ).pipe(
+      map(response =&gt; response.data),
+      catchError(<span class="hk">this</span>.handleError)
+    );
+  }
+
+  <span class="hc">// Mettre à jour une zone de distribution — le serveur renvoie un message, pas l&#x27;objet</span>
+  updateZoneDistribution(zone: UpdateZoneDistributionDTO): Observable&lt;ApiResponse&lt;<span class="hk">string</span>&gt;&gt; {
+    <span class="hk">return</span> <span class="hk">this</span>.http.put&lt;ApiResponse&lt;<span class="hk">string</span>&gt;&gt;(
+      <span class="hs">`${this.baseUrl}/zones-distribution`</span>,
+      zone
+    ).pipe(
+      catchError(<span class="hk">this</span>.handleError)
+    );
+  }
+
+  <span class="hc">// Basculer l&#x27;état d&#x27;activation d&#x27;une zone de distribution</span>
+  toggleZoneDistributionActivation(zoneId: <span class="hk">number</span>): Observable&lt;ApiResponse&lt;<span class="hk">string</span>&gt;&gt; {
+    <span class="hk">return</span> <span class="hk">this</span>.http.patch&lt;ApiResponse&lt;<span class="hk">string</span>&gt;&gt;(
+      <span class="hs">`${this.baseUrl}/zones-distribution/${zoneId}/toggle-activation`</span>, {}
+    ).pipe(
+      catchError(<span class="hk">this</span>.handleError)
+    );
+  }
+</code></pre>
+</div></section><section id="s3"><h2>6. Étape 3 — console-agence.component.ts</h2><p>Le composant suit strictement le patron des trois onglets existants ; chaque bloc est nommé <code>…ZonesTransporteur</code> / <code>…ZoneTransporteur</code> pour ne jamais collisionner avec <code>zones</code> / <code>Zone</code> (orga).</p><div class="fb">
+  <div class="fb-head"><span class="tag tag-edition">ÉDITION</span><span class="fb-title">Import referentiel.interface (ajouté par la 259) — remplacer par</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Ajouter aussi <code>Page</code> à l'import depuis <code>habilitation.interface</code> (utilisé par le type du paramètre <code>page</code> de <code>loadZonesTransporteur</code>) : <code>UpdateAgenceDTO, UpdateGroupeDTO, UpdateZoneDTO, ZoneDTO, Page</code>.</div>
+  <pre><code class="lang-ts"><span class="hk">import</span> {
+  CreateZoneDistributionDTO,
+  PrestataireDTO,
+  UpdateZoneDistributionDTO,
+  ZoneDistributionDTO
+} <span class="hk">from</span> &#x27;../../../shared/interfaces/referentiel.<span class="hk">interface</span>&#x27;;</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-edition">ÉDITION</span><span class="fb-title">Onglet actif — remplacer la déclaration</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Avant : <code>activeTab: 'agences' | 'entites' | 'zones' = 'agences';</code></div>
+  <pre><code class="lang-ts">  activeTab: &#x27;agences&#x27; | &#x27;entites&#x27; | &#x27;zones&#x27; | &#x27;zonesTransporteur&#x27; = &#x27;agences&#x27;;</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">État — après le bloc « // Modal zone » (avant « // Messages »)</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts">  <span class="hc">// ---- AER_LM-268 : données des zones transporteur (référentiel zones de distribution)</span>
+  zonesTransporteur: ZoneDistributionDTO[] = [];
+  filteredZonesTransporteur: ZoneDistributionDTO[] = [];
+
+  <span class="hc">// Pagination zones transporteur</span>
+  currentPageZonesTransporteur: <span class="hk">number</span> = <span class="hn">0</span>;
+  itemsPerPageZonesTransporteur: <span class="hk">number</span> = <span class="hn">4</span>;
+  totalPagesZonesTransporteur: <span class="hk">number</span> = <span class="hn">1</span>;
+  totalElementsZonesTransporteur: <span class="hk">number</span> = <span class="hn">0</span>;
+
+  <span class="hc">// Modal zone transporteur</span>
+  isAddZoneTransporteurModalOpen: <span class="hk">boolean</span> = <span class="hk">false</span>;
+  isEditingZoneTransporteur: <span class="hk">boolean</span> = <span class="hk">false</span>;
+  editingZoneTransporteurId: <span class="hk">number</span> = <span class="hn">0</span>;
+  newZoneTransporteur: Partial&lt;ZoneDistributionDTO&gt; = {};
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">Chargement — après loadZones(), dans le bloc « CHARGEMENT DES DONNÉES »</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts">  <span class="hc">// ---- AER_LM-268</span>
+  loadZonesTransporteur(): <span class="hk">void</span> {
+    <span class="hk">this</span>.isLoading = <span class="hk">true</span>;
+    <span class="hk">this</span>.referentielService.getZonesDistributionPages(<span class="hk">this</span>.currentPageZonesTransporteur, <span class="hk">this</span>.itemsPerPageZonesTransporteur)
+      .subscribe({
+        next: (page: Page&lt;ZoneDistributionDTO&gt;) =&gt; {
+          <span class="hk">this</span>.zonesTransporteur = page.content;
+          <span class="hk">this</span>.filteredZonesTransporteur = [...<span class="hk">this</span>.zonesTransporteur];
+          <span class="hk">this</span>.totalPagesZonesTransporteur = page.totalPages;
+          <span class="hk">this</span>.totalElementsZonesTransporteur = page.totalElements;
+          <span class="hk">this</span>.isLoading = <span class="hk">false</span>;
+        },
+        error: (error) =&gt; {
+          console.error(&#x27;Erreur lors du chargement des zones transporteur:&#x27;, error);
+          <span class="hk">this</span>.errorMessage = &#x27;Erreur lors du chargement des zones transporteur&#x27;;
+          <span class="hk">this</span>.isLoading = <span class="hk">false</span>;
+        }
+      });
+  }
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-edition">ÉDITION</span><span class="fb-title">setActiveTab — remplacer la méthode entière par</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts">  setActiveTab(tab: &#x27;agences&#x27; | &#x27;entites&#x27; | &#x27;zones&#x27; | &#x27;zonesTransporteur&#x27;): <span class="hk">void</span> {
+    <span class="hk">this</span>.activeTab = tab;
+    <span class="hk">this</span>.searchTerm = &#x27;&#x27;;
+    <span class="hk">this</span>.errorMessage = <span class="hk">null</span>;
+
+    <span class="hk">if</span> (tab === &#x27;agences&#x27;) {
+      <span class="hk">this</span>.currentPageAgences = <span class="hn">0</span>;
+      <span class="hk">this</span>.loadAgences();
+    } <span class="hk">else</span> <span class="hk">if</span> (tab === &#x27;entites&#x27;) {
+      <span class="hk">this</span>.currentPageEntites = <span class="hn">0</span>;
+      <span class="hk">this</span>.loadEntites();
+    } <span class="hk">else</span> <span class="hk">if</span> (tab === &#x27;zones&#x27;) {
+      <span class="hk">this</span>.currentPageZones = <span class="hn">0</span>;
+      <span class="hk">this</span>.loadZones();
+    } <span class="hk">else</span> <span class="hk">if</span> (tab === &#x27;zonesTransporteur&#x27;) {
+      <span class="hk">this</span>.currentPageZonesTransporteur = <span class="hn">0</span>;
+      <span class="hk">this</span>.loadZonesTransporteur();
+    }
+  }</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-edition">ÉDITION</span><span class="fb-title">applyFilter — remplacer la méthode entière par</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Avant, le <code>else</code> final appelait directement <code>applyFilterZones()</code>.</div>
+  <pre><code class="lang-ts">  applyFilter(): <span class="hk">void</span> {
+    <span class="hk">if</span> (<span class="hk">this</span>.activeTab === &#x27;agences&#x27;) {
+      <span class="hk">this</span>.applyFilterAgences();
+    } <span class="hk">else</span> <span class="hk">if</span> (<span class="hk">this</span>.activeTab === &#x27;entites&#x27;) {
+      <span class="hk">this</span>.applyFilterEntites();
+    } <span class="hk">else</span> <span class="hk">if</span> (<span class="hk">this</span>.activeTab === &#x27;zones&#x27;) {
+      <span class="hk">this</span>.applyFilterZones();
+    } <span class="hk">else</span> {
+      <span class="hk">this</span>.applyFilterZonesTransporteur();
+    }
+  }</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">Filtre — après applyFilterZones()</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts">  <span class="hc">// ---- AER_LM-268</span>
+  applyFilterZonesTransporteur(): <span class="hk">void</span> {
+    <span class="hk">if</span> (!<span class="hk">this</span>.searchTerm.trim()) {
+      <span class="hk">this</span>.filteredZonesTransporteur = [...<span class="hk">this</span>.zonesTransporteur];
+    } <span class="hk">else</span> {
+      <span class="hk">this</span>.filteredZonesTransporteur = <span class="hk">this</span>.zonesTransporteur.filter(zone =&gt;
+        zone.nom.toLowerCase().includes(<span class="hk">this</span>.searchTerm) ||
+        zone.code.toLowerCase().includes(<span class="hk">this</span>.searchTerm)
+      );
+    }
+  }
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">Pagination — après onPageChangeZones()</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts">  <span class="hc">// ---- AER_LM-268</span>
+  onPageChangeZonesTransporteur(page: <span class="hk">number</span>): <span class="hk">void</span> {
+    <span class="hk">this</span>.currentPageZonesTransporteur = page - <span class="hn">1</span>;
+    <span class="hk">this</span>.loadZonesTransporteur();
+  }
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">Toggle — après toggleZoneStatus(), avant les updateXInList existants</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts">  <span class="hc">// ---- AER_LM-268</span>
+  toggleZoneTransporteurStatus(zone: ZoneDistributionDTO): <span class="hk">void</span> {
+    <span class="hk">const</span> previousState = zone.actif;
+    <span class="hk">this</span>.updateZoneTransporteurInList(zone.id, { actif: !previousState });
+
+    <span class="hk">this</span>.referentielService.toggleZoneDistributionActivation(zone.id).pipe(take(<span class="hn">1</span>)).subscribe({
+      next: () =&gt; {
+        <span class="hk">this</span>.loadZonesTransporteur();
+      },
+      error: (err) =&gt; {
+        console.error(&#x27;Erreur lors du basculement de la zone transporteur:&#x27;, err);
+        <span class="hk">this</span>.updateZoneTransporteurInList(zone.id, { actif: previousState });
+      }
+    });
+  }
+
+  <span class="hk">private</span> updateZoneTransporteurInList(id: <span class="hk">number</span>, changes: Partial&lt;ZoneDistributionDTO&gt;): <span class="hk">void</span> {
+    <span class="hk">this</span>.zonesTransporteur = <span class="hk">this</span>.zonesTransporteur.map(z =&gt; z.id === id ? { ...z, ...changes } : z);
+    <span class="hk">this</span>.filteredZonesTransporteur = <span class="hk">this</span>.filteredZonesTransporteur.map(z =&gt; z.id === id ? { ...z, ...changes } : z);
+  }
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">Modale — après saveNewZone() (fin du bloc « MODAL ZONE »), avant editZone() ou onCodeAgenceInput()</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts">  <span class="hc">// ========== MODAL ZONE TRANSPORTEUR (AER_LM-268) ==========</span>
+
+  openAddZoneTransporteurModal(): <span class="hk">void</span> {
+    <span class="hk">this</span>.newZoneTransporteur = {};
+    <span class="hk">this</span>.editingZoneTransporteurId = <span class="hn">0</span>;
+    <span class="hk">this</span>.isEditingZoneTransporteur = <span class="hk">false</span>;
+    <span class="hk">this</span>.errorMessage = <span class="hk">null</span>;
+    <span class="hk">this</span>.isAddZoneTransporteurModalOpen = <span class="hk">true</span>;
+    document.body.style.overflow = &#x27;hidden&#x27;;
+  }
+
+  closeAddZoneTransporteurModal(): <span class="hk">void</span> {
+    <span class="hk">this</span>.isAddZoneTransporteurModalOpen = <span class="hk">false</span>;
+    <span class="hk">this</span>.isEditingZoneTransporteur = <span class="hk">false</span>;
+    <span class="hk">this</span>.editingZoneTransporteurId = <span class="hn">0</span>;
+    <span class="hk">this</span>.newZoneTransporteur = {};
+    <span class="hk">this</span>.errorMessage = <span class="hk">null</span>;
+    document.body.style.overflow = &#x27;auto&#x27;;
+  }
+
+  editZoneTransporteur(zone: ZoneDistributionDTO): <span class="hk">void</span> {
+    <span class="hk">this</span>.newZoneTransporteur = { code: zone.code, nom: zone.nom };
+    <span class="hk">this</span>.editingZoneTransporteurId = zone.id;
+    <span class="hk">this</span>.isEditingZoneTransporteur = <span class="hk">true</span>;
+    <span class="hk">this</span>.errorMessage = <span class="hk">null</span>;
+    <span class="hk">this</span>.isAddZoneTransporteurModalOpen = <span class="hk">true</span>;
+    document.body.style.overflow = &#x27;hidden&#x27;;
+  }
+
+  saveNewZoneTransporteur(): <span class="hk">void</span> {
+    <span class="hk">if</span> (!<span class="hk">this</span>.newZoneTransporteur.code?.trim() || !<span class="hk">this</span>.newZoneTransporteur.nom?.trim()) {
+      <span class="hk">this</span>.errorMessage = &#x27;Veuillez remplir tous les champs obligatoires.&#x27;;
+      <span class="hk">return</span>;
+    }
+    <span class="hk">const</span> code = <span class="hk">this</span>.newZoneTransporteur.code!.trim().toUpperCase();
+    <span class="hk">const</span> nom = <span class="hk">this</span>.newZoneTransporteur.nom!.trim();
+
+    <span class="hk">if</span> (<span class="hk">this</span>.isEditingZoneTransporteur) {
+      <span class="hk">const</span> zoneToSave: UpdateZoneDistributionDTO = {
+        id: <span class="hk">this</span>.editingZoneTransporteurId,
+        code: code,
+        nom: nom
+      };
+      <span class="hk">this</span>.referentielService.updateZoneDistribution(zoneToSave).subscribe({
+        next: () =&gt; {
+          <span class="hk">this</span>.loadZonesTransporteur();
+          <span class="hk">this</span>.closeAddZoneTransporteurModal();
+        },
+        error: (error) =&gt; {
+          <span class="hk">this</span>.errorMessage = error.message || &#x27;Erreur lors de la mise à jour de la zone transporteur.&#x27;;
+        }
+      });
+    } <span class="hk">else</span> {
+      <span class="hk">const</span> zoneToSave: CreateZoneDistributionDTO = {
+        code: code,
+        nom: nom
+      };
+      <span class="hk">this</span>.referentielService.createZoneDistribution(zoneToSave).subscribe({
+        next: () =&gt; {
+          <span class="hk">this</span>.loadZonesTransporteur();
+          <span class="hk">this</span>.closeAddZoneTransporteurModal();
+        },
+        error: (error) =&gt; {
+          <span class="hk">this</span>.errorMessage = error.message || &#x27;Erreur lors de la création de la zone transporteur.&#x27;;
+        }
+      });
+    }
+  }
+
+  <span class="hc">// Code de zone : majuscules, lettres / chiffres / tiret / underscore (ex. CASA, RABAT, FES-MEKNES)</span>
+  onCodeZoneTransporteurInput(event: Event): <span class="hk">void</span> {
+    <span class="hk">const</span> input = event.target <span class="hk">as</span> HTMLInputElement;
+    input.value = input.value.toUpperCase().replace(/[^A-Z0-9_-]/g, &#x27;&#x27;);
+    <span class="hk">this</span>.newZoneTransporteur.code = input.value;
+  }
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">Track by — après trackByZoneId()</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts">  trackByZoneTransporteurId(index: <span class="hk">number</span>, zone: ZoneDistributionDTO): <span class="hk">number</span> {
+    <span class="hk">return</span> zone.id;
+  }
+</code></pre>
+</div></section><section id="s4"><h2>7. Étape 4 — console-agence.component.html</h2><p>Trois insertions. Le plus sûr est de <b>dupliquer les blocs Zone(s) existants</b> (content-card + modale) et d'appliquer la table de remplacements ci-dessous ; les extraits complets qui suivent servent de référence pour vérifier le résultat (les icônes <code>svg</code>/<code>img</code> y sont signalées par ⚠ car leur markup exact n'est pas reproduit).</p><table><thead><tr><th>Dans le bloc Zone(s) dupliqué</th><th>Remplacer par</th></tr></thead><tbody><tr><td><code>activeTab === 'zones'</code></td><td><code>activeTab === 'zonesTransporteur'</code></td></tr><tr><td><code>filteredZones</code> / <code>trackByZoneId</code></td><td><code>filteredZonesTransporteur</code> / <code>trackByZoneTransporteurId</code></td></tr><tr><td><code>toggleZoneStatus(zone)</code></td><td><code>toggleZoneTransporteurStatus(zone)</code></td></tr><tr><td><code>editZone(zone)</code></td><td><code>editZoneTransporteur(zone)</code></td></tr><tr><td><code>openAddZoneModal()</code> / <code>closeAddZoneModal()</code> / <code>saveNewZone()</code></td><td><code>openAddZoneTransporteurModal()</code> / <code>closeAddZoneTransporteurModal()</code> / <code>saveNewZoneTransporteur()</code></td></tr><tr><td><code>isAddZoneModalOpen</code> / <code>isEditingZone</code> / <code>newZone.nom</code></td><td><code>isAddZoneTransporteurModalOpen</code> / <code>isEditingZoneTransporteur</code> / <code>newZoneTransporteur.nom</code></td></tr><tr><td><code>totalPagesZones</code> / <code>currentPageZones + 1</code> / <code>onPageChangeZones($event)</code></td><td><code>totalPagesZonesTransporteur</code> / <code>currentPageZonesTransporteur + 1</code> / <code>onPageChangeZonesTransporteur($event)</code></td></tr><tr><td>Colonnes de la table</td><td><code>Code</code>, <code>Libellé</code>, cellule vide d'alignement, <code>Actif</code>, <code>Actions</code> — puis <code>{{ zone.code }}</code>, <code>{{ zone.nom }}</code></td></tr><tr><td>Champs de la modale</td><td>un input <b>Code</b> (nouveau, avec <code>onCodeZoneTransporteurInput</code>) + l'input <b>Libellé</b></td></tr></tbody></table><div class="box box-warn"><div class="box-title">Alignement des colonnes</div><div class="box-body">Les tables Groupes / Zones se calent sur les 5 colonnes de la table Agences avec des cellules vides. Le bloc ci-dessous fait de même (une cellule vide). Si l'étape optionnelle de la 259 (colonnes Zone / Prestataire dans la liste agences) a été appliquée, passer à 3 cellules vides ici aussi.</div></div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">Bouton d&#x27;onglet</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-html"><span class="hc">&lt;!-- ---- AER_LM-268 : 4e onglet, après le bouton Zone(s) dans tabs-container --&gt;</span>
+<span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;tab-button&quot;
+        [<span class="ha">class.active]</span>=&quot;activeTab === &#x27;zonesTransporteur&#x27;&quot;
+        (<span class="ha">click)</span>=&quot;setActiveTab(&#x27;zonesTransporteur&#x27;)&quot;<span class="ht">&gt;</span>
+  Zone Transporteur
+<span class="ht">&lt;/button</span><span class="ht">&gt;</span></code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">content-card Zone Transporteur — après le content-card Zone(s)</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-html"><span class="hc">&lt;!-- ---- AER_LM-268 : onglet Zone Transporteur — clone du content-card Zone(s) --&gt;</span>
+<span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;content-card&quot; *<span class="ha">ngIf</span>=&quot;activeTab === &#x27;zonesTransporteur&#x27;&quot;<span class="ht">&gt;</span>
+  <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;table-wrapper&quot;<span class="ht">&gt;</span>
+    <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;card-header&quot;<span class="ht">&gt;</span>
+      <span class="ht">&lt;h2</span> <span class="ha">class</span>=&quot;card-title&quot;<span class="ht">&gt;</span>Liste des zones transporteur<span class="ht">&lt;/h2</span><span class="ht">&gt;</span>
+      <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;header-actions&quot;<span class="ht">&gt;</span>
+        <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;search-box&quot;<span class="ht">&gt;</span>
+          <span class="hc">&lt;!-- ⚠ reprendre le &lt;svg&gt; loupe du bloc Zone(s) --&gt;</span>
+          <span class="ht">&lt;input</span> <span class="ha">type</span>=&quot;text&quot; <span class="ha">class</span>=&quot;search-input&quot; <span class="ha">placeholder</span>=&quot;RECHERCHER&quot;<span class="ht">&gt;</span>
+        <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+        <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;add-button&quot; (<span class="ha">click)</span>=&quot;openAddZoneTransporteurModal()&quot;<span class="ht">&gt;</span>
+          <span class="hc">&lt;!-- ⚠ reprendre la balise &lt;img carbon_add-filled.svg&gt; du bloc Zone(s) --&gt;</span>
+          AJOUTER UNE ZONE
+        <span class="ht">&lt;/button</span><span class="ht">&gt;</span>
+      <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+
+    <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;table-container&quot;<span class="ht">&gt;</span>
+      <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;loading-spinner&quot; *<span class="ha">ngIf</span>=&quot;isLoading&quot;<span class="ht">&gt;</span><span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+      <span class="ht">&lt;table</span> <span class="ha">class</span>=&quot;agences-table&quot; *<span class="ha">ngIf</span>=&quot;!isLoading&quot;<span class="ht">&gt;</span>
+        <span class="ht">&lt;thead</span><span class="ht">&gt;</span>
+          <span class="ht">&lt;tr</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;th</span><span class="ht">&gt;</span>Code<span class="ht">&lt;/th</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;th</span><span class="ht">&gt;</span>Libellé<span class="ht">&lt;/th</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;th</span><span class="ht">&gt;</span><span class="ht">&lt;/th</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;th</span><span class="ht">&gt;</span>Actif<span class="ht">&lt;/th</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;th</span><span class="ht">&gt;</span>Actions<span class="ht">&lt;/th</span><span class="ht">&gt;</span>
+          <span class="ht">&lt;/tr</span><span class="ht">&gt;</span>
+        <span class="ht">&lt;/thead</span><span class="ht">&gt;</span>
+        <span class="ht">&lt;tbody</span><span class="ht">&gt;</span>
+          <span class="ht">&lt;tr</span> *<span class="ha">ngFor</span>=&quot;let zone of filteredZonesTransporteur; trackBy: trackByZoneTransporteurId&quot;<span class="ht">&gt;</span>
+            <span class="ht">&lt;td</span><span class="ht">&gt;</span>{{ zone.code }}<span class="ht">&lt;/td</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;td</span><span class="ht">&gt;</span>{{ zone.nom }}<span class="ht">&lt;/td</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;td</span><span class="ht">&gt;</span><span class="ht">&lt;/td</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;td</span><span class="ht">&gt;</span>
+              <span class="ht">&lt;label</span> <span class="ha">class</span>=&quot;toggle-switch&quot;<span class="ht">&gt;</span>
+                <span class="ht">&lt;input</span> <span class="ha">type</span>=&quot;checkbox&quot; [<span class="ha">checked]</span>=&quot;zone.actif&quot; (<span class="ha">change)</span>=&quot;toggleZoneTransporteurStatus(zone)&quot;<span class="ht">&gt;</span>
+                <span class="ht">&lt;span</span> <span class="ha">class</span>=&quot;toggle-slider&quot; [<span class="ha">class.active]</span>=&quot;zone.actif&quot;<span class="ht">&gt;</span><span class="ht">&lt;/span</span><span class="ht">&gt;</span>
+              <span class="ht">&lt;/label</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;/td</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;td</span> <span class="ha">class</span>=&quot;actions-cell&quot;<span class="ht">&gt;</span>
+              <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;action-button edit&quot; (<span class="ha">click)</span>=&quot;editZoneTransporteur(zone)&quot;<span class="ht">&gt;</span>
+                <span class="hc">&lt;!-- ⚠ reprendre &lt;img ant-design_edit-filled.svg&gt; --&gt;</span>
+                EDITER
+              <span class="ht">&lt;/button</span><span class="ht">&gt;</span>
+              <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;action-button delete&quot;<span class="ht">&gt;</span>
+                <span class="hc">&lt;!-- ⚠ reprendre &lt;img ep_delete-filled.svg&gt; — bouton inerte comme sur les autres onglets (pas de DELETE côté API) --&gt;</span>
+                SUPPRIMER
+              <span class="ht">&lt;/button</span><span class="ht">&gt;</span>
+            <span class="ht">&lt;/td</span><span class="ht">&gt;</span>
+          <span class="ht">&lt;/tr</span><span class="ht">&gt;</span>
+          <span class="ht">&lt;tr</span> *<span class="ha">ngIf</span>=&quot;filteredZonesTransporteur.length === 0&quot;<span class="ht">&gt;</span>
+            <span class="ht">&lt;td</span> <span class="ha">colspan</span>=&quot;5&quot;<span class="ht">&gt;</span>Aucune zone transporteur trouvée<span class="ht">&lt;/td</span><span class="ht">&gt;</span>
+          <span class="ht">&lt;/tr</span><span class="ht">&gt;</span>
+        <span class="ht">&lt;/tbody</span><span class="ht">&gt;</span>
+      <span class="ht">&lt;/table</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+
+    <span class="ht">&lt;app-pagination</span>
+      [<span class="ha">totalPages]</span>=&quot;totalPagesZonesTransporteur&quot;
+      [<span class="ha">currentPage]</span>=&quot;currentPageZonesTransporteur + 1&quot;
+      (<span class="ha">pageChange)</span>=&quot;onPageChangeZonesTransporteur($event)&quot;<span class="ht">&gt;</span>
+    <span class="ht">&lt;/app-pagination</span><span class="ht">&gt;</span>
+  <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+<span class="ht">&lt;/div</span><span class="ht">&gt;</span></code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">Modale Zone Transporteur — en fin de fichier, après la modale Zone</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Titre et sous-titre reprennent le libellé des autres modales (« Veuillez compléter les informations ci-dessous »).</div>
+  <pre><code class="lang-html"><span class="hc">&lt;!-- ---- AER_LM-268 : modale Zone Transporteur — clone de la modale Zone --&gt;</span>
+<span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;modal-overlay&quot; *<span class="ha">ngIf</span>=&quot;isAddZoneTransporteurModalOpen&quot; (<span class="ha">click)</span>=&quot;closeAddZoneTransporteurModal()&quot;<span class="ht">&gt;</span>
+  <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;add-modal&quot; (<span class="ha">click)</span>=&quot;$event.stopPropagation()&quot;<span class="ht">&gt;</span>
+    <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;modal-close-btn&quot; (<span class="ha">click)</span>=&quot;closeAddZoneTransporteurModal()&quot;<span class="ht">&gt;</span>
+      <span class="hc">&lt;!-- ⚠ reprendre le &lt;svg&gt; croix de la modale Zone --&gt;</span>
+    <span class="ht">&lt;/button</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;modal-header&quot;<span class="ht">&gt;</span>
+      <span class="ht">&lt;h2</span><span class="ht">&gt;</span>{{ isEditingZoneTransporteur ? &#x27;Modifier une zone transporteur&#x27; : &#x27;Ajouter une zone transporteur&#x27; }}<span class="ht">&lt;/h2</span><span class="ht">&gt;</span>
+      <span class="ht">&lt;p</span><span class="ht">&gt;</span>Veuillez compléter les informations ci-dessous<span class="ht">&lt;/p</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;modal-body&quot;<span class="ht">&gt;</span>
+      <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;error-message&quot; *<span class="ha">ngIf</span>=&quot;errorMessage&quot;<span class="ht">&gt;</span>{{ errorMessage }}<span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+      <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;form-fields&quot;<span class="ht">&gt;</span>
+        <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;form-field&quot;<span class="ht">&gt;</span>
+          <span class="ht">&lt;input</span> <span class="ha">type</span>=&quot;text&quot; <span class="ha">class</span>=&quot;form-input&quot; <span class="ha">placeholder</span>=&quot;Code (ex. CASA)&quot;
+                 <span class="ha">name</span>=&quot;codeZoneTransporteur&quot;
+                 [(ngModel)]=&quot;newZoneTransporteur.code&quot;
+                 (<span class="ha">input)</span>=&quot;onCodeZoneTransporteurInput($event)&quot;<span class="ht">&gt;</span>
+        <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+        <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;form-field&quot;<span class="ht">&gt;</span>
+          <span class="ht">&lt;input</span> <span class="ha">type</span>=&quot;text&quot; <span class="ha">class</span>=&quot;form-input&quot; <span class="ha">placeholder</span>=&quot;Libellé (ex. Zone Casablanca)&quot;
+                 <span class="ha">name</span>=&quot;nomZoneTransporteur&quot;
+                 [(ngModel)]=&quot;newZoneTransporteur.nom&quot;<span class="ht">&gt;</span>
+        <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+      <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;modal-footer&quot;<span class="ht">&gt;</span>
+      <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;btn-retour&quot; (<span class="ha">click)</span>=&quot;closeAddZoneTransporteurModal()&quot;<span class="ht">&gt;</span>
+        <span class="hc">&lt;!-- ⚠ reprendre &lt;img bi_arrow-right-circle-fill.svg&gt; --&gt;</span>
+        RETOUR
+      <span class="ht">&lt;/button</span><span class="ht">&gt;</span>
+      <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;btn-terminer&quot; (<span class="ha">click)</span>=&quot;saveNewZoneTransporteur()&quot;<span class="ht">&gt;</span>
+        <span class="hc">&lt;!-- ⚠ reprendre le &lt;svg&gt; check --&gt;</span>
+        TERMINER
+      <span class="ht">&lt;/button</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+  <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+<span class="ht">&lt;/div</span><span class="ht">&gt;</span></code></pre>
+</div></section><section id="git"><h2>8. Branche et livraison</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-info">RÉFÉRENCE</span><span class="fb-title">Commandes Git</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-bash"><span class="hc"># Depuis C:\dev\portail-ci — la 259 doit être committée</span>
+<span class="hk">git</span> checkout feature/AER_LM<span class="hd">-259</span>
+<span class="hk">git</span> checkout <span class="hd">-b</span> feature/AER_LM<span class="hd">-268</span>
+
+<span class="hc"># ... appliquer les étapes 1 à 4, puis :</span>
+<span class="hk">git</span> add src/app/shared/interfaces/referentiel.interface.ts
+<span class="hk">git</span> add src/app/core/services/console/referentiel/referentiel.service.ts
+<span class="hk">git</span> add src/app/console/components/console<span class="hd">-agence</span>/
+<span class="hk">git</span> commit <span class="hd">-m</span> &quot;AER_LM<span class="hd">-268</span> - Console : onglet Zone Transporteur (référentiel zones de distribution)&quot;
+<span class="hk">git</span> push <span class="hd">-u</span> origin feature/AER_LM<span class="hd">-268</span>
+<span class="hc"># MR GitLab : feature/AER_LM-268 -&gt; develop-omega, à merger APRÈS la 259</span>
+<span class="hc"># (GitLab affichera aussi les commits de la 259 tant qu&#x27;elle n&#x27;est pas mergée : normal)</span></code></pre>
+</div></section><section id="check"><h2>9. Vérifications manuelles</h2><ul class="check"><li>Onglet « Zone Transporteur » visible en 4ᵉ position ; clic → <code>GET …/referentiels/zones-distribution/pages?page=0&size=4</code>, CASA et RABAT affichées avec leur code.</li><li>AJOUTER UNE ZONE : code « fes » saisi → affiché « FES » ; libellé « Zone Fès-Meknès » → POST 201, liste rechargée, modale fermée.</li><li>Recréer « FES » → 409, message du serveur dans la modale, modale toujours ouverte.</li><li>Code vide ou libellé vide → « Veuillez remplir tous les champs obligatoires. », pas d'appel réseau.</li><li>EDITER RABAT → champs pré-remplis ; modifier le libellé → PUT, liste rechargée.</li><li>Toggle Actif sur FES → bascule immédiate, PATCH, rechargement ; couper le backend puis toggle → retour visuel à l'état précédent.</li><li>Onglet Agence(s) → AJOUTER : la zone désactivée n'apparaît plus dans le select (259 utilise <code>/actives</code>).</li><li>Pagination : créer 5 zones → 2 pages, navigation OK. Les 3 autres onglets sont inchangés.</li></ul></section><section id="limits"><h2>10. Points d'attention</h2><ul><li><b>Libellé métier</b> : Jira parle de « zone de livraison », le tech lead de « zone de distribution », l'écran affiche « Zone Transporteur » — vocabulaire à figer avec le PO avant la démo.</li><li><b>Recherche</b> : comme sur les autres onglets, l'input RECHERCHER n'est pas branché (<code>onSearch</code> sans usage). <code>applyFilterZonesTransporteur</code> est prêt si le binding <code>(input)="onSearch($event)"</code> est ajouté un jour sur les quatre onglets.</li><li><b>Modification du code</b> d'une zone déjà affectée à des agences : autorisée par l'API (le lien est par <code>id</code>), aucune règle d'interdiction n'a été demandée.</li><li><b>Conflits</b> : la branche touche les mêmes fichiers que la 259 ; rebaser la 268 sur la 259 si celle-ci évolue en revue.</li></ul></section></main></div>
+<footer>Document d'implémentation généré pour Youssef Rouane — dépend de la livraison AER_LM-259 (referentiel.interface.ts, ReferentielService).</footer>
+<script>
+function copyCode(btn){const code=btn.closest('.fb').querySelector('pre code');const txt=code.innerText;navigator.clipboard.writeText(txt).then(()=>{const o=btn.textContent;btn.textContent='Copié ✓';setTimeout(()=>btn.textContent=o,1500);});}
+</script></body></html>

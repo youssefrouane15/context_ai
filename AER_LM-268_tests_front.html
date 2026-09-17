@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>AER_LM-268 — Tests unitaires front</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><style>
+:root{--g1:#0B6B4F;--g2:#07402F;--gold:#B8892C;--ink:#1c2a25;--muted:#5d6e68;--line:#d8e3de;--bg:#f4f8f6}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
+header{background:linear-gradient(120deg,var(--g2),var(--g1));color:#fff;padding:28px 40px;border-bottom:4px solid var(--gold)}
+header h1{margin:0 0 6px;font-size:26px;font-weight:600}
+header .sub{opacity:.9;font-size:14px}
+header .meta{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+header .meta span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:14px;padding:3px 10px;font-size:12px}
+.wrap{display:grid;grid-template-columns:250px 1fr;gap:0}
+nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:#fff;border-right:1px solid var(--line);padding:18px 14px}
+nav a{display:block;color:var(--g2);text-decoration:none;font-size:13px;padding:6px 8px;border-radius:6px}
+nav a:hover{background:var(--bg)}
+main{padding:26px 40px 80px;max-width:1150px}
+h2{color:var(--g2);border-left:5px solid var(--gold);padding-left:12px;margin:38px 0 14px;font-size:21px}
+h3{color:var(--g1);margin:26px 0 10px;font-size:16px}
+p,li{font-size:14.5px}
+code{font-family:Consolas,"JetBrains Mono",monospace;font-size:13px;background:#e6efeb;padding:1px 5px;border-radius:4px;color:var(--g2)}
+pre{margin:0;background:#0f1a17!important;color:#e6efeb;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55;border-radius:0 0 10px 10px}
+pre code{background:none;color:inherit;padding:0;font-size:13px}
+.fb{margin:16px 0 22px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.fb-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-radius:10px 10px 0 0;flex-wrap:wrap}
+.fb-title{font-weight:600;font-size:14px;color:var(--g2)}
+.fb-path{font-family:Consolas,monospace;font-size:12px;color:var(--muted);flex-basis:100%}
+.fb-note{padding:8px 14px;background:#fff8e6;border-top:1px solid #f0dfb0;border-bottom:1px solid #f0dfb0;font-size:13px}
+.copy{margin-left:auto;background:var(--g1);color:#fff;border:0;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer}
+.copy:hover{background:var(--g2)}
+.tag{font-size:11px;font-weight:700;letter-spacing:.5px;padding:3px 9px;border-radius:5px;color:#fff}
+.tag-complet{background:var(--g1)}.tag-ajouter{background:#1f6fb2}.tag-edition{background:#c07f1a}.tag-supprimer{background:#b23a3a}.tag-info{background:#5d6e68}
+.hc{color:#7f9a8f;font-style:italic}.hs{color:#c9e5a3}.hk{color:#8fd3ff}.hd{color:#f0c674}.hn{color:#f2a1a1}.ht{color:#8fd3ff}.ha{color:#f0c674}
+.box{border-radius:10px;padding:12px 16px;margin:14px 0;border:1px solid;font-size:14px}
+.box-title{font-weight:700;margin-bottom:4px}
+.box-ok{background:#eaf6f0;border-color:#a9d6c0;color:#0f3f2e}
+.box-warn{background:#fff8e6;border-color:#f0dfb0;color:#5a4200}
+.box-danger{background:#fdecec;border-color:#f2b8b8;color:#6b1c1c}
+.box-info{background:#eaf1f8;border-color:#b9d0e8;color:#153a5b}
+table{border-collapse:collapse;width:100%;margin:12px 0 18px;background:#fff;font-size:13.5px}
+th{background:var(--g2);color:#fff;text-align:left;padding:8px 10px;font-weight:600}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:#f9fbfa}
+.step{display:inline-block;background:var(--gold);color:#fff;border-radius:50%;width:26px;height:26px;text-align:center;line-height:26px;font-size:13px;margin-right:8px}
+ul.check li{list-style:none;margin:5px 0}ul.check{padding-left:4px}
+ul.check li:before{content:"☐";margin-right:8px;color:var(--g1)}
+kbd{background:#eee;border:1px solid #ccc;border-radius:4px;padding:0 5px;font-size:12px}
+footer{color:var(--muted);font-size:12px;padding:20px 40px;border-top:1px solid var(--line)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}nav{position:static;height:auto}}
+</style></head>
+<body><header><h1>AER_LM-268 — Tests unitaires front</h1><div class="sub">portail-ci · ReferentielService (CRUD) · ConsoleAgenceComponent (onglet Zone Transporteur) · branche feature/AER_LM-268</div><div class="meta"><span>Jasmine / Karma</span><span>19 tests</span><span>17/09/2026</span></div></header>
+<div class="wrap"><nav><a href="#ctx">1. Périmètre</a><a href="#svc">2. ReferentielService — compléments</a><a href="#cmp">3. ConsoleAgenceComponent — onglet Zone Transporteur</a><a href="#run">4. Exécution</a></nav><main><section id="ctx"><h2>1. Périmètre</h2><p>Tests Jasmine/Karma des ajouts <b>AER_LM-268</b>. Le doc de tests 259 a créé <code>referentiel.service.spec.ts</code> et <code>console-agence.component.spec.ts</code> ; ici on <b>complète le premier</b> et on <b>ajoute un second <code>describe</code></b> au second (ou un fichier dédié, au choix).</p><table><thead><tr><th>Spec</th><th>Action</th><th>Cas couverts</th></tr></thead><tbody><tr><td><code>C:\dev\portail-ci\src\app\core\services\console\referentiel\referentiel.service.spec.ts</code></td><td><span class="tag tag-ajouter">À AJOUTER</span></td><td>5 tests — pages, création (201 + 409), mise à jour (ApiResponse brute), toggle (PATCH corps vide)</td></tr><tr><td><code>C:\dev\portail-ci\src\app\console\components\console-agence\console-agence-zone-transporteur.component.spec.ts</code></td><td><span class="tag tag-complet">FICHIER COMPLET</span></td><td>14 tests — onglet, chargement, pagination, filtre, toggle optimiste + rollback, modale, saisie du code, trackBy</td></tr></tbody></table><div class="box box-info"><div class="box-title">Pourquoi un fichier séparé pour le composant</div><div class="box-body">Le spec 259 et le spec 268 partagent la même fixture mais des spies différents ; les garder dans deux fichiers évite un <code>createSpyObj</code> fourre-tout et isole les deux tickets en revue. Le nom <code>console-agence-zone-transporteur.component.spec.ts</code> est ramassé par le glob <code>**/*.spec.ts</code> de Karma. Si tu préfères un seul fichier, coller le <code>describe</code> à la suite de celui de la 259.</div></div></section><section id="svc"><h2>2. ReferentielService — compléments</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">Dans referentiel.service.spec.ts — après le describe(&#x27;getPrestataires&#x27;), avant la fermeture du describe racine</span><div class="fb-path">C:\dev\portail-ci\src\app\core\services\console\referentiel\referentiel.service.spec.ts</div><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Les imports existants du spec 259 suffisent (<code>ZoneDistributionDTO</code>, <code>BASE</code>, <code>service</code>, <code>httpMock</code>).</div>
+  <pre><code class="lang-ts">  <span class="hc">// ---- AER_LM-268 : CRUD zones de distribution ----</span>
+
+  describe(&#x27;getZonesDistributionPages&#x27;, () =&gt; {
+    it(&#x27;appelle GET /zones-distribution/pages avec page et size et déballe data&#x27;, () =&gt; {
+      <span class="hk">const</span> pageAttendue = {
+        content: [{ id: <span class="hn">1</span>, code: &#x27;CASA&#x27;, nom: &#x27;Zone Casablanca&#x27;, actif: <span class="hk">true</span> }],
+        totalPages: <span class="hn">1</span>, totalElements: <span class="hn">1</span>, size: <span class="hn">4</span>, <span class="hk">number</span>: <span class="hn">0</span>
+      };
+      <span class="hk">let</span> resultat: <span class="hk">any</span>;
+
+      service.getZonesDistributionPages(<span class="hn">0</span>, <span class="hn">4</span>).subscribe(p =&gt; resultat = p);
+
+      <span class="hk">const</span> req = httpMock.expectOne(<span class="hs">`${BASE}/referentiels/zones-distribution/pages?page=0&amp;size=4`</span>);
+      expect(req.request.method).toBe(&#x27;GET&#x27;);
+      req.flush({ success: <span class="hk">true</span>, message: <span class="hk">null</span>, data: pageAttendue, error: <span class="hk">null</span> });
+      expect(resultat).toEqual(pageAttendue);
+    });
+  });
+
+  describe(&#x27;createZoneDistribution&#x27;, () =&gt; {
+    it(&#x27;envoie POST /zones-distribution avec {code, nom} et renvoie la zone créée&#x27;, () =&gt; {
+      <span class="hk">const</span> creee: ZoneDistributionDTO = { id: <span class="hn">3</span>, code: &#x27;FES&#x27;, nom: &#x27;Zone Fès-Meknès&#x27;, actif: <span class="hk">true</span> };
+      <span class="hk">let</span> resultat: ZoneDistributionDTO | <span class="hk">undefined</span>;
+
+      service.createZoneDistribution({ code: &#x27;FES&#x27;, nom: &#x27;Zone Fès-Meknès&#x27; }).subscribe(z =&gt; resultat = z);
+
+      <span class="hk">const</span> req = httpMock.expectOne(<span class="hs">`${BASE}/referentiels/zones-distribution`</span>);
+      expect(req.request.method).toBe(&#x27;POST&#x27;);
+      expect(req.request.body).toEqual({ code: &#x27;FES&#x27;, nom: &#x27;Zone Fès-Meknès&#x27; });
+      req.flush({ success: <span class="hk">true</span>, message: <span class="hk">null</span>, data: creee, error: <span class="hk">null</span> }, { status: <span class="hn">201</span>, statusText: &#x27;Created&#x27; });
+      expect(resultat).toEqual(creee);
+    });
+
+    it(&#x27;remonte le <span class="hn">409</span> du serveur en Error avec son message&#x27;, () =&gt; {
+      <span class="hk">let</span> message = &#x27;&#x27;;
+
+      service.createZoneDistribution({ code: &#x27;CASA&#x27;, nom: &#x27;Doublon&#x27; }).subscribe({ error: (e: Error) =&gt; message = e.message });
+
+      httpMock.expectOne(<span class="hs">`${BASE}/referentiels/zones-distribution`</span>)
+        .flush({ success: <span class="hk">false</span>, message: &#x27;Une zone de distribution avec ce code existe déjà&#x27;, data: <span class="hk">null</span>, error: &#x27;CONFLICT&#x27; },
+               { status: <span class="hn">409</span>, statusText: &#x27;Conflict&#x27; });
+      expect(message).toBe(&#x27;Une zone de distribution avec ce code existe déjà&#x27;);
+    });
+  });
+
+  describe(&#x27;updateZoneDistribution&#x27;, () =&gt; {
+    it(&#x27;envoie PUT /zones-distribution avec {id, code, nom} et renvoie l\&#x27;ApiResponse brute&#x27;, () =&gt; {
+      <span class="hk">let</span> resultat: <span class="hk">any</span>;
+
+      service.updateZoneDistribution({ id: <span class="hn">2</span>, code: &#x27;RABAT&#x27;, nom: &#x27;Zone Rabat&#x27; }).subscribe(r =&gt; resultat = r);
+
+      <span class="hk">const</span> req = httpMock.expectOne(<span class="hs">`${BASE}/referentiels/zones-distribution`</span>);
+      expect(req.request.method).toBe(&#x27;PUT&#x27;);
+      expect(req.request.body).toEqual({ id: <span class="hn">2</span>, code: &#x27;RABAT&#x27;, nom: &#x27;Zone Rabat&#x27; });
+      req.flush({ success: <span class="hk">true</span>, message: &#x27;Zone de distribution mise à jour avec succès&#x27;, data: <span class="hk">null</span>, error: <span class="hk">null</span> });
+      expect(resultat.success).toBeTrue();
+      expect(resultat.message).toContain(&#x27;mise à jour&#x27;);
+    });
+  });
+
+  describe(&#x27;toggleZoneDistributionActivation&#x27;, () =&gt; {
+    it(&#x27;envoie PATCH /zones-distribution/{id}/toggle-activation avec un corps vide&#x27;, () =&gt; {
+      <span class="hk">let</span> resultat: <span class="hk">any</span>;
+
+      service.toggleZoneDistributionActivation(<span class="hn">2</span>).subscribe(r =&gt; resultat = r);
+
+      <span class="hk">const</span> req = httpMock.expectOne(<span class="hs">`${BASE}/referentiels/zones-distribution/2/toggle-activation`</span>);
+      expect(req.request.method).toBe(&#x27;PATCH&#x27;);
+      expect(req.request.body).toEqual({});
+      req.flush({ success: <span class="hk">true</span>, message: &#x27;ZoneDistribution activation state toggled successfully&#x27;, data: <span class="hk">null</span>, error: <span class="hk">null</span> });
+      expect(resultat.success).toBeTrue();
+    });
+  });
+</code></pre>
+</div></section><section id="cmp"><h2>3. ConsoleAgenceComponent — onglet Zone Transporteur</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-complet">FICHIER COMPLET</span><span class="fb-title">console-agence-zone-transporteur.component.spec.ts</span><div class="fb-path">C:\dev\portail-ci\src\app\console\components\console-agence\console-agence-zone-transporteur.component.spec.ts</div><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Le test du filtre passe par <code>applyFilter()</code> avec <code>searchTerm</code> déjà en minuscules, comme le fait <code>onSearch</code> (<code>toLowerCase()</code> à la saisie).</div>
+  <pre><code class="lang-ts"><span class="hk">import</span> { ComponentFixture, TestBed } <span class="hk">from</span> &#x27;<span class="hd">@angular</span>/core/testing&#x27;;
+<span class="hk">import</span> { FormsModule } <span class="hk">from</span> &#x27;<span class="hd">@angular</span>/forms&#x27;;
+<span class="hk">import</span> { NO_ERRORS_SCHEMA } <span class="hk">from</span> &#x27;<span class="hd">@angular</span>/core&#x27;;
+<span class="hk">import</span> { <span class="hk">of</span>, throwError } <span class="hk">from</span> &#x27;rxjs&#x27;;
+<span class="hk">import</span> { ConsoleAgenceComponent } <span class="hk">from</span> &#x27;./console-agence.component&#x27;;
+<span class="hk">import</span> { OrganizationService } <span class="hk">from</span> &#x27;../../../core/services/console/organization/organization.service&#x27;;
+<span class="hk">import</span> { ReferentielService } <span class="hk">from</span> &#x27;../../../core/services/console/referentiel/referentiel.service&#x27;;
+<span class="hk">import</span> { ApiResponse } <span class="hk">from</span> &#x27;../../../shared/interfaces/derogation.<span class="hk">interface</span>&#x27;;
+<span class="hk">import</span> { Page } <span class="hk">from</span> &#x27;../../../shared/interfaces/habilitation.<span class="hk">interface</span>&#x27;;
+<span class="hk">import</span> { ZoneDistributionDTO } <span class="hk">from</span> &#x27;../../../shared/interfaces/referentiel.<span class="hk">interface</span>&#x27;;
+
+describe(&#x27;ConsoleAgenceComponent — AER_LM-<span class="hn">268</span> (onglet Zone Transporteur)&#x27;, () =&gt; {
+  <span class="hk">let</span> fixture: ComponentFixture&lt;ConsoleAgenceComponent&gt;;
+  <span class="hk">let</span> component: ConsoleAgenceComponent;
+  <span class="hk">let</span> organizationService: jasmine.SpyObj&lt;OrganizationService&gt;;
+  <span class="hk">let</span> referentielService: jasmine.SpyObj&lt;ReferentielService&gt;;
+
+  <span class="hk">const</span> zoneCasa: ZoneDistributionDTO = { id: <span class="hn">1</span>, code: &#x27;CASA&#x27;, nom: &#x27;Zone Casablanca&#x27;, actif: <span class="hk">true</span> };
+  <span class="hk">const</span> zoneRabat: ZoneDistributionDTO = { id: <span class="hn">2</span>, code: &#x27;RABAT&#x27;, nom: &#x27;Zone Rabat-Salé&#x27;, actif: <span class="hk">true</span> };
+  <span class="hk">const</span> pageZones: Page&lt;ZoneDistributionDTO&gt; = { content: [zoneCasa, zoneRabat], totalPages: <span class="hn">1</span>, totalElements: <span class="hn">2</span>, size: <span class="hn">4</span>, <span class="hk">number</span>: <span class="hn">0</span> };
+  <span class="hk">const</span> reponseOk = { success: <span class="hk">true</span>, message: &#x27;OK&#x27;, data: <span class="hk">null</span>, error: <span class="hk">null</span> } <span class="hk">as</span> <span class="hk">unknown</span> <span class="hk">as</span> ApiResponse&lt;<span class="hk">string</span>&gt;;
+
+  beforeEach(<span class="hk">async</span> () =&gt; {
+    organizationService = jasmine.createSpyObj&lt;OrganizationService&gt;(&#x27;OrganizationService&#x27;, [&#x27;getAgencesPages&#x27;]);
+    referentielService = jasmine.createSpyObj&lt;ReferentielService&gt;(&#x27;ReferentielService&#x27;,
+      [&#x27;getZonesDistributionPages&#x27;, &#x27;createZoneDistribution&#x27;, &#x27;updateZoneDistribution&#x27;, &#x27;toggleZoneDistributionActivation&#x27;]);
+
+    <span class="hk">await</span> TestBed.configureTestingModule({
+      declarations: [ConsoleAgenceComponent],
+      imports: [FormsModule],
+      providers: [
+        { provide: OrganizationService, useValue: organizationService },
+        { provide: ReferentielService, useValue: referentielService }
+      ],
+      schemas: [NO_ERRORS_SCHEMA]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ConsoleAgenceComponent);
+    component = fixture.componentInstance;
+    referentielService.getZonesDistributionPages.and.returnValue(<span class="hk">of</span>(pageZones));
+  });
+
+  <span class="hc">// ---- setActiveTab / loadZonesTransporteur ----</span>
+
+  describe(&#x27;setActiveTab(\&#x27;zonesTransporteur\&#x27;)&#x27;, () =&gt; {
+    it(&#x27;remet la page à <span class="hn">0</span>, vide la recherche et charge la première page&#x27;, () =&gt; {
+      component.currentPageZonesTransporteur = <span class="hn">3</span>;
+      component.searchTerm = &#x27;casa&#x27;;
+
+      component.setActiveTab(&#x27;zonesTransporteur&#x27;);
+
+      expect(component.activeTab).toBe(&#x27;zonesTransporteur&#x27;);
+      expect(component.searchTerm).toBe(&#x27;&#x27;);
+      expect(referentielService.getZonesDistributionPages).toHaveBeenCalledWith(<span class="hn">0</span>, <span class="hn">4</span>);
+      expect(component.zonesTransporteur).toEqual([zoneCasa, zoneRabat]);
+      expect(component.filteredZonesTransporteur).toEqual([zoneCasa, zoneRabat]);
+      expect(component.totalPagesZonesTransporteur).toBe(<span class="hn">1</span>);
+      expect(component.totalElementsZonesTransporteur).toBe(<span class="hn">2</span>);
+      expect(component.isLoading).toBeFalse();
+    });
+
+    it(&#x27;affiche un message et coupe le spinner en cas d\&#x27;erreur de chargement&#x27;, () =&gt; {
+      referentielService.getZonesDistributionPages.and.returnValue(throwError(() =&gt; <span class="hk">new</span> Error(&#x27;KO&#x27;)));
+
+      component.setActiveTab(&#x27;zonesTransporteur&#x27;);
+
+      expect(component.errorMessage).toBe(&#x27;Erreur lors du chargement des zones transporteur&#x27;);
+      expect(component.isLoading).toBeFalse();
+    });
+  });
+
+  <span class="hc">// ---- pagination ----</span>
+
+  describe(&#x27;onPageChangeZonesTransporteur&#x27;, () =&gt; {
+    it(&#x27;convertit la page <span class="hn">1</span>-based du composant pagination en page <span class="hn">0</span>-based API&#x27;, () =&gt; {
+      component.onPageChangeZonesTransporteur(<span class="hn">3</span>);
+
+      expect(component.currentPageZonesTransporteur).toBe(<span class="hn">2</span>);
+      expect(referentielService.getZonesDistributionPages).toHaveBeenCalledWith(<span class="hn">2</span>, <span class="hn">4</span>);
+    });
+  });
+
+  <span class="hc">// ---- filtre ----</span>
+
+  describe(&#x27;applyFilterZonesTransporteur&#x27;, () =&gt; {
+    beforeEach(() =&gt; component.setActiveTab(&#x27;zonesTransporteur&#x27;));
+
+    it(&#x27;filtre sur le code ou le libellé (insensible à la casse)&#x27;, () =&gt; {
+      component.searchTerm = &#x27;rab&#x27;;
+      component.applyFilter();
+      expect(component.filteredZonesTransporteur).toEqual([zoneRabat]);
+
+      component.searchTerm = &#x27;casablanca&#x27;;
+      component.applyFilter();
+      expect(component.filteredZonesTransporteur).toEqual([zoneCasa]);
+    });
+
+    it(&#x27;restaure la liste complète quand le terme est vide&#x27;, () =&gt; {
+      component.searchTerm = &#x27;   &#x27;;
+      component.applyFilter();
+      expect(component.filteredZonesTransporteur).toEqual([zoneCasa, zoneRabat]);
+    });
+  });
+
+  <span class="hc">// ---- toggle ----</span>
+
+  describe(&#x27;toggleZoneTransporteurStatus&#x27;, () =&gt; {
+    beforeEach(() =&gt; component.setActiveTab(&#x27;zonesTransporteur&#x27;));
+
+    it(&#x27;bascule de façon optimiste puis recharge la liste&#x27;, () =&gt; {
+      referentielService.toggleZoneDistributionActivation.and.returnValue(<span class="hk">of</span>(reponseOk));
+      referentielService.getZonesDistributionPages.calls.reset();
+
+      component.toggleZoneTransporteurStatus(zoneCasa);
+
+      expect(referentielService.toggleZoneDistributionActivation).toHaveBeenCalledWith(<span class="hn">1</span>);
+      expect(referentielService.getZonesDistributionPages).toHaveBeenCalledTimes(<span class="hn">1</span>);
+    });
+
+    it(&#x27;revient à l\&#x27;état précédent si le serveur échoue&#x27;, () =&gt; {
+      referentielService.toggleZoneDistributionActivation.and.returnValue(throwError(() =&gt; <span class="hk">new</span> Error(&#x27;KO&#x27;)));
+
+      component.toggleZoneTransporteurStatus(zoneCasa);
+
+      <span class="hk">const</span> casa = component.zonesTransporteur.find(z =&gt; z.id === <span class="hn">1</span>)!;
+      <span class="hk">const</span> casaFiltree = component.filteredZonesTransporteur.find(z =&gt; z.id === <span class="hn">1</span>)!;
+      expect(casa.actif).toBeTrue();
+      expect(casaFiltree.actif).toBeTrue();
+    });
+  });
+
+  <span class="hc">// ---- modale ----</span>
+
+  describe(&#x27;modale Zone Transporteur&#x27;, () =&gt; {
+    it(&#x27;openAddZoneTransporteurModal ouvre une modale vide en mode création&#x27;, () =&gt; {
+      component.openAddZoneTransporteurModal();
+
+      expect(component.isAddZoneTransporteurModalOpen).toBeTrue();
+      expect(component.isEditingZoneTransporteur).toBeFalse();
+      expect(component.newZoneTransporteur).toEqual({});
+      expect(component.errorMessage).toBeNull();
+    });
+
+    it(&#x27;editZoneTransporteur pré-remplit code et libellé&#x27;, () =&gt; {
+      component.editZoneTransporteur(zoneRabat);
+
+      expect(component.isEditingZoneTransporteur).toBeTrue();
+      expect(component.editingZoneTransporteurId).toBe(<span class="hn">2</span>);
+      expect(component.newZoneTransporteur).toEqual({ code: &#x27;RABAT&#x27;, nom: &#x27;Zone Rabat-Salé&#x27; });
+    });
+
+    it(&#x27;saveNewZoneTransporteur crée avec code en majuscules et libellé trimé, puis recharge et ferme&#x27;, () =&gt; {
+      referentielService.createZoneDistribution.and.returnValue(<span class="hk">of</span>({ id: <span class="hn">3</span>, code: &#x27;FES&#x27;, nom: &#x27;Zone Fès&#x27;, actif: <span class="hk">true</span> }));
+      component.openAddZoneTransporteurModal();
+      component.newZoneTransporteur = { code: &#x27;fes &#x27;, nom: &#x27; Zone Fès &#x27; };
+
+      component.saveNewZoneTransporteur();
+
+      expect(referentielService.createZoneDistribution).toHaveBeenCalledWith({ code: &#x27;FES&#x27;, nom: &#x27;Zone Fès&#x27; });
+      expect(referentielService.getZonesDistributionPages).toHaveBeenCalled();
+      expect(component.isAddZoneTransporteurModalOpen).toBeFalse();
+    });
+
+    it(&#x27;saveNewZoneTransporteur met à jour avec l\&#x27;id en mode édition&#x27;, () =&gt; {
+      referentielService.updateZoneDistribution.and.returnValue(<span class="hk">of</span>(reponseOk));
+      component.editZoneTransporteur(zoneRabat);
+      component.newZoneTransporteur.nom = &#x27;Zone Rabat&#x27;;
+
+      component.saveNewZoneTransporteur();
+
+      expect(referentielService.updateZoneDistribution).toHaveBeenCalledWith({ id: <span class="hn">2</span>, code: &#x27;RABAT&#x27;, nom: &#x27;Zone Rabat&#x27; });
+      expect(referentielService.createZoneDistribution).not.toHaveBeenCalled();
+      expect(component.isAddZoneTransporteurModalOpen).toBeFalse();
+    });
+
+    it(&#x27;refuse un code ou un libellé vide sans appeler le serveur&#x27;, () =&gt; {
+      component.openAddZoneTransporteurModal();
+      component.newZoneTransporteur = { code: &#x27;FES&#x27;, nom: &#x27;  &#x27; };
+
+      component.saveNewZoneTransporteur();
+
+      expect(component.errorMessage).toBe(&#x27;Veuillez remplir tous les champs obligatoires.&#x27;);
+      expect(referentielService.createZoneDistribution).not.toHaveBeenCalled();
+    });
+
+    it(&#x27;affiche le message serveur (<span class="hn">409</span>) et laisse la modale ouverte&#x27;, () =&gt; {
+      referentielService.createZoneDistribution.and.returnValue(throwError(() =&gt; <span class="hk">new</span> Error(&#x27;Une zone de distribution avec ce code existe déjà&#x27;)));
+      component.openAddZoneTransporteurModal();
+      component.newZoneTransporteur = { code: &#x27;CASA&#x27;, nom: &#x27;Doublon&#x27; };
+
+      component.saveNewZoneTransporteur();
+
+      expect(component.errorMessage).toBe(&#x27;Une zone de distribution avec ce code existe déjà&#x27;);
+      expect(component.isAddZoneTransporteurModalOpen).toBeTrue();
+    });
+
+    it(&#x27;closeAddZoneTransporteurModal réinitialise l\&#x27;état&#x27;, () =&gt; {
+      component.editZoneTransporteur(zoneRabat);
+
+      component.closeAddZoneTransporteurModal();
+
+      expect(component.isAddZoneTransporteurModalOpen).toBeFalse();
+      expect(component.isEditingZoneTransporteur).toBeFalse();
+      expect(component.editingZoneTransporteurId).toBe(<span class="hn">0</span>);
+      expect(component.newZoneTransporteur).toEqual({});
+    });
+  });
+
+  <span class="hc">// ---- saisie du code ----</span>
+
+  describe(&#x27;onCodeZoneTransporteurInput&#x27;, () =&gt; {
+    it(&#x27;force les majuscules et retire les caractères non autorisés&#x27;, () =&gt; {
+      <span class="hk">const</span> input = document.createElement(&#x27;input&#x27;);
+      input.value = &#x27;fès meknes!&#x27;;
+
+      component.onCodeZoneTransporteurInput({ target: input } <span class="hk">as</span> <span class="hk">unknown</span> <span class="hk">as</span> Event);
+
+      expect(input.value).toBe(&#x27;FSMEKNES&#x27;);
+      expect(component.newZoneTransporteur.code).toBe(&#x27;FSMEKNES&#x27;);
+    });
+  });
+
+  <span class="hc">// ---- track by ----</span>
+
+  it(&#x27;trackByZoneTransporteurId renvoie l\&#x27;id&#x27;, () =&gt; {
+    expect(component.trackByZoneTransporteurId(<span class="hn">0</span>, zoneCasa)).toBe(<span class="hn">1</span>);
+  });
+});
+</code></pre>
+</div></section><section id="run"><h2>4. Exécution</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-info">RÉFÉRENCE</span><span class="fb-title">Commandes</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-bash"><span class="hc"># Depuis C:\dev\portail-ci (branche feature/AER_LM-268)</span>
+<span class="hk">ng</span> test <span class="hd">--watch</span>=false <span class="hd">--browsers</span>=ChromeHeadless <span class="hd">--include</span>=&quot;src/app/core/services/console/referentiel/**/*.spec.ts&quot; <span class="hd">--include</span>=&quot;src/app/console/components/console<span class="hd">-agence</span>/**/*.spec.ts&quot; </code></pre>
+</div><div class="box box-ok"><div class="box-title">Attendu</div><div class="box-body">Avec la 259 : 16 + 19 = 35 specs vertes sur les deux dossiers.</div></div></section></main></div>
+<footer>Document de tests séparé de l'implémentation — complète les specs livrés avec AER_LM-259.</footer>
+<script>
+function copyCode(btn){const code=btn.closest('.fb').querySelector('pre code');const txt=code.innerText;navigator.clipboard.writeText(txt).then(()=>{const o=btn.textContent;btn.textContent='Copié ✓';setTimeout(()=>btn.textContent=o,1500);});}
+</script></body></html>
