@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>AER_LM-259 — Tests unitaires front</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><style>
+:root{--g1:#0B6B4F;--g2:#07402F;--gold:#B8892C;--ink:#1c2a25;--muted:#5d6e68;--line:#d8e3de;--bg:#f4f8f6}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
+header{background:linear-gradient(120deg,var(--g2),var(--g1));color:#fff;padding:28px 40px;border-bottom:4px solid var(--gold)}
+header h1{margin:0 0 6px;font-size:26px;font-weight:600}
+header .sub{opacity:.9;font-size:14px}
+header .meta{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+header .meta span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:14px;padding:3px 10px;font-size:12px}
+.wrap{display:grid;grid-template-columns:250px 1fr;gap:0}
+nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:#fff;border-right:1px solid var(--line);padding:18px 14px}
+nav a{display:block;color:var(--g2);text-decoration:none;font-size:13px;padding:6px 8px;border-radius:6px}
+nav a:hover{background:var(--bg)}
+main{padding:26px 40px 80px;max-width:1150px}
+h2{color:var(--g2);border-left:5px solid var(--gold);padding-left:12px;margin:38px 0 14px;font-size:21px}
+h3{color:var(--g1);margin:26px 0 10px;font-size:16px}
+p,li{font-size:14.5px}
+code{font-family:Consolas,"JetBrains Mono",monospace;font-size:13px;background:#e6efeb;padding:1px 5px;border-radius:4px;color:var(--g2)}
+pre{margin:0;background:#0f1a17!important;color:#e6efeb;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55;border-radius:0 0 10px 10px}
+pre code{background:none;color:inherit;padding:0;font-size:13px}
+.fb{margin:16px 0 22px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.fb-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-radius:10px 10px 0 0;flex-wrap:wrap}
+.fb-title{font-weight:600;font-size:14px;color:var(--g2)}
+.fb-path{font-family:Consolas,monospace;font-size:12px;color:var(--muted);flex-basis:100%}
+.fb-note{padding:8px 14px;background:#fff8e6;border-top:1px solid #f0dfb0;border-bottom:1px solid #f0dfb0;font-size:13px}
+.copy{margin-left:auto;background:var(--g1);color:#fff;border:0;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer}
+.copy:hover{background:var(--g2)}
+.tag{font-size:11px;font-weight:700;letter-spacing:.5px;padding:3px 9px;border-radius:5px;color:#fff}
+.tag-complet{background:var(--g1)}.tag-ajouter{background:#1f6fb2}.tag-edition{background:#c07f1a}.tag-supprimer{background:#b23a3a}.tag-info{background:#5d6e68}
+.hc{color:#7f9a8f;font-style:italic}.hs{color:#c9e5a3}.hk{color:#8fd3ff}.hd{color:#f0c674}.hn{color:#f2a1a1}.ht{color:#8fd3ff}.ha{color:#f0c674}
+.box{border-radius:10px;padding:12px 16px;margin:14px 0;border:1px solid;font-size:14px}
+.box-title{font-weight:700;margin-bottom:4px}
+.box-ok{background:#eaf6f0;border-color:#a9d6c0;color:#0f3f2e}
+.box-warn{background:#fff8e6;border-color:#f0dfb0;color:#5a4200}
+.box-danger{background:#fdecec;border-color:#f2b8b8;color:#6b1c1c}
+.box-info{background:#eaf1f8;border-color:#b9d0e8;color:#153a5b}
+table{border-collapse:collapse;width:100%;margin:12px 0 18px;background:#fff;font-size:13.5px}
+th{background:var(--g2);color:#fff;text-align:left;padding:8px 10px;font-weight:600}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:#f9fbfa}
+.step{display:inline-block;background:var(--gold);color:#fff;border-radius:50%;width:26px;height:26px;text-align:center;line-height:26px;font-size:13px;margin-right:8px}
+ul.check li{list-style:none;margin:5px 0}ul.check{padding-left:4px}
+ul.check li:before{content:"☐";margin-right:8px;color:var(--g1)}
+kbd{background:#eee;border:1px solid #ccc;border-radius:4px;padding:0 5px;font-size:12px}
+footer{color:var(--muted);font-size:12px;padding:20px 40px;border-top:1px solid var(--line)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}nav{position:static;height:auto}}
+</style></head>
+<body><header><h1>AER_LM-259 — Tests unitaires front</h1><div class="sub">portail-ci · ReferentielService · ConsoleAgenceComponent (modale agence) · branche feature/AER_LM-259</div><div class="meta"><span>Jasmine / Karma</span><span>16 tests</span><span>17/09/2026</span></div></header>
+<div class="wrap"><nav><a href="#ctx">1. Périmètre</a><a href="#svc">2. ReferentielService</a><a href="#cmp">3. ConsoleAgenceComponent</a><a href="#run">4. Exécution</a></nav><main><section id="ctx"><h2>1. Périmètre</h2><p>Tests unitaires Jasmine/Karma (outillage Angular CLI par défaut) couvrant les deux unités livrées par <b>AER_LM-259</b> : <code>ReferentielService</code> et les nouvelles responsabilités de <code>ConsoleAgenceComponent</code>.</p><table><thead><tr><th>Spec</th><th>Action</th><th>Cas couverts</th></tr></thead><tbody><tr><td><code>C:\dev\portail-ci\src\app\core\services\console\referentiel\referentiel.service.spec.ts</code></td><td><span class="tag tag-complet">FICHIER COMPLET</span></td><td>4 tests — URL et méthode des 2 endpoints, déballage <code>data</code>, message d'erreur serveur et message générique</td></tr><tr><td><code>C:\dev\portail-ci\src\app\console\components\console-agence\console-agence.component.spec.ts</code></td><td><span class="tag tag-complet">FICHIER COMPLET</span></td><td>12 tests — ouverture / édition / sauvegarde / saisie / fermeture de la modale agence</td></tr></tbody></table><div class="box box-warn"><div class="box-title">Spec de composant existante ?</div><div class="box-body">Le CLI Angular génère un <code>console-agence.component.spec.ts</code> à la création du composant. S'il existe et contient déjà des tests, garder ses <code>describe</code> et coller le bloc <code>describe('ConsoleAgenceComponent — AER_LM-259 …')</code> à la suite, en fusionnant les imports. S'il ne contient que le test <code>should create</code> du CLI, remplacer le fichier.</div></div><div class="box box-info"><div class="box-title">Choix techniques</div><div class="box-body"><ul><li><code>NO_ERRORS_SCHEMA</code> : le template utilise <code>app-pagination</code> ; on ne le déclare pas pour tester la classe sans rendu.</li><li>Aucun <code>fixture.detectChanges()</code> : <code>ngOnInit</code> n'est pas déclenché, les méthodes sont appelées directement ; <code>getAgencesPages</code> est stubbé pour les rechargements post-sauvegarde.</li><li>Pas de stub « global » consommé par un seul test : les retours des spies sont posés dans <code>beforeEach</code> uniquement quand tous les tests du bloc les utilisent (même discipline que côté Java).</li></ul></div></div></section><section id="svc"><h2>2. ReferentielService</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-complet">FICHIER COMPLET</span><span class="fb-title">referentiel.service.spec.ts</span><div class="fb-path">C:\dev\portail-ci\src\app\core\services\console\referentiel\referentiel.service.spec.ts</div><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts"><span class="hk">import</span> { TestBed } <span class="hk">from</span> &#x27;<span class="hd">@angular</span>/core/testing&#x27;;
+<span class="hk">import</span> { HttpClientTestingModule, HttpTestingController } <span class="hk">from</span> &#x27;<span class="hd">@angular</span>/common/http/testing&#x27;;
+<span class="hk">import</span> { ReferentielService } <span class="hk">from</span> &#x27;./referentiel.service&#x27;;
+<span class="hk">import</span> { ApiConfigService } <span class="hk">from</span> &#x27;../../api-config.service&#x27;;
+<span class="hk">import</span> { PrestataireDTO, ZoneDistributionDTO } <span class="hk">from</span> &#x27;../../../../shared/interfaces/referentiel.<span class="hk">interface</span>&#x27;;
+
+describe(&#x27;ReferentielService&#x27;, () =&gt; {
+  <span class="hk">const</span> BASE = &#x27;http:<span class="hc">//localhost:9090/api/v1/public/users&#x27;;</span>
+  <span class="hk">let</span> service: ReferentielService;
+  <span class="hk">let</span> httpMock: HttpTestingController;
+
+  beforeEach(() =&gt; {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [
+        ReferentielService,
+        { provide: ApiConfigService, useValue: { buildConsoleApiUrl: () =&gt; BASE } }
+      ]
+    });
+    service = TestBed.inject(ReferentielService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() =&gt; httpMock.verify());
+
+  <span class="hc">// ---- getZonesDistributionActives ----</span>
+
+  describe(&#x27;getZonesDistributionActives&#x27;, () =&gt; {
+    it(&#x27;appelle GET /referentiels/zones-distribution/actives et déballe data&#x27;, () =&gt; {
+      <span class="hk">const</span> zones: ZoneDistributionDTO[] = [
+        { id: <span class="hn">1</span>, code: &#x27;CASA&#x27;, nom: &#x27;Zone Casablanca&#x27;, actif: <span class="hk">true</span> },
+        { id: <span class="hn">2</span>, code: &#x27;RABAT&#x27;, nom: &#x27;Zone Rabat-Salé&#x27;, actif: <span class="hk">true</span> }
+      ];
+      <span class="hk">let</span> resultat: ZoneDistributionDTO[] = [];
+
+      service.getZonesDistributionActives().subscribe(z =&gt; resultat = z);
+
+      <span class="hk">const</span> req = httpMock.expectOne(<span class="hs">`${BASE}/referentiels/zones-distribution/actives`</span>);
+      expect(req.request.method).toBe(&#x27;GET&#x27;);
+      req.flush({ success: <span class="hk">true</span>, message: <span class="hk">null</span>, data: zones, error: <span class="hk">null</span> });
+      expect(resultat).toEqual(zones);
+    });
+
+    it(&#x27;remonte le message du serveur (ApiResponse.error) en Error&#x27;, () =&gt; {
+      <span class="hk">let</span> message = &#x27;&#x27;;
+
+      service.getZonesDistributionActives().subscribe({ error: (e: Error) =&gt; message = e.message });
+
+      httpMock.expectOne(<span class="hs">`${BASE}/referentiels/zones-distribution/actives`</span>)
+        .flush({ success: <span class="hk">false</span>, message: &#x27;Accès refusé&#x27;, data: <span class="hk">null</span>, error: &#x27;FORBIDDEN&#x27; },
+               { status: <span class="hn">403</span>, statusText: &#x27;Forbidden&#x27; });
+      expect(message).toBe(&#x27;Accès refusé&#x27;);
+    });
+  });
+
+  <span class="hc">// ---- getPrestataires ----</span>
+
+  describe(&#x27;getPrestataires&#x27;, () =&gt; {
+    it(&#x27;appelle GET /referentiels/prestataires et déballe data&#x27;, () =&gt; {
+      <span class="hk">const</span> prestataires: PrestataireDTO[] = [
+        { id: &#x27;BRINKS&#x27;, nom: &quot;Brink&#x27;s&quot; },
+        { id: &#x27;G4S&#x27;, nom: &#x27;G4S&#x27; }
+      ];
+      <span class="hk">let</span> resultat: PrestataireDTO[] = [];
+
+      service.getPrestataires().subscribe(p =&gt; resultat = p);
+
+      <span class="hk">const</span> req = httpMock.expectOne(<span class="hs">`${BASE}/referentiels/prestataires`</span>);
+      expect(req.request.method).toBe(&#x27;GET&#x27;);
+      req.flush({ success: <span class="hk">true</span>, message: <span class="hk">null</span>, data: prestataires, error: <span class="hk">null</span> });
+      expect(resultat).toEqual(prestataires);
+    });
+
+    it(&#x27;produit un message générique quand le serveur ne renvoie pas de message&#x27;, () =&gt; {
+      <span class="hk">let</span> message = &#x27;&#x27;;
+
+      service.getPrestataires().subscribe({ error: (e: Error) =&gt; message = e.message });
+
+      httpMock.expectOne(<span class="hs">`${BASE}/referentiels/prestataires`</span>)
+        .flush(<span class="hk">null</span>, { status: <span class="hn">500</span>, statusText: &#x27;Server Error&#x27; });
+      expect(message).toContain(&#x27;Erreur <span class="hn">500</span>&#x27;);
+    });
+  });
+});
+</code></pre>
+</div></section><section id="cmp"><h2>3. ConsoleAgenceComponent</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-complet">FICHIER COMPLET</span><span class="fb-title">console-agence.component.spec.ts</span><div class="fb-path">C:\dev\portail-ci\src\app\console\components\console-agence\console-agence.component.spec.ts</div><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">La fixture <code>GroupeDTO</code> suit l'interface fournie (<code>id, nom, actif, zone, manager</code>) ; si le fichier de ton poste porte d'autres champs obligatoires, compléter la constante <code>groupe</code>.</div>
+  <pre><code class="lang-ts"><span class="hk">import</span> { ComponentFixture, TestBed } <span class="hk">from</span> &#x27;<span class="hd">@angular</span>/core/testing&#x27;;
+<span class="hk">import</span> { FormsModule } <span class="hk">from</span> &#x27;<span class="hd">@angular</span>/forms&#x27;;
+<span class="hk">import</span> { NO_ERRORS_SCHEMA } <span class="hk">from</span> &#x27;<span class="hd">@angular</span>/core&#x27;;
+<span class="hk">import</span> { <span class="hk">of</span>, throwError } <span class="hk">from</span> &#x27;rxjs&#x27;;
+<span class="hk">import</span> { ConsoleAgenceComponent } <span class="hk">from</span> &#x27;./console-agence.component&#x27;;
+<span class="hk">import</span> { OrganizationService } <span class="hk">from</span> &#x27;../../../core/services/console/organization/organization.service&#x27;;
+<span class="hk">import</span> { ReferentielService } <span class="hk">from</span> &#x27;../../../core/services/console/referentiel/referentiel.service&#x27;;
+<span class="hk">import</span> { AgenceDTO, GroupeDTO, Page } <span class="hk">from</span> &#x27;../../../shared/interfaces/habilitation.<span class="hk">interface</span>&#x27;;
+<span class="hk">import</span> { PrestataireDTO, ZoneDistributionDTO } <span class="hk">from</span> &#x27;../../../shared/interfaces/referentiel.<span class="hk">interface</span>&#x27;;
+
+describe(&#x27;ConsoleAgenceComponent — AER_LM-<span class="hn">259</span> (configuration agence)&#x27;, () =&gt; {
+  <span class="hk">let</span> fixture: ComponentFixture&lt;ConsoleAgenceComponent&gt;;
+  <span class="hk">let</span> component: ConsoleAgenceComponent;
+  <span class="hk">let</span> organizationService: jasmine.SpyObj&lt;OrganizationService&gt;;
+  <span class="hk">let</span> referentielService: jasmine.SpyObj&lt;ReferentielService&gt;;
+
+  <span class="hk">const</span> zoneCasa: ZoneDistributionDTO = { id: <span class="hn">1</span>, code: &#x27;CASA&#x27;, nom: &#x27;Zone Casablanca&#x27;, actif: <span class="hk">true</span> };
+  <span class="hk">const</span> zoneRabat: ZoneDistributionDTO = { id: <span class="hn">2</span>, code: &#x27;RABAT&#x27;, nom: &#x27;Zone Rabat-Salé&#x27;, actif: <span class="hk">true</span> };
+  <span class="hk">const</span> zoneFesInactive: ZoneDistributionDTO = { id: <span class="hn">3</span>, code: &#x27;FES&#x27;, nom: &#x27;Zone Fès&#x27;, actif: <span class="hk">false</span> };
+  <span class="hk">const</span> prestataires: PrestataireDTO[] = [{ id: &#x27;BRINKS&#x27;, nom: &quot;Brink&#x27;s&quot; }, { id: &#x27;G4S&#x27;, nom: &#x27;G4S&#x27; }];
+  <span class="hk">const</span> groupe: GroupeDTO = { id: <span class="hn">7</span>, nom: &#x27;Groupe Centre&#x27;, actif: <span class="hk">true</span>, zone: <span class="hk">null</span>, manager: <span class="hk">null</span> };
+  <span class="hk">const</span> pageVide: Page&lt;AgenceDTO&gt; = { content: [], totalPages: <span class="hn">1</span>, totalElements: <span class="hn">0</span>, size: <span class="hn">4</span>, <span class="hk">number</span>: <span class="hn">0</span> };
+
+  <span class="hk">const</span> agenceConfiguree: AgenceDTO = {
+    id: <span class="hn">12</span>, nom: &#x27;Nations Unies&#x27;, code: &#x27;<span class="hn">00001</span>&#x27;, actif: <span class="hk">true</span>,
+    groupe: { id: <span class="hn">7</span>, code: <span class="hk">null</span>, nom: &#x27;Groupe Centre&#x27;, <span class="hk">type</span>: &#x27;GROUPE&#x27;, actif: <span class="hk">true</span>, manager: <span class="hk">null</span>, parent: <span class="hk">null</span> },
+    manager: <span class="hk">null</span>,
+    zoneDistribution: zoneCasa,
+    prestataire: { id: &#x27;BRINKS&#x27;, nom: &quot;Brink&#x27;s&quot; },
+    coutDeplacement: <span class="hn">350.5</span>
+  };
+
+  beforeEach(<span class="hk">async</span> () =&gt; {
+    organizationService = jasmine.createSpyObj&lt;OrganizationService&gt;(&#x27;OrganizationService&#x27;,
+      [&#x27;getAgencesPages&#x27;, &#x27;getAllGroupes&#x27;, &#x27;createAgence&#x27;, &#x27;updateAgence&#x27;]);
+    referentielService = jasmine.createSpyObj&lt;ReferentielService&gt;(&#x27;ReferentielService&#x27;,
+      [&#x27;getZonesDistributionActives&#x27;, &#x27;getPrestataires&#x27;]);
+
+    <span class="hk">await</span> TestBed.configureTestingModule({
+      declarations: [ConsoleAgenceComponent],
+      imports: [FormsModule],
+      providers: [
+        { provide: OrganizationService, useValue: organizationService },
+        { provide: ReferentielService, useValue: referentielService }
+      ],
+      schemas: [NO_ERRORS_SCHEMA]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ConsoleAgenceComponent);
+    component = fixture.componentInstance;
+    organizationService.getAgencesPages.and.returnValue(<span class="hk">of</span>(pageVide));
+    organizationService.getAllGroupes.and.returnValue(<span class="hk">of</span>([groupe]));
+    referentielService.getZonesDistributionActives.and.returnValue(<span class="hk">of</span>([zoneCasa, zoneRabat]));
+    referentielService.getPrestataires.and.returnValue(<span class="hk">of</span>(prestataires));
+  });
+
+  <span class="hc">// ---- openAddAgenceModal ----</span>
+
+  describe(&#x27;openAddAgenceModal&#x27;, () =&gt; {
+    it(&#x27;charge les zones actives et les prestataires et réinitialise la configuration&#x27;, () =&gt; {
+      component.selectedZoneTransporteurId = <span class="hn">9</span>;
+      component.coutDeplacementSaisi = &#x27;<span class="hn">99</span>&#x27;;
+
+      component.openAddAgenceModal();
+
+      expect(referentielService.getZonesDistributionActives).toHaveBeenCalledTimes(<span class="hn">1</span>);
+      expect(referentielService.getPrestataires).toHaveBeenCalledTimes(<span class="hn">1</span>);
+      expect(component.modalZonesTransporteur).toEqual([zoneCasa, zoneRabat]);
+      expect(component.prestataires).toEqual(prestataires);
+      expect(component.selectedZoneTransporteurId).toBe(<span class="hn">0</span>);
+      expect(component.selectedPrestataireId).toBe(&#x27;&#x27;);
+      expect(component.coutDeplacementSaisi).toBe(&#x27;&#x27;);
+      expect(component.isAddAgenceModalOpen).toBeTrue();
+    });
+
+    it(&#x27;laisse la modale ouverte si un référentiel est en erreur&#x27;, () =&gt; {
+      referentielService.getPrestataires.and.returnValue(throwError(() =&gt; <span class="hk">new</span> Error(&#x27;KO&#x27;)));
+
+      component.openAddAgenceModal();
+
+      expect(component.isAddAgenceModalOpen).toBeTrue();
+      expect(component.modalZonesTransporteur).toEqual([zoneCasa, zoneRabat]);
+      expect(component.prestataires).toEqual([]);
+    });
+  });
+
+  <span class="hc">// ---- editAgence ----</span>
+
+  describe(&#x27;editAgence&#x27;, () =&gt; {
+    it(&#x27;pré-remplit zone, prestataire et coût (virgule) depuis AgenceDTO&#x27;, () =&gt; {
+      component.editAgence(agenceConfiguree);
+
+      expect(component.isEditingAgence).toBeTrue();
+      expect(component.editingAgenceId).toBe(<span class="hn">12</span>);
+      expect(component.selectedZoneTransporteurId).toBe(<span class="hn">1</span>);
+      expect(component.selectedPrestataireId).toBe(&#x27;BRINKS&#x27;);
+      expect(component.coutDeplacementSaisi).toBe(&#x27;<span class="hn">350</span>,<span class="hn">5</span>&#x27;);
+    });
+
+    it(&#x27;conserve la zone courante dans le select même si elle est devenue inactive&#x27;, () =&gt; {
+      <span class="hk">const</span> agence: AgenceDTO = { ...agenceConfiguree, zoneDistribution: zoneFesInactive };
+
+      component.editAgence(agence);
+
+      expect(component.modalZonesTransporteur).toEqual([zoneCasa, zoneRabat, zoneFesInactive]);
+      expect(component.selectedZoneTransporteurId).toBe(<span class="hn">3</span>);
+    });
+
+    it(&#x27;laisse les champs vides pour une agence non configurée (compatibilité <span class="hn">267</span>)&#x27;, () =&gt; {
+      <span class="hk">const</span> agence: AgenceDTO = { ...agenceConfiguree, zoneDistribution: <span class="hk">null</span>, prestataire: <span class="hk">null</span>, coutDeplacement: <span class="hk">null</span> };
+
+      component.editAgence(agence);
+
+      expect(component.selectedZoneTransporteurId).toBe(<span class="hn">0</span>);
+      expect(component.selectedPrestataireId).toBe(&#x27;&#x27;);
+      expect(component.coutDeplacementSaisi).toBe(&#x27;&#x27;);
+      expect(component.modalZonesTransporteur).toEqual([zoneCasa, zoneRabat]);
+    });
+  });
+
+  <span class="hc">// ---- saveNewAgence ----</span>
+
+  describe(&#x27;saveNewAgence&#x27;, () =&gt; {
+    beforeEach(() =&gt; {
+      organizationService.createAgence.and.returnValue(<span class="hk">of</span>(agenceConfiguree));
+      organizationService.updateAgence.and.returnValue(<span class="hk">of</span>(agenceConfiguree));
+    });
+
+    it(&#x27;envoie zoneDistributionId, prestataire et coutDeplacement (virgule convertie) à la création&#x27;, () =&gt; {
+      component.openAddAgenceModal();
+      component.newAgence = { nom: &#x27; Nations Unies &#x27;, code: &#x27;<span class="hn">00001</span>&#x27; };
+      component.selectedGroupeId = <span class="hn">7</span>;
+      component.selectedZoneTransporteurId = <span class="hn">1</span>;
+      component.selectedPrestataireId = &#x27;G4S&#x27;;
+      component.coutDeplacementSaisi = &#x27;<span class="hn">350</span>,<span class="hn">5</span>&#x27;;
+
+      component.saveNewAgence();
+
+      expect(organizationService.createAgence).toHaveBeenCalledWith({
+        nom: &#x27;Nations Unies&#x27;, code: &#x27;<span class="hn">00001</span>&#x27;, groupeId: <span class="hn">7</span>,
+        zoneDistributionId: <span class="hn">1</span>, prestataire: &#x27;G4S&#x27;, coutDeplacement: <span class="hn">350.5</span>
+      });
+      expect(component.isAddAgenceModalOpen).toBeFalse();
+      expect(organizationService.getAgencesPages).toHaveBeenCalled();
+    });
+
+    it(&quot;n&#x27;envoie pas les champs non renseignés (<span class="hk">undefined</span> → absents du JSON)&quot;, () =&gt; {
+      component.openAddAgenceModal();
+      component.newAgence = { nom: &#x27;Agence Test&#x27;, code: &#x27;<span class="hn">00002</span>&#x27; };
+      component.selectedGroupeId = <span class="hn">7</span>;
+
+      component.saveNewAgence();
+
+      <span class="hk">const</span> envoye = organizationService.createAgence.calls.mostRecent().args[<span class="hn">0</span>];
+      expect(envoye.zoneDistributionId).toBeUndefined();
+      expect(envoye.prestataire).toBeUndefined();
+      expect(envoye.coutDeplacement).toBeUndefined();
+      expect(JSON.stringify(envoye)).not.toContain(&#x27;coutDeplacement&#x27;);
+    });
+
+    it(&#x27;utilise updateAgence avec l\&#x27;id en modification&#x27;, () =&gt; {
+      component.editAgence(agenceConfiguree);
+      component.selectedPrestataireId = &#x27;G4S&#x27;;
+
+      component.saveNewAgence();
+
+      expect(organizationService.updateAgence).toHaveBeenCalledWith(jasmine.objectContaining({
+        id: <span class="hn">12</span>, code: &#x27;<span class="hn">00001</span>&#x27;, prestataire: &#x27;G4S&#x27;, zoneDistributionId: <span class="hn">1</span>, coutDeplacement: <span class="hn">350.5</span>
+      }));
+      expect(organizationService.createAgence).not.toHaveBeenCalled();
+    });
+
+    it(&#x27;refuse un coût invalide sans appeler le serveur&#x27;, () =&gt; {
+      component.openAddAgenceModal();
+      component.newAgence = { nom: &#x27;Agence Test&#x27;, code: &#x27;<span class="hn">00002</span>&#x27; };
+      component.coutDeplacementSaisi = &#x27;<span class="hn">12</span>,<span class="hn">345</span>&#x27;;
+
+      component.saveNewAgence();
+
+      expect(component.errorMessage).toContain(&#x27;coût de déplacement&#x27;);
+      expect(organizationService.createAgence).not.toHaveBeenCalled();
+      expect(component.isAddAgenceModalOpen).toBeTrue();
+    });
+
+    it(&#x27;garde la validation existante nom / code&#x27;, () =&gt; {
+      component.openAddAgenceModal();
+      component.newAgence = { nom: &#x27;&#x27;, code: &#x27;<span class="hn">00002</span>&#x27; };
+
+      component.saveNewAgence();
+
+      expect(component.errorMessage).toBe(&#x27;Veuillez remplir tous les champs obligatoires.&#x27;);
+      expect(organizationService.createAgence).not.toHaveBeenCalled();
+    });
+
+    it(&#x27;affiche le message serveur en cas d\&#x27;erreur (<span class="hn">409</span> doublon)&#x27;, () =&gt; {
+      organizationService.createAgence.and.returnValue(throwError(() =&gt; <span class="hk">new</span> Error(&#x27;Une agence avec ce code existe déjà&#x27;)));
+      component.openAddAgenceModal();
+      component.newAgence = { nom: &#x27;Agence Test&#x27;, code: &#x27;<span class="hn">00001</span>&#x27; };
+
+      component.saveNewAgence();
+
+      expect(component.errorMessage).toBe(&#x27;Une agence avec ce code existe déjà&#x27;);
+      expect(component.isAddAgenceModalOpen).toBeTrue();
+    });
+  });
+
+  <span class="hc">// ---- onCoutDeplacementInput ----</span>
+
+  describe(&#x27;onCoutDeplacementInput&#x27;, () =&gt; {
+    it(&#x27;ne conserve que chiffres, virgule et point&#x27;, () =&gt; {
+      <span class="hk">const</span> input = document.createElement(&#x27;input&#x27;);
+      input.value = &#x27;3a5,0b€&#x27;;
+
+      component.onCoutDeplacementInput({ target: input } <span class="hk">as</span> <span class="hk">unknown</span> <span class="hk">as</span> Event);
+
+      expect(input.value).toBe(&#x27;<span class="hn">35</span>,<span class="hn">0</span>&#x27;);
+      expect(component.coutDeplacementSaisi).toBe(&#x27;<span class="hn">35</span>,<span class="hn">0</span>&#x27;);
+    });
+  });
+
+  <span class="hc">// ---- closeAddAgenceModal ----</span>
+
+  describe(&#x27;closeAddAgenceModal&#x27;, () =&gt; {
+    it(&#x27;réinitialise la configuration&#x27;, () =&gt; {
+      component.editAgence(agenceConfiguree);
+
+      component.closeAddAgenceModal();
+
+      expect(component.selectedZoneTransporteurId).toBe(<span class="hn">0</span>);
+      expect(component.selectedPrestataireId).toBe(&#x27;&#x27;);
+      expect(component.coutDeplacementSaisi).toBe(&#x27;&#x27;);
+      expect(component.modalZonesTransporteur).toEqual([]);
+      expect(component.prestataires).toEqual([]);
+    });
+  });
+});
+</code></pre>
+</div></section><section id="run"><h2>4. Exécution</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-info">RÉFÉRENCE</span><span class="fb-title">Commandes</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-bash"><span class="hc"># Depuis C:\dev\portail-ci</span>
+<span class="hc"># Tous les tests</span>
+<span class="hk">ng</span> test <span class="hd">--watch</span>=false <span class="hd">--browsers</span>=ChromeHeadless
+
+<span class="hc"># Uniquement les specs de la branche</span>
+<span class="hk">ng</span> test <span class="hd">--watch</span>=false <span class="hd">--browsers</span>=ChromeHeadless <span class="hd">--include</span>=&quot;src/app/core/services/console/referentiel/**/*.spec.ts&quot; <span class="hd">--include</span>=&quot;src/app/console/components/console<span class="hd">-agence</span>/**/*.spec.ts&quot; </code></pre>
+</div><div class="box box-ok"><div class="box-title">Attendu</div><div class="box-body">16 specs vertes. Aucun appel HTTP réel : <code>HttpClientTestingModule</code> côté service, spies côté composant.</div></div></section></main></div>
+<footer>Document de tests séparé de l'implémentation, conformément à la règle de livraison du 15/09/2026.</footer>
+<script>
+function copyCode(btn){const code=btn.closest('.fb').querySelector('pre code');const txt=code.innerText;navigator.clipboard.writeText(txt).then(()=>{const o=btn.textContent;btn.textContent='Copié ✓';setTimeout(()=>btn.textContent=o,1500);});}
+</script></body></html>
