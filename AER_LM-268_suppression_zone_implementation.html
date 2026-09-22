@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>AER_LM-268 — Suppression d&#x27;une zone transporteur</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><style>
+:root{--g1:#0B6B4F;--g2:#07402F;--gold:#B8892C;--ink:#1c2a25;--muted:#5d6e68;--line:#d8e3de;--bg:#f4f8f6}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
+header{background:linear-gradient(120deg,var(--g2),var(--g1));color:#fff;padding:28px 40px;border-bottom:4px solid var(--gold)}
+header h1{margin:0 0 6px;font-size:26px;font-weight:600}
+header .sub{opacity:.9;font-size:14px}
+header .meta{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+header .meta span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:14px;padding:3px 10px;font-size:12px}
+.wrap{display:grid;grid-template-columns:250px 1fr;gap:0}
+nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:#fff;border-right:1px solid var(--line);padding:18px 14px}
+nav a{display:block;color:var(--g2);text-decoration:none;font-size:13px;padding:6px 8px;border-radius:6px}
+nav a:hover{background:var(--bg)}
+main{padding:26px 40px 80px;max-width:1150px}
+h2{color:var(--g2);border-left:5px solid var(--gold);padding-left:12px;margin:38px 0 14px;font-size:21px}
+h3{color:var(--g1);margin:26px 0 10px;font-size:16px}
+p,li{font-size:14.5px}
+code{font-family:Consolas,"JetBrains Mono",monospace;font-size:13px;background:#e6efeb;padding:1px 5px;border-radius:4px;color:var(--g2)}
+pre{margin:0;background:#0f1a17!important;color:#e6efeb;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55;border-radius:0 0 10px 10px}
+pre code{background:none;color:inherit;padding:0;font-size:13px}
+.fb{margin:16px 0 22px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.fb-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-radius:10px 10px 0 0;flex-wrap:wrap}
+.fb-title{font-weight:600;font-size:14px;color:var(--g2)}
+.fb-path{font-family:Consolas,monospace;font-size:12px;color:var(--muted);flex-basis:100%}
+.fb-note{padding:8px 14px;background:#fff8e6;border-top:1px solid #f0dfb0;border-bottom:1px solid #f0dfb0;font-size:13px}
+.copy{margin-left:auto;background:var(--g1);color:#fff;border:0;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer}
+.copy:hover{background:var(--g2)}
+.tag{font-size:11px;font-weight:700;letter-spacing:.5px;padding:3px 9px;border-radius:5px;color:#fff}
+.tag-complet{background:var(--g1)}.tag-ajouter{background:#1f6fb2}.tag-edition{background:#c07f1a}.tag-supprimer{background:#b23a3a}.tag-info{background:#5d6e68}
+.hc{color:#7f9a8f;font-style:italic}.hs{color:#c9e5a3}.hk{color:#8fd3ff}.hd{color:#f0c674}.hn{color:#f2a1a1}.ht{color:#8fd3ff}.ha{color:#f0c674}
+.box{border-radius:10px;padding:12px 16px;margin:14px 0;border:1px solid;font-size:14px}
+.box-title{font-weight:700;margin-bottom:4px}
+.box-ok{background:#eaf6f0;border-color:#a9d6c0;color:#0f3f2e}
+.box-warn{background:#fff8e6;border-color:#f0dfb0;color:#5a4200}
+.box-danger{background:#fdecec;border-color:#f2b8b8;color:#6b1c1c}
+.box-info{background:#eaf1f8;border-color:#b9d0e8;color:#153a5b}
+table{border-collapse:collapse;width:100%;margin:12px 0 18px;background:#fff;font-size:13.5px}
+th{background:var(--g2);color:#fff;text-align:left;padding:8px 10px;font-weight:600}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:#f9fbfa}
+.step{display:inline-block;background:var(--gold);color:#fff;border-radius:50%;width:26px;height:26px;text-align:center;line-height:26px;font-size:13px;margin-right:8px}
+ul.check li{list-style:none;margin:5px 0}ul.check{padding-left:4px}
+ul.check li:before{content:"☐";margin-right:8px;color:var(--g1)}
+kbd{background:#eee;border:1px solid #ccc;border-radius:4px;padding:0 5px;font-size:12px}
+footer{color:var(--muted);font-size:12px;padding:20px 40px;border-top:1px solid var(--line)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}nav{position:static;height:auto}}
+</style></head>
+<body><header><h1>AER_LM-268 — Suppression d&#x27;une zone transporteur</h1><div class="sub">utilisateurs-ci DELETE /referentiels/zones-distribution/{id} · portail-ci modale de confirmation · refus si agences rattachées</div><div class="meta"><span>Squad Q360</span><span>Spring Boot 3.3 · Angular (NgModule)</span><span>Complément 268</span><span>22/09/2026</span></div></header>
+<div class="wrap"><nav><a href="#ctx">1. Pourquoi ce n'était pas dans la 268</a><a href="#back">2. Backend — DELETE /referentiels/zones-distribution/{id}</a><a href="#front">3. Front — service, composant, modale</a><a href="#git">4. Branches</a><a href="#check">5. Vérifications manuelles</a></nav><main><section id="ctx"><h2>1. Pourquoi ce n'était pas dans la 268</h2><p>Le bouton SUPPRIMER est inerte sur les onglets Agence(s) / Groupe(s) / Zone(s) (aucun <code>(click)</code>, <code>deleteAgence</code> / <code>deleteZone</code> « no usages » dans <code>OrganizationService</code>), et le contrôleur <code>ZoneDistributionController</code> livré en 270 n'expose pas de <code>DELETE</code>. J'ai donc reproduit l'existant. Pour rendre la suppression fonctionnelle il faut quatre choses, livrées ici.</p><div class="box box-warn"><div class="box-title">Règle métier retenue</div><div class="box-body">Une zone de distribution référencée par au moins une agence (<code>agence.zone_distribution_id</code>, FK posée en V15) <b>ne se supprime pas</b> : le serveur répond 400 avec un message explicite affiché dans la modale, l'administrateur désactive la zone (toggle existant) ou réaffecte les agences. Sans ce contrôle, la FK ferait échouer le <code>DELETE</code> en 500. Pas de suppression logique : <code>actif</code> joue déjà ce rôle.</div></div><table><thead><tr><th>Couche</th><th>Fichier</th><th>Action</th></tr></thead><tbody><tr><td>Back</td><td><code>C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\repository\orga\AgenceRepository.java</code></td><td><span class="tag tag-ajouter">À AJOUTER</span> <code>existsByZoneDistributionId</code></td></tr><tr><td>Back</td><td><code>C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\service\referentiel\ZoneDistributionService.java</code></td><td><span class="tag tag-ajouter">À AJOUTER</span> champ + <code>deleteZoneDistribution</code></td></tr><tr><td>Back</td><td><code>C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\facade\referentiel\ZoneDistributionFacade.java</code></td><td><span class="tag tag-ajouter">À AJOUTER</span> délégation</td></tr><tr><td>Back</td><td><code>C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\controller\referentiel\ZoneDistributionController.java</code></td><td><span class="tag tag-ajouter">À AJOUTER</span> <code>@DeleteMapping</code></td></tr><tr><td>Front</td><td><code>C:\dev\portail-ci\src\app\core\services\console\referentiel\referentiel.service.ts</code></td><td><span class="tag tag-ajouter">À AJOUTER</span> <code>deleteZoneDistribution</code></td></tr><tr><td>Front</td><td><code>C:\dev\portail-ci\src\app\console\components\console-agence\console-agence.component.ts</code></td><td><span class="tag tag-ajouter">À AJOUTER</span> état + 3 méthodes</td></tr><tr><td>Front</td><td><code>C:\dev\portail-ci\src\app\console\components\console-agence\console-agence.component.html</code></td><td><span class="tag tag-edition">ÉDITION</span> bouton + <span class="tag tag-ajouter">À AJOUTER</span> modale</td></tr></tbody></table><p>Non touchés : Flyway (la FK existe), <code>GlobalExceptionHandler</code> (<code>IllegalArgumentException</code> → 400 et <code>EntityNotFoundException</code> → 404 sont déjà mappés), gateway, SCSS.</p></section><section id="back"><h2>2. Backend — DELETE /referentiels/zones-distribution/{id}</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">AgenceRepository — méthode dérivée Spring Data</span><div class="fb-path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\repository\orga\AgenceRepository.java</div><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note"><code>AgenceEntity.zoneDistribution</code> est le <code>@ManyToOne</code> ajouté en 271 ; Spring Data résout <code>ZoneDistributionId</code> en <code>zoneDistribution.id</code>. Si le champ porte un autre nom dans l'entité, aligner le nom de la méthode.</div>
+  <pre><code class="lang-ts">    <span class="hc">// ---- Suppression zone de distribution : refus si des agences y sont rattachées</span>
+    <span class="hk">boolean</span> existsByZoneDistributionId(Long zoneDistributionId);
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">ZoneDistributionService — champ (avec les autres `private final`)</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Injection par constructeur Lombok <code>@RequiredArgsConstructor</code>, comme les autres dépendances du service ; ajouter l'import <code>com.bnpp.irb.qlickflow.admin.repository.orga.AgenceRepository</code>.</div>
+  <pre><code class="lang-ts">    <span class="hk">private</span> final AgenceRepository agenceRepository;
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">ZoneDistributionService — méthode (après toggleActivation)</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Imports : <code>jakarta.persistence.EntityNotFoundException</code> (même exception que les autres 404 du service) et <code>org.springframework.transaction.annotation.Transactional</code>. Le message d'erreur est en français car il est affiché tel quel dans la modale (<code>handleError</code> remonte <code>error.error.message</code>).</div>
+  <pre><code class="lang-ts">    <span class="hc">/**
+     * Supprime une zone de distribution.
+     * Refusée (400, message affiché dans la modale) si au moins une agence y est rattachée :
+     * l&#x27;administrateur doit d&#x27;abord réaffecter les agences ou désactiver la zone.
+     */</span>
+    <span class="hd">@Transactional</span>
+    <span class="hk">public</span> <span class="hk">void</span> deleteZoneDistribution(Long id) {
+        ZoneDistributionEntity zone = zoneDistributionRepository.findById(id)
+                .orElseThrow(() -&gt; <span class="hk">new</span> EntityNotFoundException(&quot;ZoneDistribution not found with id: &quot; + id));
+
+        <span class="hk">if</span> (agenceRepository.existsByZoneDistributionId(id)) {
+            <span class="hk">throw</span> <span class="hk">new</span> IllegalArgumentException(
+                    &quot;La zone de distribution &quot; + zone.getCode()
+                    + &quot; est rattachée à une ou plusieurs agences et ne peut pas être supprimée. Désactivez-la ou réaffectez les agences.&quot;);
+        }
+
+        zoneDistributionRepository.delete(zone);
+    }
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">ZoneDistributionFacade — délégation</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts">    <span class="hk">public</span> <span class="hk">void</span> deleteZoneDistribution(Long id) {
+        zoneDistributionService.deleteZoneDistribution(id);
+    }
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">ZoneDistributionController — endpoint</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Reprendre l'autorité du <code>@PreAuthorize</code> du <code>@PutMapping</code> du même contrôleur, et la forme exacte de <code>ApiResponse.success(...)</code> utilisée par le <code>@PatchMapping</code> toggle (message en anglais, convention des messages API). Import <code>DeleteMapping</code>.</div>
+  <pre><code class="lang-ts">    <span class="hd">@DeleteMapping</span>(&quot;/{id}&quot;)
+    <span class="hd">@PreAuthorize</span>(&quot;hasAuthority(&#x27;&lt;même autorité que le <span class="hd">@PutMapping</span> de ce contrôleur&gt;&#x27;)&quot;)
+    <span class="hk">public</span> ResponseEntity&lt;ApiResponse&lt;Void&gt;&gt; deleteZoneDistribution(<span class="hd">@PathVariable</span> Long id) {
+        zoneDistributionFacade.deleteZoneDistribution(id);
+        <span class="hk">return</span> ResponseEntity.ok(ApiResponse.success(<span class="hk">null</span>, &quot;ZoneDistribution deleted successfully&quot;));
+    }
+</code></pre>
+</div><div class="box box-info"><div class="box-title">Alternative 409</div><div class="box-body">Si le tech lead préfère un 409 Conflict à un 400, créer une <code>ResourceInUseException</code> et son <code>@ExceptionHandler</code> dans <code>GlobalExceptionHandler</code> sur le modèle de <code>handleNotFound</code> ; le front n'a rien à changer, il affiche le message quel que soit le statut.</div></div></section><section id="front"><h2>3. Front — service, composant, modale</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">referentiel.service.ts — après toggleZoneDistributionActivation()</span><div class="fb-path">C:\dev\portail-ci\src\app\core\services\console\referentiel\referentiel.service.ts</div><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Même patron que <code>deleteZone</code> d'<code>OrganizationService</code>, avec un id numérique.</div>
+  <pre><code class="lang-ts">  <span class="hc">// Supprimer une zone de distribution (400 si rattachée à une agence, 404 si inconnue)</span>
+  deleteZoneDistribution(zoneId: <span class="hk">number</span>): Observable&lt;<span class="hk">void</span>&gt; {
+    <span class="hk">return</span> <span class="hk">this</span>.http.delete&lt;ApiResponse&lt;<span class="hk">void</span>&gt;&gt;(
+      <span class="hs">`${this.baseUrl}/zones-distribution/${zoneId}`</span>
+    ).pipe(
+      map(response =&gt; response.data),
+      catchError(<span class="hk">this</span>.handleError)
+    );
+  }
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">console-agence.component.ts — état, après le bloc « // Modal zone transporteur » (268)</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-ts">  <span class="hc">// Modal suppression zone transporteur</span>
+  isDeleteZoneTransporteurModalOpen: <span class="hk">boolean</span> = <span class="hk">false</span>;
+  zoneTransporteurASupprimer: ZoneDistributionDTO | <span class="hk">null</span> = <span class="hk">null</span>;
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">console-agence.component.ts — méthodes, après saveNewZoneTransporteur() / onCodeZoneTransporteurInput()</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Aucune mise à jour optimiste : on attend la réponse serveur avant de recharger, la suppression n'est pas réversible.</div>
+  <pre><code class="lang-ts">  <span class="hc">// ========== MODAL SUPPRESSION ZONE TRANSPORTEUR ==========</span>
+
+  openDeleteZoneTransporteurModal(zone: ZoneDistributionDTO): <span class="hk">void</span> {
+    <span class="hk">this</span>.zoneTransporteurASupprimer = zone;
+    <span class="hk">this</span>.errorMessage = <span class="hk">null</span>;
+    <span class="hk">this</span>.isDeleteZoneTransporteurModalOpen = <span class="hk">true</span>;
+    document.body.style.overflow = &#x27;hidden&#x27;;
+  }
+
+  closeDeleteZoneTransporteurModal(): <span class="hk">void</span> {
+    <span class="hk">this</span>.isDeleteZoneTransporteurModalOpen = <span class="hk">false</span>;
+    <span class="hk">this</span>.zoneTransporteurASupprimer = <span class="hk">null</span>;
+    <span class="hk">this</span>.errorMessage = <span class="hk">null</span>;
+    document.body.style.overflow = &#x27;auto&#x27;;
+  }
+
+  confirmDeleteZoneTransporteur(): <span class="hk">void</span> {
+    <span class="hk">if</span> (!<span class="hk">this</span>.zoneTransporteurASupprimer) {
+      <span class="hk">return</span>;
+    }
+    <span class="hk">this</span>.referentielService.deleteZoneDistribution(<span class="hk">this</span>.zoneTransporteurASupprimer.id).subscribe({
+      next: () =&gt; {
+        <span class="hk">this</span>.loadZonesTransporteur();
+        <span class="hk">this</span>.closeDeleteZoneTransporteurModal();
+      },
+      error: (error) =&gt; {
+        <span class="hk">this</span>.errorMessage = error.message || &#x27;Erreur lors de la suppression de la zone transporteur.&#x27;;
+      }
+    });
+  }
+</code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-edition">ÉDITION</span><span class="fb-title">console-agence.component.html — bouton SUPPRIMER du content-card Zone Transporteur, avant</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-html">                    <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;action-button delete&quot; <span class="ht">&gt;</span>
+                      <span class="ht">&lt;img</span> <span class="ha">src</span>=&quot;assets/icons/ep_delete-filled.svg&quot; <span class="ha">alt</span>=&quot;delete&quot; <span class="ha">height</span>=&quot;15&quot;<span class="ht">&gt;</span>
+                      SUPPRIMER
+                    <span class="ht">&lt;/button</span><span class="ht">&gt;</span></code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-edition">ÉDITION</span><span class="fb-title">console-agence.component.html — après (ajout du (click))</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Uniquement dans le bloc <code>activeTab === 'zonesTransporteur'</code> ; les boutons des trois autres onglets restent inertes.</div>
+  <pre><code class="lang-html">                    <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;action-button delete&quot; (<span class="ha">click)</span>=&quot;openDeleteZoneTransporteurModal(zone)&quot;<span class="ht">&gt;</span>
+                      <span class="ht">&lt;img</span> <span class="ha">src</span>=&quot;assets/icons/ep_delete-filled.svg&quot; <span class="ha">alt</span>=&quot;delete&quot; <span class="ha">height</span>=&quot;15&quot;<span class="ht">&gt;</span>
+                      SUPPRIMER
+                    <span class="ht">&lt;/button</span><span class="ht">&gt;</span></code></pre>
+</div><div class="fb">
+  <div class="fb-head"><span class="tag tag-ajouter">À AJOUTER</span><span class="fb-title">console-agence.component.html — modale de confirmation, en fin de fichier après la modale Zone Transporteur</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  <div class="fb-note">Clone de la modale Zone (mêmes classes <code>modal-overlay</code> / <code>add-modal</code> / <code>modal-header</code> / <code>modal-footer</code>, mêmes boutons). Le bouton de confirmation réutilise l'icône <code>ep_delete-filled.svg</code> déjà présente dans les assets ; aucun SCSS à ajouter.</div>
+  <pre><code class="lang-html">
+<span class="hc">&lt;!-- Modal Supprimer une Zone Transporteur --&gt;</span>
+<span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;modal-overlay&quot; *<span class="ha">ngIf</span>=&quot;isDeleteZoneTransporteurModalOpen&quot; (<span class="ha">click)</span>=&quot;closeDeleteZoneTransporteurModal()&quot;<span class="ht">&gt;</span>
+  <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;add-modal&quot; (<span class="ha">click)</span>=&quot;$event.stopPropagation()&quot;<span class="ht">&gt;</span>
+    <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;modal-close-btn&quot; (<span class="ha">click)</span>=&quot;closeDeleteZoneTransporteurModal()&quot;<span class="ht">&gt;</span>
+      <span class="ht">&lt;svg</span> <span class="ha">width</span>=&quot;20&quot; <span class="ha">height</span>=&quot;20&quot; <span class="ha">viewBox</span>=&quot;0 0 24 24&quot; <span class="ha">fill</span>=&quot;currentColor&quot;<span class="ht">&gt;</span>
+        <span class="ht">&lt;path</span> <span class="ha">d</span>=&quot;M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12Z&quot;<span class="ht">/&gt;</span>
+      <span class="ht">&lt;/svg</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;/button</span><span class="ht">&gt;</span>
+
+    <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;modal-header&quot;<span class="ht">&gt;</span>
+      <span class="ht">&lt;h2</span> <span class="ha">class</span>=&quot;modal-title&quot;<span class="ht">&gt;</span>Supprimer la Zone Transporteur<span class="ht">&lt;/h2</span><span class="ht">&gt;</span>
+      <span class="ht">&lt;p</span> <span class="ha">class</span>=&quot;modal-subtitle&quot;<span class="ht">&gt;</span>
+        Confirmez-vous la suppression de la zone
+        <span class="ht">&lt;strong</span><span class="ht">&gt;</span>{{ zoneTransporteurASupprimer?.code }} — {{ zoneTransporteurASupprimer?.nom }}<span class="ht">&lt;/strong</span><span class="ht">&gt;</span> ?
+        Cette action est irréversible.
+      <span class="ht">&lt;/p</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+
+    <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;modal-body&quot;<span class="ht">&gt;</span>
+      <span class="ht">&lt;div</span> *<span class="ha">ngIf</span>=&quot;errorMessage&quot; <span class="ha">class</span>=&quot;error-message&quot;<span class="ht">&gt;</span>
+        {{ errorMessage }}
+      <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+
+    <span class="ht">&lt;div</span> <span class="ha">class</span>=&quot;modal-footer&quot;<span class="ht">&gt;</span>
+      <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;btn-retour&quot; (<span class="ha">click)</span>=&quot;closeDeleteZoneTransporteurModal()&quot;<span class="ht">&gt;</span>
+        <span class="ht">&lt;img</span> <span class="ha">src</span>=&quot;assets/icons/bi_arrow-right-circle-fill.svg&quot; <span class="ha">alt</span>=&quot;retour&quot; <span class="ha">height</span>=&quot;15&quot;<span class="ht">&gt;</span>
+        RETOUR
+      <span class="ht">&lt;/button</span><span class="ht">&gt;</span>
+      <span class="ht">&lt;button</span> <span class="ha">class</span>=&quot;btn-terminer&quot; (<span class="ha">click)</span>=&quot;confirmDeleteZoneTransporteur()&quot;<span class="ht">&gt;</span>
+        <span class="ht">&lt;img</span> <span class="ha">src</span>=&quot;assets/icons/ep_delete-filled.svg&quot; <span class="ha">alt</span>=&quot;delete&quot; <span class="ha">height</span>=&quot;15&quot;<span class="ht">&gt;</span>
+        SUPPRIMER
+      <span class="ht">&lt;/button</span><span class="ht">&gt;</span>
+    <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+  <span class="ht">&lt;/div</span><span class="ht">&gt;</span>
+<span class="ht">&lt;/div</span><span class="ht">&gt;</span></code></pre>
+</div></section><section id="git"><h2>4. Branches</h2><div class="fb">
+  <div class="fb-head"><span class="tag tag-info">RÉFÉRENCE</span><span class="fb-title">Git</span><button class="copy" onclick="copyCode(this)">Copier</button></div>
+  
+  <pre><code class="lang-bash"><span class="hc"># Backend — utilisateurs-ci</span>
+<span class="hk">git</span> checkout develop<span class="hd">-omega</span> &amp;&amp; <span class="hk">git</span> pull
+<span class="hk">git</span> checkout <span class="hd">-b</span> feature/AER_LM<span class="hd">-268-suppression-zone</span>
+<span class="hc"># ... AgenceRepository, ZoneDistributionService, ZoneDistributionFacade, ZoneDistributionController + tests</span>
+<span class="hk">git</span> commit <span class="hd">-am</span> &quot;AER_LM<span class="hd">-268</span> - DELETE /referentiels/zones<span class="hd">-distribution</span>/{id} (refus si agences rattachées)&quot;
+
+<span class="hc"># Front — portail-ci, sur la branche 268 en cours</span>
+<span class="hk">git</span> checkout feature/AER_LM<span class="hd">-268</span>
+<span class="hc"># ... referentiel.service.ts, console-agence.component.ts / .html + specs</span>
+<span class="hk">git</span> commit <span class="hd">-am</span> &quot;AER_LM<span class="hd">-268</span> - Suppression d&<span class="hc">#x27;une zone transporteur avec confirmation&quot;</span></code></pre>
+</div><div class="box box-info"><div class="box-title">Ordre</div><div class="box-body">Backend d'abord (merge sur <code>develop-omega</code>, déploiement), puis front : sans l'endpoint, la modale renverrait un 404 Not Found de Spring (« No static resource ») — message peu lisible.</div></div></section><section id="check"><h2>5. Vérifications manuelles</h2><ul class="check"><li>Postman : <code>DELETE …/referentiels/zones-distribution/999</code> → 404, <code>ApiResponse.error</code>.</li><li>Postman : <code>DELETE</code> sur CASA (rattachée à des agences) → 400, message « …rattachée à une ou plusieurs agences… ».</li><li>Créer FES sans agence, <code>DELETE</code> → 200, disparue de <code>GET /pages</code>.</li><li>Console : SUPPRIMER sur CASA → modale, TERMINER → message rouge dans la modale, modale ouverte, ligne conservée.</li><li>Console : SUPPRIMER sur FES → modale, TERMINER → liste rechargée sans FES, modale fermée.</li><li>RETOUR et clic sur l'overlay ferment la modale sans appel réseau.</li><li>Les boutons SUPPRIMER des onglets Agence(s) / Groupe(s) / Zone(s) sont toujours inertes.</li></ul></section></main></div>
+<footer>Document d'implémentation généré pour Youssef Rouane — complément à la livraison 268 ; les fichiers back reprennent la structure livrée en AER_LM-270.</footer>
+<script>
+function copyCode(btn){const code=btn.closest('.fb').querySelector('pre code');const txt=code.innerText;navigator.clipboard.writeText(txt).then(()=>{const o=btn.textContent;btn.textContent='Copié ✓';setTimeout(()=>btn.textContent=o,1500);});}
+</script></body></html>
