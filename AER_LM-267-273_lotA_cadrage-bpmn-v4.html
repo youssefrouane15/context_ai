@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-267 / 273 — Lot A : cadrage et BPMN v4.0</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--card:#fff;--pre:#0f1a17}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:28px 32px}
+header h1{margin:0 0 6px;font-size:24px}
+header p{margin:0;opacity:.9}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:38px 0 14px;font-size:20px}
+h3{color:var(--v);margin:24px 0 8px;font-size:16px}
+.card{background:var(--card);border:1px solid #dfe7e3;border-radius:8px;padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:14px}
+th,td{border:1px solid #d9e2dd;padding:8px 10px;vertical-align:top;text-align:left}
+th{background:#e8f1ed;color:var(--vf)}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;background:var(--pre)!important;color:#e6efe9;padding:16px 16px 16px 16px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:8px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.copy:hover{background:#9a7222}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:600;margin-right:6px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}.t-keep{background:#e6ecf5;color:#1a3a6b}
+.ok{color:#0B6B4F;font-weight:600}.warn{color:#b06000;font-weight:600}.bad{color:#a11f1f;font-weight:600}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.t{color:#7dcfff}
+details{margin:8px 0}summary{cursor:pointer;color:var(--v);font-weight:600}
+ul{padding-left:22px}li{margin:4px 0}
+.path{font-family:Consolas,monospace;font-size:13px;color:#4d6673}
+</style>
+</head>
+<body>
+<header>
+<h1>AER_LM-267 + AER_LM-273 — Lot A : cadrage, décisions et BPMN <code style="background:rgba(255,255,255,.15);color:#fff">gestion-des-fonds</code> v4.0</h1>
+<p>Squad Q360 · fund-management (Spring Boot 3.3 / Camunda 7 moteur partagé) · fund-management-front (Angular 17) · 22/09/2026</p>
+</header>
+<main>
+
+<h2>0. Réponse courte aux deux questions de la note VS Code</h2>
+<div class="card">
+<p><b>Q1 — Modification / annulation agence vs traitement Caisse Centrale.</b> Oui, c'est exactement un cas « boundary » : dans la v3 la modification est un sous-processus événementiel <i>non interruptif</i>, donc la tâche « Traiter la demande » reste active pendant que le DA modifie — la Caisse Centrale garde la main, ce qui est le bug fonctionnel que tu décris. En v4, l'instruction et le traitement sont encapsulés dans <code>SubProcess_Traitement</code> ; la modification est un <b>boundary message interruptif</b> sur ce sous-processus qui <b>détruit</b> la tâche Caisse Centrale et la remplace par une <b>user task « Modifier la demande »</b> détenue par l'agent (verrou). Quand l'agent enregistre ou abandonne (ou au bout de <code>dureeVerrouModification</code> s'il ferme son écran), le jeton revient dans le sous-processus et la tâche Caisse Centrale est recréée. L'annulation reste un sous-processus événementiel interruptif (il couvre brouillon, soumise <i>et</i> en modification).</p>
+<p><b>Q2 — Chaque action humaine doit être une user task.</b> Oui : le workflow démarre désormais à la <b>création du brouillon</b> (POST /cash) sur une user task <code>Task_SaisirDemande</code>, complétée par la <b>soumission</b> (PATCH /submit). Je n'ai pas modélisé deux tâches distinctes « Saisir » puis « Soumettre » : on ne peut pas démarrer une instance avant d'avoir un id (businessKey), donc « Saisir » commence forcément au premier enregistrement, et le clic Soumettre complète cette tâche. Deux tâches seraient complétées par le même appel, ce qui n'aurait aucun sens dans Cockpit. La tâche s'appelle « Saisir et soumettre la demande ».</p>
+<p><b>« Rejetée » par la Caisse Centrale.</b> Le back n'a pas de <code>REJECTED</code> (décision antérieure : pas de REJECTED) et le front du collègue ne connaît que <code>ANNULEE_CAISSE_CENTRALE</code>. Je traite « rejetée » = ANNULEE par la Caisse Centrale avec motif. <span class="warn">À confirmer PO</span> si un troisième état est attendu.</p>
+</div>
+
+<h2>1. AER_LM-273 — chemins ignorés : variables figées, zéro suppression dans le BPMN</h2>
+<div class="card">
+<p>Ta préférence est tenable à 100 % : les quatre chemins restent dans le modèle et deviennent <b>inatteignables</b> par trois valeurs figées côté fund-management.</p>
+<table>
+<tr><th>Chemin à ignorer</th><th>Comment il devient inatteignable</th><th>Où c'est figé</th></tr>
+<tr><td>Cutoff 10h urgences (+ Banque Privée)</td><td><code>Gateway_Cutoff10</code> a pour défaut « Avant 10h00 » ; la branche « Après 10h00 » exige <code>${apresCutoff10}</code></td><td><code>InitialiserDemandeHandler</code> pose <code>apresCutoff10 = false</code> en constante (lot B)</td></tr>
+<tr><td>Banque Privée</td><td>Uniquement derrière « Après 10h00 » → jamais atteint</td><td>+ <code>typeAgence = 'RETAIL'</code> au démarrage</td></tr>
+<tr><td>Demandes corpo</td><td><code>Flow_Type_Corporate</code> exige <code>typeDemande == 'CORPORATE'</code></td><td><code>typeDemande = 'AGENCE'</code> au démarrage (<code>DemarrerProcessusStep</code>)</td></tr>
+<tr><td>Monétique (GAB hors site)</td><td>C'est le <b>flux par défaut</b> de <code>Gateway_TypeDemande</code> : atteint si <code>typeDemande</code> ne vaut ni AGENCE ni CORPORATE</td><td>Idem — <span class="bad">point de vigilance ci-dessous</span></td></tr>
+</table>
+<p class="bad">⚠ Vigilance : le contexte projet indique que la saga envoie <code>typeDemande = RETAIL</code>, alors que le BPMN (v3 comme v4) teste <code>'AGENCE'</code>. Si c'est bien RETAIL aujourd'hui, toutes les demandes passent par la branche GAB (handler squelette qui complète sans rien faire) avant d'arriver à la Caisse Centrale — invisible fonctionnellement, mais faux. Le lot B aligne <code>DemarrerProcessusStep</code> sur <code>'AGENCE'</code>. Merci de me confirmer la valeur actuelle dans <code>DemarrerProcessusStep</code> (une capture suffit).</p>
+</div>
+
+<h2>2. Ce qui change dans le BPMN (v3.0 → v4.0)</h2>
+<div class="card">
+<table>
+<tr><th>Élément</th><th>Statut</th><th>Détail</th></tr>
+<tr><td><code>StartEvent_DemandeCreee</code> + <code>Task_SaisirDemande</code></td><td><span class="tag t-new">NOUVEAU</span></td><td>Démarrage à POST /cash (statut INITIATED). User task assignee <code>${creePar}</code>, candidateGroups <code>DA,CHEF_CAISSE</code>. Complétée par PATCH /submit avec <code>urgent</code>.</td></tr>
+<tr><td><code>SubProcess_Traitement</code></td><td><span class="tag t-new">NOUVEAU</span></td><td>Enveloppe <code>Gateway_TypeDemande … Task_TraitementCaisseCentrale</code> (inchangés à l'intérieur). Deux entrées : après cut-off 16h, et retour de modification.</td></tr>
+<tr><td><code>Boundary_ModificationDemandee</code> (message <code>msgModifierDemande</code>, interruptif)</td><td><span class="tag t-new">NOUVEAU</span></td><td>Détruit la tâche Caisse Centrale. Variables de corrélation : <code>modifiePar</code>, <code>dureeVerrouModification</code>.</td></tr>
+<tr><td><code>Task_ModifierDemande</code> + <code>Boundary_TimerVerrou</code></td><td><span class="tag t-new">NOUVEAU</span></td><td>User task assignee <code>${modifiePar}</code> = verrou. Timer <code>${dureeVerrouModification}</code> (ISO-8601, ex. PT30M, fourni par le back depuis le yaml). Complétée par PATCH /modification/end avec <code>modificationConfirmee</code> + <code>urgent</code>.</td></tr>
+<tr><td><code>Task_AppliquerModification</code> (topic <code>gdf-appliquer-modification</code>)</td><td><span class="tag t-edit">ÉDITION</span></td><td>Sort du sous-processus événementiel ; devient l'étape de retour vers <code>SubProcess_Traitement</code>. Rôle : tracer + libérer le verrou (idempotent : IN_MODIFICATION → SUBMITTED si encore verrouillée).</td></tr>
+<tr><td><code>Boundary_Cutoff16h</code> (timer non interruptif sur le sous-processus)</td><td><span class="tag t-edit">ÉDITION</span></td><td>Remplace <code>EventSubProcess_Cloture16h</code>. Raison : un timer de sous-processus événementiel s'arme à l'instanciation, qui est désormais la <i>création</i> du brouillon (potentiellement un autre jour que la soumission). Le boundary s'arme à l'entrée du sous-processus avec <code>dateCutoff16h</code> posé par <code>gdf-initialiser-demande</code>.</td></tr>
+<tr><td><code>EventSubProcess_Modification</code></td><td><span class="tag t-del">SUPPRIMÉ</span></td><td>Remplacé par le boundary + user task ci-dessus.</td></tr>
+<tr><td><code>Gateway_MainAgenceAnnulation</code> + <code>EndEvent_RefusAnnulation</code></td><td><span class="tag t-del">SUPPRIMÉ</span></td><td>Bug v3 : dans un sous-processus événementiel <b>interruptif</b>, la branche « Non » terminait l'instance sans rien annuler. Le cut-off est gardé par fund-management <b>avant</b> de corréler le message.</td></tr>
+<tr><td><code>Gateway_DecisionCaisseCentrale</code>, <code>Task_CloturerDemande</code>, <code>Task_AnnulationCaisseCentrale</code>, fins</td><td><span class="tag t-keep">CONSERVÉ</span></td><td>Sortent juste du sous-processus (la gateway a déjà un default flow = Traitée).</td></tr>
+<tr><td><code>EventSubProcess_Commentaire</code>, chemins cutoff 10h / BP / Corporate / GAB</td><td><span class="tag t-keep">CONSERVÉ</span></td><td>Inchangés ; les chemins MVP sont inatteignables par variables (§1).</td></tr>
+<tr><td>Lanes</td><td><span class="tag t-edit">ÉDITION</span></td><td>3 couloirs : Agence / Système + Caisse Centrale / Événements. Les tâches internes au sous-processus ne peuvent plus être référencées par un couloir (règle BPMN), d'où la fusion Système + Caisse Centrale.</td></tr>
+</table>
+<p>Fichier livré : <span class="path">gestion-des-fonds_v4.bpmn</span> — 38 flux, toutes les références et la DI vérifiées (script de contrôle exécuté : 0 référence cassée, 0 élément sans forme). Il s'ouvre tel quel dans Camunda Modeler ; <code>versionTag="4.0"</code>.</p>
+</div>
+
+<h2>3. Contrat de variables v4 (à figer côté Java)</h2>
+<div class="card">
+<pre><button class="copy" onclick="cp(this)">Copier</button><code><span class="c">// ---- Démarrage (POST /cash, DemarrerProcessusStep) ----</span>
+typeDemande        = <span class="s">"AGENCE"</span>        <span class="c">// FIGÉ MVP (était RETAIL ?  → à aligner)</span>
+typeAgence         = <span class="s">"RETAIL"</span>        <span class="c">// FIGÉ MVP</span>
+referenceDemande   = uniqueRequestRef
+agenceCode         = branchCode
+creePar            = uid appelant
+urgent             = Boolean
+journeeCloturee    = <span class="k">false</span>
+
+<span class="c">// ---- Complétion Task_SaisirDemande (PATCH /cash/{id}/submit) ----</span>
+urgent             = Boolean          <span class="c">// valeur au moment de la soumission</span>
+
+<span class="c">// ---- Corrélation msgModifierDemande (PATCH /cash/{id}/modification/start) ----</span>
+modifiePar               = uid appelant
+dureeVerrouModification  = <span class="s">"PT30M"</span>     <span class="c">// yaml camunda.verrou-modification-duree</span>
+
+<span class="c">// ---- Complétion Task_ModifierDemande (PATCH /cash/{id}/modification/end) ----</span>
+modificationConfirmee    = Boolean    <span class="c">// true = Enregistrer, false = Annuler la modification</span>
+urgent                   = Boolean
+
+<span class="c">// ---- Corrélation msgAnnulerDemande (PATCH /cash/{id}/cancel, agence) ----</span>
+annulePar          = uid appelant
+motifAnnulation    = String (≥ 10 caractères)
+
+<span class="c">// ---- Complétion Task_TraitementCaisseCentrale (PATCH /cash/{id}/complete-task) — inchangé ----</span>
+decisionCaisseCentrale   = <span class="s">"TRAITEE"</span> | <span class="s">"ANNULEE"</span>
+motifAnnulation          = String
+
+<span class="c">// ---- Posées par les workers ----</span>
+gdf-initialiser-demande     : heureSoumission, apresCutoff16, dateCutoff16h, apresCutoff10 = <span class="k">false</span> (FIGÉ MVP)
+gdf-reporter-jour-suivant   : dateEffet, dateCutoff16h (J+1 16h00)
+gdf-cloturer-journee        : journeeCloturee = <span class="k">true</span>
+gdf-appliquer-modification  : (lecture modificationConfirmee) → IN_MODIFICATION ⇒ SUBMITTED</code></pre>
+</div>
+
+<h2>4. Cycle de vie et mapping des statuts (back ↔ BPMN ↔ front)</h2>
+<div class="card">
+<table>
+<tr><th>Back <code>RequestStatus</code></th><th>État Camunda</th><th>Front (statuts du collègue)</th><th>Capacités agence</th></tr>
+<tr><td><code>INITIATED</code></td><td><code>Task_SaisirDemande</code> active</td><td><code>INITIEE</code> « Brouillon »</td><td>modifier (PUT direct, sans verrou), soumettre, annuler</td></tr>
+<tr><td><code>SUBMITTED</code></td><td><code>SubProcess_Traitement</code> actif (tâche Caisse Centrale)</td><td><code>SOUMISE</code> « En attente »</td><td>modifier (→ verrou), annuler — si journée non clôturée</td></tr>
+<tr><td><code>IN_MODIFICATION</code> <span class="tag t-new">NOUVEAU</span></td><td><code>Task_ModifierDemande</code> active, assignee = <code>lockedBy</code></td><td><code>EN_MODIFICATION</code></td><td>seul le détenteur du verrou peut enregistrer / abandonner ; annuler possible</td></tr>
+<tr><td><code>VALIDATED</code></td><td>terminée (Traitée)</td><td><code>TRAITEE</code></td><td>lecture seule — motif « Demande traitée »</td></tr>
+<tr><td><code>CANCELLED</code></td><td>terminée (annulation agence ou Caisse Centrale)</td><td><code>ANNULEE_AGENCE</code> / <code>ANNULEE_CAISSE_CENTRALE</code> selon <code>cancellationOrigin</code></td><td>lecture seule</td></tr>
+</table>
+<ul>
+<li><code>TRAITEMENT_EN_COURS</code> (front) n'a pas d'équivalent back : il supposait une « prise en charge » Caisse Centrale (claim) qui n'existe ni dans l'API ni dans le BPMN. Il est retiré du mapping ; l'écran affiche « En attente » jusqu'à la décision. <span class="warn">À confirmer PO</span>.</li>
+<li><code>CREATED</code> (front) n'existe pas côté back : retiré.</li>
+<li>Le front garde ses statuts FR : le <b>mapping se fait dans l'adapter HTTP</b> (<code>fundManagement-http.service.ts</code>), pas de migration des enums back.</li>
+</ul>
+</div>
+
+<h2>5. Où vivent les faits qui pilotent l'écran</h2>
+<div class="card">
+<table>
+<tr><th>Fait</th><th>Source de vérité</th><th>Exposé par</th><th>Consommé par le front comme</th></tr>
+<tr><td>statut</td><td>BDD (<code>request_status</code>)</td><td><code>GET /cash/{id}</code> → <code>requestStatus</code></td><td><code>statut</code> (après mapping FR)</td></tr>
+<tr><td>journée clôturée (cut-off 16h)</td><td><b>Calculé localement</b> par fund-management : <code>now &gt; 16:00</code> du jour d'effet (même règle que <code>dateCutoff16h</code>) — pas d'appel Camunda sur chaque GET</td><td><code>GET /cash/{id}</code> → <code>journeeCloturee</code></td><td><code>journeeCloturee</code></td></tr>
+<tr><td>verrou et son détenteur</td><td>BDD : <code>request_status = IN_MODIFICATION</code> + colonne <code>locked_by</code></td><td><code>GET /cash/{id}</code> → <code>lockedBy</code></td><td><code>verrouDetenuParUtilisateurCourant = lockedBy === me.uid</code></td></tr>
+<tr><td>habilitation (GDF_MODIFIER_DEMANDE, GDF_ANNULER_DEMANDE, GDF_TOUTES_AGENCES) et agence de l'appelant</td><td>utilisateurs-ci (<code>GET /me</code> côté front ; contexte interne côté back)</td><td>Front : <code>/me</code> déjà disponible via le shell. Back : identité relayée par la gateway → <code>UserContextPort</code></td><td><code>estHabilite</code>, <code>demandeDeMonAgence</code> (nouveaux faits de <code>FaitsDemande</code>)</td></tr>
+<tr><td>nom et profil de l'auteur (« Mme … (Directeur d'agence) »)</td><td>utilisateurs-ci</td><td><code>GET /cash/{id}</code> → <code>userDisplayName</code>, <code>userProfileLabel</code> (résolus via <code>UserContextPort</code>, cache 5 min)</td><td>en-tête consultation</td></tr>
+</table>
+<p>Règle d'or conservée : <b>le back refuse</b> (409 / 403) toute action que le front n'aurait pas dû proposer. <code>calculerCapacites()</code> côté front n'est qu'une projection d'affichage.</p>
+</div>
+
+<h2>6. Contrat API retail v4 (lot B)</h2>
+<div class="card">
+<table>
+<tr><th>Endpoint</th><th>Statut</th><th>Gardes back (ordre)</th><th>Effet</th></tr>
+<tr><td><code>POST /cash</code></td><td><span class="tag t-edit">ÉDITION</span></td><td>permission GDF_CREER_DEMANDE ; <code>branchCode</code>/<code>user</code> pris du <b>contexte appelant</b> (plus du payload)</td><td>save INITIATED → saga « creation-demande » : <code>DemarrerProcessusStep</code> (compensation : suppression de la demande). Instance sur <code>Task_SaisirDemande</code>.</td></tr>
+<tr><td><code>PATCH /cash/{id}/submit</code></td><td><span class="tag t-edit">ÉDITION</span></td><td>GDF_CREER_DEMANDE ; même agence ; statut INITIATED</td><td>saga « soumission-demande » : <code>ChangerStatutDemandeStep</code>(SUBMITTED) → <code>CompleterTacheStep</code>(Task_SaisirDemande, {urgent}). Plus de démarrage d'instance ici.</td></tr>
+<tr><td><code>PUT /cash/{id}</code></td><td><span class="tag t-edit">ÉDITION</span></td><td>GDF_MODIFIER_DEMANDE ; même agence ; statut INITIATED <b>ou</b> IN_MODIFICATION avec <code>lockedBy == appelant</code> ; journée non clôturée</td><td>persiste le nouveau contenu. Ne touche ni statut ni Camunda.</td></tr>
+<tr><td><code>PATCH /cash/{id}/modification/start</code></td><td><span class="tag t-new">NOUVEAU</span></td><td>GDF_MODIFIER_DEMANDE ; même agence ; statut SUBMITTED ; journée non clôturée</td><td>saga : <code>ChangerStatutDemandeStep</code>(IN_MODIFICATION + lockedBy) → <code>CorrelerMessageStep</code>(msgModifierDemande, {modifiePar, dureeVerrouModification}). 200 → le front passe en mode modification.</td></tr>
+<tr><td><code>PATCH /cash/{id}/modification/end</code> body <code>{confirmee: boolean}</code></td><td><span class="tag t-new">NOUVEAU</span></td><td>statut IN_MODIFICATION ; <code>lockedBy == appelant</code></td><td>saga : <code>ChangerStatutDemandeStep</code>(SUBMITTED, lockedBy = null) → <code>CompleterTacheStep</code>(Task_ModifierDemande, {modificationConfirmee, urgent}). Le worker <code>gdf-appliquer-modification</code> reste idempotent en filet de sécurité.</td></tr>
+<tr><td><code>PATCH /cash/{id}/cancel</code></td><td><span class="tag t-edit">ÉDITION</span></td><td>GDF_ANNULER_DEMANDE ; même agence ; statut ∈ {INITIATED, SUBMITTED, IN_MODIFICATION} ; journée non clôturée ; motif ≥ 10 car. (body <code>{motif}</code>)</td><td>corrèle <code>msgAnnulerDemande</code> ; le worker <code>gdf-annuler-demande</code> écrit CANCELLED + <code>cancellationOrigin=CREATEUR</code>. Réponse = demande encore dans son statut (même pattern que complete-task). Fallback : si aucune instance (données antérieures à la v4) → <code>cancelById</code> direct.</td></tr>
+<tr><td><code>GET /cash/{id}</code></td><td><span class="tag t-edit">ÉDITION</span></td><td>GDF_CONSULTER_DEMANDE ; même agence ou GDF_TOUTES_AGENCES</td><td>DTO enrichi : <code>journeeCloturee</code>, <code>lockedBy</code>, <code>cancellationOrigin</code>, <code>cancellationReason</code>, <code>userDisplayName</code>, <code>userProfileLabel</code>, <code>updatedAt</code>.</td></tr>
+<tr><td><code>GET /cash</code> (search)</td><td><span class="tag t-edit">ÉDITION</span></td><td>GDF_CONSULTER_DEMANDE ; <code>agence</code> forcé à l'agence de l'appelant sauf GDF_TOUTES_AGENCES</td><td>« visibilité en back » du Jira. Ajout de <code>dateFin</code>.</td></tr>
+<tr><td><code>PATCH /cash/{id}/complete-task</code></td><td><span class="tag t-keep">CONSERVÉ</span></td><td>inchangé — la garde « statut SUBMITTED » refuse déjà IN_MODIFICATION</td><td>—</td></tr>
+</table>
+<p><b>Corpo</b> : non touché. AER_LM-273 sort les demandes corpo du MVP ; <code>CorpoDemandController</code> reste sur son fonctionnement v3 (soumission = démarrage d'instance) et sera aligné dans une Jira dédiée. Je le dis explicitement pour ne pas contrevenir à la règle « retail et corpo toujours écrits en entier » : ici c'est une exclusion de périmètre décidée par le ticket, pas un oubli.</p>
+</div>
+
+<h2>7. Impacts BDD (V0 : édition en place du script Flyway)</h2>
+<div class="card">
+<pre><button class="copy" onclick="cp(this)">Copier</button><code><span class="c">-- retail.cash_request : à ajouter dans le script V1/V2 existant (édition en place, phase V0)</span>
+<span class="k">ALTER TABLE</span> retail.cash_request <span class="k">ADD COLUMN</span> locked_by            <span class="t">VARCHAR</span>(50);
+<span class="k">ALTER TABLE</span> retail.cash_request <span class="k">ADD COLUMN</span> cancellation_origin  <span class="t">VARCHAR</span>(20);   <span class="c">-- CREATEUR | CAISSE_CENTRALE</span>
+<span class="k">ALTER TABLE</span> retail.cash_request <span class="k">ADD COLUMN</span> cancellation_reason  <span class="t">VARCHAR</span>(500);
+<span class="c">-- CHECK request_status : ajouter 'IN_MODIFICATION' (règle projet : tout nouveau statut → CHECK, sinon 502)</span>
+<span class="c">-- cash_operation.operation_status : même CHECK si elle en a un</span></code></pre>
+<p>Je n'ai pas le texte exact du <code>CHECK</code> ni le nom du script : le lot B livrera le bloc <b>ÉDITION</b> avec un repère Ctrl+F sur <code>'SUBMITTED'</code>.</p>
+</div>
+
+<h2>8. Sécurité fund-management — hypothèse à confirmer avant le lot B</h2>
+<div class="card">
+<p>Rien dans le code reçu ne montre de sécurité dans fund-management (aucun <code>SecurityConfig</code>, aucun <code>@PreAuthorize</code>, aucune lecture de l'appelant). Le contexte de la 261 dit que la gateway relaie le JWT aux microservices et que <code>utilisateurs-ci</code> expose <code>GET /api/v1/internal/users/{uid}</code> pour résoudre uid → profil, permissions, agence.</p>
+<p>Plan lot B (déjà esquissé en 261, jamais implémenté) : filtre <code>QfJwtAuthenticationFilter</code> (lecture du <code>sub</code> du Bearer, sans re-validation de signature en mode mock, validation JWK en mode oauth), <code>UserContextPort</code> + adapter REST vers utilisateurs-ci avec cache 5 min, <code>ContexteAppelant</code> (uid, branchCode, permissions) injecté dans les use cases, gardes 403 dans <code>CashDemandUseCaseImpl</code>.</p>
+<p class="warn">Avant de coder : confirme-moi (1) qu'il n'y a effectivement aucune sécurité dans fund-management, (2) le nom du header relayé par la gateway (<code>Authorization: Bearer</code> ?), (3) le mode local (<code>auth-mode: mock</code> comme utilisateurs-ci ?). Trois réponses courtes suffisent, pas de captures.</p>
+</div>
+
+<h2>9. Plan de livraison</h2>
+<div class="card">
+<table>
+<tr><th>Lot</th><th>Contenu</th><th>Prérequis</th></tr>
+<tr><td><b>A</b> (ce document)</td><td>BPMN v4.0 + contrat de variables + décisions</td><td>Déployer le BPMN v4 sur le moteur (Hamza) — les instances v3 en cours terminent sur la v3, Camunda versionne.</td></tr>
+<tr><td><b>B1</b> back workflow</td><td><code>RequestStatus.IN_MODIFICATION</code>, Flyway, <code>CashRequest</code> (lockedBy, cancellation*), <code>DemarrerProcessusStep</code> (variables figées), nouveaux steps <code>CompleterTacheStep</code> / <code>CorrelerMessageStep</code>, <code>ProcessusWorkflowPort.rechercherTacheActive(businessKey, taskDefinitionKey)</code>, use cases (create/submit/modification start-end/cancel/getById), contrôleur, handlers <code>InitialiserDemandeHandler</code> (apresCutoff10=false, dateCutoff16h), <code>AppliquerModificationHandler</code>, <code>AnnulerDemandeHandler</code> (origine + motif), <code>CutoffPolicy</code></td><td>réponse au §1 (valeur de typeDemande)</td></tr>
+<tr><td><b>B2</b> back sécurité</td><td>filtre JWT, <code>UserContextPort</code>, <code>ContexteAppelant</code>, gardes 403, filtrage agence sur search, enrichissement <code>userDisplayName</code></td><td>réponses au §8</td></tr>
+<tr><td><b>C</b> front</td><td>mapping statuts dans l'adapter, <code>FaitsDemande</code> + <code>estHabilite</code>/<code>demandeDeMonAgence</code>, remplacement de <code>CONTEXTE_AGENCE</code> par le contexte <code>/me</code>, appels modification/start-end, barre consultation complète (Annuler la demande + motif, Soumettre), liens Réinitialiser caisse/GAB, apiUrl → environnement + <code>withCredentials</code>, navigation relative sous <code>/portail</code>, guard de route</td><td>B1 + B2</td></tr>
+<tr><td><b>D</b> tests</td><td>doc séparé : tests unitaires (style utilisateurs-ci), collection Postman AER_LM-267</td><td>C</td></tr>
+</table>
+</div>
+
+<h2>10. Points ouverts à trancher (PO / tech lead)</h2>
+<div class="card">
+<ul>
+<li>Durée du verrou de modification (proposé <b>30 min</b>, paramétrable en yaml sans toucher au BPMN).</li>
+<li>« Rejetée » Caisse Centrale = ANNULEE avec motif, ou troisième état ?</li>
+<li><code>TRAITEMENT_EN_COURS</code> : le PO veut-il une prise en charge explicite par la Caisse Centrale (claim) ? Si oui, c'est une évolution de l'écran 266, pas de la 267.</li>
+<li>Cut-off urgence 10h : reste en standby PO (déjà noté par le collègue), inatteignable en MVP.</li>
+</ul>
+</div>
+
+</main>
+<script>
+function cp(b){const t=b.parentNode.querySelector('code').innerText;navigator.clipboard.writeText(t).then(()=>{b.textContent='Copié ✓';setTimeout(()=>b.textContent='Copier',1500)})}
+</script>
+</body>
+</html>

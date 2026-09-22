@@ -1,0 +1,856 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
+                  xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_GestionDesFonds"
+                  targetNamespace="http://bmci.ma/bpmn/gestion-des-fonds"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- ============================ MESSAGES ============================ -->
+  <bpmn:message id="Message_Annulation" name="msgAnnulerDemande" />
+  <bpmn:message id="Message_Modification" name="msgModifierDemande" />
+  <bpmn:message id="Message_Commentaire" name="msgAjouterCommentaire" />
+
+  <!-- ========================= COLLABORATION ========================= -->
+  <bpmn:collaboration id="Collaboration_GestionDesFonds">
+    <bpmn:participant id="Participant_GestionDesFonds" name="Gestion des fonds — Demande Agence (MVP AER_LM-273)" processRef="gestion-des-fonds" />
+  </bpmn:collaboration>
+
+  <!-- ============================ PROCESS ============================ -->
+  <bpmn:process id="gestion-des-fonds" name="Workflow de gestion des fonds" isExecutable="true"
+                camunda:versionTag="4.1" camunda:historyTimeToLive="180">
+
+    <bpmn:documentation>VERSION 4.1 — AER_LM-267 (consultation / modification agence) + AER_LM-273 (perimetre MVP).
+
+CHANGEMENTS PAR RAPPORT A LA 3.0 :
+1. Le workflow demarre AU CLIC « Nouvelle demande » (POST /cash/init : brouillon vide + instance, businessKey = UUID).
+   Deux user tasks agence, une par action humaine : Task_InitierDemande (completee dans la meme saga d'initialisation)
+   puis Task_SoumettreDemande (completee par PATCH /cash/{id}/submit qui porte le contenu de la demande).
+2. L'instruction et le traitement Caisse Centrale sont encapsules dans le sous-processus SubProcess_Traitement.
+   Une modification agence (msgModifierDemande) est un BOUNDARY INTERRUPTIF sur ce sous-processus :
+   la user task Caisse Centrale est detruite, une USER TASK Task_ModifierDemande (verrou detenu par l'agent)
+   prend sa place, puis le jeton revient dans le sous-processus (la tache Caisse Centrale est recreee).
+   => Pendant qu'un agent modifie, la Caisse Centrale n'a PAS la main.
+3. Le cut-off 16h00 est un boundary timer non interruptif sur SubProcess_Traitement, arme a l'entree du
+   sous-processus avec dateCutoff16h calcule par gdf-initialiser-demande a la soumission.
+4. Perimetre MVP (AER_LM-273) : les chemins cutoff 10h / Banque Privee / Corporate / GAB hors site sont
+   CONSERVES mais NON ATTEIGNABLES par variables figees (voir contrat ci-dessous). Aucune suppression.
+5. Correction : la gateway « Agence a encore la main ? » est retiree du sous-processus d'annulation
+   (interruptif) — son refus terminait l'instance sans annuler. Le cut-off est garde par fund-management
+   AVANT correlation du message.
+
+INTEGRATION JAVA (moteur partage, pattern external tasks) :
+- Demarrage par API REST (start by key, businessKey = UUID de la demande). Aucune form Camunda.
+- Les service tasks sont des EXTERNAL TASKS ; le microservice fund-management s'abonne aux topics gdf-*.
+- Les user tasks sont completees par API REST (POST /task/{id}/complete) ; la tache active est recherchee par
+  businessKey ET taskDefinitionKey (Task_InitierDemande | Task_SoumettreDemande | Task_ModifierDemande | Task_TraitementCaisseCentrale).
+
+VARIABLES A FOURNIR AU DEMARRAGE (POST /cash/init) :
+typeDemande = 'AGENCE' (FIGE MVP), typeAgence = 'RETAIL' (FIGE MVP), referenceDemande, agenceCode, creePar,
+urgent (Boolean), journeeCloturee (Boolean = false).
+
+VARIABLES POSEES A LA COMPLETION DES USER TASKS :
+- Task_InitierDemande : aucune.
+- Task_SoumettreDemande : urgent (Boolean, valeur au moment de la soumission).
+- Task_ModifierDemande : modificationConfirmee (Boolean), urgent (Boolean).
+- Task_TraitementCaisseCentrale : decisionCaisseCentrale (TRAITEE | ANNULEE), motifAnnulation.
+
+VARIABLES FOURNIES A LA CORRELATION DES MESSAGES :
+- msgModifierDemande : modifiePar (uid), dureeVerrouModification (ISO-8601, ex. PT30M).
+- msgAnnulerDemande : annulePar (uid), motifAnnulation.
+- msgAjouterCommentaire : auteurCommentaire, commentaire.
+
+VARIABLES CALCULEES PAR LES WORKERS :
+- gdf-initialiser-demande : heureSoumission, apresCutoff16, dateCutoff16h, apresCutoff10 = false (FIGE MVP).
+- gdf-reporter-jour-suivant : dateEffet.
+- gdf-cloturer-journee : journeeCloturee = true.</bpmn:documentation>
+
+    <!-- ====================== COULOIRS / ACTEURS ====================== -->
+    <bpmn:laneSet id="LaneSet_GestionDesFonds">
+      <bpmn:lane id="Lane_Agence" name="Agence — DA / Chef de Caisse (actions humaines sur la demande)">
+        <bpmn:flowNodeRef>StartEvent_DemandeCreee</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InitierDemande</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SoumettreDemande</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ModifierDemande</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Boundary_TimerVerrou</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AppliquerModification</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Traitement" name="Systeme GDF (automatique) et Caisse Centrale">
+        <bpmn:flowNodeRef>Task_InitialiserDemande</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Cutoff16</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReporterJourSuivant</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_JoinCutoff16</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SubProcess_Traitement</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Boundary_ModificationDemandee</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Boundary_Cutoff16h</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_VerrouillerActionsAgence</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_JourneeCloturee</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_DecisionCaisseCentrale</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CloturerDemande</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AnnulationCaisseCentrale</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_DemandeTraitee</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_AnnuleeParCaisseCentrale</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Evenements" name="Evenements transverses — annulation (interruptif), commentaire">
+        <bpmn:flowNodeRef>EventSubProcess_Annulation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EventSubProcess_Commentaire</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- ========== 1. Creation du brouillon et saisie (user task) ========== -->
+    <bpmn:startEvent id="StartEvent_DemandeCreee" name="Nouvelle demande (clic)">
+      <bpmn:documentation>Declenche par POST /cash/init : un brouillon vide est persiste (id, reference, agence, uid, statut INITIATED, aucune operation) et l'instance demarre (businessKey = UUID).</bpmn:documentation>
+      <bpmn:outgoing>Flow_Start_Initier</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_InitierDemande" name="Initier la demande"
+                   camunda:assignee="${creePar}" camunda:candidateGroups="DA,CHEF_CAISSE">
+      <bpmn:documentation>Trace de l'action humaine « Nouvelle demande ». Completee dans la saga d'initialisation, juste apres le demarrage de l'instance.</bpmn:documentation>
+      <bpmn:incoming>Flow_Start_Initier</bpmn:incoming>
+      <bpmn:outgoing>Flow_Initier_Soumettre</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_SoumettreDemande" name="Saisir et soumettre la demande"
+                   camunda:assignee="${creePar}" camunda:candidateGroups="DA,CHEF_CAISSE">
+      <bpmn:documentation>Statut INITIATED. L'agent saisit sa demande ; PATCH /cash/{id}/submit persiste le contenu puis complete cette tache avec la variable urgent. Statut SUBMITTED.</bpmn:documentation>
+      <bpmn:incoming>Flow_Initier_Soumettre</bpmn:incoming>
+      <bpmn:outgoing>Flow_Soumettre_Init</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ========== 2. Initialisation et cut-off 16h00 (a la soumission) ========== -->
+    <bpmn:serviceTask id="Task_InitialiserDemande" name="Initialiser le suivi et evaluer les cutoffs"
+                      camunda:type="external" camunda:topic="gdf-initialiser-demande">
+      <bpmn:documentation>Horodate la soumission, calcule apresCutoff16 et dateCutoff16h (16h00 du jour d'effet).
+MVP AER_LM-273 : apresCutoff10 est FIGE a false (le chemin cutoff 10h / Banque Privee n'est jamais emprunte).</bpmn:documentation>
+      <bpmn:incoming>Flow_Soumettre_Init</bpmn:incoming>
+      <bpmn:outgoing>Flow_Init_Cutoff16</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Cutoff16" name="Soumise avant 16h00 ?" default="Flow_Cutoff16_Avant">
+      <bpmn:incoming>Flow_Init_Cutoff16</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cutoff16_Apres</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Cutoff16_Avant</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_ReporterJourSuivant" name="Rattacher la demande au jour ouvre suivant"
+                      camunda:type="external" camunda:topic="gdf-reporter-jour-suivant">
+      <bpmn:documentation>Apres 16h00 la demande est automatiquement enregistree pour le lendemain (dateEffet = J+1, dateCutoff16h recalcule).</bpmn:documentation>
+      <bpmn:incoming>Flow_Cutoff16_Apres</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reporter_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_JoinCutoff16" name="">
+      <bpmn:incoming>Flow_Cutoff16_Avant</bpmn:incoming>
+      <bpmn:incoming>Flow_Reporter_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_Join16_Sub</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ========== 3. Sous-processus : instruction et traitement Caisse Centrale ========== -->
+    <bpmn:subProcess id="SubProcess_Traitement" name="Instruction et traitement Caisse Centrale (interrompu par une modification agence)">
+      <bpmn:documentation>Tant que ce sous-processus est actif, la demande est SUBMITTED et la Caisse Centrale a la main.
+Une modification agence (boundary interruptif) detruit la tache Caisse Centrale ; le jeton revient ici apres la modification.
+Chaque (re)entree re-evalue urgent et rearme le timer 16h00.</bpmn:documentation>
+      <bpmn:incoming>Flow_Join16_Sub</bpmn:incoming>
+      <bpmn:incoming>Flow_Appliquer_Retour</bpmn:incoming>
+      <bpmn:outgoing>Flow_Sub_Decision</bpmn:outgoing>
+
+      <bpmn:startEvent id="Start_Traitement" name="">
+        <bpmn:outgoing>Flow_Sub_Start_Type</bpmn:outgoing>
+      </bpmn:startEvent>
+
+      <bpmn:exclusiveGateway id="Gateway_TypeDemande" name="Type de demande ?" default="Flow_Type_Gab">
+        <bpmn:incoming>Flow_Sub_Start_Type</bpmn:incoming>
+        <bpmn:outgoing>Flow_Type_Agence</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Type_Corporate</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Type_Gab</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:exclusiveGateway id="Gateway_Urgente" name="Demande urgente ?" default="Flow_Urgente_Non">
+        <bpmn:incoming>Flow_Type_Agence</bpmn:incoming>
+        <bpmn:outgoing>Flow_Urgente_Oui</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Urgente_Non</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:exclusiveGateway id="Gateway_Cutoff10" name="Soumise avant le cutoff 10h00 ?" default="Flow_Cutoff10_Avant">
+        <bpmn:documentation>MVP AER_LM-273 : apresCutoff10 = false en permanence → une demande urgente est transmise directement.</bpmn:documentation>
+        <bpmn:incoming>Flow_Urgente_Oui</bpmn:incoming>
+        <bpmn:outgoing>Flow_Cutoff10_Avant</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Cutoff10_Apres</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:exclusiveGateway id="Gateway_BanquePrivee" name="Agence Banque Privee ?" default="Flow_Bp_Non">
+        <bpmn:incoming>Flow_Cutoff10_Apres</bpmn:incoming>
+        <bpmn:outgoing>Flow_Bp_Oui</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Bp_Non</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:userTask id="Task_ValiderUrgence" name="Valider ou refuser l'urgence hors delai"
+                     camunda:candidateGroups="RESPONSABLE_BANQUE_PRIVEE">
+        <bpmn:documentation>Hors perimetre MVP (AER_LM-273) — conserve pour les lots suivants.</bpmn:documentation>
+        <bpmn:incoming>Flow_Bp_Oui</bpmn:incoming>
+        <bpmn:outgoing>Flow_Valider_Normaliser</bpmn:outgoing>
+      </bpmn:userTask>
+
+      <bpmn:serviceTask id="Task_NormaliserUrgence" name="Appliquer la regle d'urgence"
+                        camunda:type="external" camunda:topic="gdf-normaliser-urgence">
+        <bpmn:incoming>Flow_Bp_Non</bpmn:incoming>
+        <bpmn:incoming>Flow_Valider_Normaliser</bpmn:incoming>
+        <bpmn:outgoing>Flow_Normaliser_Join</bpmn:outgoing>
+      </bpmn:serviceTask>
+
+      <bpmn:exclusiveGateway id="Gateway_JoinAgence" name="">
+        <bpmn:incoming>Flow_Urgente_Non</bpmn:incoming>
+        <bpmn:incoming>Flow_Cutoff10_Avant</bpmn:incoming>
+        <bpmn:incoming>Flow_Normaliser_Join</bpmn:incoming>
+        <bpmn:outgoing>Flow_JoinAgence_Merge</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:serviceTask id="Task_EclaterBesoinsGab" name="Eclater les besoins par GAB"
+                        camunda:type="external" camunda:topic="gdf-eclater-besoins-gab">
+        <bpmn:documentation>Hors perimetre MVP (AER_LM-273) — non atteignable tant que typeDemande = 'AGENCE'.</bpmn:documentation>
+        <bpmn:incoming>Flow_Type_Gab</bpmn:incoming>
+        <bpmn:outgoing>Flow_Gab_Merge</bpmn:outgoing>
+      </bpmn:serviceTask>
+
+      <bpmn:exclusiveGateway id="Gateway_MergeTraitement" name="">
+        <bpmn:incoming>Flow_JoinAgence_Merge</bpmn:incoming>
+        <bpmn:incoming>Flow_Type_Corporate</bpmn:incoming>
+        <bpmn:incoming>Flow_Gab_Merge</bpmn:incoming>
+        <bpmn:outgoing>Flow_Merge_Traitement</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:userTask id="Task_TraitementCaisseCentrale" name="Traiter la demande"
+                     camunda:candidateGroups="CAISSE_CENTRALE">
+        <bpmn:documentation>Completee par PATCH /cash/{id}/complete-task avec decisionCaisseCentrale (TRAITEE | ANNULEE) et motifAnnulation.
+Detruite par une modification agence, recreee au retour du jeton.</bpmn:documentation>
+        <bpmn:incoming>Flow_Merge_Traitement</bpmn:incoming>
+        <bpmn:outgoing>Flow_Traitement_Fin</bpmn:outgoing>
+      </bpmn:userTask>
+
+      <bpmn:endEvent id="End_Traitement" name="">
+        <bpmn:incoming>Flow_Traitement_Fin</bpmn:incoming>
+      </bpmn:endEvent>
+
+      <bpmn:sequenceFlow id="Flow_Sub_Start_Type" sourceRef="Start_Traitement" targetRef="Gateway_TypeDemande" />
+      <bpmn:sequenceFlow id="Flow_Type_Agence" name="Demande Agence" sourceRef="Gateway_TypeDemande" targetRef="Gateway_Urgente">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${typeDemande == 'AGENCE'}</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_Type_Corporate" name="Demande Corporate (hors MVP)" sourceRef="Gateway_TypeDemande" targetRef="Gateway_MergeTraitement">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${typeDemande == 'CORPORATE'}</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_Type_Gab" name="GAB Hors Site (hors MVP)" sourceRef="Gateway_TypeDemande" targetRef="Task_EclaterBesoinsGab" />
+      <bpmn:sequenceFlow id="Flow_Urgente_Oui" name="Oui" sourceRef="Gateway_Urgente" targetRef="Gateway_Cutoff10">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${urgent}</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_Urgente_Non" name="Non" sourceRef="Gateway_Urgente" targetRef="Gateway_JoinAgence" />
+      <bpmn:sequenceFlow id="Flow_Cutoff10_Avant" name="Avant 10h00 — transmission directe" sourceRef="Gateway_Cutoff10" targetRef="Gateway_JoinAgence" />
+      <bpmn:sequenceFlow id="Flow_Cutoff10_Apres" name="Apres 10h00 (hors MVP)" sourceRef="Gateway_Cutoff10" targetRef="Gateway_BanquePrivee">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${apresCutoff10}</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_Bp_Oui" name="Oui — exception BP" sourceRef="Gateway_BanquePrivee" targetRef="Task_ValiderUrgence">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${typeAgence == 'BANQUE_PRIVEE'}</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_Bp_Non" name="Non — urgence interdite" sourceRef="Gateway_BanquePrivee" targetRef="Task_NormaliserUrgence" />
+      <bpmn:sequenceFlow id="Flow_Valider_Normaliser" sourceRef="Task_ValiderUrgence" targetRef="Task_NormaliserUrgence" />
+      <bpmn:sequenceFlow id="Flow_Normaliser_Join" sourceRef="Task_NormaliserUrgence" targetRef="Gateway_JoinAgence" />
+      <bpmn:sequenceFlow id="Flow_JoinAgence_Merge" sourceRef="Gateway_JoinAgence" targetRef="Gateway_MergeTraitement" />
+      <bpmn:sequenceFlow id="Flow_Gab_Merge" sourceRef="Task_EclaterBesoinsGab" targetRef="Gateway_MergeTraitement" />
+      <bpmn:sequenceFlow id="Flow_Merge_Traitement" sourceRef="Gateway_MergeTraitement" targetRef="Task_TraitementCaisseCentrale" />
+      <bpmn:sequenceFlow id="Flow_Traitement_Fin" sourceRef="Task_TraitementCaisseCentrale" targetRef="End_Traitement" />
+    </bpmn:subProcess>
+
+    <!-- ========== 3a. Boundary : modification agence (interruptif) → verrou ========== -->
+    <bpmn:boundaryEvent id="Boundary_ModificationDemandee" name="Modification demandee" attachedToRef="SubProcess_Traitement" cancelActivity="true">
+      <bpmn:documentation>Correle par fund-management (PATCH /cash/{id}/modification/start) apres controle : statut SUBMITTED, journee non cloturee, agent habilite et de la meme agence.
+Variables : modifiePar, dureeVerrouModification.</bpmn:documentation>
+      <bpmn:outgoing>Flow_Modif_Verrou</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_Modification" messageRef="Message_Modification" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:userTask id="Task_ModifierDemande" name="Modifier la demande (verrou agent)"
+                   camunda:assignee="${modifiePar}" camunda:candidateGroups="DA,CHEF_CAISSE">
+      <bpmn:documentation>Statut IN_MODIFICATION, verrou detenu par modifiePar. La Caisse Centrale n'a plus de tache active.
+Completee par PATCH /cash/{id}/modification/end avec modificationConfirmee (true = Enregistrer, false = Annuler) et urgent.</bpmn:documentation>
+      <bpmn:incoming>Flow_Modif_Verrou</bpmn:incoming>
+      <bpmn:outgoing>Flow_Modifier_Appliquer</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:boundaryEvent id="Boundary_TimerVerrou" name="Verrou expire" attachedToRef="Task_ModifierDemande" cancelActivity="true">
+      <bpmn:documentation>Garde-fou : l'agent a ferme son ecran sans terminer. Le verrou est libere et la main rendue a la Caisse Centrale.</bpmn:documentation>
+      <bpmn:outgoing>Flow_Verrou_Expire</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Verrou">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">${dureeVerrouModification}</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_AppliquerModification" name="Tracer la modification et liberer le verrou"
+                      camunda:type="external" camunda:topic="gdf-appliquer-modification">
+      <bpmn:documentation>Idempotent : si la demande est encore IN_MODIFICATION (abandon, expiration ou echec de la saga), la repasse SUBMITTED. Trace modificationConfirmee.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="modificationConfirmeeDefaut">false</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Modifier_Appliquer</bpmn:incoming>
+      <bpmn:incoming>Flow_Verrou_Expire</bpmn:incoming>
+      <bpmn:outgoing>Flow_Appliquer_Retour</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ========== 3b. Boundary : cut-off 16h00 (non interruptif) ========== -->
+    <bpmn:boundaryEvent id="Boundary_Cutoff16h" name="16h00" attachedToRef="SubProcess_Traitement" cancelActivity="false">
+      <bpmn:documentation>Arme a chaque entree dans le sous-processus avec dateCutoff16h (pose par gdf-initialiser-demande / gdf-reporter-jour-suivant).</bpmn:documentation>
+      <bpmn:outgoing>Flow_Cutoff16h_Verrouiller</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_16h">
+        <bpmn:timeDate xsi:type="bpmn:tFormalExpression">${dateCutoff16h}</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_VerrouillerActionsAgence" name="Verrouiller les actions agence"
+                      camunda:type="external" camunda:topic="gdf-cloturer-journee">
+      <bpmn:documentation>Positionne journeeCloturee = true (informationnel cote moteur ; fund-management calcule le cut-off localement pour ses gardes).</bpmn:documentation>
+      <bpmn:incoming>Flow_Cutoff16h_Verrouiller</bpmn:incoming>
+      <bpmn:outgoing>Flow_Verrouiller_Fin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_JourneeCloturee" name="Main rendue a la Caisse Centrale">
+      <bpmn:incoming>Flow_Verrouiller_Fin</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ========== 4. Decision Caisse Centrale et fin ========== -->
+    <bpmn:exclusiveGateway id="Gateway_DecisionCaisseCentrale" name="Decision ?" default="Flow_Decision_Traitee">
+      <bpmn:incoming>Flow_Sub_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Decision_Traitee</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Decision_Annulee</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_CloturerDemande" name="Cloturer et historiser la demande"
+                      camunda:type="external" camunda:topic="gdf-cloturer-demande">
+      <bpmn:incoming>Flow_Decision_Traitee</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cloture_Fin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_AnnulationCaisseCentrale" name="Enregistrer l'annulation Caisse Centrale"
+                      camunda:type="external" camunda:topic="gdf-annuler-demande">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="origineAnnulation">CAISSE_CENTRALE</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Decision_Annulee</bpmn:incoming>
+      <bpmn:outgoing>Flow_AnnulationCc_Fin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_DemandeTraitee" name="Demande traitee">
+      <bpmn:incoming>Flow_Cloture_Fin</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_AnnuleeParCaisseCentrale" name="Demande annulee (Caisse Centrale)">
+      <bpmn:incoming>Flow_AnnulationCc_Fin</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ============ Sous-processus evenementiel : ANNULATION (interruptif) ============ -->
+    <bpmn:subProcess id="EventSubProcess_Annulation" name="Annulation par l'agence (interruptif — brouillon, soumise ou en modification)" triggeredByEvent="true">
+      <bpmn:documentation>Correle par fund-management (PATCH /cash/{id}/cancel) APRES ses gardes (statut non final, journee non cloturee, agent habilite).
+La gateway « Agence a encore la main ? » de la v3 est retiree : dans un sous-processus interruptif, son refus terminait l'instance sans annuler.</bpmn:documentation>
+      <bpmn:startEvent id="StartEvent_MsgAnnulation" name="Annulation demandee" isInterrupting="true">
+        <bpmn:outgoing>Flow_Esp1_1</bpmn:outgoing>
+        <bpmn:messageEventDefinition id="MsgDef_Annulation" messageRef="Message_Annulation" />
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Task_EnregistrerAnnulation" name="Enregistrer le motif d'annulation"
+                        camunda:type="external" camunda:topic="gdf-annuler-demande">
+        <bpmn:extensionElements>
+          <camunda:inputOutput>
+            <camunda:inputParameter name="origineAnnulation">CREATEUR</camunda:inputParameter>
+          </camunda:inputOutput>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_Esp1_1</bpmn:incoming>
+        <bpmn:outgoing>Flow_Esp1_2</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="EndEvent_Annulee" name="Demande annulee (agence)">
+        <bpmn:incoming>Flow_Esp1_2</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_Esp1_1" sourceRef="StartEvent_MsgAnnulation" targetRef="Task_EnregistrerAnnulation" />
+      <bpmn:sequenceFlow id="Flow_Esp1_2" sourceRef="Task_EnregistrerAnnulation" targetRef="EndEvent_Annulee" />
+    </bpmn:subProcess>
+
+    <!-- ============ Sous-processus evenementiel : COMMENTAIRE (non interruptif) ============ -->
+    <bpmn:subProcess id="EventSubProcess_Commentaire" name="Commentaire libre (non interruptif)" triggeredByEvent="true">
+      <bpmn:startEvent id="StartEvent_MsgCommentaire" name="Commentaire ajoute" isInterrupting="false">
+        <bpmn:outgoing>Flow_Esp3_1</bpmn:outgoing>
+        <bpmn:messageEventDefinition id="MsgDef_Commentaire" messageRef="Message_Commentaire" />
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Task_HistoriserCommentaire" name="Historiser le commentaire"
+                        camunda:type="external" camunda:topic="gdf-historiser-commentaire">
+        <bpmn:incoming>Flow_Esp3_1</bpmn:incoming>
+        <bpmn:outgoing>Flow_Esp3_2</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="EndEvent_Commentaire" name="Commentaire trace">
+        <bpmn:incoming>Flow_Esp3_2</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_Esp3_1" sourceRef="StartEvent_MsgCommentaire" targetRef="Task_HistoriserCommentaire" />
+      <bpmn:sequenceFlow id="Flow_Esp3_2" sourceRef="Task_HistoriserCommentaire" targetRef="EndEvent_Commentaire" />
+    </bpmn:subProcess>
+
+    <!-- ============================ FLUX (niveau processus) ============================ -->
+    <bpmn:sequenceFlow id="Flow_Start_Initier" sourceRef="StartEvent_DemandeCreee" targetRef="Task_InitierDemande" />
+    <bpmn:sequenceFlow id="Flow_Initier_Soumettre" sourceRef="Task_InitierDemande" targetRef="Task_SoumettreDemande" />
+    <bpmn:sequenceFlow id="Flow_Soumettre_Init" name="Soumettre" sourceRef="Task_SoumettreDemande" targetRef="Task_InitialiserDemande" />
+    <bpmn:sequenceFlow id="Flow_Init_Cutoff16" sourceRef="Task_InitialiserDemande" targetRef="Gateway_Cutoff16" />
+    <bpmn:sequenceFlow id="Flow_Cutoff16_Apres" name="Apres 16h00" sourceRef="Gateway_Cutoff16" targetRef="Task_ReporterJourSuivant">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${apresCutoff16}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Cutoff16_Avant" name="Avant 16h00" sourceRef="Gateway_Cutoff16" targetRef="Gateway_JoinCutoff16" />
+    <bpmn:sequenceFlow id="Flow_Reporter_Join" sourceRef="Task_ReporterJourSuivant" targetRef="Gateway_JoinCutoff16" />
+    <bpmn:sequenceFlow id="Flow_Join16_Sub" sourceRef="Gateway_JoinCutoff16" targetRef="SubProcess_Traitement" />
+    <bpmn:sequenceFlow id="Flow_Modif_Verrou" sourceRef="Boundary_ModificationDemandee" targetRef="Task_ModifierDemande" />
+    <bpmn:sequenceFlow id="Flow_Modifier_Appliquer" name="Enregistrer / Annuler" sourceRef="Task_ModifierDemande" targetRef="Task_AppliquerModification" />
+    <bpmn:sequenceFlow id="Flow_Verrou_Expire" sourceRef="Boundary_TimerVerrou" targetRef="Task_AppliquerModification" />
+    <bpmn:sequenceFlow id="Flow_Appliquer_Retour" name="Main rendue a la Caisse Centrale" sourceRef="Task_AppliquerModification" targetRef="SubProcess_Traitement" />
+    <bpmn:sequenceFlow id="Flow_Cutoff16h_Verrouiller" sourceRef="Boundary_Cutoff16h" targetRef="Task_VerrouillerActionsAgence" />
+    <bpmn:sequenceFlow id="Flow_Verrouiller_Fin" sourceRef="Task_VerrouillerActionsAgence" targetRef="EndEvent_JourneeCloturee" />
+    <bpmn:sequenceFlow id="Flow_Sub_Decision" sourceRef="SubProcess_Traitement" targetRef="Gateway_DecisionCaisseCentrale" />
+    <bpmn:sequenceFlow id="Flow_Decision_Traitee" name="Traitee" sourceRef="Gateway_DecisionCaisseCentrale" targetRef="Task_CloturerDemande" />
+    <bpmn:sequenceFlow id="Flow_Decision_Annulee" name="Annulee" sourceRef="Gateway_DecisionCaisseCentrale" targetRef="Task_AnnulationCaisseCentrale">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${decisionCaisseCentrale == 'ANNULEE'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Cloture_Fin" sourceRef="Task_CloturerDemande" targetRef="EndEvent_DemandeTraitee" />
+    <bpmn:sequenceFlow id="Flow_AnnulationCc_Fin" sourceRef="Task_AnnulationCaisseCentrale" targetRef="EndEvent_AnnuleeParCaisseCentrale" />
+
+    <!-- ======================== ANNOTATIONS ======================== -->
+    <bpmn:textAnnotation id="Annotation_Verrou">
+      <bpmn:text>Verrou de modification (AER_LM-267) : tant que Task_ModifierDemande est active, la Caisse Centrale n'a aucune tache. Expiration automatique (dureeVerrouModification) si l'agent ferme son ecran.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Mvp">
+      <bpmn:text>MVP AER_LM-273 : chemins cutoff 10h / Banque Privee / Corporate / GAB hors site conserves mais non atteignables — typeDemande='AGENCE', typeAgence='RETAIL', apresCutoff10=false figes cote fund-management.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Cloture16">
+      <bpmn:text>Apres 16h00 les agences perdent la main : plus de modification ni d'annulation. fund-management calcule le cut-off (16h00 du jour d'effet) pour ses gardes ; journeeCloturee reste informationnel cote moteur.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Habilitations">
+      <bpmn:text>Motif d'annulation obligatoire (≥ 10 caracteres). Habilitations agence = DA / Chef de Caisse, demande de sa propre agence (ou GDF_TOUTES_AGENCES) — verifiees par fund-management avant correlation.</bpmn:text>
+    </bpmn:textAnnotation>
+
+    <bpmn:association id="Assoc_Verrou" sourceRef="Task_ModifierDemande" targetRef="Annotation_Verrou" />
+    <bpmn:association id="Assoc_Mvp" sourceRef="SubProcess_Traitement" targetRef="Annotation_Mvp" />
+    <bpmn:association id="Assoc_Cloture16" sourceRef="Task_VerrouillerActionsAgence" targetRef="Annotation_Cloture16" />
+    <bpmn:association id="Assoc_Habilitations" sourceRef="EventSubProcess_Annulation" targetRef="Annotation_Habilitations" />
+
+  </bpmn:process>
+
+  <!-- ============================ DIAGRAMME ============================ -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_GestionDesFonds">
+
+      <!-- Pool et couloirs -->
+      <bpmndi:BPMNShape id="Shape_Participant" bpmnElement="Participant_GestionDesFonds" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#ffffff" color:border-color="#1a3a6b" color:background-color="#ffffff">
+        <dc:Bounds x="160" y="80" width="1940" height="1260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Agence" bpmnElement="Lane_Agence" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#eef3fb" color:border-color="#1a3a6b" color:background-color="#eef3fb">
+        <dc:Bounds x="190" y="80" width="1910" height="180" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Traitement" bpmnElement="Lane_Traitement" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#f5f6f7" color:border-color="#1a3a6b" color:background-color="#f5f6f7">
+        <dc:Bounds x="190" y="260" width="1910" height="760" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Evenements" bpmnElement="Lane_Evenements" isHorizontal="true"
+                        bioc:stroke="#1a3a6b" bioc:fill="#f7f2fa" color:border-color="#1a3a6b" color:background-color="#f7f2fa">
+        <dc:Bounds x="190" y="1020" width="1910" height="320" />
+      </bpmndi:BPMNShape>
+
+      <!-- Lane Agence -->
+      <bpmndi:BPMNShape id="Shape_StartEvent_DemandeCreee" bpmnElement="StartEvent_DemandeCreee"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="230" y="132" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_InitierDemande" bpmnElement="Task_InitierDemande"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="300" y="110" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_SoumettreDemande" bpmnElement="Task_SoumettreDemande"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="440" y="110" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ModifierDemande" bpmnElement="Task_ModifierDemande"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="850" y="110" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Boundary_TimerVerrou" bpmnElement="Boundary_TimerVerrou"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="882" y="172" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_AppliquerModification" bpmnElement="Task_AppliquerModification"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="1010" y="110" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Lane Traitement : flux principal -->
+      <bpmndi:BPMNShape id="Shape_Task_InitialiserDemande" bpmnElement="Task_InitialiserDemande"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="300" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_Cutoff16" bpmnElement="Gateway_Cutoff16" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="440" y="355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ReporterJourSuivant" bpmnElement="Task_ReporterJourSuivant"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="470" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_JoinCutoff16" bpmnElement="Gateway_JoinCutoff16" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="580" y="355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Sous-processus traitement (expanded) -->
+      <bpmndi:BPMNShape id="Shape_SubProcess_Traitement" bpmnElement="SubProcess_Traitement" isExpanded="true"
+                        bioc:stroke="#0b5f96" bioc:fill="#f3f8fc" color:border-color="#0b5f96" color:background-color="#f3f8fc">
+        <dc:Bounds x="700" y="290" width="1000" height="580" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Start_Traitement" bpmnElement="Start_Traitement"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="730" y="362" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_TypeDemande" bpmnElement="Gateway_TypeDemande" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="800" y="355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_Urgente" bpmnElement="Gateway_Urgente" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="900" y="355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_Cutoff10" bpmnElement="Gateway_Cutoff10" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="900" y="455" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_BanquePrivee" bpmnElement="Gateway_BanquePrivee" isMarkerVisible="true"
+                        bioc:stroke="#b06000" bioc:fill="#ffe6c7" color:border-color="#b06000" color:background-color="#ffe6c7">
+        <dc:Bounds x="900" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_NormaliserUrgence" bpmnElement="Task_NormaliserUrgence"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="1040" y="545" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ValiderUrgence" bpmnElement="Task_ValiderUrgence"
+                        bioc:stroke="#b06000" bioc:fill="#ffe6c7" color:border-color="#b06000" color:background-color="#ffe6c7">
+        <dc:Bounds x="875" y="700" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_EclaterBesoinsGab" bpmnElement="Task_EclaterBesoinsGab"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="1040" y="770" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_JoinAgence" bpmnElement="Gateway_JoinAgence" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="1220" y="455" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_MergeTraitement" bpmnElement="Gateway_MergeTraitement" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="1320" y="455" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_TraitementCaisseCentrale" bpmnElement="Task_TraitementCaisseCentrale"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="1450" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_Traitement" bpmnElement="End_Traitement"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="1600" y="462" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Boundaries sur le sous-processus -->
+      <bpmndi:BPMNShape id="Shape_Boundary_ModificationDemandee" bpmnElement="Boundary_ModificationDemandee"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="782" y="272" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Boundary_Cutoff16h" bpmnElement="Boundary_Cutoff16h"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="1182" y="852" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_VerrouillerActionsAgence" bpmnElement="Task_VerrouillerActionsAgence"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="1150" y="900" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_JourneeCloturee" bpmnElement="EndEvent_JourneeCloturee"
+                        bioc:stroke="#0b5f96" bioc:fill="#cfe6f5" color:border-color="#0b5f96" color:background-color="#cfe6f5">
+        <dc:Bounds x="1300" y="922" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Decision et fins -->
+      <bpmndi:BPMNShape id="Shape_Gateway_DecisionCaisseCentrale" bpmnElement="Gateway_DecisionCaisseCentrale" isMarkerVisible="true"
+                        bioc:stroke="#a67c00" bioc:fill="#fdf3cd" color:border-color="#a67c00" color:background-color="#fdf3cd">
+        <dc:Bounds x="1750" y="355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CloturerDemande" bpmnElement="Task_CloturerDemande"
+                        bioc:stroke="#4d6673" bioc:fill="#e3e8ea" color:border-color="#4d6673" color:background-color="#e3e8ea">
+        <dc:Bounds x="1850" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_AnnulationCaisseCentrale" bpmnElement="Task_AnnulationCaisseCentrale"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="1850" y="460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_DemandeTraitee" bpmnElement="EndEvent_DemandeTraitee"
+                        bioc:stroke="#1b7a3d" bioc:fill="#cdeacd" color:border-color="#1b7a3d" color:background-color="#cdeacd">
+        <dc:Bounds x="2000" y="362" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_AnnuleeParCaisseCentrale" bpmnElement="EndEvent_AnnuleeParCaisseCentrale"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="2000" y="482" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Sous-processus evenementiel : ANNULATION -->
+      <bpmndi:BPMNShape id="Shape_EventSubProcess_Annulation" bpmnElement="EventSubProcess_Annulation" isExpanded="true"
+                        bioc:stroke="#a11f1f" bioc:fill="#fdeeee" color:border-color="#a11f1f" color:background-color="#fdeeee">
+        <dc:Bounds x="230" y="1050" width="500" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_StartEvent_MsgAnnulation" bpmnElement="StartEvent_MsgAnnulation"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="270" y="1132" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_EnregistrerAnnulation" bpmnElement="Task_EnregistrerAnnulation"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="360" y="1110" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_Annulee" bpmnElement="EndEvent_Annulee"
+                        bioc:stroke="#a11f1f" bioc:fill="#fadbdb" color:border-color="#a11f1f" color:background-color="#fadbdb">
+        <dc:Bounds x="520" y="1132" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_Esp1_1" bpmnElement="Flow_Esp1_1" bioc:stroke="#a11f1f" color:border-color="#a11f1f">
+        <di:waypoint x="306" y="1150" />
+        <di:waypoint x="360" y="1150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Esp1_2" bpmnElement="Flow_Esp1_2" bioc:stroke="#a11f1f" color:border-color="#a11f1f">
+        <di:waypoint x="460" y="1150" />
+        <di:waypoint x="520" y="1150" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Sous-processus evenementiel : COMMENTAIRE -->
+      <bpmndi:BPMNShape id="Shape_EventSubProcess_Commentaire" bpmnElement="EventSubProcess_Commentaire" isExpanded="true"
+                        bioc:stroke="#6b3fa0" bioc:fill="#f4eefa" color:border-color="#6b3fa0" color:background-color="#f4eefa">
+        <dc:Bounds x="800" y="1050" width="420" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_StartEvent_MsgCommentaire" bpmnElement="StartEvent_MsgCommentaire"
+                        bioc:stroke="#6b3fa0" bioc:fill="#e9dcf7" color:border-color="#6b3fa0" color:background-color="#e9dcf7">
+        <dc:Bounds x="840" y="1132" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_HistoriserCommentaire" bpmnElement="Task_HistoriserCommentaire"
+                        bioc:stroke="#6b3fa0" bioc:fill="#e9dcf7" color:border-color="#6b3fa0" color:background-color="#e9dcf7">
+        <dc:Bounds x="930" y="1110" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_Commentaire" bpmnElement="EndEvent_Commentaire"
+                        bioc:stroke="#6b3fa0" bioc:fill="#e9dcf7" color:border-color="#6b3fa0" color:background-color="#e9dcf7">
+        <dc:Bounds x="1100" y="1132" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_Esp3_1" bpmnElement="Flow_Esp3_1" bioc:stroke="#6b3fa0" color:border-color="#6b3fa0">
+        <di:waypoint x="876" y="1150" />
+        <di:waypoint x="930" y="1150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Esp3_2" bpmnElement="Flow_Esp3_2" bioc:stroke="#6b3fa0" color:border-color="#6b3fa0">
+        <di:waypoint x="1030" y="1150" />
+        <di:waypoint x="1100" y="1150" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Annotations -->
+      <bpmndi:BPMNShape id="Shape_Annotation_Verrou" bpmnElement="Annotation_Verrou">
+        <dc:Bounds x="1250" y="95" width="420" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Mvp" bpmnElement="Annotation_Mvp">
+        <dc:Bounds x="1720" y="580" width="340" height="110" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Cloture16" bpmnElement="Annotation_Cloture16">
+        <dc:Bounds x="1400" y="900" width="440" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_Habilitations" bpmnElement="Annotation_Habilitations">
+        <dc:Bounds x="230" y="1265" width="560" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Verrou" bpmnElement="Assoc_Verrou">
+        <di:waypoint x="950" y="130" />
+        <di:waypoint x="1250" y="130" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Mvp" bpmnElement="Assoc_Mvp">
+        <di:waypoint x="1700" y="620" />
+        <di:waypoint x="1720" y="620" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Cloture16" bpmnElement="Assoc_Cloture16">
+        <di:waypoint x="1250" y="940" />
+        <di:waypoint x="1400" y="940" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Habilitations" bpmnElement="Assoc_Habilitations">
+        <di:waypoint x="480" y="1250" />
+        <di:waypoint x="480" y="1265" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Flux : lane Agence -->
+      <bpmndi:BPMNEdge id="Edge_Flow_Start_Initier" bpmnElement="Flow_Start_Initier">
+        <di:waypoint x="266" y="150" />
+        <di:waypoint x="300" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Initier_Soumettre" bpmnElement="Flow_Initier_Soumettre">
+        <di:waypoint x="400" y="150" />
+        <di:waypoint x="440" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Soumettre_Init" bpmnElement="Flow_Soumettre_Init">
+        <di:waypoint x="490" y="190" />
+        <di:waypoint x="490" y="250" />
+        <di:waypoint x="350" y="250" />
+        <di:waypoint x="350" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Modif_Verrou" bpmnElement="Flow_Modif_Verrou" bioc:stroke="#a67c00" color:border-color="#a67c00">
+        <di:waypoint x="800" y="272" />
+        <di:waypoint x="800" y="150" />
+        <di:waypoint x="850" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Modifier_Appliquer" bpmnElement="Flow_Modifier_Appliquer">
+        <di:waypoint x="950" y="150" />
+        <di:waypoint x="1010" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Verrou_Expire" bpmnElement="Flow_Verrou_Expire" bioc:stroke="#a67c00" color:border-color="#a67c00">
+        <di:waypoint x="900" y="208" />
+        <di:waypoint x="900" y="240" />
+        <di:waypoint x="1060" y="240" />
+        <di:waypoint x="1060" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Appliquer_Retour" bpmnElement="Flow_Appliquer_Retour" bioc:stroke="#a67c00" color:border-color="#a67c00">
+        <di:waypoint x="1110" y="150" />
+        <di:waypoint x="1200" y="150" />
+        <di:waypoint x="1200" y="290" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Flux : lane Traitement -->
+      <bpmndi:BPMNEdge id="Edge_Flow_Init_Cutoff16" bpmnElement="Flow_Init_Cutoff16">
+        <di:waypoint x="400" y="380" />
+        <di:waypoint x="440" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Cutoff16_Apres" bpmnElement="Flow_Cutoff16_Apres">
+        <di:waypoint x="465" y="405" />
+        <di:waypoint x="465" y="490" />
+        <di:waypoint x="470" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Reporter_Join" bpmnElement="Flow_Reporter_Join">
+        <di:waypoint x="570" y="490" />
+        <di:waypoint x="605" y="490" />
+        <di:waypoint x="605" y="405" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Cutoff16_Avant" bpmnElement="Flow_Cutoff16_Avant">
+        <di:waypoint x="490" y="380" />
+        <di:waypoint x="580" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Join16_Sub" bpmnElement="Flow_Join16_Sub">
+        <di:waypoint x="630" y="380" />
+        <di:waypoint x="700" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Flux internes au sous-processus -->
+      <bpmndi:BPMNEdge id="Edge_Flow_Sub_Start_Type" bpmnElement="Flow_Sub_Start_Type">
+        <di:waypoint x="766" y="380" />
+        <di:waypoint x="800" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Type_Agence" bpmnElement="Flow_Type_Agence">
+        <di:waypoint x="850" y="380" />
+        <di:waypoint x="900" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Type_Corporate" bpmnElement="Flow_Type_Corporate">
+        <di:waypoint x="825" y="355" />
+        <di:waypoint x="825" y="320" />
+        <di:waypoint x="1345" y="320" />
+        <di:waypoint x="1345" y="455" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Type_Gab" bpmnElement="Flow_Type_Gab">
+        <di:waypoint x="825" y="405" />
+        <di:waypoint x="825" y="810" />
+        <di:waypoint x="1040" y="810" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Urgente_Non" bpmnElement="Flow_Urgente_Non">
+        <di:waypoint x="950" y="380" />
+        <di:waypoint x="1245" y="380" />
+        <di:waypoint x="1245" y="455" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Urgente_Oui" bpmnElement="Flow_Urgente_Oui">
+        <di:waypoint x="925" y="405" />
+        <di:waypoint x="925" y="455" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Cutoff10_Avant" bpmnElement="Flow_Cutoff10_Avant">
+        <di:waypoint x="950" y="480" />
+        <di:waypoint x="1220" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Cutoff10_Apres" bpmnElement="Flow_Cutoff10_Apres">
+        <di:waypoint x="925" y="505" />
+        <di:waypoint x="925" y="560" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Bp_Non" bpmnElement="Flow_Bp_Non">
+        <di:waypoint x="950" y="585" />
+        <di:waypoint x="1040" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Bp_Oui" bpmnElement="Flow_Bp_Oui" bioc:stroke="#b06000" color:border-color="#b06000">
+        <di:waypoint x="925" y="610" />
+        <di:waypoint x="925" y="700" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Valider_Normaliser" bpmnElement="Flow_Valider_Normaliser" bioc:stroke="#b06000" color:border-color="#b06000">
+        <di:waypoint x="975" y="740" />
+        <di:waypoint x="1090" y="740" />
+        <di:waypoint x="1090" y="625" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Normaliser_Join" bpmnElement="Flow_Normaliser_Join">
+        <di:waypoint x="1140" y="585" />
+        <di:waypoint x="1245" y="585" />
+        <di:waypoint x="1245" y="505" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Gab_Merge" bpmnElement="Flow_Gab_Merge">
+        <di:waypoint x="1140" y="810" />
+        <di:waypoint x="1345" y="810" />
+        <di:waypoint x="1345" y="505" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_JoinAgence_Merge" bpmnElement="Flow_JoinAgence_Merge">
+        <di:waypoint x="1270" y="480" />
+        <di:waypoint x="1320" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Merge_Traitement" bpmnElement="Flow_Merge_Traitement">
+        <di:waypoint x="1370" y="480" />
+        <di:waypoint x="1450" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Traitement_Fin" bpmnElement="Flow_Traitement_Fin">
+        <di:waypoint x="1550" y="480" />
+        <di:waypoint x="1600" y="480" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Flux : cut-off 16h -->
+      <bpmndi:BPMNEdge id="Edge_Flow_Cutoff16h_Verrouiller" bpmnElement="Flow_Cutoff16h_Verrouiller" bioc:stroke="#0b5f96" color:border-color="#0b5f96">
+        <di:waypoint x="1200" y="888" />
+        <di:waypoint x="1200" y="900" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Verrouiller_Fin" bpmnElement="Flow_Verrouiller_Fin" bioc:stroke="#0b5f96" color:border-color="#0b5f96">
+        <di:waypoint x="1250" y="940" />
+        <di:waypoint x="1300" y="940" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Flux : decision et fins -->
+      <bpmndi:BPMNEdge id="Edge_Flow_Sub_Decision" bpmnElement="Flow_Sub_Decision">
+        <di:waypoint x="1700" y="380" />
+        <di:waypoint x="1750" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Decision_Traitee" bpmnElement="Flow_Decision_Traitee" bioc:stroke="#1b7a3d" color:border-color="#1b7a3d">
+        <di:waypoint x="1800" y="380" />
+        <di:waypoint x="1850" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Decision_Annulee" bpmnElement="Flow_Decision_Annulee" bioc:stroke="#a11f1f" color:border-color="#a11f1f">
+        <di:waypoint x="1775" y="405" />
+        <di:waypoint x="1775" y="500" />
+        <di:waypoint x="1850" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Cloture_Fin" bpmnElement="Flow_Cloture_Fin" bioc:stroke="#1b7a3d" color:border-color="#1b7a3d">
+        <di:waypoint x="1950" y="380" />
+        <di:waypoint x="2000" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_AnnulationCc_Fin" bpmnElement="Flow_AnnulationCc_Fin" bioc:stroke="#a11f1f" color:border-color="#a11f1f">
+        <di:waypoint x="1950" y="500" />
+        <di:waypoint x="2000" y="500" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
