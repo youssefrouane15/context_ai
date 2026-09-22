@@ -1,0 +1,427 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-267 — Lot B1-fix : build back (tests)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:8px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+.warn{color:#b06000;font-weight:600}ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-267 — Lot B1-fix : erreurs de build back</h1><p>fund-management-microservice · <code>mvn clean install</code> · 7 erreurs <code>testCompile</code> dans <code>CashDemandUseCaseImplTest</code> · 23/09/2026</p></header><main><h2>0. Diagnostic</h2>
+<div class="card"><p>Le <code>main</code> compile (« Build completed successfully with 8 warnings »). Les 7 erreurs sont toutes dans <code>CashDemandUseCaseImplTest</code> et ont une seule cause : le lot B1 a changé les signatures du use case — <code>create</code>, <code>update</code>, <code>getCashDemandById</code>, <code>search</code> reçoivent maintenant un <code>ContexteAppelant</code>, et <code>cancel</code> reçoit <code>(UUID, AnnulationDemandeDTO, ContexteAppelant)</code>. Le test appelle les anciennes signatures.</p>
+<p>Deux choses en plus, invisibles à la compilation mais qui feraient échouer les tests à l'exécution :</p>
+<ol>
+<li>Le test ne déclare que 3 <code>@Mock</code> pour un constructeur à 8 paramètres. Mockito injecte <code>null</code> pour les 5 autres ; or chaque réponse passe par <code>enrichir()</code> qui appelle <code>cutoffPolicy.journeeCloturee(...)</code> → NPE sur tous les tests. Règle n°6 : <b>8 <code>@Mock</code></b>.</li>
+<li><code>create()</code> = <code>initier()</code> + <code>update()</code> : il crée le brouillon et l'instance Camunda <i>avant</i> de valider le contenu. Le test <code>createShouldRejectInvalidRequestWithoutTouchingRepository</code> (un POST invalide ne doit rien écrire) est une bonne règle qu'il faut garder : je valide le contenu <b>avant</b> d'initier (§1). Sans ça, un POST /cash invalide laisserait un brouillon vide avec une instance active.</li>
+</ol></div>
+<h2>1. Application-service — pré-validation dans create()</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.create — valider avant d&#x27;initier</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (Ctrl+F : public CashRequestDTO create)</span></div><p class="note">Remplace la méthode <code>create</code> entière. Coût : un <code>toDomain</code> + <code>validateAndCompute</code> de plus sur le chemin de compatibilité POST /cash — négligeable, et ça évite un brouillon orphelin avec instance Camunda quand le payload est invalide. Le doc B1 est mis à jour avec cette version.</p>
+<pre><button class="copy" onclick="cp(this)">Copier</button><code>    <span class="a">@Override</span>
+    <span class="k">public</span> CashRequestDTO create(CashRequestDTO cashRequestDTO, ContexteAppelant contexte) {
+        <span class="c">// Valide le contenu AVANT de créer le brouillon et l&#x27;instance : un POST invalide ne laisse rien derrière lui.</span>
+        webMapper.toDomain(cashRequestDTO).validateAndCompute(faceValuesByCode());
+        InitDemandeDTO init = InitDemandeDTO.builder()
+                .user(cashRequestDTO.getUser())
+                .branchCode(cashRequestDTO.getBranchCode())
+                .establishment(cashRequestDTO.getEstablishment())
+                .build();
+        CashRequestDTO brouillon = initier(init, contexte);
+        <span class="k">return</span> update(brouillon.getId(), cashRequestDTO, contexte);
+    }</code></pre></div>
+<h2>2. Test — CashDemandUseCaseImplTest réécrit</h2>
+<div class="card"><p>Tes 9 tests existants sont conservés (mêmes noms, mêmes intentions), adaptés aux nouvelles signatures, et 7 tests couvrent les nouvelles gardes de B1 (agence, verrou, statut, compensation de la saga d'initialisation, annulation par message). Style inchangé : <code>MockitoExtension</code> strict, aucun stub global dans <code>@BeforeEach</code>, chaque test déclare ce qu'il consomme.</p>
+<p class="warn">Imports : le bloc est complet mais je n'ai pas vu ton bloc d'imports actuel (replié). Les packages de <code>CashRequest</code>, <code>Denomination</code>, <code>RequestStatus</code>, des exceptions et des DTO sont ceux de l'impl B1 (qui compile). Si IntelliJ souligne <code>CashOperation</code>, <code>RequestType</code>, <code>CashOperationId</code> ou <code>CashRequestId</code>, aligne-les sur tes imports d'origine (même package que ton <code>CashOperationId</code> déjà importé) — Alt+Entrée le fait.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>CashDemandUseCaseImplTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java</span></div><p class="note">Remplace le fichier entier. 17 tests. Deux points à vérifier si le compilateur bronche : (a) la construction <code>new PageResult&lt;&gt;(content, page, size, totalElements, totalPages)</code> — je l'ai déduite de tes assertions (<code>totalPages()</code> est un accesseur de record, donc un composant) ; si ta ligne d'origine avait 4 arguments, reprends-la ; (b) <code>resultat.isJourneeCloturee()</code> suppose un <code>boolean</code> Lombok — si le champ est <code>Boolean</code>, c'est <code>getJourneeCloturee()</code>.</p>
+<pre><button class="copy" onclick="cp(this)">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail;
+
+<span class="k">import</span> com.bmci.common.workflow.SagaExecutionException;
+<span class="k">import</span> com.bmci.common.workflow.SagaOrchestrator;
+<span class="k">import</span> com.bmci.common.workflow.fund.management.application.rest.dto.DemandeSearchCriteria;
+<span class="k">import</span> com.bmci.common.workflow.fund.management.application.rest.dto.PageResult;
+<span class="k">import</span> com.bmci.common.workflow.fund.management.service.domain.ports.output.workflow.ProcessusWorkflowPort;
+<span class="k">import</span> com.bmci.q360.domain.retail.entity.CashOperation;
+<span class="k">import</span> com.bmci.q360.domain.retail.entity.CashRequest;
+<span class="k">import</span> com.bmci.q360.domain.retail.entity.Denomination;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestStatus;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestType;
+<span class="k">import</span> com.bmci.q360.domain.retail.exceptions.RetailConflictException;
+<span class="k">import</span> com.bmci.q360.domain.retail.exceptions.RetailForbiddenException;
+<span class="k">import</span> com.bmci.q360.domain.retail.exceptions.RetailValidationException;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.CashOperationId;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.CashRequestId;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.contexte.ContexteAppelant;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.AnnulationDemandeDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.InitDemandeDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.mapper.CashRequestWebMapper;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.CashDemandRepository;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.DenominationRepository;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.saga.ChangerStatutDemandeStep;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.saga.DemarrerProcessusStep;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.ArgumentCaptor;
+<span class="k">import</span> org.mockito.InjectMocks;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.util.ArrayList;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Map;
+<span class="k">import</span> java.util.UUID;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.*;
+
+<span class="c">/**
+ * @author Youssef ROUANE
+ * @date 31/07/2026 — révisé 23/09/2026 (AER_LM-267 : ContexteAppelant, gardes d&#x27;agence/verrou, BPMN v4.1)
+ */</span>
+<span class="a">@ExtendWith</span>(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> CashDemandUseCaseImplTest {
+
+    <span class="c">// Règle n°6 : un @Mock par paramètre du constructeur (8), sinon Mockito injecte null.</span>
+    <span class="a">@Mock</span> <span class="k">private</span> CashDemandRepository cashDemandRepository;
+    <span class="a">@Mock</span> <span class="k">private</span> DenominationRepository denominationRepository;
+    <span class="a">@Mock</span> <span class="k">private</span> CashRequestWebMapper webMapper;
+    <span class="a">@Mock</span> <span class="k">private</span> SagaOrchestrator sagaOrchestrator;
+    <span class="a">@Mock</span> <span class="k">private</span> ChangerStatutDemandeStep changerStatutDemandeStep;
+    <span class="a">@Mock</span> <span class="k">private</span> DemarrerProcessusStep demarrerProcessusStep;
+    <span class="a">@Mock</span> <span class="k">private</span> ProcessusWorkflowPort processusWorkflowPort;
+    <span class="a">@Mock</span> <span class="k">private</span> CutoffPolicy cutoffPolicy;
+    <span class="a">@InjectMocks</span> <span class="k">private</span> CashDemandUseCaseImpl useCase;
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> String AGENCE = <span class="s">&quot;BR-0036&quot;</span>;
+    <span class="c">/** Directeur d&#x27;agence de BR-0036. */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> ContexteAppelant DA = <span class="k">new</span> ContexteAppelant(<span class="s">&quot;j43709&quot;</span>, AGENCE, <span class="k">false</span>);
+    <span class="c">/** Autre agent de la même agence (verrou). */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> ContexteAppelant COLLEGUE = <span class="k">new</span> ContexteAppelant(<span class="s">&quot;j08221&quot;</span>, AGENCE, <span class="k">false</span>);
+    <span class="c">/** Agent d&#x27;une autre agence. */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> ContexteAppelant AUTRE_AGENCE = <span class="k">new</span> ContexteAppelant(<span class="s">&quot;j00001&quot;</span>, <span class="s">&quot;BR-0099&quot;</span>, <span class="k">false</span>);
+    <span class="c">/** Support : GDF_TOUTES_AGENCES. */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> ContexteAppelant SUPPORT = <span class="k">new</span> ContexteAppelant(<span class="s">&quot;h11111&quot;</span>, <span class="k">null</span>, <span class="k">true</span>);
+
+    <span class="c">// ---------------------------------------------------------------- fixtures</span>
+
+    <span class="k">private</span> CashRequest validDomain() {
+        CashOperation operation = <span class="k">new</span> CashOperation();
+        operation.setOperationSens(RequestType.COLLECTION);
+        CashRequest domain = <span class="k">new</span> CashRequest();
+        domain.setUidUser(<span class="s">&quot;j43709&quot;</span>);
+        domain.setBranchCode(AGENCE);
+        domain.setEstablishment(<span class="s">&quot;001&quot;</span>);
+        domain.setRequestStatus(RequestStatus.INITIATED);
+        domain.setOperations(<span class="k">new</span> ArrayList&lt;&gt;(List.of(operation)));
+        <span class="k">return</span> domain;
+    }
+
+    <span class="c">/** Demande persistée de l&#x27;agence BR-0036 dans le statut demandé. */</span>
+    <span class="k">private</span> CashRequest demande(UUID id, RequestStatus statut) {
+        CashRequest d = validDomain();
+        d.setId(<span class="k">new</span> CashRequestId(id));
+        d.setRequestStatus(statut);
+        <span class="k">return</span> d;
+    }
+
+    <span class="k">private</span> <span class="k">void</span> stubReferential() {
+        Denomination billet200 = <span class="k">new</span> Denomination();
+        billet200.setDenominationCode(<span class="s">&quot;BILLET_200&quot;</span>);
+        billet200.setFaceValue(<span class="k">new</span> BigDecimal(<span class="s">&quot;200&quot;</span>));
+        Mockito.when(denominationRepository.findAllActiveDenominations())
+                .thenReturn(List.of(billet200));
+    }
+
+    <span class="k">private</span> CashRequestDTO dtoAvecId(UUID id) {
+        CashRequestDTO dto = <span class="k">new</span> CashRequestDTO();
+        dto.setId(id);
+        <span class="k">return</span> dto;
+    }
+
+    <span class="c">// ---------------------------------------------------------------- create / initier</span>
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> createShouldRejectInvalidRequestWithoutTouchingRepository() {
+        stubReferential();
+        Mockito.when(webMapper.toDomain(Mockito.any(CashRequestDTO.<span class="k">class</span>)))
+                .thenReturn(<span class="k">new</span> CashRequest());
+
+        assertThrows(RetailValidationException.<span class="k">class</span>, () -&gt; useCase.create(<span class="k">new</span> CashRequestDTO(), DA));
+        Mockito.verify(cashDemandRepository, Mockito.never()).save(Mockito.any());
+        Mockito.verify(cashDemandRepository, Mockito.never()).update(Mockito.any(), Mockito.any());
+        Mockito.verifyNoInteractions(sagaOrchestrator);
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> createShouldInitThenValidateThenUpdate() {
+        stubReferential();
+        UUID id = UUID.randomUUID();
+        <span class="c">// toDomain est appelé deux fois (pré-validation, puis update) : un objet neuf à chaque fois</span>
+        Mockito.when(webMapper.toDomain(Mockito.any(CashRequestDTO.<span class="k">class</span>))).thenAnswer(inv -&gt; validDomain());
+        Mockito.when(cashDemandRepository.save(Mockito.any())).thenAnswer(inv -&gt; {
+            CashRequest brouillon = inv.getArgument(0);
+            brouillon.setId(<span class="k">new</span> CashRequestId(id));
+            brouillon.setRequestStatus(RequestStatus.INITIATED);
+            <span class="k">return</span> brouillon;
+        });
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenAnswer(inv -&gt; demande(id, RequestStatus.INITIATED));
+        Mockito.when(cashDemandRepository.update(Mockito.eq(id), Mockito.any())).thenAnswer(inv -&gt; inv.getArgument(1));
+        Mockito.when(webMapper.toResponseDTO(Mockito.any())).thenAnswer(inv -&gt; dtoAvecId(id));
+
+        CashRequestDTO resultat = useCase.create(<span class="k">new</span> CashRequestDTO(), DA);
+
+        assertEquals(id, resultat.getId());
+        <span class="c">// 1) brouillon vide, identité de l&#x27;appelant (pas celle du payload)</span>
+        ArgumentCaptor&lt;CashRequest&gt; brouillon = ArgumentCaptor.forClass(CashRequest.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).save(brouillon.capture());
+        assertEquals(<span class="s">&quot;j43709&quot;</span>, brouillon.getValue().getUidUser());
+        assertEquals(AGENCE, brouillon.getValue().getBranchCode());
+        assertTrue(brouillon.getValue().getOperations().isEmpty());
+        <span class="c">// 2) saga d&#x27;initialisation (démarrage + Task_InitierDemande)</span>
+        Mockito.verify(sagaOrchestrator).executer(Mockito.eq(<span class="s">&quot;initier-demande&quot;</span>), Mockito.any(), Mockito.anyList());
+        <span class="c">// 3) contenu validé puis persisté sur le même id</span>
+        ArgumentCaptor&lt;CashRequest&gt; contenu = ArgumentCaptor.forClass(CashRequest.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).update(Mockito.eq(id), contenu.capture());
+        CashOperation operation = contenu.getValue().getOperations().get(0);
+        assertEquals(<span class="k">false</span>, operation.getIsUrgent());
+        assertEquals(RequestStatus.INITIATED, operation.getOperationStatus());
+        assertEquals(RequestStatus.INITIATED, contenu.getValue().getRequestStatus());
+        assertEquals(AGENCE, contenu.getValue().getBranchCode());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> initier_echecSaga_supprimeLeBrouillon() {
+        UUID id = UUID.randomUUID();
+        Mockito.when(cashDemandRepository.save(Mockito.any())).thenAnswer(inv -&gt; {
+            CashRequest brouillon = inv.getArgument(0);
+            brouillon.setId(<span class="k">new</span> CashRequestId(id));
+            <span class="k">return</span> brouillon;
+        });
+        Mockito.doThrow(SagaExecutionException.<span class="k">class</span>)
+                .when(sagaOrchestrator).executer(Mockito.eq(<span class="s">&quot;initier-demande&quot;</span>), Mockito.any(), Mockito.anyList());
+
+        InitDemandeDTO init = InitDemandeDTO.builder().user(<span class="s">&quot;j43709&quot;</span>).branchCode(AGENCE).establishment(<span class="s">&quot;001&quot;</span>).build();
+        assertThrows(SagaExecutionException.<span class="k">class</span>, () -&gt; useCase.initier(init, DA));
+
+        Mockito.verify(cashDemandRepository).supprimer(id);   <span class="c">// aucun brouillon sans instance</span>
+    }
+
+    <span class="c">// ---------------------------------------------------------------- update</span>
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> updateShouldRevalidateBeforeDelegating() {
+        stubReferential();
+        UUID id = UUID.randomUUID();
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande(id, RequestStatus.INITIATED));
+        Mockito.when(webMapper.toDomain(Mockito.any(CashRequestDTO.<span class="k">class</span>))).thenReturn(<span class="k">new</span> CashRequest());
+
+        assertThrows(RetailValidationException.<span class="k">class</span>, () -&gt; useCase.update(id, <span class="k">new</span> CashRequestDTO(), DA));
+        Mockito.verify(cashDemandRepository, Mockito.never()).update(Mockito.any(), Mockito.any());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> updateShouldValidateThenDelegateWithSameId() {
+        stubReferential();
+        UUID id = UUID.randomUUID();
+        CashRequest domain = validDomain();
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande(id, RequestStatus.INITIATED));
+        Mockito.when(webMapper.toDomain(Mockito.any(CashRequestDTO.<span class="k">class</span>))).thenReturn(domain);
+        Mockito.when(cashDemandRepository.update(id, domain)).thenReturn(domain);
+        Mockito.when(webMapper.toResponseDTO(domain)).thenReturn(dtoAvecId(id));
+
+        assertEquals(id, useCase.update(id, <span class="k">new</span> CashRequestDTO(), DA).getId());
+
+        Mockito.verify(cashDemandRepository).update(id, domain);
+        assertEquals(AGENCE, domain.getBranchCode());        <span class="c">// l&#x27;agence vient de l&#x27;existant, jamais du payload</span>
+        assertEquals(<span class="s">&quot;j43709&quot;</span>, domain.getUidUser());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> update_demandeSoumise_leveConflit() {
+        UUID id = UUID.randomUUID();
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande(id, RequestStatus.SUBMITTED));
+
+        assertThrows(RetailConflictException.<span class="k">class</span>, () -&gt; useCase.update(id, <span class="k">new</span> CashRequestDTO(), DA));
+        Mockito.verify(cashDemandRepository, Mockito.never()).update(Mockito.any(), Mockito.any());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> update_autreAgence_leveInterdit() {
+        UUID id = UUID.randomUUID();
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande(id, RequestStatus.INITIATED));
+
+        assertThrows(RetailForbiddenException.<span class="k">class</span>, () -&gt; useCase.update(id, <span class="k">new</span> CashRequestDTO(), AUTRE_AGENCE));
+        Mockito.verify(cashDemandRepository, Mockito.never()).update(Mockito.any(), Mockito.any());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> update_enModification_parUnAutreAgent_leveInterdit() {
+        UUID id = UUID.randomUUID();
+        CashRequest verrouillee = demande(id, RequestStatus.IN_MODIFICATION);
+        verrouillee.setLockedBy(<span class="s">&quot;j43709&quot;</span>);
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(verrouillee);
+
+        assertThrows(RetailForbiddenException.<span class="k">class</span>, () -&gt; useCase.update(id, <span class="k">new</span> CashRequestDTO(), COLLEGUE));
+        Mockito.verify(cashDemandRepository, Mockito.never()).update(Mockito.any(), Mockito.any());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> update_enModification_parLeDetenteur_journeeCloturee_leveConflit() {
+        UUID id = UUID.randomUUID();
+        CashRequest verrouillee = demande(id, RequestStatus.IN_MODIFICATION);
+        verrouillee.setLockedBy(<span class="s">&quot;j43709&quot;</span>);
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(verrouillee);
+        Mockito.when(cutoffPolicy.journeeCloturee(verrouillee)).thenReturn(<span class="k">true</span>);
+
+        assertThrows(RetailConflictException.<span class="k">class</span>, () -&gt; useCase.update(id, <span class="k">new</span> CashRequestDTO(), DA));
+        Mockito.verify(cashDemandRepository, Mockito.never()).update(Mockito.any(), Mockito.any());
+    }
+
+    <span class="c">// ---------------------------------------------------------------- lecture</span>
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> getByIdShouldDelegateAndMapBack() {
+        UUID id = UUID.randomUUID();
+        CashRequest domain = demande(id, RequestStatus.SUBMITTED);
+        CashRequestDTO expected = <span class="k">new</span> CashRequestDTO();
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(domain);
+        Mockito.when(webMapper.toResponseDTO(domain)).thenReturn(expected);
+        Mockito.when(cutoffPolicy.journeeCloturee(domain)).thenReturn(<span class="k">true</span>);
+
+        CashRequestDTO resultat = useCase.getCashDemandById(id, DA);
+
+        assertSame(expected, resultat);
+        assertTrue(resultat.isJourneeCloturee());              <span class="c">// enrichi par CutoffPolicy</span>
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> getById_autreAgence_leveInterdit_saufToutesAgences() {
+        UUID id = UUID.randomUUID();
+        CashRequest domain = demande(id, RequestStatus.SUBMITTED);
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(domain);
+
+        assertThrows(RetailForbiddenException.<span class="k">class</span>, () -&gt; useCase.getCashDemandById(id, AUTRE_AGENCE));
+
+        Mockito.when(webMapper.toResponseDTO(domain)).thenReturn(<span class="k">new</span> CashRequestDTO());
+        assertNotNull(useCase.getCashDemandById(id, SUPPORT));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> searchShouldMapEachElementAndKeepPageInfo() {
+        DemandeSearchCriteria criteria = <span class="k">new</span> DemandeSearchCriteria(<span class="s">&quot;INITIATED&quot;</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, 1, 10);
+        PageResult&lt;CashRequest&gt; page = <span class="k">new</span> PageResult&lt;&gt;(List.of(validDomain(), validDomain()), 1, 10, 12, 2);
+        Mockito.when(cashDemandRepository.search(criteria)).thenReturn(page);
+        Mockito.when(webMapper.toResponseDTO(Mockito.any())).thenReturn(<span class="k">new</span> CashRequestDTO());
+
+        <span class="c">// SUPPORT (toutes agences) : les critères passent tels quels</span>
+        PageResult&lt;CashRequestDTO&gt; result = useCase.search(criteria, SUPPORT);
+
+        assertEquals(2, result.content().size());
+        assertEquals(1, result.page());
+        assertEquals(10, result.size());
+        assertEquals(12, result.totalElements());
+        assertEquals(2, result.totalPages());
+        Mockito.verify(webMapper, Mockito.times(2)).toResponseDTO(Mockito.any());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> search_agenceForceeParLeContexte() {
+        DemandeSearchCriteria criteria = <span class="k">new</span> DemandeSearchCriteria(<span class="s">&quot;INITIATED&quot;</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, 1, 10);
+        Mockito.when(cashDemandRepository.search(Mockito.any()))
+                .thenReturn(<span class="k">new</span> PageResult&lt;&gt;(List.of(), 1, 10, 0, 0));
+
+        useCase.search(criteria, DA);
+
+        ArgumentCaptor&lt;DemandeSearchCriteria&gt; effectifs = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).search(effectifs.capture());
+        assertEquals(AGENCE, effectifs.getValue().agence());       <span class="c">// visibilité en back : jamais une autre agence</span>
+        assertEquals(<span class="s">&quot;INITIATED&quot;</span>, effectifs.getValue().statut());
+    }
+
+    <span class="c">// ---------------------------------------------------------------- annulation</span>
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> cancelShouldCorrelateMessageWithoutLocalWrite() {
+        UUID id = UUID.randomUUID();
+        CashRequest domain = demande(id, RequestStatus.SUBMITTED);
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(domain);
+        Mockito.when(webMapper.toResponseDTO(domain)).thenReturn(<span class="k">new</span> CashRequestDTO());
+        AnnulationDemandeDTO annulation = AnnulationDemandeDTO.builder().motif(<span class="s">&quot;  Erreur de saisie agence  &quot;</span>).build();
+
+        assertNotNull(useCase.cancel(id, annulation, DA));
+
+        <span class="a">@SuppressWarnings</span>(<span class="s">&quot;unchecked&quot;</span>)
+        ArgumentCaptor&lt;Map&lt;String, Object&gt;&gt; variables = ArgumentCaptor.forClass(Map.<span class="k">class</span>);
+        Mockito.verify(processusWorkflowPort).correlerMessage(Mockito.eq(<span class="s">&quot;msgAnnulerDemande&quot;</span>), Mockito.eq(id.toString()), variables.capture());
+        assertEquals(<span class="s">&quot;j43709&quot;</span>, variables.getValue().get(<span class="s">&quot;annulePar&quot;</span>));
+        assertEquals(<span class="s">&quot;Erreur de saisie agence&quot;</span>, variables.getValue().get(<span class="s">&quot;motifAnnulation&quot;</span>));
+        <span class="c">// contrat : aucune écriture locale, c&#x27;est le worker gdf-annuler-demande qui écrit CANCELLED</span>
+        Mockito.verify(cashDemandRepository, Mockito.never()).annuler(Mockito.any(), Mockito.any(), Mockito.any());
+        Mockito.verify(cashDemandRepository, Mockito.never()).changerStatut(Mockito.any(), Mockito.any());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> cancel_demandeTraitee_leveConflit() {
+        UUID id = UUID.randomUUID();
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande(id, RequestStatus.VALIDATED));
+
+        assertThrows(RetailConflictException.<span class="k">class</span>,
+                () -&gt; useCase.cancel(id, AnnulationDemandeDTO.builder().motif(<span class="s">&quot;Demande obsolète&quot;</span>).build(), DA));
+        Mockito.verifyNoInteractions(processusWorkflowPort);
+    }
+
+    <span class="c">// ---------------------------------------------------------------- cancelOperations (signature inchangée)</span>
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> cancelOperations_persisteEtRetourne() {
+        UUID requestId = UUID.randomUUID(), opId = UUID.randomUUID();
+        CashOperation op = <span class="k">new</span> CashOperation();
+        op.setId(<span class="k">new</span> CashOperationId(opId));
+        op.setOperationStatus(RequestStatus.INITIATED);
+        CashRequest demande = <span class="k">new</span> CashRequest();
+        demande.setRequestStatus(RequestStatus.INITIATED);
+        demande.setOperations(<span class="k">new</span> ArrayList&lt;&gt;(List.of(op)));
+        CashRequestDTO attendu = <span class="k">new</span> CashRequestDTO();
+
+        Mockito.when(cashDemandRepository.getCashRequestById(requestId)).thenReturn(demande);
+        Mockito.when(cashDemandRepository.update(Mockito.eq(requestId), Mockito.any(CashRequest.<span class="k">class</span>))).thenReturn(demande);
+        Mockito.when(webMapper.toResponseDTO(demande)).thenReturn(attendu);
+
+        assertSame(attendu, useCase.cancelOperations(requestId, List.of(opId)));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> cancelOperations_operationDejaAnnulee_leveConflit() {
+        UUID requestId = UUID.randomUUID(), opId = UUID.randomUUID();
+        CashOperation op = <span class="k">new</span> CashOperation();
+        op.setId(<span class="k">new</span> CashOperationId(opId));
+        op.setOperationStatus(RequestStatus.CANCELLED);
+        CashRequest demande = <span class="k">new</span> CashRequest();
+        demande.setRequestStatus(RequestStatus.INITIATED);
+        demande.setOperations(<span class="k">new</span> ArrayList&lt;&gt;(List.of(op)));
+
+        Mockito.when(cashDemandRepository.getCashRequestById(requestId)).thenReturn(demande);
+
+        assertThrows(RetailConflictException.<span class="k">class</span>, () -&gt; useCase.cancelOperations(requestId, List.of(opId)));
+        Mockito.verify(cashDemandRepository, Mockito.never()).update(Mockito.any(), Mockito.any());
+    }
+}</code></pre></div>
+<h2>3. Vérification</h2>
+<div class="card"><ol>
+<li><code>mvn clean install</code> à la racine : <code>testCompile</code> passe, les 17 tests sont verts.</li>
+<li>Si un autre test rouge apparaît sur <code>RetailDemandController</code> ou les handlers worker (signatures B1), envoie-moi la liste des erreurs : même traitement, même doc.</li>
+<li>Ensuite seulement : Flyway V3, déploiement BPMN v4.1, purge des instances v3 locales, puis le scénario Postman du §8 du lot B1.</li>
+</ol></div></main><script>function cp(b){navigator.clipboard.writeText(b.parentNode.querySelector('code').innerText).then(()=>{b.textContent='Copié ✓';setTimeout(()=>b.textContent='Copier',1500)})}</script></body></html>
