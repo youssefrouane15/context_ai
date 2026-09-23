@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fix — Historique : bouton Détail, libellé des brouillons, seed g10002</title>
+<style>:root{--bg:#0f1115;--card:#171a21;--bd:#262b36;--tx:#e6e8ee;--mut:#9aa3b2;--ac:#3ddc97;--ko:#e5484d;--warn:#f5a524;--code:#0b0d11}*{box-sizing:border-box}body{margin:0;font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}header{padding:24px 28px 14px;border-bottom:1px solid var(--bd)}h1{margin:0 0 4px;font-size:21px}header p{margin:0;color:var(--mut)}main{max-width:1100px;margin:0 auto;padding:16px 24px 70px}h2{font-size:18px;margin:30px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bd)}h3{font-size:15px;margin:22px 0 2px;color:var(--ac)}.tag{font-size:11px;background:#1d222c;border:1px solid var(--bd);border-radius:5px;padding:1px 7px;color:var(--warn);margin-left:8px;vertical-align:middle}.path{margin:0 0 6px;color:var(--mut);font-size:13px;font-family:ui-monospace,monospace}pre{position:relative;background:var(--code);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;overflow:auto;font-size:13px;line-height:1.45}code{font-family:ui-monospace,Consolas,monospace}.copy{position:absolute;top:8px;right:8px;background:#1d222c;border:1px solid var(--bd);color:var(--mut);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:12px}.note{color:var(--mut);font-size:14px;margin:6px 0 0}.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 18px;margin:12px 0}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:#1d222c}.warn{border-left:4px solid var(--warn);background:#2a2214;padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0}.chk{list-style:none;padding:0}.chk li{padding:6px 0;border-bottom:1px solid var(--bd)}.chk input{margin-right:10px}
+</style></head><body><header><h1>Fix — Historique des demandes : bouton Détail, libellé des brouillons, seed retail de g10002</h1><p>fund-management-front · fund-management (base retail) · 23/09/2026 · 3 corrections, 10 min</p></header><main>
+<h2>1. Ce qui est constaté sur l'écran Historique</h2>
+<div class="card"><table><tr><th>Symptôme</th><th>Cause</th></tr>
+<tr><td>Clic sur l'icône de la colonne Actions → snackbar « Détail de RT-… — à venir ».</td><td>Placeholder laissé par le collègue dans <code>fund-management-list.component.ts</code> : la méthode ouvre un snackbar au lieu de naviguer vers <code>/consultation/:id</code>. L'écran de consultation existe et accepte un brouillon (statut Initiée, boutons Modifier / Annuler / Soumettre).</td></tr>
+<tr><td>Deux brouillons vides affichés « En Attente ».</td><td>Le libellé de statut du listing mappe <code>INITIATED</code> sur « En Attente ». « En attente » est le libellé de <code>SUBMITTED</code> (ce que la Caisse Centrale doit traiter) ; un brouillon doit afficher « Initiée ».</td></tr>
+<tr><td>Le Chef de caisse connecté est <b>g10002</b> (Salma CAISSE, agence 1422 DAR BOUAAZA), pas j08221.</td><td>Le seed <code>retail.user_profile</code> ne contient que j43709 et j08221. Sans ligne pour g10002, la soumission finit en 422 « le demandeur n'existe pas dans le référentiel ». À ajouter avant de rejouer la soumission.</td></tr></table></div>
+<h2>2. Bouton Détail → écran de consultation</h2><h3>fund-management-list.component.ts — navigation <span class="tag">ÉDITION</span></h3><p class="path">fund-management-front\src\app\features\fund-management\presenter\pages\fund-management-list\fund-management-list.component.ts  (Ctrl+F : à venir)</p><pre><button class="copy">Copier</button><code>import { Router } from &#x27;@angular/router&#x27;;          // à ajouter aux imports si absent
+
+  private readonly router = inject(Router);            // à ajouter aux champs de la classe (inject vient de &#x27;@angular/core&#x27;)
+
+  // Remplace le corps de la méthode qui affiche « Détail de … — à venir » (garde son nom : le template l&#x27;appelle déjà)
+  voirDetail(demande: DemandeFonds): void {
+    this.router.navigate([&#x27;/consultation&#x27;, demande.id]);
+  }</code></pre><p class="note">Si <code>MatSnackBar</code> n'était injecté que pour ce snackbar, retire l'injection et l'import <code>MatSnackBarModule</code> du composant. Le paramètre s'appelle peut-être autrement dans ton fichier : seule la ligne <code>this.router.navigate(...)</code> compte, avec l'<code>id</code> (UUID) de la demande, pas la référence RT-…</p><h2>3. Libellé des brouillons</h2><h3>fund-management-list.component.ts — libellé de statut <span class="tag">ÉDITION</span></h3><p class="path">même fichier  (Ctrl+F : INITIATED)</p><pre><button class="copy">Copier</button><code>  // Libellés affichés dans la colonne Statut — un seul endroit, même vocabulaire que la consultation et la Caisse Centrale
+  private static readonly LIBELLES_STATUT: Record&lt;string, string&gt; = {
+    INITIATED:       &#x27;Initiée&#x27;,
+    SUBMITTED:       &#x27;En attente&#x27;,
+    IN_MODIFICATION: &#x27;En modification&#x27;,
+    VALIDATED:       &#x27;Traitée&#x27;,
+    CANCELLED:       &#x27;Annulée&#x27;
+  };
+
+  libelleStatut(statut: string): string {
+    return FundManagementListComponent.LIBELLES_STATUT[statut] ?? statut;
+  }</code></pre><p class="note">Si le mapping existant est un <code>switch</code> ou un objet avec d'autres noms, ne change que la valeur de <code>INITIATED</code> : « Initiée ». Le nom de classe dans <code>LIBELLES_STATUT[...]</code> doit être celui de ton composant.</p><h2>4. Seed retail : g10002 (Chef de caisse, agence 1422)</h2><h3>retail.user_profile — INSERT idempotent <span class="tag">pgAdmin, base fund-management</span></h3><p class="path">schéma retail</p><pre><button class="copy">Copier</button><code>-- Copie le profil de j08221 (Chef de caisse) pour g10002 ; ne fait rien si la ligne existe déjà
+INSERT INTO retail.user_profile (id, uid, profile_code, profile_label, profile_type, creation_date, modification_date)
+SELECT gen_random_uuid(), &#x27;g10002&#x27;, p.profile_code, p.profile_label, p.profile_type, now(), now()
+FROM retail.user_profile p
+WHERE p.uid = &#x27;j08221&#x27;
+  AND NOT EXISTS (SELECT 1 FROM retail.user_profile WHERE uid = &#x27;g10002&#x27;);
+
+-- Contrôle
+SELECT uid, profile_code, profile_label, profile_type FROM retail.user_profile WHERE uid IN (&#x27;j08221&#x27;, &#x27;g10002&#x27;);</code></pre><p class="note">Colonnes telles que Hibernate les sélectionne dans tes logs (<code>id, creation_date, modification_date, profile_code, profile_label, profile_type, uid</code>). Si <code>id</code> n'est pas un <code>uuid</code> chez toi, remplace <code>gen_random_uuid()</code> par <code>nextval(...)</code> de la séquence de la table. Même INSERT pour tout autre uid du seed qf_admin que tu veux faire jouer en agence (persona DA de la démo si ce n'est pas j43709).</p><h2>5. Vérification</h2>
+<div class="card"><ul class="chk">
+<li><input type="checkbox">Historique : clic sur l'icône → écran de consultation de la demande (URL <code>/consultation/&lt;uuid&gt;</code>), plus de snackbar.</li>
+<li><input type="checkbox">Brouillon ouvert : chip <b>Initiée</b>, boutons Modifier / Annuler / Soumettre ; Historique : « Initiée » dans la colonne Statut.</li>
+<li><input type="checkbox">Nouvelle Demande → saisie → Soumettre en g10002 : succès, retour à l'historique avec la demande <b>En attente</b>, Contenu renseigné, Date &amp; Heure renseignée.</li>
+<li><input type="checkbox">Les deux anciens brouillons vides : Annuler la demande avec motif (ou <code>DELETE</code> en base après purge des instances) pour ne pas les traîner en démo.</li>
+</ul>
+<div class="warn">Les guides (démo par profil, doc v4 §5) nomment j08221 comme Chef de caisse : si tu gardes g10002, c'est lui qu'il faut rattacher en agence X dans qf_admin et utiliser dans les parcours ; le reste ne change pas.</div></div>
+</main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
