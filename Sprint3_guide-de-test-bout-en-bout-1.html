@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprint 3 — Guide de test de bout en bout (267 · B2 · 266)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17;--ok:#1e8a5a;--ko:#b3402a;--bord:#dfe7e3}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.6 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}
+header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+main{max-width:1180px;margin:0 auto;padding:18px 20px 80px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px}
+h3{color:var(--v);margin:18px 0 6px;font-size:16px}
+.card{background:#fff;border:1px solid var(--bord);border-radius:8px;padding:14px 20px;margin:12px 0}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,monospace;font-size:13px}
+pre{position:relative;margin:8px 0 10px;background:var(--pre)!important;color:#e6efe9;padding:14px 16px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,monospace;border-left:4px solid var(--or);white-space:pre}
+pre code{background:none;padding:0;color:inherit}
+.copy{position:absolute;top:6px;right:6px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:3px 10px;font-size:12px;cursor:pointer}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0}
+td,th{border:1px solid var(--bord);padding:6px 10px;text-align:left;vertical-align:top}
+th{background:var(--vf);color:#fff;font-weight:600}
+.warn{background:#fff8e8;border-left:4px solid var(--or);padding:10px 14px;border-radius:0 6px 6px 0;margin:10px 0}
+.alert{background:#fcefec;border-left:4px solid var(--ko);padding:10px 14px;border-radius:0 6px 6px 0;margin:10px 0}
+/* barre de variables */
+#vars{position:sticky;top:0;z-index:5;background:#fff;border-bottom:2px solid var(--v);padding:10px 20px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+#vars label{font-size:12px;color:#4d6673;display:flex;flex-direction:column}
+#vars input{font:13px Consolas,monospace;padding:4px 6px;border:1px solid #b9c9c1;border-radius:4px;width:190px}
+#vars input.large{width:300px}
+#progress{margin-left:auto;font-size:13px;min-width:230px}
+#bar{height:8px;background:#e3ebe7;border-radius:4px;overflow:hidden;margin-top:4px}
+#bar div{height:100%;background:var(--ok);width:0}
+/* scénarios */
+.sc{background:#fff;border:1px solid var(--bord);border-radius:8px;margin:16px 0;overflow:hidden}
+.sc-h{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#eef3f0;border-bottom:1px solid var(--bord);flex-wrap:wrap}
+.sc-h .id{font:600 13px Consolas,monospace;color:var(--vf);background:#fff;border:1px solid var(--bord);padding:1px 8px;border-radius:4px}
+.sc-h b{font-size:15px}
+.sc-h select{margin-left:auto;font-size:13px;padding:3px 6px;border-radius:4px;border:1px solid #b9c9c1}
+.sc.ok .sc-h{background:#e3f4ea}.sc.ko .sc-h{background:#fbe7e2}
+.sc-b{padding:6px 16px 12px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:6px 22px}
+@media(max-width:860px){.cols{grid-template-columns:1fr}#progress{margin-left:0}}
+.sc-b ol,.sc-b ul{padding-left:20px;margin:6px 0}
+.lbl{font-weight:700;color:var(--vf);font-size:13px;margin-top:8px}
+textarea{width:100%;min-height:44px;font:13px "Segoe UI",sans-serif;border:1px solid #cdd9d3;border-radius:4px;padding:6px;margin-top:6px}
+.btn{background:var(--v);color:#fff;border:0;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:13px}
+.btn.sec{background:#fff;color:var(--v);border:1px solid var(--v)}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--or);outline-offset:1px}
+</style>
+</head>
+<body>
+<header>
+<h1>Sprint 3 — Guide de test de bout en bout : écran Agence (267), sécurité (B2), Caisse Centrale (266)</h1>
+<p>fund-management-front en autonome sur 4200 · gateway en mode mock · BPMN v4.1 · V4 photo agence · 23/09/2026 · remplace le plan du matin</p>
+</header>
+
+<div id="vars">
+  <label>ID de la demande testée<input id="v-ID" class="large" placeholder="uuid copié depuis l'URL /consultation/…"></label>
+  <label>Agence X (DA + chef de caisse)<input id="v-AGENCE_X" placeholder="code orga_unit"></label>
+  <label>Agence Y (autre agence)<input id="v-AGENCE_Y" placeholder="code orga_unit"></label>
+  <label>Zone de X (code)<input id="v-ZONE_X" placeholder="zone_distribution.code"></label>
+  <label>uid Caisse Centrale<input id="v-UID_CC" placeholder="uid qf_admin.users"></label>
+  <label>URL moteur Camunda (engine-rest)<input id="v-CAMUNDA" class="large" placeholder="valeur de camunda.base-url"></label>
+  <label>Tenant Camunda<input id="v-TENANT" placeholder="camunda.tenant-id"></label>
+  <div id="progress"><span id="ptxt">0 / 0 scénarios validés</span><div id="bar"><div></div></div></div>
+</div>
+
+<main>
+
+<h2>Comment utiliser ce document</h2>
+<div class="card">
+<p>Renseigne les champs de la barre du haut : toutes les requêtes SQL et URLs du document se mettent à jour, le bouton <b>Copier</b> copie la version remplie. Pour chaque scénario, passe le statut à OK ou KO et note ce que tu observes ; tout est conservé dans le navigateur (même fichier, même poste). En fin de document, <b>Copier le rapport</b> produit un compte rendu texte à coller dans le Jira ou à me renvoyer.</p>
+<p>Chaque scénario se vérifie sur trois plans : ce que l'écran montre, ce que la base contient (schéma <code>retail</code>), et où se trouve le jeton dans l'instance Camunda. Une demande correcte à l'écran mais incohérente en base ou dans le moteur est un KO.</p>
+</div>
+
+<h2>1. Préparation</h2>
+<div class="card">
+<h3>1.1 Back, moteur, données</h3>
+<ol>
+<li><b>fund-management</b> : doc v4 parties 1 + 1b appliquées, <code>mvn clean install</code> vert (33 tests contrôleur + 17 use case), Flyway V3 et <b>V4</b> appliquées (requête 1.3), yaml <code>qf.security.auth-mode: mock</code> et <code>qf.users.internal-base-url</code> vers 8091, worker actif.</li>
+<li><b>utilisateurs-ci</b> : partie 3 appliquée (endpoint interne agence + annotation), <b>redémarré</b>. V17 en base.</li>
+<li><b>Moteur</b> : <code>gestion-des-fonds_v4.1.bpmn</code> déployé (versionTag 4.1), instances antérieures purgées.</li>
+<li><b>Données</b> : les demandes créées avant V4 n'ont pas de photo d'agence ; pour un test propre, repars de zéro : purge Camunda (ci-dessous) puis <code>DELETE FROM retail.cash_operation; DELETE FROM retail.cash_request;</code>. Dans la console, l'agence X doit avoir une <b>zone de distribution</b> et un <b>prestataire</b> (écran 259), sinon la photo est vide.</li>
+<li>Pour S08 uniquement : <code>gdf.verrou-modification-duree: PT2M</code>, à remettre à PT30M ensuite.</li>
+</ol>
+<pre><button class="copy">Copier</button><code data-tpl>-- Instances en cours du processus (navigateur ou Postman, GET)
+{{CAMUNDA}}/process-instance?processDefinitionKey=gestion-des-fonds&amp;tenantIdIn={{TENANT}}
+
+-- Suppression d'une instance (Postman, DELETE) — remplace &lt;PI&gt; par l'id renvoyé ci-dessus
+{{CAMUNDA}}/process-instance/&lt;PI&gt;?skipCustomListeners=true</code></pre>
+<h3>1.2 Ordre de démarrage</h3>
+<table>
+<tr><th>#</th><th>Composant</th><th>Port</th><th>Contrôle</th></tr>
+<tr><td>1</td><td><code>dev-sso</code></td><td>9001</td><td>Requis par la gateway au démarrage, même en mode mock.</td></tr>
+<tr><td>2</td><td><code>utilisateurs-ci</code> (profil local, <code>auth-mode: mock</code>)</td><td>8091</td><td>Démarre sans erreur Flyway (V17). <code>GET http://localhost:8091/api/v1/internal/orga/agences/{{AGENCE_X}}</code> répond avec zone et prestataire.</td></tr>
+<tr><td>3</td><td><code>api-gateway-ci</code> (<code>qlickflow.security.auth-mode: mock</code>)</td><td>9090</td><td>Route <code>qf-fund-management</code> présente.</td></tr>
+<tr><td>4</td><td><code>fund-management</code> (container)</td><td>8300</td><td>Worker abonné, Flyway V4 à jour. <code>GET http://localhost:8300/cash</code> sans Bearer → <b>401</b> (B2 actif).</td></tr>
+<tr><td>5</td><td><code>fund-management-front</code> : <code>npm install</code> puis <code>ng serve --port 4200</code></td><td>4200</td><td>Voir la remarque CORS ci-dessous.</td></tr>
+</table>
+<div class="warn"><b>Port du front.</b> La gateway n'autorise en CORS que les origines connues (celle du shell portail-ci, a priori <code>http://localhost:4200</code>). Arrête le shell et sers le front sur 4200. Si la console affiche une erreur CORS sur les appels vers <code>localhost:9090</code>, c'est ce point et pas le code de l'écran. Le cookie <code>QF_MOCK_SESSION</code> posé par la gateway est partagé entre ports sur <code>localhost</code> : il est bien envoyé par le front (<code>withCredentials</code> posé par l'intercepteur).</div>
+
+<h3>1.3 Contrôle du schéma retail</h3>
+<pre><button class="copy">Copier</button><code data-tpl>SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'retail' AND table_name = 'cash_request'
+ORDER BY ordinal_position;
+-- attendu V3 : locked_by, cancellation_origin, cancellation_reason, submitted_at, request_comment
+-- attendu V4 : agence_nom, zone_code, zone_nom, prestataire, prestataire_nom, urgent
+
+SELECT pg_get_constraintdef(c.oid)
+FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid
+JOIN pg_namespace n ON n.oid = t.relnamespace
+WHERE n.nspname = 'retail' AND t.relname = 'cash_request' AND c.contype = 'c';
+-- attendu : la liste des statuts contient IN_MODIFICATION</code></pre>
+</div>
+
+<h2>2. Données de test</h2>
+<div class="card">
+<p>Un utilisateur qui crée ou soumet une demande doit exister <b>dans les deux bases</b> : <code>qf_admin.users</code> (profil, agence, permissions) et <code>retail.user_profile</code> (sinon 422 « le demandeur n'existe pas dans le référentiel »). Le seed retail ne contient que <code>j43709</code> et <code>j08221</code> : ce sont les deux acteurs agence. La Caisse Centrale ne crée pas de demande : n'importe quel uid de <code>qf_admin.users</code> convient.</p>
+<table>
+<tr><th>Persona</th><th>uid</th><th>Profil (qf_admin)</th><th>Agence</th><th>Permissions GDF attendues</th><th>Rôle dans les tests</th></tr>
+<tr><td>A — Directeur d'agence</td><td><code>j43709</code></td><td>2 DA (rôle 10)</td><td>X</td><td>CONSULTER, CREER, MODIFIER, ANNULER</td><td>Crée, soumet, modifie, annule.</td></tr>
+<tr><td>B — Chef de caisse</td><td><code>j08221</code></td><td>9 CHEF_CAISSE (rôle 10)</td><td>X, puis Y en S16</td><td>idem A</td><td>Verrou concurrent, visibilité inter-agences.</td></tr>
+<tr><td>C — Caisse Centrale</td><td><code>{{UID_CC}}</code></td><td>10 CAISSE_CENTRALE (rôle 11)</td><td>aucune</td><td>CONSULTER, TRAITER, ANNULER, TOUTES_AGENCES</td><td>Listing toutes agences, Traiter / Annuler.</td></tr>
+<tr><td>D — Super Admin</td><td><code>h11111</code></td><td>7 SA (V17)</td><td>aucune</td><td>CONSULTER, TOUTES_AGENCES</td><td>Lecture seule toutes agences.</td></tr>
+</table>
+<pre><button class="copy">Copier</button><code data-tpl>SET search_path TO qf_admin;
+
+-- 1) Deux agences disponibles pour X et Y (X doit avoir zone_distribution_id et prestataire renseignés — écran 259)
+SELECT o.code, o.name, z.code AS zone, o.prestataire
+FROM orga_unit o LEFT JOIN zone_distribution z ON z.id = o.zone_distribution_id
+WHERE o.type = 'AGENCE' AND o.actif ORDER BY o.code LIMIT 5;
+
+-- 2) Mise en place (une seule fois)
+UPDATE users SET profile_id = 2,  organization_unit_id = (SELECT id FROM orga_unit WHERE code = '{{AGENCE_X}}' AND type = 'AGENCE') WHERE uid = 'j43709';
+UPDATE users SET profile_id = 9,  organization_unit_id = (SELECT id FROM orga_unit WHERE code = '{{AGENCE_X}}' AND type = 'AGENCE') WHERE uid = 'j08221';
+UPDATE users SET profile_id = 10, organization_unit_id = NULL WHERE uid = '{{UID_CC}}';
+
+-- 3) Contrôle : chaque persona doit avoir exactement les permissions de la table ci-dessus
+SELECT u.uid, p.code AS profil, o.code AS agence,
+       string_agg(DISTINCT rp.permission, ', ' ORDER BY rp.permission) AS permissions
+FROM users u
+JOIN hab_profiles p ON p.id = u.profile_id
+LEFT JOIN orga_unit o ON o.id = u.organization_unit_id
+JOIN hab_profile_role pr ON pr.profile_id = p.id
+JOIN hab_role_permission rp ON rp.role_id = pr.role_id AND rp.permission LIKE 'GDF_%'
+WHERE u.uid IN ('j43709', 'j08221', '{{UID_CC}}', 'h11111')
+GROUP BY u.uid, p.code, o.code ORDER BY u.uid;</code></pre>
+<div class="warn">Si une permission manque sur une ligne, un bouton sera caché en démo : corrige les rôles avant de commencer. Colonnes <code>profile_id</code> / <code>organization_unit_id</code> comme en V10.</div>
+</div>
+
+<h2>3. Se connecter et changer d'utilisateur</h2>
+<div class="card">
+<p>Le front autonome n'a pas de page de login (c'est le shell qui la porte). En mode mock, on pose le cookie directement sur la gateway :</p>
+<ol>
+<li>Ouvre <code>http://localhost:9090/api/v1/public/users/me</code> dans un onglet (un 401 est normal à ce stade).</li>
+<li>Dans la console DevTools de cet onglet, exécute la ligne ci-dessous avec l'uid voulu.</li>
+<li>Recharge l'onglet : le JSON de <code>/me</code> doit montrer le bon <code>uid</code>, <code>orgaUnit.code</code> = agence attendue, et des permissions <code>GDF_*</code> sous un rôle de plateforme <code>GESTION_FONDS</code>.</li>
+<li>Recharge le front (F5) : le contexte utilisateur est relu à chaque chargement de l'application.</li>
+</ol>
+<pre><button class="copy">Copier</button><code>fetch('/mock-auth/login?uid=j43709', { method: 'POST', credentials: 'include' }).then(r => console.log(r.status));</code></pre>
+<p>Changer d'utilisateur = relancer la ligne avec un autre uid, puis F5 sur le front. Pour tenir deux utilisateurs en même temps (S07), utilise une fenêtre de navigation privée pour B : les cookies y sont séparés.</p>
+<div class="lbl">Contrôle réseau à faire une fois</div>
+<p>DevTools &gt; Réseau, sur n'importe quel appel <code>…/fund-management/cash…</code> : cookie <code>QF_MOCK_SESSION</code> envoyé, et <b>plus aucun</b> en-tête <code>X-Uid</code> / <code>X-Branch-Code</code> (B2). Côté fund-management, aucun log WARN « Contexte appelant transitoire » : s'il apparaît, la chaîne de sécurité n'a pas posé l'authentification. Un log DEBUG « Auth &gt;&gt; uid=… agence=… toutesAgences=… » par premier appel de chaque persona (puis cache 5 min).</p>
+</div>
+
+<h2>4. Outils de contrôle réutilisés dans chaque scénario</h2>
+<div class="card">
+<h3>4.1 Fiche SQL de la demande (base fund-management)</h3>
+<pre><button class="copy">Copier</button><code data-tpl>-- Dernières demandes (pour récupérer l'id si besoin)
+SELECT id, unique_request_ref, request_status, branch_code, creation_date
+FROM retail.cash_request ORDER BY creation_date DESC LIMIT 5;
+
+-- En-tête de la demande testée (V3 + photo de l'agence V4)
+SELECT unique_request_ref, request_status, branch_code, agence_nom, zone_code, zone_nom, prestataire, prestataire_nom, urgent,
+       locked_by, submitted_at, cancellation_origin, cancellation_reason, request_comment,
+       creation_date, modification_date
+FROM retail.cash_request WHERE id = '{{ID}}';
+
+-- Opérations de la demande
+SELECT operation_type, operation_sens, operation_status, is_urgent, total_amount
+FROM retail.cash_operation WHERE cash_request_id = '{{ID}}' ORDER BY operation_type;</code></pre>
+
+<h3>4.2 Position du jeton (moteur Camunda)</h3>
+<p>Cockpit (édition Community) n'affiche que les instances en cours. Pour la tâche active et l'historique, utilise l'API REST du moteur (GET dans le navigateur ou Postman). La businessKey de l'instance est l'id de la demande.</p>
+<pre><button class="copy">Copier</button><code data-tpl>-- Tâche humaine active (taskDefinitionKey attendue dans chaque scénario)
+{{CAMUNDA}}/task?processInstanceBusinessKey={{ID}}&amp;tenantIdIn={{TENANT}}
+
+-- Instance (en cours ou terminée) : récupérer son id
+{{CAMUNDA}}/history/process-instance?processInstanceBusinessKey={{ID}}&amp;tenantIdIn={{TENANT}}
+
+-- Parcours complet du jeton, dans l'ordre (remplace &lt;PI&gt; par l'id ci-dessus)
+{{CAMUNDA}}/history/activity-instance?processInstanceId=&lt;PI&gt;&amp;sortBy=startTime&amp;sortOrder=asc
+
+-- Variables de l'instance (urgent, modifiePar, motifAnnulation, decisionCaisseCentrale…)
+{{CAMUNDA}}/history/variable-instance?processInstanceId=&lt;PI&gt;</code></pre>
+
+<h3>4.3 Correspondance statuts back / écran</h3>
+<table>
+<tr><th>request_status (base)</th><th>cancellation_origin</th><th>Statut écran</th><th>Tâche humaine active</th></tr>
+<tr><td>INITIATED</td><td>—</td><td>INITIEE</td><td><code>Task_SoumettreDemande</code></td></tr>
+<tr><td>SUBMITTED</td><td>—</td><td>SOUMISE</td><td><code>Task_TraitementCaisseCentrale</code></td></tr>
+<tr><td>IN_MODIFICATION</td><td>—</td><td>EN_MODIFICATION</td><td><code>Task_ModifierDemande</code></td></tr>
+<tr><td>VALIDATED</td><td>—</td><td>TRAITEE</td><td>aucune (instance terminée)</td></tr>
+<tr><td>CANCELLED</td><td>CREATEUR</td><td>ANNULEE_AGENCE</td><td>aucune</td></tr>
+<tr><td>CANCELLED</td><td>CAISSE_CENTRALE</td><td>ANNULEE_CAISSE_CENTRALE</td><td>aucune</td></tr>
+</table>
+
+<h3>4.4 Hors démo — trois contrôles API optionnels (Postman)</h3>
+<p>Tout le fonctionnel se teste depuis les écrans (§5). Les trois cas ci-dessous vérifient que le back tient les règles même quand on contourne l'écran ; personne ne les verra en démo, ils sont là si tu veux te rassurer avant. Postman doit passer par la gateway avec le cookie mock : <code>POST http://localhost:9090/mock-auth/login?uid=…</code> (cookie gardé automatiquement), puis les appels sur <code>http://localhost:9090/api/v1/public/fund-management/cash…</code>.</p>
+<pre><button class="copy">Copier</button><code data-tpl>// 1) 403 par permission : login h11111, puis
+PATCH http://localhost:9090/api/v1/public/fund-management/cash/{{ID}}/complete-task   { "decision": "TRAITEE" }
+// attendu 403, $.success=false, $.error="403"  (500 = bloc AccessDeniedException du handler absent)
+
+// 2) Verrou tenu par le back : A en modification, login j08221, puis
+PUT http://localhost:9090/api/v1/public/fund-management/cash/{{ID}}   (corps de la demande)
+// attendu 403 « verrouillée par un autre agent »
+
+// 3) Journée clôturée : login j43709 après 17h30 (ou clôture-journée abaissée), puis
+PATCH http://localhost:9090/api/v1/public/fund-management/cash/{{ID}}/modification/start
+// attendu 409 « Journée clôturée »</code></pre>
+</div>
+
+<h2>5. Scénarios</h2>
+<p>Ordre conseillé : <b>S21 → S22</b> (sécurité et photo de l'agence, 5 min), puis <b>S01 → S13</b> (agence, persona A), puis <b>S23 → S30</b> (Caisse Centrale, persona C, fenêtre privée), puis S16, S17, S19, S20. Reporte l'id de la demande dans la barre du haut à chaque nouvelle demande. Les cases OK / KO, les notes et le rapport (§6) sont ce que tu m'envoies en cas de problème.</p>
+
+<div id="scenarios"></div>
+
+<h2>6. Rapport</h2>
+<div class="card">
+<p><button class="btn" id="btn-rapport">Copier le rapport</button> <button class="btn sec" id="btn-reset">Tout remettre à « À faire »</button></p>
+<pre id="rapport-apercu"><code></code></pre>
+</div>
+
+</main>
+
+<script>
+/* ---------------- scénarios ---------------- */
+const S = [
+{id:'S01',t:'Ouverture de l\'écran de création = brouillon + instance',
+ ui:['Connecté en A, ouvre <code>http://localhost:4200/</code>.','Réseau : un <code>POST …/cash/init</code> part au chargement, réponse 201.','L\'écran affiche le formulaire vide (Alimentation Caisse, GAB, Commande Devises, Ramassage, commentaire) avec les boutons Annuler / Soumettre.'],
+ db:['Une nouvelle ligne : <code>request_status = INITIATED</code>, <code>branch_code</code> = agence X, <code>submitted_at</code> vide, aucune opération.','<code>unique_request_ref</code> au format <code>RT-2026-NNNNNN</code>.'],
+ wf:['Instance créée, businessKey = id de la demande.','Historique : <code>Task_InitierDemande</code> terminée, tâche active <code>Task_SoumettreDemande</code> (assignee = j43709).'],
+ note:'Chaque ouverture de l\'écran de création crée un brouillon : c\'est le comportement voulu (pas de purge). Recharger la page = un brouillon de plus.'},
+{id:'S02',t:'Soumission d\'une demande complète',
+ ui:['Sur le brouillon de S01 : saisis des billets en Caisse (ex. 10 × 200), une cassette GAB, une ligne Commande Devises (EUR), une ligne Ramassage MAD, un commentaire, coche DEMANDE URGENTE.','Vérifie les totaux affichés (Total saisi, détail billets/pièces, Total GAB) avant d\'envoyer.','Soumettre : message de succès, retour au listing.'],
+ db:['<code>request_status = SUBMITTED</code>, <code>submitted_at</code> renseigné, <code>request_comment</code> = ton texte, <b><code>urgent = true</code></b> (posé à l\'enregistrement du contenu).','Opérations : ATM/SUPPLY, CASH_DESK/SUPPLY, CURRENCY/SUPPLY, CURRENCY/COLLECTION ; <code>is_urgent = true</code> ; <code>total_amount</code> = total calculé à l\'écran.'],
+ wf:['<code>Task_SoumettreDemande</code> terminée, <code>Task_InitialiserDemande</code> (worker) terminée, tâche active <code>Task_TraitementCaisseCentrale</code>.','Variable <code>urgent = true</code> ; <code>typeDemande = AGENCE</code>, <code>typeAgence = RETAIL</code>, <code>apresCutoff10 = false</code>.']},
+{id:'S03',t:'Contrôles de saisie avant envoi',
+ ui:['Nouvel écran de création, clique Soumettre sans rien saisir : message « formulaire vide », aucun appel <code>/submit</code> dans l\'onglet Réseau.','Saisis une quantité négative ou un montant invalide : message « corriger les champs », aucun appel.','Commande Devises : le bouton Ajouter reste inactif sans devise ou sans montant.'],
+ db:['Le brouillon créé à l\'ouverture reste INITIATED, sans opération.'],
+ wf:['Le jeton reste sur <code>Task_SoumettreDemande</code>.']},
+{id:'S04',t:'Consultation d\'une demande soumise',
+ ui:['Ouvre la demande de S02 depuis le listing (ou <code>/consultation/&lt;id&gt;</code>).','En-tête : chip du statut SOUMISE, « Demande Réf RT-… », « Soumise le … par … », badge urgent figé.','Les champs sont en lecture seule, les montants saisis en S02 sont réaffichés à l\'identique, le commentaire aussi.','Boutons visibles : Retour au listing, Annuler la demande, Modifier la demande. Pas de Soumettre.'],
+ db:['Aucune écriture : <code>modification_date</code> inchangée.'],
+ wf:['Aucun changement (tâche Caisse Centrale toujours active).']},
+{id:'S05',t:'Modification enregistrée (verrou pris puis rendu)',
+ ui:['En consultation SOUMISE, clique « Modifier la demande » : le bouton passe à « Verrouillage… » puis l\'écran bascule en mode modification.','Change une quantité et le commentaire, décoche URGENTE, puis Enregistrer : message de succès, retour en consultation avec les nouvelles valeurs.'],
+ db:['Pendant l\'édition (requête lancée avant Enregistrer) : <code>IN_MODIFICATION</code>, <code>locked_by = j43709</code>.','Après Enregistrer : <code>SUBMITTED</code>, <code>locked_by</code> vide, opérations et commentaire mis à jour, <code>submitted_at</code> inchangé.'],
+ wf:['Pendant l\'édition : tâche active <code>Task_ModifierDemande</code> (assignee j43709), <b>plus aucune tâche Caisse Centrale</b>.','Après : <code>Task_AppliquerModification</code> terminée, nouvelle <code>Task_TraitementCaisseCentrale</code> active ; variables <code>modificationConfirmee = true</code>, <code>urgent = false</code>.','Log fund-management : <code>[gdf-appliquer-modification] demande … → modificationConfirmee=true</code>.']},
+{id:'S06',t:'Modification abandonnée',
+ ui:['Consultation SOUMISE → Modifier la demande → change une valeur → Annuler.','Retour en consultation : les valeurs d\'avant sont affichées.'],
+ db:['<code>SUBMITTED</code>, <code>locked_by</code> vide, contenu identique à avant la modification.'],
+ wf:['<code>Task_ModifierDemande</code> complétée avec <code>modificationConfirmee = false</code>, nouvelle <code>Task_TraitementCaisseCentrale</code> active.']},
+{id:'S07',t:'Verrou concurrent entre deux agents de la même agence',
+ ui:['A (fenêtre normale) : consultation SOUMISE → Modifier la demande, reste sur l\'écran de modification.','B (fenêtre privée, <code>j08221</code>, même agence X) : ouvre la même demande en consultation. Attendu : statut EN_MODIFICATION, pas de bouton Modifier, indication du détenteur du verrou (j43709).','B force l\'URL <code>/modification/&lt;id&gt;</code> : message d\'avertissement et renvoi en consultation.','A enregistre : B recharge et voit SOUMISE, le bouton Modifier réapparaît pour B.'],
+ db:['Pendant : <code>locked_by = j43709</code> ; aucune écriture par B.'],
+ wf:['Un seul <code>Task_ModifierDemande</code>, assignee j43709.'],
+ note:'La règle est aussi tenue par le back (409/403 si on force la requête) : hors démo, voir §4.4 point 2.'},
+{id:'S08',t:'Expiration du verrou (timer BPMN)',
+ ui:['Avec <code>gdf.verrou-modification-duree: PT2M</code> : A entre en modification puis ferme l\'onglet sans enregistrer.','Après un peu plus de 2 minutes (le worker interroge le moteur par cycles), recharge la consultation : SOUMISE, bouton Modifier disponible.'],
+ db:['Passage automatique <code>IN_MODIFICATION → SUBMITTED</code>, <code>locked_by</code> vidé.'],
+ wf:['Le boundary timer du verrou a déclenché, <code>Task_AppliquerModification</code> terminée sans variable <code>modificationConfirmee</code>, <code>Task_TraitementCaisseCentrale</code> de nouveau active.','Log : <code>modificationConfirmee=(expiration du verrou)</code>.'],
+ note:'Remettre PT30M après ce scénario.'},
+{id:'S09',t:'La Caisse Centrale ne peut pas traiter pendant une modification',
+ ui:['A entre en modification (sans enregistrer).','C (fenêtre privée) : dans le listing Caisse Centrale, filtre Statut « En modification » → la demande apparaît <b>sans</b> boutons Traiter / Annuler.'],
+ db:['Demande toujours <code>IN_MODIFICATION</code>.'],
+ wf:['Toujours <code>Task_ModifierDemande</code> active, aucune tâche Caisse Centrale.'],
+ note:'Termine ensuite la modification (Enregistrer ou Annuler) pour libérer la demande.'},
+{id:'S10',t:'Annulation d\'une demande soumise par l\'agence',
+ ui:['Consultation SOUMISE → Annuler la demande : un champ motif apparaît ; avec moins de 10 caractères la confirmation est refusée.','Motif valide (≥ 10 caractères) → confirmer. La réponse revient avec le statut encore SOUMISE, puis après ~1 s (recharge) : ANNULEE_AGENCE, motif affiché, plus aucun bouton d\'action.'],
+ db:['<code>CANCELLED</code>, <code>cancellation_origin = CREATEUR</code>, <code>cancellation_reason</code> = motif, toutes les opérations <code>CANCELLED</code>.'],
+ wf:['Message <code>msgAnnulerDemande</code> corrélé, worker <code>gdf-annuler-demande</code> exécuté, instance terminée ; variables <code>annulePar = j43709</code>, <code>motifAnnulation</code>.']},
+{id:'S11',t:'Annulation d\'un brouillon',
+ ui:['Ouvre l\'écran de création (nouveau brouillon), note l\'id (listing ou requête 4.1), va en consultation de ce brouillon, Annuler la demande avec motif.'],
+ db:['<code>CANCELLED</code>, origine <code>CREATEUR</code>.'],
+ wf:['Instance terminée depuis <code>Task_SoumettreDemande</code> (l\'annulation est reçue à toute étape).'],
+ note:'Si l\'appel revient en 502 ou si la demande reste INITIATED : le message d\'annulation n\'est pas reçu au stade brouillon dans la v4.1 déployée — noter en KO avec la réponse.'},
+{id:'S12',t:'Brouillon : reprise, modification sans verrou puis soumission depuis la consultation',
+ ui:['Nouveau brouillon, saisis une ligne GAB puis quitte sans soumettre (Retour au listing).','Ouvre le brouillon en consultation : statut INITIEE, boutons Modifier la demande, Annuler la demande et Soumettre.','Modifier la demande : pas d\'étape « Verrouillage… » (pas de verrou sur un brouillon), modifie, Enregistrer.','En consultation, clique Soumettre.'],
+ db:['Après Enregistrer : toujours <code>INITIATED</code>, <code>locked_by</code> vide, contenu mis à jour.','Après Soumettre : <code>SUBMITTED</code>, <code>submitted_at</code> posé.'],
+ wf:['Aucun passage par <code>Task_ModifierDemande</code> ; <code>Task_SoumettreDemande</code> complétée à la soumission, puis <code>Task_TraitementCaisseCentrale</code>.'],
+ note:'Si « Soumettre » est refusé parce que le brouillon n\'a pas été enregistré avec au moins une opération : 422 attendu avec le message « au moins une opération ».'},
+{id:'S13',t:'Cut-off 16h00 : demande verrouillée',
+ ui:['Sur une demande SOUMISE, simule une soumission de la veille (SQL ci-dessous), puis recharge la consultation.','Attendu : bandeau « Lecture seule » avec le motif de cut-off, plus de bouton Modifier ni Annuler.'],
+ db:['<code>UPDATE retail.cash_request SET submitted_at = submitted_at - interval \'1 day\' WHERE id = \'&lt;id&gt;\';</code>','Contrôle API : <code>GET …/cash/&lt;id&gt;</code> renvoie <code>journeeCloturee = true</code>.'],
+ wf:['Inchangé (le verrouillage cut-off est calculé par le back à partir de <code>submitted_at</code>).'],
+ note:'Même règle côté back (409 « Journée clôturée » si on force) : hors démo, §4.4 point 3.'},
+{id:'S16',t:'Visibilité : un agent ne voit que son agence',
+ ui:['Déplace B vers l\'agence Y (SQL ci-dessous), reconnecte B, F5.','Listing de B : aucune demande de l\'agence X.','B ouvre <code>/consultation/&lt;id d\'une demande de X&gt;</code> : message d\'erreur (403), aucune donnée affichée.','B crée une demande : <code>branch_code</code> = Y.'],
+ db:['<code>UPDATE qf_admin.users SET organization_unit_id = (SELECT id FROM qf_admin.orga_unit WHERE code = \'&lt;agence Y&gt;\' AND type = \'AGENCE\') WHERE uid = \'j08221\';</code>','La demande créée par B porte l\'agence Y.'],
+ wf:['Instance de la demande de B : <code>agenceCode</code> = Y.'],
+ note:'Remettre B dans l\'agence X ensuite si tu rejoues S07.'},
+{id:'S17',t:'Garde de route sur les permissions',
+ ui:['Connecte un utilisateur sans aucune permission GDF (profil CONSEILLER ou DIE, par exemple) et ouvre <code>http://localhost:4200/</code> puis <code>/list</code>.','Attendu : zone centrale vide (garde), menu sans aucune entrée, aucun <code>POST /init</code> ne part.','Connecte h11111 et ouvre <code>/</code> : redirection automatique vers <code>/caisse-centrale</code> (pas de GDF_CREER_DEMANDE) ; <code>/list</code> reste accessible.'],
+ db:['Aucune nouvelle ligne dans <code>retail.cash_request</code>.'],
+ wf:['Aucune nouvelle instance.']},
+{id:'S18',t:'Profil « toutes agences » : consultation autorisée (correctif B2)',
+ ui:['Connecte h11111, ouvre <code>/consultation/&lt;id d\'une demande de X&gt;</code>.','Attendu : la demande s\'affiche en lecture seule, motif « Consultation seule : la décision se prend depuis le listing Caisse Centrale ». Aucun bouton Modifier / Annuler / Soumettre.'],
+ db:['—'],
+ wf:['—'],
+ note:'Ce matin ce cas était KO (en-têtes transitoires) ; avec B2 le contexte porte <code>toutesAgences = true</code>. Log fund-management : « Auth &gt;&gt; uid=h11111 agence=null toutesAgences=true ».'},
+{id:'S19',t:'Réinitialisation des sections en modification',
+ ui:['Mode modification d\'une demande SOUMISE : lien « Réinitialiser l\'alimentation caisse » puis « Réinitialiser GAB ».','Les quantités de la section concernée repassent à 0, les autres sections ne bougent pas ; Enregistrer.'],
+ db:['L\'opération CASH_DESK (ou ATM) n\'existe plus si la section est vide ; les autres opérations sont intactes.'],
+ wf:['Comme S05.']},
+{id:'S20',t:'Rechargement et navigation',
+ ui:['En consultation, F5 : la demande est rechargée à l\'identique.','En modification, F5 : l\'écran reste en modification tant que la demande est IN_MODIFICATION et que tu détiens le verrou.','Retour au listing depuis la consultation, puis réouverture : pas de message de succès ou d\'erreur rejoué d\'une action précédente.'],
+ db:['Aucune écriture due aux rechargements (hors S01 : l\'écran de création crée un brouillon).'],
+ wf:['Inchangé.']},
+{id:'S21',t:'Sécurité B2 : rien ne passe sans session (navigateur seul)',
+ ui:['Fenêtre privée, sans login : <code>http://localhost:9090/api/v1/public/fund-management/cash</code> → page 401.','Même fenêtre : <code>http://localhost:4200/</code> → zone centrale vide, aucun menu, <code>/me</code> en 401 dans le Réseau, aucun <code>POST …/cash/init</code>.','Toujours sans login : <code>http://localhost:8300/cash</code> → 401 (le microservice lui-même refuse un appel sans jeton, plus seulement la gateway).','Connecte h11111 (§3) puis <code>http://localhost:4200/caisse-centrale</code> : la page s\'ouvre, les demandes sont là, <b>aucun</b> bouton Traiter / Annuler (pas de GDF_TRAITER_DEMANDE) ; <code>/</code> redirige vers <code>/caisse-centrale</code> (pas de GDF_CREER_DEMANDE).','Connecte j43709 : <code>http://localhost:4200/caisse-centrale</code> → refusé par la garde (zone vide), le menu n\'a pas l\'entrée Caisse Centrale.'],
+ db:['Aucune écriture.'],
+ wf:['Aucune instance créée.'],
+ note:'Le 403 par permission (un utilisateur authentifié qui force un endpoint sans l\'habilitation) n\'est pas déclenchable depuis l\'écran, puisque les boutons sont cadrés : c\'est le point 1 de §4.4, hors démo.'},
+{id:'S22',t:'Photo de l\'agence à l\'initialisation (V4)',
+ ui:['Connecté en A, ouvre <code>/</code> (un brouillon est créé).','Réseau : la réponse du <code>POST …/cash/init</code> contient <code>agenceNom</code>, <code>zoneCode</code>, <code>zoneNom</code>, <code>prestataire</code> (BRINKS ou G4S), <code>prestataireNom</code>.'],
+ db:['<code>agence_nom</code>, <code>zone_code</code>, <code>zone_nom</code>, <code>prestataire</code>, <code>prestataire_nom</code> renseignés sur la nouvelle ligne ; <code>urgent = false</code>.'],
+ wf:['Inchangé (S01).'],
+ note:'Champs vides → users ne répond pas (log WARN « Référentiel agences (users) indisponible ») ou l\'agence X n\'a ni zone ni prestataire dans la console. Contrôle direct : <code>GET http://localhost:8091/api/v1/internal/orga/agences/&lt;agence X&gt;</code>.'},
+{id:'S23',t:'Listing Caisse Centrale : accès, page, colonnes',
+ ui:['Connecte C (fenêtre privée), ouvre <code>/</code> : redirection vers <code>/caisse-centrale</code>.','Menu : « Caisse Centrale » présent, « Historique Demandes » présent, <b>pas</b> de « Nouvelle Demande ». En-tête du menu : « Caisse Centrale » + libellé du profil (plus de « 1001 - Nations Unies »).','Page : titre, 4 cartes KPI (valeurs statiques 14 / 3 / 28 / 10), barre de filtres (Urgentes, Statut = En attente par défaut, Transporteur, Zone, Recherche), tableau avec les colonnes Référence, Urgence, Agence émettrice &amp; zone, Transporteur, Heure demande, Contenu, Statut, Actions.','La demande de S02 apparaît : code + nom d\'agence, uid de l\'agent, zone, badge transporteur (noir Brink\'s / rouge G4S), chips de contenu, chip « En attente », boutons Détail / Traiter / Annuler.'],
+ db:['Aucune écriture.'],
+ wf:['—'],
+ note:'Réseau : <code>GET …/cash?statut=SUBMITTED&amp;page=0&amp;size=20</code> et <code>GET …/users/orga/agences</code> (200 : l\'annotation users est en place ; 403 : listes déroulantes vides, avertissement sous les filtres).'},
+{id:'S24',t:'Listing Caisse Centrale : les 5 filtres sont serveur',
+ ui:['Prépare : une demande urgente Brink\'s (S02) et une demande <b>non urgente</b> créée par A.','« Demandes urgentes uniquement » → seule l\'urgente reste. Réseau : <code>urgent=true</code> dans l\'URL.','Transporteur = celui de X → les deux restent ; Transporteur = l\'autre → liste vide + message « Aucune demande ». Réseau : <code>prestataire=…</code>.','Zone = celle de X → les deux restent ; autre zone → vide. Réseau : <code>zone=…</code>.','Statut = Traitée → vide pour l\'instant ; Tous les statuts → brouillons inclus.','Recherche = les 6 derniers caractères de la référence → une seule ligne. Chaque changement de filtre remet la pagination à la page 1.'],
+ db:['Contre-preuve : <code>SELECT count(*) FROM retail.cash_request WHERE request_status = \'SUBMITTED\' AND urgent AND prestataire = \'BRINKS\';</code> = nombre de lignes affichées.'],
+ wf:['—'],
+ note:'Une demande créée avant V4 (sans photo) n\'apparaît jamais dans les filtres zone / transporteur : c\'est attendu, d\'où la purge en 1.1.'},
+{id:'S25',t:'Traiter depuis le listing Caisse Centrale',
+ ui:['C : sur une demande En attente, « Traiter » → panneau « Traiter la demande RT-… ? » → « Confirmer le traitement ».','Message « le statut sera mis à jour dans quelques secondes », puis la ligne disparaît du filtre « En attente » ; Statut = Traitée → chip <b>Traitée</b>, plus de boutons Traiter / Annuler.','A (fenêtre normale) : consultation de la demande → « Traitée le … par la Caisse Centrale », lecture seule.'],
+ db:['<code>VALIDATED</code>, opérations <code>VALIDATED</code>.'],
+ wf:['<code>Task_TraitementCaisseCentrale</code> complétée avec <code>decisionCaisseCentrale = TRAITEE</code>, worker <code>gdf-cloturer-demande</code>, instance terminée.']},
+{id:'S26',t:'Annuler depuis le listing Caisse Centrale (décision, motif obligatoire)',
+ ui:['A crée et soumet une nouvelle demande.','C : « Annuler » → panneau avec motif ; avec 5 caractères le bouton « Confirmer l\'annulation » reste inactif et l\'erreur s\'affiche ; avec ≥ 10 caractères → confirmer.','Après rafraîchissement : chip <b>Annulée (Caisse Centrale)</b>.','A : consultation → motif d\'annulation dans l\'en-tête, aucun bouton.'],
+ db:['<code>CANCELLED</code>, <code>cancellation_origin = CAISSE_CENTRALE</code>, <code>cancellation_reason</code> = motif.'],
+ wf:['Worker <code>gdf-annuler-demande</code> avec origine Caisse Centrale, instance terminée.'],
+ note:'À ne pas confondre avec S10 (annulation agence, origine CREATEUR, via <code>msgAnnulerDemande</code>) : deux chemins, deux origines.'},
+{id:'S27',t:'Détail depuis le listing Caisse Centrale = consultation en lecture seule',
+ ui:['C : « Détail » sur une demande En attente → écran de consultation.','Attendu : contenu affiché, bandeau « Consultation seule : la décision se prend depuis le listing Caisse Centrale », <b>aucun</b> bouton Modifier / Annuler la demande / Soumettre (la Caisse Centrale n\'a pas les actions agence, même avec GDF_ANNULER_DEMANDE).','Retour arrière du navigateur → listing, filtres conservés.'],
+ db:['Aucune écriture.'],
+ wf:['—']},
+{id:'S28',t:'Menu et en-tête par profil',
+ ui:['A : menu « Réseau Agence » + « &lt;code&gt; - &lt;nom&gt; » de l\'agence X (valeur de /me, plus « 1001 - Nations Unies ») ; entrées Nouvelle Demande + Historique ; pas de Caisse Centrale.','C : « Caisse Centrale » + libellé du profil ; entrées Historique + Caisse Centrale ; pas de Nouvelle Demande.','h11111 : idem C, Historique + Caisse Centrale.','Header (bandeau haut) : nom complet et profil de la persona connectée ; « Accueil » renvoie vers <code>http://localhost:4200</code> (portail).'],
+ db:['—'],
+ wf:['—']},
+{id:'S29',t:'Historique agence (listing existant) après B2',
+ ui:['A : <code>/list</code> → uniquement les demandes de l\'agence X, filtres période / agence / type / statut / recherche inchangés, export CSV OK.','h11111 : <code>/list</code> → demandes de toutes les agences (contexte toutesAgences).'],
+ db:['—'],
+ wf:['—'],
+ note:'Réseau : plus d\'en-têtes X-Uid ; le filtrage par agence est fait par le use case à partir du Bearer.'},
+{id:'S30',t:'Super Admin / Support sur le listing Caisse Centrale : lecture seule',
+ ui:['h11111 : <code>/caisse-centrale</code> accessible, mêmes lignes que C, <b>sans</b> boutons Traiter / Annuler (pas de GDF_TRAITER_DEMANDE) ; « Détail » fonctionne (S18).'],
+ db:['—'],
+ wf:['—']}
+];
+
+/* ---------------- rendu ---------------- */
+const KEY='sprint3-guide-e2e';
+const store=(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}})();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){}}
+const li=a=>'<ul>'+a.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
+const box=document.getElementById('scenarios');
+S.forEach(s=>{
+  const st=(store.sc&&store.sc[s.id])||{etat:'todo',note:''};
+  const d=document.createElement('div');
+  d.className='sc '+(st.etat==='ok'?'ok':st.etat==='ko'?'ko':'');
+  d.innerHTML=`<div class="sc-h"><span class="id">${s.id}</span><b>${s.t}</b>
+  <select aria-label="Résultat ${s.id}"><option value="todo">À faire</option><option value="ok">OK</option><option value="ko">KO</option></select></div>
+  <div class="sc-b"><div class="lbl">À l'écran</div><ol>${s.ui.map(x=>'<li>'+x+'</li>').join('')}</ol>
+  <div class="cols"><div><div class="lbl">En base</div>${li(s.db)}</div><div><div class="lbl">Dans le moteur</div>${li(s.wf)}</div></div>
+  ${s.note?'<div class="warn">'+s.note+'</div>':''}
+  <textarea placeholder="Observations, réponse HTTP, capture…">${st.note||''}</textarea></div>`;
+  const sel=d.querySelector('select'),ta=d.querySelector('textarea');
+  sel.value=st.etat;
+  const maj=()=>{store.sc=store.sc||{};store.sc[s.id]={etat:sel.value,note:ta.value};
+    d.className='sc '+(sel.value==='ok'?'ok':sel.value==='ko'?'ko':'');save();progress();rapport();};
+  sel.addEventListener('change',maj);ta.addEventListener('input',maj);
+  box.appendChild(d);
+});
+
+/* ---------------- variables ---------------- */
+const VARS=['ID','AGENCE_X','AGENCE_Y','ZONE_X','UID_CC','CAMUNDA','TENANT'];
+const DEF={ID:'<ID>',AGENCE_X:'<AGENCE_X>',AGENCE_Y:'<AGENCE_Y>',ZONE_X:'<ZONE_X>',UID_CC:'<uid CC>',CAMUNDA:'<URL_MOTEUR>',TENANT:'<TENANT>'};
+const tpls=[...document.querySelectorAll('code[data-tpl]')];
+tpls.forEach(c=>c.dataset.src=c.textContent);
+function render(){
+  const v={};VARS.forEach(k=>{v[k]=(store.v&&store.v[k])||DEF[k]});
+  tpls.forEach(c=>{c.textContent=c.dataset.src.replace(/\{\{(\w+)\}\}/g,(m,k)=>v[k]??m)});
+}
+VARS.forEach(k=>{
+  const i=document.getElementById('v-'+k);
+  i.value=(store.v&&store.v[k])||'';
+  i.addEventListener('input',()=>{store.v=store.v||{};store.v[k]=i.value.trim();save();render();rapport();});
+});
+render();
+
+/* ---------------- progression, rapport ---------------- */
+function progress(){
+  const sc=store.sc||{};const ok=S.filter(s=>sc[s.id]&&sc[s.id].etat==='ok').length;
+  const ko=S.filter(s=>sc[s.id]&&sc[s.id].etat==='ko').length;
+  document.getElementById('ptxt').textContent=`${ok} / ${S.length} OK · ${ko} KO`;
+  document.querySelector('#bar div').style.width=(ok/S.length*100)+'%';
+}
+function texteRapport(){
+  const sc=store.sc||{};const lib={todo:'À FAIRE',ok:'OK',ko:'KO'};
+  const l=['Sprint 3 — résultats du guide de test de bout en bout ('+new Date().toLocaleString('fr-FR')+')',''];
+  S.forEach(s=>{const r=sc[s.id]||{etat:'todo',note:''};
+    l.push(`${s.id} [${lib[r.etat]}] ${s.t}`+(r.note?'\n    '+r.note.replace(/\n/g,'\n    '):''));});
+  return l.join('\n');
+}
+function rapport(){document.querySelector('#rapport-apercu code').textContent=texteRapport();}
+progress();rapport();
+document.getElementById('btn-rapport').onclick=e=>navigator.clipboard.writeText(texteRapport()).then(()=>{e.target.textContent='Rapport copié ✓';setTimeout(()=>e.target.textContent='Copier le rapport',1500)});
+document.getElementById('btn-reset').onclick=()=>{if(!confirm('Remettre tous les scénarios à « À faire » et effacer les notes ?'))return;store.sc={};save();location.reload();};
+
+/* ---------------- copie des blocs ---------------- */
+document.querySelectorAll('pre .copy').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(b.parentNode.querySelector('code').textContent).then(()=>{b.textContent='Copié ✓';setTimeout(()=>b.textContent='Copier',1500)}));
+</script>
+</body>
+</html>
