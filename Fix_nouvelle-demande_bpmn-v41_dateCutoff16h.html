@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fix — brouillon en échec au chargement de Nouvelle Demande (BPMN v3 actif + dateCutoff16h)</title>
+<style>:root{--bg:#0f1115;--card:#171a21;--bd:#262b36;--tx:#e6e8ee;--mut:#9aa3b2;--ac:#3ddc97;--ko:#e5484d;--warn:#f5a524;--code:#0b0d11}*{box-sizing:border-box}body{margin:0;font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}header{padding:24px 28px 14px;border-bottom:1px solid var(--bd)}h1{margin:0 0 4px;font-size:21px}header p{margin:0;color:var(--mut)}main{max-width:1100px;margin:0 auto;padding:16px 24px 70px}h2{font-size:18px;margin:30px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bd)}h3{font-size:15px;margin:22px 0 2px;color:var(--ac)}.tag{font-size:11px;background:#1d222c;border:1px solid var(--bd);border-radius:5px;padding:1px 7px;color:var(--warn);margin-left:8px;vertical-align:middle}.path{margin:0 0 6px;color:var(--mut);font-size:13px;font-family:ui-monospace,monospace}pre{position:relative;background:var(--code);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;overflow:auto;font-size:13px;line-height:1.45}code{font-family:ui-monospace,Consolas,monospace}.copy{position:absolute;top:8px;right:8px;background:#1d222c;border:1px solid var(--bd);color:var(--mut);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:12px}.note{color:var(--mut);font-size:14px;margin:6px 0 0}.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 18px;margin:12px 0}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:#1d222c}.ko{border-left:4px solid var(--ko);background:#2a1719;padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0}.warn{border-left:4px solid var(--warn);background:#2a2214;padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0}ol li{margin:5px 0}.chk{list-style:none;padding:0}.chk li{padding:6px 0;border-bottom:1px solid var(--bd)}.chk input{margin-right:10px}
+</style></head><body><header><h1>Fix — « La soumission a échoué (workflow indisponible) » au chargement de Nouvelle Demande</h1><p>fund-management + qlickflow-camunda-engine · 23/09/2026 · Postman uniquement · 5 étapes, 10 min</p></header><main>
+<h2>1. Diagnostic (ce que disent les logs)</h2>
+<div class="card">
+<table><tr><th>Symptôme</th><th>Cause</th></tr>
+<tr><td>Saga <code>initier-demande</code> : « Démarrage du processus » OK, puis <b>ÉCHEC</b> de « Complétion de la user task <code>Task_InitierDemande</code> », puis compensation avec <code>OptimisticLockingException</code> sur <code>DELETE ExternalTaskEntity</code>.</td><td>Le moteur exécute encore le <b>BPMN v3.0</b> : en v3 le processus part directement sur l'external task <code>Task_InitialiserDemande</code>, et la user task <code>Task_InitierDemande</code> n'existe pas. En v4.1 la première étape est cette user task. Le v4.1 n'a jamais été déployé (point PENDING du doc v4).</td></tr>
+<tr><td>Worker <code>gdf-initialiser-demande</code> : <code>TASK/CLIENT-01025 Cannot serialize variable 'dateCutoff16h'</code>, cause <code>Java 8 date/time type java.time.OffsetDateTime not supported</code>.</td><td>Le client external-task (camunda-external-task-client 7.21) sérialise une <code>Map&lt;String,Object&gt;</code> avec son propre Jackson, sans module JSR-310. Mon bloc livré le 22/09 passait un <code>OffsetDateTime</code> ; la note disait que le client le typait en Date comme <code>DemarrerProcessusStep</code> — faux, <code>DemarrerProcessusStep</code> passe par notre <code>typerVariables</code> REST. À corriger avant tout : sinon toute demande soumise reste bloquée sur ce worker même après le déploiement v4.1.</td></tr>
+</table>
+<p class="note">Les deux se cumulent : les instances v3 bloquées font tourner le worker en échec en boucle (une erreur par cycle d'acquisition), ce qui a aussi produit le conflit optimiste pendant la compensation.</p>
+</div>
+<h2>2. Étape 1 — corriger le worker</h2><h3>InitialiserDemandeHandler.java — dateCutoff16h en java.util.Date <span class="tag">ÉDITION</span></h3><p class="path">fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\InitialiserDemandeHandler.java  (Ctrl+F : dateCutoff16h)</p><pre><button class="copy">Copier</button><code>        // AER_LM-273 : le chemin cutoff 10h / Banque Privée est hors MVP → jamais emprunté.
+        boolean apresCutoff10 = false;
+        boolean apresCutoff16 = LocalTime.now().isAfter(LocalTime.of(16, 0));
+        // AER_LM-267 : le boundary timer 16h00 s&#x27;arme à l&#x27;entrée de SubProcess_Traitement avec cette date
+        // (jour d&#x27;effet = aujourd&#x27;hui, ou demain si soumise après 16h00 — même règle que CutoffPolicy).
+        // java.util.Date : seul type date que le client external-task sérialise nativement (DateValue).
+        LocalDate jourEffet = apresCutoff16 ? LocalDate.now().plusDays(1) : LocalDate.now();
+        Date dateCutoff16h = Date.from(jourEffet.atTime(16, 0).atZone(ZoneId.systemDefault()).toInstant());
+
+        Map&lt;String, Object&gt; variables = new HashMap&lt;&gt;();
+        variables.put(&quot;heureSoumission&quot;, OffsetDateTime.now().toString());
+        variables.put(&quot;apresCutoff10&quot;, apresCutoff10);
+        variables.put(&quot;apresCutoff16&quot;, apresCutoff16);
+        variables.put(&quot;dateCutoff16h&quot;, dateCutoff16h);
+        service.complete(task, variables);</code></pre><p class="note">Remplace le bloc de calcul existant (même périmètre que l'édition du 22/09). Import à ajouter : <code>import java.util.Date;</code>. Le timer <code>${dateCutoff16h}</code> du BPMN accepte une <code>Date</code>. Puis <b>redémarre fund-management</b>.</p><h2>3. Étape 2 — vérifier quelle version du processus est active</h2>
+<div class="card"><p>Postman, <b>GET</b> :</p>
+<pre><button class="copy">Copier</button><code>http://localhost:3030/engine-rest/process-definition?key=gestion-des-fonds&amp;latestVersion=true</code></pre>
+<p>Regarde <code>versionTag</code> dans la réponse : <code>"4.1"</code> → passe à l'étape 4 ; <code>"3.0"</code> (ton cas) → étape 3.</p></div>
+
+<h2>4. Étape 3 — déployer le BPMN v4.1</h2>
+<div class="card"><p>Postman, <b>POST</b> :</p>
+<pre><button class="copy">Copier</button><code>http://localhost:3030/engine-rest/deployment/create</code></pre>
+<p>Onglet <b>Body → form-data</b>, quatre lignes :</p>
+<table><tr><th>Key</th><th>Type</th><th>Value</th></tr>
+<tr><td>deployment-name</td><td>Text</td><td><code>gestion-des-fonds-v4.1</code></td></tr>
+<tr><td>enable-duplicate-filtering</td><td>Text</td><td><code>true</code></td></tr>
+<tr><td>tenant-id</td><td>Text</td><td>le tenant que fund-management envoie au moteur (même valeur que la propriété tenant du bloc <code>camunda</code> de son <code>application.yml</code>). Si fund-management n'envoie pas de tenant, <b>supprime cette ligne</b>.</td></tr>
+<tr><td>data</td><td><b>File</b></td><td><code>gestion-des-fonds_v4.1.bpmn</code> (le fichier livré avec la BPMN v4.1 ; il porte <code>camunda:versionTag="4.1"</code>)</td></tr></table>
+<p>Réponse 200 : <code>deployedProcessDefinitions</code> contient une définition avec <code>"versionTag": "4.1"</code>. Rejoue le GET de l'étape 2 pour confirmer que c'est elle la dernière.</p>
+<div class="warn">Le tenant doit être identique à celui de fund-management, sinon le démarrage de processus retombe sur la v3 (ou en 404 « no process definition »). Le moteur est en H2 fichier (<code>./camunda-h2-database</code>) : le déploiement est persistant entre deux redémarrages.</div></div>
+
+<h2>5. Étape 4 — purger les instances v3 et les demandes</h2>
+<div class="card"><p>Postman, <b>GET</b> :</p>
+<pre><button class="copy">Copier</button><code>http://localhost:3030/engine-rest/process-instance?processDefinitionKey=gestion-des-fonds</code></pre>
+<p>Pour chaque <code>id</code> de la réponse, <b>DELETE</b> :</p>
+<pre><button class="copy">Copier</button><code>http://localhost:3030/engine-rest/process-instance/&lt;id&gt;?skipCustomListeners=true</code></pre>
+<p>S'il y en a beaucoup, une seule requête <b>POST</b> <code>http://localhost:3030/engine-rest/process-instance/delete</code> avec le corps :</p>
+<pre><button class="copy">Copier</button><code>{ "processInstanceIds": ["&lt;id1&gt;", "&lt;id2&gt;"], "deleteReason": "purge v3", "skipCustomListeners": true }</code></pre>
+<p>Puis pgAdmin :</p>
+<pre><button class="copy">Copier</button><code>DELETE FROM retail.cash_operation;
+DELETE FROM retail.cash_request;</code></pre>
+<p class="note">Sans cette purge, le worker continue d'échouer en boucle sur les anciennes external tasks et la console reste rouge même quand tout est corrigé.</p></div>
+
+<h2>6. Étape 5 — rejouer et vérifier</h2>
+<div class="card"><ul class="chk">
+<li><input type="checkbox">F5 sur Nouvelle Demande : plus de bandeau rouge, formulaire vide affiché.</li>
+<li><input type="checkbox">Console fund-management : « Saga [initier-demande] &gt; Complétion de la user task Task_InitierDemande » <b>sans</b> ÉCHEC ni compensation.</li>
+<li><input type="checkbox">Postman GET <code>http://localhost:3030/engine-rest/task?processInstanceBusinessKey=&lt;id de la demande&gt;</code> → une tâche <code>taskDefinitionKey = "Task_SoumettreDemande"</code>, <code>assignee = j43709</code>.</li>
+<li><input type="checkbox">Saisis une ligne et Soumettre → console : <code>[gdf-initialiser-demande]</code> passe sans <code>ValueMapperException</code> ; GET task → <code>Task_TraitementCaisseCentrale</code>.</li>
+<li><input type="checkbox">GET <code>http://localhost:3030/engine-rest/process-instance/&lt;id instance&gt;/variables/dateCutoff16h</code> → <code>"type": "Date"</code>, valeur aujourd'hui 16:00.</li>
+</ul>
+<div class="warn">Si l'étape « Complétion de la user task » échoue encore après le déploiement : le tenant du déploiement n'est pas celui de fund-management (étape 3) ou le GET de l'étape 2 renvoie toujours 3.0.</div></div>
+</main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
