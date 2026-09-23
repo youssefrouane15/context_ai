@@ -1,0 +1,755 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-267 — Lot B1-fix 2 : RetailDemandControllerTest</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.6 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:34px 0 12px;font-size:20px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit}
+.copy{position:absolute;top:8px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px;background:#dff3e8;color:#0B6B4F}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid #dfe7e3;padding:6px 10px;text-align:left;vertical-align:top}th{background:var(--vf);color:#fff}
+.warn{color:#b06000;font-weight:600}
+</style></head><body>
+<header><h1>AER_LM-267 — Lot B1-fix 2 : RetailDemandControllerTest</h1><p>fund-management-container · 10 erreurs testCompile · 23/09/2026 · à appliquer après B1 + B1-fix</p></header><main>
+
+<h2>0. Diagnostic</h2>
+<div class="card"><p>Les 10 erreurs ont une cause unique : le test appelle les signatures d'avant B1. Le contrôleur passe maintenant un <code>ContexteAppelant</code> à chaque action agence, et deux signatures ont changé de forme :</p>
+<table><tr><th>Ligne</th><th>Appel du test</th><th>Signature B1</th></tr>
+<tr><td>72, 119</td><td><code>create(any())</code></td><td><code>create(CashRequestDTO, ContexteAppelant)</code></td></tr>
+<tr><td>92, 101</td><td><code>getCashDemandById(any())</code></td><td><code>getCashDemandById(UUID, ContexteAppelant)</code></td></tr>
+<tr><td>150</td><td><code>update(id, dto)</code></td><td><code>update(UUID, CashRequestDTO, ContexteAppelant)</code></td></tr>
+<tr><td>141, 160</td><td><code>search(criteria)</code></td><td><code>search(DemandeSearchCriteria, ContexteAppelant)</code></td></tr>
+<tr><td>131, 183</td><td><code>cancel(id)</code></td><td><code>cancel(UUID, AnnulationDemandeDTO, ContexteAppelant)</code> + corps <code>{"motif"}</code> obligatoire (≥ 10 car.)</td></tr>
+<tr><td>206</td><td><code>soumettre(id)</code></td><td><code>soumettre(UUID, CashRequestDTO|null, ContexteAppelant)</code></td></tr></table>
+<p>Corriger seulement les appels laisserait deux trous : les nouveaux endpoints (<code>/init</code>, <code>/modification/start|end</code>) et la construction du contexte depuis <code>X-Uid</code> / <code>X-Branch-Code</code> — le seul point que B2 (session cookie) remplacera — ne seraient pas couverts. La classe est donc réécrite en entier, sur le même socle que la tienne (MockMvc standalone + <code>RetailDemandExceptionHandler</code>, mêmes noms pour <code>createShouldReturn201</code>, <code>missingUserShouldReturn400WithFieldErrors</code>).</p></div>
+
+<h2>1. Le test</h2>
+<div class="fic"><div class="fic-h"><span class="tag">FICHIER COMPLET</span><b>RetailDemandControllerTest.java</b> — 35 tests, 11 groupes <code>@Nested</code><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\test\java\com\bmci\workflow\fund\management\RetailDemandControllerTest.java</span></div>
+<pre><button class="copy" onclick="cp(this)">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management;
+
+<span class="k">import</span> com.bmci.common.workflow.fund.management.application.rest.dto.DecisionCaisseCentraleDTO;
+<span class="k">import</span> com.bmci.common.workflow.fund.management.application.rest.dto.DemandeSearchCriteria;
+<span class="k">import</span> com.bmci.q360.domain.retail.exceptions.RetailConflictException;
+<span class="k">import</span> com.bmci.q360.domain.retail.exceptions.RetailForbiddenException;
+<span class="k">import</span> com.bmci.q360.domain.retail.exceptions.RetailNotFoundException;
+<span class="k">import</span> com.bmci.q360.domain.retail.exceptions.RetailValidationException;
+<span class="k">import</span> com.bmci.workflow.fund.management.application.rest.retail.RetailDemandController;
+<span class="k">import</span> com.bmci.workflow.fund.management.application.rest.retail.error.RetailDemandExceptionHandler;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.contexte.ContexteAppelant;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.AnnulationDemandeDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.FinModificationDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.InitDemandeDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.inputs.service.CashDemandUseCase;
+<span class="k">import</span> org.junit.jupiter.api.BeforeEach;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Nested;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.ArgumentCaptor;
+<span class="k">import</span> org.mockito.InjectMocks;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+<span class="k">import</span> org.springframework.context.support.ResourceBundleMessageSource;
+<span class="k">import</span> org.springframework.http.MediaType;
+<span class="k">import</span> org.springframework.test.web.servlet.MockMvc;
+<span class="k">import</span> org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.UUID;
+
+<span class="k">import</span> <span class="k">static</span> org.assertj.core.api.Assertions.assertThat;
+<span class="k">import</span> <span class="k">static</span> org.mockito.ArgumentMatchers.any;
+<span class="k">import</span> <span class="k">static</span> org.mockito.ArgumentMatchers.anyList;
+<span class="k">import</span> <span class="k">static</span> org.mockito.ArgumentMatchers.eq;
+<span class="k">import</span> <span class="k">static</span> org.mockito.ArgumentMatchers.isNull;
+<span class="k">import</span> <span class="k">static</span> org.mockito.Mockito.verify;
+<span class="k">import</span> <span class="k">static</span> org.mockito.Mockito.verifyNoInteractions;
+<span class="k">import</span> <span class="k">static</span> org.mockito.Mockito.when;
+<span class="k">import</span> <span class="k">static</span> org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+<span class="k">import</span> <span class="k">static</span> org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+<span class="k">import</span> <span class="k">static</span> org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+<span class="k">import</span> <span class="k">static</span> org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+<span class="k">import</span> <span class="k">static</span> org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+<span class="k">import</span> <span class="k">static</span> org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+<span class="c">/**</span>
+<span class="c"> * @author Youssef ROUANE</span>
+<span class="c"> * AER_LM-267 — contrat HTTP de RetailDemandController après le lot B1 :</span>
+<span class="c"> * construction du ContexteAppelant (en-têtes transitoires X-Uid / X-Branch-Code),</span>
+<span class="c"> * nouveaux endpoints (init, modification/start|end, cancel avec motif, submit avec corps optionnel),</span>
+<span class="c"> * Bean Validation et traduction des exceptions typées par RetailDemandExceptionHandler.</span>
+<span class="c"> * Mockito strict : aucun stub global, chaque test déclare ce qu'il consomme.</span>
+<span class="c"> */</span>
+<span class="a">@ExtendWith</span>(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> RetailDemandControllerTest {
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> String UID = <span class="s">"j43709"</span>;
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> String AGENCE = <span class="s">"BR-0036"</span>;
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> String EN_TETE_UID = <span class="s">"X-Uid"</span>;
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> String EN_TETE_AGENCE = <span class="s">"X-Branch-Code"</span>;
+
+    <span class="c">/** Contenu minimal valide (même périmètre que l'ancien sampleRequest()) — JSON brut : on teste le contrat, pas le builder. */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> String DEMANDE_VALIDE = <span class="s">""</span>"
+            {<span class="s">"user"</span>:<span class="s">"j43709"</span>,<span class="s">"establishment"</span>:<span class="s">"001"</span>,<span class="s">"branchCode"</span>:<span class="s">"BR-0036"</span>,
+             <span class="s">"operations"</span>:[{<span class="s">"operationSens"</span>:<span class="s">"COLLECTION"</span>}]}<span class="s">""</span>";
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> String DEMANDE_SANS_USER = <span class="s">""</span>"
+            {<span class="s">"establishment"</span>:<span class="s">"001"</span>,<span class="s">"branchCode"</span>:<span class="s">"BR-0036"</span>,
+             <span class="s">"operations"</span>:[{<span class="s">"operationSens"</span>:<span class="s">"COLLECTION"</span>}]}<span class="s">""</span>";
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> String DEMANDE_SANS_OPERATION = <span class="s">""</span>"
+            {<span class="s">"user"</span>:<span class="s">"j43709"</span>,<span class="s">"establishment"</span>:<span class="s">"001"</span>,<span class="s">"branchCode"</span>:<span class="s">"BR-0036"</span>,<span class="s">"operations"</span>:[]}<span class="s">""</span>";
+
+    <span class="a">@Mock</span>
+    <span class="k">private</span> CashDemandUseCase cashDemandUseCase;
+
+    <span class="a">@InjectMocks</span>
+    <span class="k">private</span> RetailDemandController retailDemandController;
+
+    <span class="k">private</span> MockMvc mockMvc;
+
+    <span class="a">@BeforeEach</span>
+    <span class="k">void</span> setUp() {
+        ResourceBundleMessageSource messageSource = <span class="k">new</span> ResourceBundleMessageSource();
+        messageSource.setBasename(<span class="s">"messages"</span>);
+        messageSource.setDefaultEncoding(<span class="s">"UTF-8"</span>);
+        messageSource.setUseCodeAsDefaultMessage(<span class="k">true</span>);   <span class="c">// un libellé manquant ne doit pas faire échouer un test de contrat</span>
+        mockMvc = MockMvcBuilders.standaloneSetup(retailDemandController)
+                .setControllerAdvice(<span class="k">new</span> RetailDemandExceptionHandler(messageSource))
+                .build();
+    }
+
+    <span class="c">// ---- fixtures ----</span>
+
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO reponse(UUID id, String statut) {
+        CashRequestDTO dto = <span class="k">new</span> CashRequestDTO();
+        dto.setId(id);
+        dto.setRequestStatus(statut);
+        dto.setUser(UID);
+        dto.setBranchCode(AGENCE);
+        dto.setEstablishment(<span class="s">"001"</span>);
+        <span class="k">return</span> dto;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> ContexteAppelant identifie() {
+        <span class="k">return</span> <span class="k">new</span> ContexteAppelant(UID, AGENCE, <span class="k">false</span>);
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"Contexte appelant (en-têtes transitoires)"</span>)
+    <span class="k">class</span> ContexteAppelantTests {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"sans en-têtes : contexte transitoire (gardes désactivées côté use case)"</span>)
+        <span class="k">void</span> sansEnTetesDonneContexteTransitoire() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.getCashDemandById(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"SUBMITTED"</span>));
+
+            mockMvc.perform(get(<span class="s">"/cash/{id}"</span>, id)).andExpect(status().isOk());
+
+            verify(cashDemandUseCase).getCashDemandById(id, ContexteAppelant.transitoire());
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"X-Uid + X-Branch-Code : contexte identifié, jamais toutes agences"</span>)
+        <span class="k">void</span> avecEnTetesDonneContexteIdentifie() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.getCashDemandById(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"SUBMITTED"</span>));
+
+            mockMvc.perform(get(<span class="s">"/cash/{id}"</span>, id).header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE))
+                    .andExpect(status().isOk());
+
+            verify(cashDemandUseCase).getCashDemandById(id, identifie());
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"les valeurs d'en-tête sont nettoyées des espaces"</span>)
+        <span class="k">void</span> enTetesSontTrimes() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.getCashDemandById(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"SUBMITTED"</span>));
+
+            mockMvc.perform(get(<span class="s">"/cash/{id}"</span>, id).header(EN_TETE_UID, <span class="s">"  j43709 "</span>).header(EN_TETE_AGENCE, <span class="s">" BR-0036 "</span>))
+                    .andExpect(status().isOk());
+
+            verify(cashDemandUseCase).getCashDemandById(id, identifie());
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"X-Uid vide : contexte transitoire même si l'agence est fournie"</span>)
+        <span class="k">void</span> uidVideDonneContexteTransitoire() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.getCashDemandById(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"SUBMITTED"</span>));
+
+            mockMvc.perform(get(<span class="s">"/cash/{id}"</span>, id).header(EN_TETE_UID, <span class="s">"   "</span>).header(EN_TETE_AGENCE, AGENCE))
+                    .andExpect(status().isOk());
+
+            verify(cashDemandUseCase).getCashDemandById(id, ContexteAppelant.transitoire());
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"X-Uid sans X-Branch-Code : identifié avec agence nulle"</span>)
+        <span class="k">void</span> uidSansAgence() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.getCashDemandById(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"SUBMITTED"</span>));
+
+            mockMvc.perform(get(<span class="s">"/cash/{id}"</span>, id).header(EN_TETE_UID, UID)).andExpect(status().isOk());
+
+            verify(cashDemandUseCase).getCashDemandById(id, <span class="k">new</span> ContexteAppelant(UID, <span class="k">null</span>, <span class="k">false</span>));
+        }
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"POST /cash/init"</span>)
+    <span class="k">class</span> Initier {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"201 : brouillon INITIATED renvoyé dans l'enveloppe"</span>)
+        <span class="k">void</span> initierRetourne201() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.initier(any(InitDemandeDTO.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"INITIATED"</span>));
+
+            mockMvc.perform(post(<span class="s">"/cash/init"</span>)
+                            .header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(<span class="s">""</span>"
+                                    {<span class="s">"user"</span>:<span class="s">"j43709"</span>,<span class="s">"branchCode"</span>:<span class="s">"BR-0036"</span>,<span class="s">"establishment"</span>:<span class="s">"001"</span>}<span class="s">""</span>"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">true</span>))
+                    .andExpect(jsonPath(<span class="s">"$.data.id"</span>).value(id.toString()))
+                    .andExpect(jsonPath(<span class="s">"$.data.requestStatus"</span>).value(<span class="s">"INITIATED"</span>));
+
+            ArgumentCaptor&lt;InitDemandeDTO&gt; init = ArgumentCaptor.forClass(InitDemandeDTO.<span class="k">class</span>);
+            verify(cashDemandUseCase).initier(init.capture(), eq(identifie()));
+            assertThat(init.getValue().getBranchCode()).isEqualTo(AGENCE);
+            assertThat(init.getValue().getEstablishment()).isEqualTo(<span class="s">"001"</span>);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"400 : agence absente, le use case n'est pas appelé"</span>)
+        <span class="k">void</span> initierSansAgenceRetourne400() <span class="k">throws</span> Exception {
+            mockMvc.perform(post(<span class="s">"/cash/init"</span>)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(<span class="s">""</span>"
+                                    {<span class="s">"user"</span>:<span class="s">"j43709"</span>,<span class="s">"establishment"</span>:<span class="s">"001"</span>}<span class="s">""</span>"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">false</span>))
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"BAD_REQUEST"</span>));
+
+            verifyNoInteractions(cashDemandUseCase);
+        }
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"POST /cash"</span>)
+    <span class="k">class</span> Creer {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"201 : création en un appel (initier + enregistrer)"</span>)
+        <span class="k">void</span> createShouldReturn201() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.create(any(CashRequestDTO.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"INITIATED"</span>));
+
+            mockMvc.perform(post(<span class="s">"/cash"</span>)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(DEMANDE_VALIDE))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">true</span>))
+                    .andExpect(jsonPath(<span class="s">"$.data.id"</span>).value(id.toString()));
+
+            verify(cashDemandUseCase).create(any(CashRequestDTO.<span class="k">class</span>), eq(ContexteAppelant.transitoire()));
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"400 : demandeur absent"</span>)
+        <span class="k">void</span> missingUserShouldReturn400WithFieldErrors() <span class="k">throws</span> Exception {
+            mockMvc.perform(post(<span class="s">"/cash"</span>)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(DEMANDE_SANS_USER))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">false</span>))
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"BAD_REQUEST"</span>));
+
+            verifyNoInteractions(cashDemandUseCase);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"400 : aucune opération"</span>)
+        <span class="k">void</span> sansOperationRetourne400() <span class="k">throws</span> Exception {
+            mockMvc.perform(post(<span class="s">"/cash"</span>)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(DEMANDE_SANS_OPERATION))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"BAD_REQUEST"</span>));
+
+            verifyNoInteractions(cashDemandUseCase);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"422 : règle métier violée dans le domaine"</span>)
+        <span class="k">void</span> regleMetierRetourne422() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.create(any(CashRequestDTO.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenThrow(<span class="k">new</span> RetailValidationException(<span class="s">"La coupure 'BILLET_500' n'existe pas dans le référentiel"</span>));
+
+            mockMvc.perform(post(<span class="s">"/cash"</span>)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(DEMANDE_VALIDE))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">false</span>))
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"VALIDATION_ERROR"</span>));
+        }
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"PUT /cash/{id}"</span>)
+    <span class="k">class</span> Modifier {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"200 : contenu enregistré, contexte transmis"</span>)
+        <span class="k">void</span> updateRetourne200() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.update(any(UUID.<span class="k">class</span>), any(CashRequestDTO.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"IN_MODIFICATION"</span>));
+
+            mockMvc.perform(put(<span class="s">"/cash/{id}"</span>, id)
+                            .header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(DEMANDE_VALIDE))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.data.requestStatus"</span>).value(<span class="s">"IN_MODIFICATION"</span>));
+
+            verify(cashDemandUseCase).update(eq(id), any(CashRequestDTO.<span class="k">class</span>), eq(identifie()));
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"409 : demande dans un statut non modifiable"</span>)
+        <span class="k">void</span> statutNonModifiableRetourne409() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.update(any(UUID.<span class="k">class</span>), any(CashRequestDTO.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenThrow(<span class="k">new</span> RetailConflictException(<span class="s">"Une demande CANCELLED ne peut pas être modifiée"</span>));
+
+            mockMvc.perform(put(<span class="s">"/cash/{id}"</span>, UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(DEMANDE_VALIDE))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">false</span>))
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"CONFLICT"</span>));
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"403 : verrou détenu par un autre agent"</span>)
+        <span class="k">void</span> verrouDunAutreRetourne403() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.update(any(UUID.<span class="k">class</span>), any(CashRequestDTO.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenThrow(<span class="k">new</span> RetailForbiddenException(<span class="s">"La demande est en cours de modification par j99999"</span>));
+
+            mockMvc.perform(put(<span class="s">"/cash/{id}"</span>, UUID.randomUUID())
+                            .header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(DEMANDE_VALIDE))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">false</span>));
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"400 : contenu invalide, le use case n'est pas appelé"</span>)
+        <span class="k">void</span> contenuInvalideRetourne400() <span class="k">throws</span> Exception {
+            mockMvc.perform(put(<span class="s">"/cash/{id}"</span>, UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(DEMANDE_SANS_USER))
+                    .andExpect(status().isBadRequest());
+
+            verifyNoInteractions(cashDemandUseCase);
+        }
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"GET /cash/{id}"</span>)
+    <span class="k">class</span> Consulter {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"200 : les champs d'état de l'écran de consultation sont exposés"</span>)
+        <span class="k">void</span> getByIdExposeLesChampsDetat() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            CashRequestDTO dto = reponse(id, <span class="s">"IN_MODIFICATION"</span>);
+            dto.setLockedBy(UID);
+            dto.setJourneeCloturee(<span class="k">false</span>);
+            when(cashDemandUseCase.getCashDemandById(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>))).thenReturn(dto);
+
+            mockMvc.perform(get(<span class="s">"/cash/{id}"</span>, id).header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">true</span>))
+                    .andExpect(jsonPath(<span class="s">"$.data.id"</span>).value(id.toString()))
+                    .andExpect(jsonPath(<span class="s">"$.data.lockedBy"</span>).value(UID))
+                    .andExpect(jsonPath(<span class="s">"$.data.journeeCloturee"</span>).value(<span class="k">false</span>));
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"404 : demande introuvable"</span>)
+        <span class="k">void</span> notFoundShouldReturn404() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.getCashDemandById(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenThrow(<span class="k">new</span> RetailNotFoundException(<span class="s">"La demande est introuvable"</span>));
+
+            mockMvc.perform(get(<span class="s">"/cash/{id}"</span>, UUID.randomUUID()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">false</span>))
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"NOT_FOUND"</span>));
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"403 : demande d'une autre agence"</span>)
+        <span class="k">void</span> autreAgenceRetourne403() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.getCashDemandById(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenThrow(<span class="k">new</span> RetailForbiddenException(<span class="s">"La demande appartient à l'agence BR-0099"</span>));
+
+            mockMvc.perform(get(<span class="s">"/cash/{id}"</span>, UUID.randomUUID()).header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">false</span>));
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"500 : erreur imprévue au format enveloppe"</span>)
+        <span class="k">void</span> erreurImprevueRetourne500() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.getCashDemandById(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenThrow(<span class="k">new</span> IllegalStateException(<span class="s">"boom"</span>));
+
+            mockMvc.perform(get(<span class="s">"/cash/{id}"</span>, UUID.randomUUID()))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">false</span>))
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"TECHNICAL_ERROR"</span>));
+        }
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"GET /cash (recherche)"</span>)
+    <span class="k">class</span> Rechercher {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"les filtres sont transmis tels quels, le contexte vient des en-têtes"</span>)
+        <span class="k">void</span> filtresEtContexte() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.search(any(DemandeSearchCriteria.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(<span class="k">null</span>);
+
+            mockMvc.perform(get(<span class="s">"/cash"</span>)
+                            .param(<span class="s">"statut"</span>, <span class="s">"SUBMITTED"</span>)
+                            .param(<span class="s">"agence"</span>, <span class="s">"BR-0099"</span>)
+                            .param(<span class="s">"operationType"</span>, <span class="s">"ATM"</span>)
+                            .param(<span class="s">"operationSens"</span>, <span class="s">"SUPPLY"</span>)
+                            .param(<span class="s">"recherche"</span>, <span class="s">"RT-2026"</span>)
+                            .param(<span class="s">"dateDebut"</span>, <span class="s">"2026-09-23T00:00:00"</span>)
+                            .param(<span class="s">"page"</span>, <span class="s">"2"</span>)
+                            .param(<span class="s">"size"</span>, <span class="s">"50"</span>)
+                            .header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">true</span>));
+
+            ArgumentCaptor&lt;DemandeSearchCriteria&gt; criteria = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="k">class</span>);
+            verify(cashDemandUseCase).search(criteria.capture(), eq(identifie()));
+            DemandeSearchCriteria c = criteria.getValue();
+            assertThat(c.statut()).isEqualTo(<span class="s">"SUBMITTED"</span>);
+            <span class="c">// agence=BR-0099 passe telle quelle : c'est le use case (pas le contrôleur) qui la force sur l'agence de l'appelant.</span>
+            assertThat(c.operationType()).isEqualTo(<span class="s">"ATM"</span>);
+            assertThat(c.operationSens()).isEqualTo(<span class="s">"SUPPLY"</span>);
+            assertThat(c.recherche()).isEqualTo(<span class="s">"RT-2026"</span>);
+            assertThat(c.dateDebut()).isEqualTo(LocalDateTime.of(2026, 9, 23, 0, 0));
+            assertThat(c.page()).isEqualTo(2);
+            assertThat(c.size()).isEqualTo(50);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"sans paramètre : page 0, taille 20, contexte transitoire"</span>)
+        <span class="k">void</span> valeursParDefaut() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.search(any(DemandeSearchCriteria.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(<span class="k">null</span>);
+
+            mockMvc.perform(get(<span class="s">"/cash"</span>)).andExpect(status().isOk());
+
+            ArgumentCaptor&lt;DemandeSearchCriteria&gt; criteria = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="k">class</span>);
+            verify(cashDemandUseCase).search(criteria.capture(), eq(ContexteAppelant.transitoire()));
+            assertThat(criteria.getValue().page()).isZero();
+            assertThat(criteria.getValue().size()).isEqualTo(20);
+            assertThat(criteria.getValue().statut()).isNull();
+        }
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"PATCH /cash/{id}/submit"</span>)
+    <span class="k">class</span> Soumettre {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"sans corps : soumet le brouillon déjà enregistré (contenu null)"</span>)
+        <span class="k">void</span> soumettreSansCorps() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.soumettre(any(UUID.<span class="k">class</span>), any(), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"SUBMITTED"</span>));
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/submit"</span>, id).header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.data.requestStatus"</span>).value(<span class="s">"SUBMITTED"</span>));
+
+            verify(cashDemandUseCase).soumettre(eq(id), isNull(), eq(identifie()));
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"avec corps : le contenu saisi est transmis au use case"</span>)
+        <span class="k">void</span> soumettreAvecCorps() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.soumettre(any(UUID.<span class="k">class</span>), any(), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"SUBMITTED"</span>));
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/submit"</span>, id)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(DEMANDE_VALIDE))
+                    .andExpect(status().isOk());
+
+            ArgumentCaptor&lt;CashRequestDTO&gt; contenu = ArgumentCaptor.forClass(CashRequestDTO.<span class="k">class</span>);
+            verify(cashDemandUseCase).soumettre(eq(id), contenu.capture(), eq(ContexteAppelant.transitoire()));
+            assertThat(contenu.getValue().getUser()).isEqualTo(UID);
+            assertThat(contenu.getValue().getOperations()).hasSize(1);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"400 : corps fourni mais invalide"</span>)
+        <span class="k">void</span> soumettreCorpsInvalide() <span class="k">throws</span> Exception {
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/submit"</span>, UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(DEMANDE_SANS_OPERATION))
+                    .andExpect(status().isBadRequest());
+
+            verifyNoInteractions(cashDemandUseCase);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"409 : demande déjà soumise"</span>)
+        <span class="k">void</span> dejaSoumiseRetourne409() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.soumettre(any(UUID.<span class="k">class</span>), any(), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenThrow(<span class="k">new</span> RetailConflictException(<span class="s">"Seule une demande INITIATED peut être soumise"</span>));
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/submit"</span>, UUID.randomUUID()))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"CONFLICT"</span>));
+        }
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"PATCH /cash/{id}/modification/start et /end"</span>)
+    <span class="k">class</span> Modification {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"start 200 : verrou posé pour l'appelant"</span>)
+        <span class="k">void</span> demarrerModification() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            CashRequestDTO dto = reponse(id, <span class="s">"IN_MODIFICATION"</span>);
+            dto.setLockedBy(UID);
+            when(cashDemandUseCase.demarrerModification(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>))).thenReturn(dto);
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/modification/start"</span>, id).header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.data.requestStatus"</span>).value(<span class="s">"IN_MODIFICATION"</span>))
+                    .andExpect(jsonPath(<span class="s">"$.data.lockedBy"</span>).value(UID));
+
+            verify(cashDemandUseCase).demarrerModification(id, identifie());
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"start 409 : journée clôturée (cut-off 16h00)"</span>)
+        <span class="k">void</span> demarrerApresCutoffRetourne409() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.demarrerModification(any(UUID.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenThrow(<span class="k">new</span> RetailConflictException(<span class="s">"Journée clôturée (cut-off 16h00)"</span>));
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/modification/start"</span>, UUID.randomUUID()))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"CONFLICT"</span>));
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"end 200 : confirmee=true transmis au use case"</span>)
+        <span class="k">void</span> terminerModificationConfirmee() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.terminerModification(any(UUID.<span class="k">class</span>), any(FinModificationDTO.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"SUBMITTED"</span>));
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/modification/end"</span>, id)
+                            .header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(<span class="s">""</span>"
+                                    {<span class="s">"confirmee"</span>:<span class="k">true</span>}<span class="s">""</span>"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.data.requestStatus"</span>).value(<span class="s">"SUBMITTED"</span>));
+
+            ArgumentCaptor&lt;FinModificationDTO&gt; fin = ArgumentCaptor.forClass(FinModificationDTO.<span class="k">class</span>);
+            verify(cashDemandUseCase).terminerModification(eq(id), fin.capture(), eq(identifie()));
+            assertThat(fin.getValue().getConfirmee()).isTrue();
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"end 400 : confirmee absent"</span>)
+        <span class="k">void</span> terminerSansConfirmeeRetourne400() <span class="k">throws</span> Exception {
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/modification/end"</span>, UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(<span class="s">"{}"</span>))
+                    .andExpect(status().isBadRequest());
+
+            verifyNoInteractions(cashDemandUseCase);
+        }
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"PATCH /cash/{id}/cancel"</span>)
+    <span class="k">class</span> Annuler {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"200 : motif transmis, la demande revient encore SUBMITTED (le worker écrira CANCELLED)"</span>)
+        <span class="k">void</span> annulerAvecMotif() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.cancel(any(UUID.<span class="k">class</span>), any(AnnulationDemandeDTO.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"SUBMITTED"</span>));
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/cancel"</span>, id)
+                            .header(EN_TETE_UID, UID).header(EN_TETE_AGENCE, AGENCE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(<span class="s">""</span>"
+                                    {<span class="s">"motif"</span>:<span class="s">"Erreur de saisie sur la caisse"</span>}<span class="s">""</span>"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.data.requestStatus"</span>).value(<span class="s">"SUBMITTED"</span>));
+
+            ArgumentCaptor&lt;AnnulationDemandeDTO&gt; annulation = ArgumentCaptor.forClass(AnnulationDemandeDTO.<span class="k">class</span>);
+            verify(cashDemandUseCase).cancel(eq(id), annulation.capture(), eq(identifie()));
+            assertThat(annulation.getValue().getMotif()).isEqualTo(<span class="s">"Erreur de saisie sur la caisse"</span>);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"400 : motif de moins de 10 caractères"</span>)
+        <span class="k">void</span> motifTropCourtRetourne400() <span class="k">throws</span> Exception {
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/cancel"</span>, UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(<span class="s">""</span>"
+                                    {<span class="s">"motif"</span>:<span class="s">"court"</span>}<span class="s">""</span>"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"BAD_REQUEST"</span>));
+
+            verifyNoInteractions(cashDemandUseCase);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"409 : demande déjà traitée"</span>)
+        <span class="k">void</span> dejaTraiteeRetourne409() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.cancel(any(UUID.<span class="k">class</span>), any(AnnulationDemandeDTO.<span class="k">class</span>), any(ContexteAppelant.<span class="k">class</span>)))
+                    .thenThrow(<span class="k">new</span> RetailConflictException(<span class="s">"Une demande VALIDATED ne peut plus être annulée"</span>));
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/cancel"</span>, UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(<span class="s">""</span>"
+                                    {<span class="s">"motif"</span>:<span class="s">"Erreur de saisie sur la caisse"</span>}<span class="s">""</span>"))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"CONFLICT"</span>));
+        }
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"PATCH /cash/{id}/operations/cancel"</span>)
+    <span class="k">class</span> AnnulerOperations {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"200 : les identifiants d'opérations sont transmis"</span>)
+        <span class="k">void</span> annulerOperations() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            UUID operationId = UUID.randomUUID();
+            when(cashDemandUseCase.cancelOperations(any(UUID.<span class="k">class</span>), anyList())).thenReturn(reponse(id, <span class="s">"INITIATED"</span>));
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/operations/cancel"</span>, id)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(<span class="s">"{\"operationIds\":[\""</span> + operationId + <span class="s">"\"]}"</span>))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">true</span>));
+
+            verify(cashDemandUseCase).cancelOperations(id, List.of(operationId));
+        }
+    }
+
+    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"PATCH /cash/{id}/complete-task (Caisse Centrale)"</span>)
+    <span class="k">class</span> CompleterTache {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"200 : la décision est transmise, sans contexte appelant"</span>)
+        <span class="k">void</span> completerTache() <span class="k">throws</span> Exception {
+            UUID id = UUID.randomUUID();
+            when(cashDemandUseCase.completerTacheCaisseCentrale(any(UUID.<span class="k">class</span>), any(DecisionCaisseCentraleDTO.<span class="k">class</span>)))
+                    .thenReturn(reponse(id, <span class="s">"SUBMITTED"</span>));
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/complete-task"</span>, id)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(<span class="s">""</span>"
+                                    {<span class="s">"decision"</span>:<span class="s">"TRAITEE"</span>}<span class="s">""</span>"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.data.requestStatus"</span>).value(<span class="s">"SUBMITTED"</span>));
+
+            ArgumentCaptor&lt;DecisionCaisseCentraleDTO&gt; decision = ArgumentCaptor.forClass(DecisionCaisseCentraleDTO.<span class="k">class</span>);
+            verify(cashDemandUseCase).completerTacheCaisseCentrale(eq(id), decision.capture());
+            assertThat(decision.getValue().getDecision().name()).isEqualTo(<span class="s">"TRAITEE"</span>);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"409 : demande en cours de modification par l'agence"</span>)
+        <span class="k">void</span> demandeEnModificationRetourne409() <span class="k">throws</span> Exception {
+            when(cashDemandUseCase.completerTacheCaisseCentrale(any(UUID.<span class="k">class</span>), any(DecisionCaisseCentraleDTO.<span class="k">class</span>)))
+                    .thenThrow(<span class="k">new</span> RetailConflictException(<span class="s">"Seule une demande SUBMITTED peut être traitée"</span>));
+
+            mockMvc.perform(patch(<span class="s">"/cash/{id}/complete-task"</span>, UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(<span class="s">""</span>"
+                                    {<span class="s">"decision"</span>:<span class="s">"TRAITEE"</span>}<span class="s">""</span>"))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath(<span class="s">"$.error"</span>).value(<span class="s">"CONFLICT"</span>));
+        }
+    }
+}
+</code></pre></div>
+
+<h2>2. Ce que la classe couvre</h2>
+<div class="card"><table><tr><th>Groupe</th><th>Vérifie</th></tr>
+<tr><td>Contexte appelant</td><td>Sans en-têtes → <code>ContexteAppelant.transitoire()</code> ; avec → <code>(uid, agence, false)</code> ; valeurs trimées ; <code>X-Uid</code> vide → transitoire ; <code>X-Uid</code> seul → agence nulle. C'est le filet de sécurité de B2.</td></tr>
+<tr><td>POST /init, POST, PUT</td><td>201/200, enveloppe <code>success/data</code>, 400 sans appel du use case, 422 domaine, 409 statut, 403 verrou.</td></tr>
+<tr><td>GET /{id}, GET</td><td>Champs d'écran exposés (<code>lockedBy</code>, <code>journeeCloturee</code>), 404, 403 autre agence, 500 enveloppé ; filtres, <code>dateDebut</code> ISO, pagination par défaut 0/20.</td></tr>
+<tr><td>submit, modification, cancel</td><td>Submit avec et sans corps (<code>null</code> transmis), motif &lt; 10 car. → 400, <code>confirmee</code> absent → 400, cut-off → 409.</td></tr>
+<tr><td>operations/cancel, complete-task</td><td>Identifiants et décision transmis ; complete-task ne reçoit pas de contexte (Caisse Centrale, hors B2).</td></tr></table></div>
+
+<h2>3. Points que la compilation ou l'exécution peuvent révéler</h2>
+<div class="card"><ol>
+<li><b>Codes d'erreur</b> : les assertions <code>$.error</code> reprennent ceux du handler migré en ApiResponse (<code>BAD_REQUEST</code>, <code>NOT_FOUND</code>, <code>CONFLICT</code>, <code>VALIDATION_ERROR</code>, <code>TECHNICAL_ERROR</code>). Les tests 403 n'assertent que le statut et <code>success=false</code>.</li>
+<li class="warn">Si les 2 tests 403 sortent en 500 : la méthode <code>@ExceptionHandler(RetailForbiddenException.class)</code> du lot B1 n'a pas été ajoutée au handler — le test a raison, c'est le handler qu'il faut compléter.</li>
+<li><b>Handler</b> : import <code>application.rest.retail.error.RetailDemandExceptionHandler</code> et constructeur <code>(MessageSource)</code>, comme dans ta version actuelle. Si ton import diffère, garde le tien.</li>
+<li><b>Recherche</b> : le test ne construit pas de <code>PageResult</code> (le use case mocké renvoie <code>null</code>, emballé par <code>ApiResponse.success</code>) pour ne dépendre que des accesseurs de <code>DemandeSearchCriteria</code> utilisés par le use case B1.</li>
+<li><b>Corps en JSON brut</b> (text blocks Java 17) : le test vérifie le contrat réellement reçu par le front, sans dépendre des builders ni de l'enum <code>RequestType</code>.</li>
+</ol></div>
+
+<h2>4. Vérification</h2>
+<div class="card"><ol><li><code>mvn clean install</code> à la racine : <code>testCompile</code> du container passe.</li>
+<li>35 tests verts sur cette classe, en plus des 17 de <code>CashDemandUseCaseImplTest</code>.</li>
+<li>S'il reste du rouge (handlers worker ou autre test du container), envoie la capture du panneau Build : même traitement.</li></ol></div>
+</main><script>function cp(b){navigator.clipboard.writeText(b.parentNode.querySelector('code').innerText).then(()=>{b.textContent='Copié ✓';setTimeout(()=>b.textContent='Copier',1500)})}</script></body></html>
