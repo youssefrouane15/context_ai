@@ -1,0 +1,272 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-266 — coût de déplacement dans la photo de l'agence</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:22px 0 8px;font-size:16px}h4{margin:14px 0 6px;color:var(--vf)}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+details{margin-top:12px;border:1px dashed #b9c9c1;border-radius:6px;padding:8px 12px;background:#fafcfb}summary{cursor:pointer;font-weight:600;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-266 — coût de déplacement dans la photo de l'agence</h1><p>fund-management · fund-management-front · utilisateurs-ci inchangé · 24/09/2026 · s'applique après le fix « photo reprise à la soumission »</p></header>
+<nav><a href="#s0">Diagnostic</a><a href="#s1">Back</a><a href="#s2">Front</a><a href="#s3">Tests</a><a href="#s4">Vérification</a></nav><main><h2 id="s0">0. Diagnostic</h2>
+<div class="card"><table>
+<tr><th>Symptôme</th><th>Cause</th><th>Correctif</th></tr>
+<tr><td>La demande porte le nom de l'agence, la zone et le transporteur, mais pas le <b>coût de déplacement</b> saisi dans la console (écran 259).</td>
+<td>La photo 266 ne lit que 5 valeurs de l'agence. Le coût est pourtant déjà renvoyé par users : l'endpoint interne <code>GET /api/v1/internal/orga/agences/{code}</code> renvoie l'<code>AgenceDTO</code> complet, qui porte <code>coutDeplacement</code> depuis la 271 (<code>orga_unit.cout_deplacement numeric(12,2)</code>). L'adapter de fund-management ne le désérialisait pas, et ni la demande, ni la base, ni l'écran n'avaient de champ pour lui.</td>
+<td>Le coût rejoint la photo : même moment de capture (initialisation, puis reprise à la soumission), même règle (jamais touché par le PUT), affiché avec le transporteur dans le listing Caisse Centrale.</td></tr>
+</table>
+<p><b>utilisateurs-ci ne change pas</b> : la donnée sort déjà de l'endpoint interne.</p>
+<p>La photo se remplit à deux endroits, <code>initier()</code> et <code>figerPhotoAgence()</code> ; les deux sont mis à jour. Les demandes déjà soumises gardent un coût vide (c'est la règle de la photo) ; un brouillon ouvert avant le déploiement récupère le coût à sa soumission.</p></div>
+<h2 id="s1">1. Back — fund-management</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V7__demande_cout_deplacement.sql</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\db\migration\V7__demande_cout_deplacement.sql</span></div><p class="note">V6 est le dernier script en place. Pas de valeur par défaut : nul = coût non renseigné dans la console au moment de la photo.</p><pre><button class="copy">Copier</button><code><span class="c">-- AER_LM-266 : coût fixe de déplacement de l'agence émettrice (AER_LM-259/271), ajouté à la photo de l'agence sur la demande.</span>
+<span class="c">-- Même type que la source (utilisateurs-ci : orga_unit.cout_deplacement numeric(12,2)).</span>
+ALTER TABLE retail.cash_request ADD COLUMN cout_deplacement NUMERIC(12,2);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>AgenceReferentiel.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\referentiel\AgenceReferentiel.java</span></div><p class="note">7ᵉ composant : le constructeur change. Deux appels à mettre à jour, tous deux dans ce doc : l'adapter (bloc suivant) et <code>CashDemandUseCaseImplTest</code> (§3).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.referentiel;
+
+<span class="k">import</span> java.math.BigDecimal;
+
+<span class="c">/** Ce que fund-management retient d'une agence au moment d'une demande (source : utilisateurs-ci, AER_LM-271). */</span>
+<span class="k">public</span> record AgenceReferentiel(String code, String nom, String zoneCode, String zoneNom,
+                                String prestataire, String prestataireNom, BigDecimal coutDeplacement) {}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>UtilisateursAgenceAdapter.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\UtilisateursAgenceAdapter.java</span></div><p class="note">Seules modifications : le champ <code>coutDeplacement</code> du record <code>AgenceInterneDTO</code> (même nom que dans l'<code>AgenceDTO</code> de users) et le 7ᵉ argument de <code>new AgenceReferentiel(...)</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.referentiel.AgenceReferentiel;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.referentiel.ReferentielAgencePort;
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="k">import</span> org.springframework.stereotype.Component;
+<span class="k">import</span> org.springframework.web.client.RestClient;
+<span class="k">import</span> org.springframework.web.client.RestClientException;
+
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/**
+ * Adapter du port ReferentielAgencePort : GET {users}/api/v1/internal/orga/agences/{code} (endpoint interne, public côté users).
+ * Tolérant : agence inconnue, users arrêté ou réponse invalide → Optional.empty() + WARN, la demande est créée sans photo.
+ */</span>
+<span class="a">@Slf4j</span>
+<span class="a">@Component</span>
+<span class="k">public</span> <span class="k">class</span> UtilisateursAgenceAdapter <span class="k">implements</span> ReferentielAgencePort {
+
+    <span class="k">private</span> <span class="k">final</span> RestClient restClient;
+
+    <span class="k">public</span> UtilisateursAgenceAdapter(<span class="a">@Value</span>(<span class="s">"${qf.users.internal-base-url}"</span>) String baseUrl) {
+        <span class="k">this</span>.restClient = RestClient.create(baseUrl);
+    }
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> Optional&lt;AgenceReferentiel&gt; trouver(String codeAgence) {
+        <span class="k">if</span> (codeAgence == <span class="k">null</span> || codeAgence.isBlank()) {
+            <span class="k">return</span> Optional.empty();
+        }
+        try {
+            AgenceInterneDTO dto = restClient.get()
+                    .uri(<span class="s">"/api/v1/internal/orga/agences/{code}"</span>, codeAgence)
+                    .retrieve()
+                    .body(AgenceInterneDTO.<span class="k">class</span>);
+            <span class="k">if</span> (dto == <span class="k">null</span>) {
+                <span class="k">return</span> Optional.empty();
+            }
+            <span class="k">return</span> Optional.of(<span class="k">new</span> AgenceReferentiel(
+                    dto.code(), dto.nom(),
+                    dto.zoneDistribution() == <span class="k">null</span> ? <span class="k">null</span> : dto.zoneDistribution().code(),
+                    dto.zoneDistribution() == <span class="k">null</span> ? <span class="k">null</span> : dto.zoneDistribution().nom(),
+                    dto.prestataire() == <span class="k">null</span> ? <span class="k">null</span> : dto.prestataire().id(),
+                    dto.prestataire() == <span class="k">null</span> ? <span class="k">null</span> : dto.prestataire().nom(),
+                    dto.coutDeplacement()));
+        } catch (RestClientException e) {
+            log.warn(<span class="s">"Référentiel agences (users) indisponible pour l'agence {} : {}"</span>, codeAgence, e.getMessage());
+            <span class="k">return</span> Optional.empty();
+        }
+    }
+
+    <span class="c">/** Forme de AgenceDTO (utilisateurs-ci) — champs inconnus ignorés. */</span>
+    <span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+    record AgenceInterneDTO(String code, String nom, ZoneDTO zoneDistribution, PrestataireDTO prestataire,
+                            BigDecimal coutDeplacement) {
+        <span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+        record ZoneDTO(String code, String nom) {}
+        <span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+        record PrestataireDTO(String id, String nom) {}
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequest.java (domaine)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\entity\CashRequest.java  (après : private String prestataireNom;)</span></div><p class="note">Import <code>java.math.BigDecimal</code> s'il n'est pas déjà présent.</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> BigDecimal coutDeplacement;   <span class="c">// AER_LM-266 : coût fixe de déplacement de l'agence (photo), en MAD</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestEntity.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\entity\CashRequestEntity.java  (après le champ prestataireNom)</span></div><p class="note">Import <code>java.math.BigDecimal</code> s'il n'est pas déjà présent.</p><pre><button class="copy">Copier</button><code>    <span class="a">@Column</span>(name = <span class="s">"cout_deplacement"</span>, precision = 12, scale = 2)
+    <span class="k">private</span> BigDecimal coutDeplacement;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestPersistenceMapper — updateHeader</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\mapper\CashRequestPersistenceMapper.java  (Ctrl+F : @Mapping(target = &quot;prestataireNom&quot;, ignore = true)  — sur updateHeader, ajouter juste après)</span></div><p class="note">Même protection que les 5 autres champs de la photo : le PUT ne l'écrase jamais. <code>toDomain</code> / <code>toPersistence</code> le mappent tout seuls (même nom des deux côtés).</p><pre><button class="copy">Copier</button><code>    <span class="a">@Mapping</span>(target = <span class="s">"coutDeplacement"</span>, ignore = <span class="k">true</span>)</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\dto\CashRequestDTO.java  (après : private String prestataireNom;)</span></div><p class="note">Import <code>java.math.BigDecimal</code> s'il n'est pas déjà présent. Sérialisé en nombre JSON (<code>350.5</code>).</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> BigDecimal coutDeplacement;   <span class="c">// AER_LM-266 : lecture seule (photo de l'agence)</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestWebMapper — toDomain</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\mapper\CashRequestWebMapper.java  (Ctrl+F : @Mapping(target = &quot;prestataireNom&quot;, ignore = true)  — sur toDomain, ajouter juste après)</span></div><p class="note">En entrée, le client ne fixe jamais la photo. En sortie (<code>toResponseDTO</code>), le champ est mappé automatiquement.</p><pre><button class="copy">Copier</button><code>    <span class="a">@Mapping</span>(target = <span class="s">"coutDeplacement"</span>, ignore = <span class="k">true</span>)</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.initier — photo</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (Ctrl+F : referentielAgencePort.trouver(brouillon.getBranchCode())  — remplace le bloc ifPresent)</span></div><pre><button class="copy">Copier</button><code>        <span class="c">// AER_LM-266 : photo de l'agence émettrice (nom, zone, prestataire, coût de déplacement) figée sur la demande</span>
+        referentielAgencePort.trouver(brouillon.getBranchCode()).ifPresent(agence -&gt; {
+            brouillon.setAgenceNom(agence.nom());
+            brouillon.setZoneCode(agence.zoneCode());
+            brouillon.setZoneNom(agence.zoneNom());
+            brouillon.setPrestataire(agence.prestataire());
+            brouillon.setPrestataireNom(agence.prestataireNom());
+            brouillon.setCoutDeplacement(agence.coutDeplacement());
+        });</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandRepositoryImpl.figerPhotoAgence</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java  (Ctrl+F : public CashRequest figerPhotoAgence  — remplace la méthode)</span></div><p class="note">Une ligne ajoutée : <code>setCoutDeplacement</code>. Le coût est donc repris à la soumission, comme le reste de la photo.</p><pre><button class="copy">Copier</button><code>    <span class="a">@Override</span>
+    <span class="a">@Transactional</span>
+    <span class="k">public</span> CashRequest figerPhotoAgence(UUID id, AgenceReferentiel agence) {
+        CashRequestEntity entity = cashDemandJpaRepository.findByIdWithTree(id)
+                .orElseThrow(() -&gt; <span class="k">new</span> RetailNotFoundException(<span class="s">"La demande "</span> + id + <span class="s">" est introuvable"</span>));
+        entity.setAgenceNom(agence.nom());
+        entity.setZoneCode(agence.zoneCode());
+        entity.setZoneNom(agence.zoneNom());
+        entity.setPrestataire(agence.prestataire());
+        entity.setPrestataireNom(agence.prestataireNom());
+        entity.setCoutDeplacement(agence.coutDeplacement());
+        <span class="k">return</span> mapper.toDomain(cashDemandJpaRepository.save(entity));
+    }</code></pre></div>
+<h2 id="s2">2. Front — fund-management-front</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>operation.model.ts — DemandeFonds</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\operation.model.ts  (interface DemandeFonds, après : prestataireNom?: string | null;)</span></div><pre><button class="copy">Copier</button><code>  coutDeplacement?: number | <span class="k">null</span>;   <span class="c">// AER_LM-266 : coût fixe de déplacement de l'agence (photo), MAD</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>agence-referentiel.model.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\agence-referentiel.model.ts</span></div><p class="note">Ajouts : <code>coutDeplacement</code> dans les deux interfaces et dans <code>versAgenceReferentiel</code>, et la fonction <code>libelleCoutDeplacement</code>. Formatage par <code>toLocaleString</code> plutôt que le pipe <code>number</code> : pas de dépendance à <code>registerLocaleData</code>.</p><pre><button class="copy">Copier</button><code><span class="c">/** AgenceDTO de utilisateurs-ci (GET /api/v1/public/users/orga/agences, AER_LM-271). Champs utiles à l'écran Caisse Centrale. */</span>
+<span class="k">export</span> <span class="k">interface</span> AgenceDTO {
+  id: number;
+  code: string;
+  nom: string;
+  actif?: boolean;
+  zoneDistribution?: { id: number; code: string; nom: string } | <span class="k">null</span>;
+  prestataire?: { id: string; nom: string } | <span class="k">null</span>;
+  coutDeplacement?: number | <span class="k">null</span>;   <span class="c">// numeric(12,2) côté users</span>
+}
+
+<span class="c">/** Vue écran : ce que la Caisse Centrale voit d'une agence émettrice (sert aux listes déroulantes et au repli d'affichage). */</span>
+<span class="k">export</span> <span class="k">interface</span> AgenceReferentiel {
+  code: string;
+  nom: string;
+  zoneCode: string | <span class="k">null</span>;
+  zoneNom: string | <span class="k">null</span>;
+  prestataireId: string | <span class="k">null</span>;    <span class="c">// BRINKS | G4S (enum Prestataire côté users)</span>
+  prestataireNom: string | <span class="k">null</span>;   <span class="c">// « Brink's », « G4S »</span>
+  coutDeplacement: number | <span class="k">null</span>;  <span class="c">// MAD</span>
+}
+
+<span class="k">export</span> function versAgenceReferentiel(a: AgenceDTO): AgenceReferentiel {
+  <span class="k">return</span> {
+    code: a.code,
+    nom: a.nom,
+    zoneCode: a.zoneDistribution?.code ?? <span class="k">null</span>,
+    zoneNom: a.zoneDistribution?.nom ?? <span class="k">null</span>,
+    prestataireId: a.prestataire?.id ?? <span class="k">null</span>,
+    prestataireNom: a.prestataire?.nom ?? <span class="k">null</span>,
+    coutDeplacement: a.coutDeplacement ?? <span class="k">null</span>
+  };
+}
+
+<span class="c">/** « 350,50 MAD » — même affichage que la liste des agences de la console (259). Null si non renseigné. */</span>
+<span class="k">export</span> function libelleCoutDeplacement(valeur: number | <span class="k">null</span> | undefined): string | <span class="k">null</span> {
+  <span class="k">if</span> (valeur === <span class="k">null</span> || valeur === undefined) {
+    <span class="k">return</span> <span class="k">null</span>;
+  }
+  <span class="k">return</span> <span class="s">`${valeur.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`</span>;
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>caisse-centrale-list.component.ts — import</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\caisse-centrale-list\caisse-centrale-list.component.ts  (Ctrl+F : agence-referentiel.model)</span></div><p class="note">Ajoute seulement <code>libelleCoutDeplacement</code> à l'import existant de <code>AgenceReferentiel</code> ; garde le chemin relatif de ta ligne actuelle.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { AgenceReferentiel, libelleCoutDeplacement } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/agence-referentiel.model'</span>;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>caisse-centrale-list.component.ts — LigneCaisseCentrale</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\caisse-centrale-list\caisse-centrale-list.component.ts  (interface LigneCaisseCentrale, après : transporteur: string | null;)</span></div><pre><button class="copy">Copier</button><code>  coutDeplacement: string | <span class="k">null</span>;   <span class="c">// libellé « 350,50 MAD »</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>caisse-centrale-list.component.ts — versLigne</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\caisse-centrale-list\caisse-centrale-list.component.ts  (versLigne, après : transporteur: d.prestataireNom ?? repli?.prestataireNom ?? null,)</span></div><p class="note">Photo de la demande d'abord, repli sur le référentiel pour une demande sans photo — comme la zone et le transporteur.</p><pre><button class="copy">Copier</button><code>      coutDeplacement: libelleCoutDeplacement(d.coutDeplacement ?? repli?.coutDeplacement),</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>caisse-centrale-list.component.html — colonne Transporteur</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\caisse-centrale-list\caisse-centrale-list.component.html  (Ctrl+F : classeTransporteur(l)  — remplace le span)</span></div><p class="note">Le span existant ne change pas ; seule la ligne <code>div</code> est ajoutée dessous.</p><pre><button class="copy">Copier</button><code>            &lt;span [<span class="k">class</span>]=<span class="s">"classeTransporteur(l)"</span>&gt;
+              &lt;mat-icon&gt;local_shipping&lt;/mat-icon&gt; {{ l.transporteur || <span class="s">'—'</span> }}
+            &lt;/span&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"cell-transporteur__cout"</span> *ngIf=<span class="s">"l.coutDeplacement"</span>&gt;Déplacement : {{ l.coutDeplacement }}&lt;/div&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>caisse-centrale-list.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\caisse-centrale-list\caisse-centrale-list.component.scss  (après le bloc .transporteur--g4s)</span></div><pre><button class="copy">Copier</button><code>.cell-transporteur__cout { margin-top: 4px; font-size: 0.75rem; color: #5f6f69; white-space: nowrap; }</code></pre></div>
+<h2 id="s3">3. Tests</h2>
+<h3>3.1 Back — CashDemandUseCaseImplTest</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>soumettre_reprendLaPhotoDeLAgenceAvantLaSaga — construction de l&#x27;agence</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (Ctrl+F : AgenceReferentiel agence = new AgenceReferentiel(AGENCE, &quot;DAR BOUAAZA&quot;)</span></div><p class="note">Remplace la ligne à 6 arguments du doc « photo reprise à la soumission » : sans ça le test ne compile plus. <code>BigDecimal</code> est déjà importé (fixture <code>stubReferential</code>).</p><pre><button class="copy">Copier</button><code>        AgenceReferentiel agence = <span class="k">new</span> AgenceReferentiel(AGENCE, <span class="s">"DAR BOUAAZA"</span>, <span class="s">"CASA"</span>, <span class="s">"Zone Casablanca"</span>, <span class="s">"BRINKS"</span>, <span class="s">"Brink's"</span>,
+                <span class="k">new</span> BigDecimal(<span class="s">"350.50"</span>));</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>initier — la photo porte le coût de déplacement</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (après initier_echecSaga_supprimeLeBrouillon)</span></div><p class="note">Imports déjà présents (<code>ArgumentCaptor</code>, <code>InitDemandeDTO</code>, <code>CashRequestId</code>, <code>Optional</code>, <code>AgenceReferentiel</code>). La saga est mockée : l'initialisation va au bout sans moteur.</p><pre><button class="copy">Copier</button><code>    <span class="a">@Test</span>
+    <span class="k">void</span> initier_figeLaPhotoDeLAgence_coutDeplacementCompris() {
+        UUID id = UUID.randomUUID();
+        AgenceReferentiel agence = <span class="k">new</span> AgenceReferentiel(AGENCE, <span class="s">"DAR BOUAAZA"</span>, <span class="s">"CASA"</span>, <span class="s">"Zone Casablanca"</span>, <span class="s">"G4S"</span>, <span class="s">"G4S"</span>,
+                <span class="k">new</span> BigDecimal(<span class="s">"350.50"</span>));
+        Mockito.when(referentielAgencePort.trouver(AGENCE)).thenReturn(Optional.of(agence));
+        Mockito.when(cashDemandRepository.save(Mockito.any())).thenAnswer(inv -&gt; {
+            CashRequest brouillon = inv.getArgument(0);
+            brouillon.setId(<span class="k">new</span> CashRequestId(id));
+            <span class="k">return</span> brouillon;
+        });
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande(id, RequestStatus.INITIATED));
+        Mockito.when(webMapper.toResponseDTO(Mockito.any())).thenReturn(<span class="k">new</span> CashRequestDTO());
+
+        InitDemandeDTO init = InitDemandeDTO.builder().user(<span class="s">"j43709"</span>).branchCode(AGENCE).establishment(<span class="s">"001"</span>).build();
+        assertNotNull(useCase.initier(init, DA));
+
+        ArgumentCaptor&lt;CashRequest&gt; brouillon = ArgumentCaptor.forClass(CashRequest.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).save(brouillon.capture());
+        assertEquals(<span class="s">"DAR BOUAAZA"</span>, brouillon.getValue().getAgenceNom());
+        assertEquals(<span class="s">"CASA"</span>, brouillon.getValue().getZoneCode());
+        assertEquals(<span class="s">"G4S"</span>, brouillon.getValue().getPrestataire());
+        assertEquals(<span class="k">new</span> BigDecimal(<span class="s">"350.50"</span>), brouillon.getValue().getCoutDeplacement());
+    }</code></pre></div>
+<div class="card"><p><code>UtilisateursAgenceAdapter</code> n'a pas de test unitaire : il construit son propre <code>RestClient</code> à partir de l'URL, aucun serveur simulé ne peut s'y brancher sans changer sa construction. Le champ ajouté est prouvé par la vérification §4 (écran + base).</p></div>
+<h3>3.2 Front — agence-referentiel.model</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>agence-referentiel.model.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\agence-referentiel.model.spec.ts</span></div><p class="note">Fonctions pures, pas de <code>TestBed</code>. <code>ng test --watch=false</code>.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { libelleCoutDeplacement, versAgenceReferentiel } <span class="k">from</span> <span class="s">'./agence-referentiel.model'</span>;
+
+<span class="k">describe</span>(<span class="s">'agence-referentiel.model — coût de déplacement'</span>, () =&gt; {
+
+  <span class="k">it</span>(<span class="s">'versAgenceReferentiel reprend le coût de l\'</span>AgenceDTO', () =&gt; {
+    <span class="k">const</span> agence = versAgenceReferentiel({
+      id: 1, code: <span class="s">'1422'</span>, nom: <span class="s">'DAR BOUAAZA'</span>, coutDeplacement: 350.5,
+      zoneDistribution: { id: 1, code: <span class="s">'CASA'</span>, nom: <span class="s">'Zone Casablanca'</span> },
+      prestataire: { id: <span class="s">'G4S'</span>, nom: <span class="s">'G4S'</span> }
+    });
+    <span class="k">expect</span>(agence.coutDeplacement).toBe(350.5);
+    <span class="k">expect</span>(agence.prestataireId).toBe(<span class="s">'G4S'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'coût absent de l\'</span>AgenceDTO : <span class="k">null</span>', () =&gt; {
+    <span class="k">expect</span>(versAgenceReferentiel({ id: 2, code: <span class="s">'1001'</span>, nom: <span class="s">'Nations Unies'</span> }).coutDeplacement).toBeNull();
+  });
+
+  <span class="k">it</span>(<span class="s">'libellé au format de la console : 350,50 MAD'</span>, () =&gt; {
+    <span class="k">expect</span>(libelleCoutDeplacement(350.5)).toBe(<span class="s">'350,50 MAD'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'coût à zéro : affiché, pas masqué'</span>, () =&gt; {
+    <span class="k">expect</span>(libelleCoutDeplacement(0)).toBe(<span class="s">'0,00 MAD'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'coût non renseigné : pas de libellé'</span>, () =&gt; {
+    <span class="k">expect</span>(libelleCoutDeplacement(<span class="k">null</span>)).toBeNull();
+    <span class="k">expect</span>(libelleCoutDeplacement(undefined)).toBeNull();
+  });
+});</code></pre></div>
+<h2 id="s4">4. Vérification depuis les écrans</h2>
+<div class="card"><p>Redémarre fund-management (Flyway applique V7 au démarrage) et recharge le front (Ctrl+F5).</p>
+<ol>
+<li><b>h11111</b> (fenêtre privée) : <code>/admin</code> → Agences → 1422 → Coût de déplacement <b>350,50</b> → Enregistrer.</li>
+<li><b>g10002</b> : Nouvelle demande → saisie → Soumettre. Réseau → <code>submit</code> → Preview : <code>coutDeplacement: 350.5</code>.</li>
+<li><b>Caisse Centrale</b> : listing → colonne Transporteur de cette demande : « G4S », puis dessous « Déplacement : 350,50 MAD ».</li>
+<li><b>h11111</b> : coût de 1422 à 400 → Enregistrer. <b>Caisse Centrale</b> : la demande de l'étape 2 affiche toujours 350,50 MAD ; une nouvelle demande soumise ensuite affiche 400,00 MAD.</li>
+</ol>
+<details><summary>Contrôles base (pour moi)</summary>
+<pre><button class="copy">Copier</button><code><span class="k">SELECT</span> version, success <span class="k">FROM</span> flyway_schema_history <span class="k">ORDER</span> <span class="k">BY</span> installed_rank <span class="k">DESC</span> <span class="k">LIMIT</span> 1;
+
+<span class="k">SELECT</span> unique_request_ref, request_status, prestataire, cout_deplacement, submitted_at
+<span class="k">FROM</span> retail.cash_request
+<span class="k">ORDER</span> <span class="k">BY</span> creation_date <span class="k">DESC</span>
+<span class="k">LIMIT</span> 5;</code></pre>
+<p>Attendu : version 7, succès ; <code>cout_deplacement = 350.50</code> sur la demande de l'étape 2, <code>400.00</code> sur celle soumise après le changement.</p></details></div>
+<div class="card"><h4>Build</h4><ol>
+<li><code>mvn clean install</code> : <code>initier_figeLaPhotoDeLAgence_coutDeplacementCompris</code> vert avec les existants.</li>
+<li><code>ng test --watch=false</code> : 5 cas verts dans « agence-referentiel.model — coût de déplacement ».</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
