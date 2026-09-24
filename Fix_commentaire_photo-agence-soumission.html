@@ -1,0 +1,273 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix — commentaire non enregistré + photo agence reprise à la soumission</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:22px 0 8px;font-size:16px}h4{margin:14px 0 6px;color:var(--vf)}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+details{margin-top:12px;border:1px dashed #b9c9c1;border-radius:6px;padding:8px 12px;background:#fafcfb}summary{cursor:pointer;font-weight:600;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Fix — commentaire non enregistré + photo de l'agence reprise à la soumission</h1><p>fund-management · fund-management-front · 24/09/2026 · suite Sprint 3 (267 / 266) · s'applique après le doc v4 et les fixes du 23/09</p></header>
+<nav><a href="#s0">Diagnostic</a><a href="#s1">Front</a><a href="#s2">Back</a><a href="#s3">Tests</a><a href="#s4">Vérification</a><a href="#s5">Remarque</a></nav><main><h2 id="s0">0. Diagnostic</h2>
+<div class="card"><table>
+<tr><th>Symptôme</th><th>Cause</th><th>Correctif</th></tr>
+<tr><td>Le commentaire saisi n'est pas enregistré : il est dans le <b>Payload</b> du <code>submit</code> mais la <b>Preview</b> renvoie <code>comment: null</code> (captures du 24/09, RT-2026-000033).</td>
+<td>Le front envoie la clé <code>commentaire</code> ; le back attend <code>comment</code> (<code>CashRequestDTO.comment</code>). Jackson ignore une clé inconnue <b>sans erreur</b> (réglage par défaut de Spring Boot), donc le champ arrive nul, le PUT/submit l'écrit à nul, et rien ne signale le problème. Le renommage <code>commentaire → comment</code> n'est pas appliqué dans <code>fundManagement-http.service.ts</code> : <code>soumettreDemande</code>, <code>modifierDemande</code> et <code>creerDemande</code> envoient le payload brut.</td>
+<td>§1 : les trois méthodes passent par <code>corps()</code>, et la relecture remappe <code>comment → commentaire</code> pour l'écran de consultation. Le back n'est pas modifié : son contrat (<code>comment</code>) est le bon.</td></tr>
+<tr><td>La photo de l'agence (nom, zone, transporteur) est prise au clic « Nouvelle demande ». Si la console change l'agence entre l'ouverture du brouillon et la soumission, la Caisse Centrale reçoit une demande avec des valeurs périmées.</td>
+<td>Règle livrée en 266 : photo figée au <code>POST /cash/init</code> uniquement. Un brouillon peut rester ouvert longtemps ; le moment qui compte pour la Caisse Centrale est la soumission.</td>
+<td>§2 : photo reprise au <code>PATCH /submit</code>, puis plus jamais. Une demande soumise garde ses valeurs quoi qu'on change ensuite dans la console.</td></tr>
+</table>
+<p>Pourquoi une méthode de repository dédiée pour la photo, plutôt que de poser les champs et de passer par <code>update</code> : <code>updateHeader</code> ignore volontairement les colonnes de la photo (le PUT ne doit jamais les toucher). Les écrire par <code>update</code> n'aurait aucun effet. On suit le même schéma que <code>verrouiller</code> / <code>annuler</code> : une méthode qui écrit exactement ses colonnes.</p>
+<p>Si le référentiel users est injoignable au moment de la soumission, la soumission passe quand même et la photo prise à l'initialisation est conservée (même tolérance que <code>initier()</code>).</p></div>
+<h2 id="s1">1. Front — le commentaire arrive au back sous le nom <code>comment</code></h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fundManagement-http.service.ts — creerDemande, modifierDemande, soumettreDemande</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\adapters\apiAdapters\fundManagement-http.service.ts  (Ctrl+F : creerDemande( puis modifierDemande( puis soumettreDemande()</span></div><p class="note">Remplace les trois méthodes entières. Seul le deuxième argument de <code>post</code> / <code>put</code> / <code>patch</code> change : <code>payload</code> devient <code>this.corps(payload)</code>.</p><pre><button class="copy">Copier</button><code>  creerDemande(payload: DemandeFondsPayload): Promise&lt;DemandeFonds&gt; {
+    <span class="k">return</span> firstValueFrom(
+      <span class="k">this</span>.http.post&lt;ApiResponse&lt;DemandeFonds&gt;&gt;(<span class="k">this</span>.apiUrl, <span class="k">this</span>.corps(payload)).pipe(
+        map(r =&gt; <span class="k">this</span>.data(r)),
+        catchError(err =&gt; throwError(() =&gt; <span class="k">this</span>.versErreurApi(err)))
+      )
+    );
+  }
+
+  <span class="c">/** Enregistrement du contenu (brouillon ou modification verrouillée). Même payload que la création. */</span>
+  modifierDemande(id: string, payload: DemandeFondsPayload): Promise&lt;DemandeFondsDetail&gt; {
+    <span class="k">return</span> <span class="k">this</span>.detail(<span class="k">this</span>.http.put&lt;ApiResponse&lt;DemandeFondsDetailBrute&gt;&gt;(<span class="s">`${this.apiUrl}/${id}`</span>, <span class="k">this</span>.corps(payload)));
+  }
+
+  soumettreDemande(id: string, payload: DemandeFondsPayload | <span class="k">null</span>): Promise&lt;DemandeFondsDetail&gt; {
+    <span class="k">return</span> <span class="k">this</span>.detail(<span class="k">this</span>.http.patch&lt;ApiResponse&lt;DemandeFondsDetailBrute&gt;&gt;(<span class="s">`${this.apiUrl}/${id}/submit`</span>, payload ? <span class="k">this</span>.corps(payload) : <span class="k">null</span>));
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fundManagement-http.service.ts — corps()</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\adapters\apiAdapters\fundManagement-http.service.ts  (juste au-dessus de : private detail()</span></div><p class="note">Ctrl+F <code>private corps(</code> avant de coller : si la méthode existe déjà dans ton fichier, remplace-la par celle-ci (une seule occurrence dans la classe).</p><pre><button class="copy">Copier</button><code>  <span class="c">/**
+   * Corps envoyé au back : le domaine front parle de « commentaire », le contrat REST de « comment ».
+   * La clé FR est retirée (le back l'ignorerait en silence). Commentaire vide ou blanc → null.
+   */</span>
+  <span class="k">private</span> corps(payload: DemandeFondsPayload): Record&lt;string, unknown&gt; {
+    <span class="k">const</span> { commentaire, ...reste } = payload;
+    <span class="k">return</span> { ...reste, comment: commentaire?.trim() || <span class="k">null</span> };
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demande-detail.model.ts — relecture du commentaire</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\demande-detail.model.ts  (Ctrl+F : export type DemandeFondsDetailBrute)</span></div><p class="note">Remplace le type <code>DemandeFondsDetailBrute</code> et la fonction <code>versDemandeFondsDetail</code>. Sans la dernière ligne, le commentaire bien enregistré n'apparaîtrait pas dans la textarea en consultation / modification (<code>appliquerDetail</code> lit <code>commentaire</code>). L'interface <code>DemandeFondsDetail</code> porte déjà <code>commentaire: string | null</code> ; le <code>as DemandeFondsDetail</code> est celui de la version en place (conflit de typage avec <code>DemandeFonds</code>).</p><pre><button class="copy">Copier</button><code><span class="c">/** Forme brute renvoyée par GET /cash/{id} (CashRequestDTO enrichi). Le back nomme le commentaire `comment`. */</span>
+<span class="k">export</span> <span class="k">type</span> DemandeFondsDetailBrute = DemandeFonds
+  &amp; Partial&lt;Omit&lt;DemandeFondsDetail, <span class="s">'statut'</span> | <span class="s">'cutoffUrgenceDepasse'</span> | <span class="s">'commentaire'</span>&gt;&gt;
+  &amp; { comment?: string | <span class="k">null</span> };
+
+<span class="k">export</span> function versDemandeFondsDetail(brut: DemandeFondsDetailBrute): DemandeFondsDetail {
+  <span class="k">return</span> {
+    ...brut,
+    statut: versStatutDemande(brut.requestStatus, brut.cancellationOrigin),
+    journeeCloturee: brut.journeeCloturee ?? <span class="k">false</span>,
+    cutoffUrgenceDepasse: <span class="k">false</span>,
+    commentaire: brut.comment ?? <span class="k">null</span>
+  } as DemandeFondsDetail;
+}</code></pre></div>
+<h2 id="s2">2. Back — photo de l'agence reprise à la soumission</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepository.java (port de sortie)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\repository\CashDemandRepository.java  (après : void supprimer(UUID id);)</span></div><p class="note">Import : <code>import com.bmci.workflow.fund.management.service.domain.retail.ports.output.referentiel.AgenceReferentiel;</code> (même module application-service).</p><pre><button class="copy">Copier</button><code>    <span class="c">/**
+     * AER_LM-266 — écrit la photo de l'agence sur la demande (agence_nom, zone_code, zone_nom, prestataire, prestataire_nom).
+     * Méthode dédiée : updateHeader ignore ces colonnes, le PUT ne doit jamais les toucher.
+     */</span>
+    CashRequest figerPhotoAgence(UUID id, AgenceReferentiel agence);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepositoryImpl.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java  (après la méthode supprimer)</span></div><p class="note">Même import <code>AgenceReferentiel</code> que le port. <code>@Transactional</code>, <code>RetailNotFoundException</code>, <code>findByIdWithTree</code> et <code>mapper</code> sont déjà utilisés par <code>verrouiller</code> / <code>annuler</code> dans cette classe ; les setters viennent des champs 266 de <code>CashRequestEntity</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-266 =====</span>
+    <span class="a">@Override</span>
+    <span class="a">@Transactional</span>
+    <span class="k">public</span> CashRequest figerPhotoAgence(UUID id, AgenceReferentiel agence) {
+        CashRequestEntity entity = cashDemandJpaRepository.findByIdWithTree(id)
+                .orElseThrow(() -&gt; <span class="k">new</span> RetailNotFoundException(<span class="s">"La demande "</span> + id + <span class="s">" est introuvable"</span>));
+        entity.setAgenceNom(agence.nom());
+        entity.setZoneCode(agence.zoneCode());
+        entity.setZoneNom(agence.zoneNom());
+        entity.setPrestataire(agence.prestataire());
+        entity.setPrestataireNom(agence.prestataireNom());
+        <span class="k">return</span> mapper.toDomain(cashDemandJpaRepository.save(entity));
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.soumettre</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (Ctrl+F : public CashRequestDTO soumettre)</span></div><p class="note">Remplace la méthode entière ; seul le bloc <code>AER_LM-266</code> est nouveau, le reste est identique. <code>referentielAgencePort</code> est la 9ᵉ dépendance posée en 266, aucun import à ajouter. La photo est écrite <b>avant</b> la saga : la réponse (relue par <code>ChangerStatutDemandeStep</code>) porte donc déjà les nouvelles valeurs. Si la saga échoue, le statut est compensé et le brouillon garde simplement la photo à jour, sans effet de bord. <code>initier()</code> ne change pas (photo pour l'affichage du brouillon).</p><pre><button class="copy">Copier</button><code>    <span class="a">@Override</span>
+    <span class="k">public</span> CashRequestDTO soumettre(UUID id, CashRequestDTO contenu, ContexteAppelant contexte) {
+        CashRequest demande = cashDemandRepository.getCashRequestById(id);
+        verifierMemeAgence(demande, contexte);
+        <span class="k">if</span> (demande.getRequestStatus() != RequestStatus.INITIATED) {
+            <span class="k">throw</span> <span class="k">new</span> RetailConflictException(<span class="s">"Seule une demande INITIATED peut être soumise (statut actuel : "</span>
+                    + demande.getRequestStatus() + <span class="s">")"</span>);
+        }
+        <span class="k">if</span> (contenu != <span class="k">null</span>) {
+            update(id, contenu, contexte);          <span class="c">// « on complète la demande avec ses champs »</span>
+        } <span class="k">else</span> <span class="k">if</span> (demande.getOperations() == <span class="k">null</span> || demande.getOperations().isEmpty()) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">"Une demande doit contenir au moins une opération"</span>);
+        }
+
+        <span class="c">// AER_LM-266 : photo de l'agence reprise à la soumission, puis plus jamais.</span>
+        <span class="c">// C'est l'état du référentiel au moment où la Caisse Centrale reçoit la demande.</span>
+        <span class="c">// users injoignable → Optional vide → la photo prise à l'initialisation est conservée.</span>
+        referentielAgencePort.trouver(demande.getBranchCode())
+                .ifPresent(agence -&gt; cashDemandRepository.figerPhotoAgence(id, agence));
+
+        SoumissionDemandeContext ctx = <span class="k">new</span> SoumissionDemandeContext(id);
+        <span class="c">// PAS de @Transactional ici : chaque étape commit, la saga est le rollback global.</span>
+        sagaOrchestrator.executer(<span class="s">"soumission-demande"</span>, ctx, List.of(
+                changerStatutDemandeStep,
+                <span class="k">new</span> CompleterTacheStep(processusWorkflowPort, TASK_SOUMETTRE,
+                        c -&gt; Map.of(<span class="s">"urgent"</span>, estUrgente(c.getDemande())))));
+        <span class="k">return</span> enrichir(ctx.getDemande());
+    }</code></pre></div>
+<h2 id="s3">3. Tests</h2>
+<h3>3.1 Back — CashDemandUseCaseImplTest : 3 cas sur la soumission</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImplTest.java — imports</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (bloc d&#x27;imports)</span></div><p class="note"><code>ReferentielAgencePort</code> est déjà importé (9ᵉ <code>@Mock</code> ajouté en 266). Si <code>Optional</code> l'est déjà, ne garde que les deux autres lignes.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.referentiel.AgenceReferentiel;
+<span class="k">import</span> org.mockito.InOrder;
+<span class="k">import</span> java.util.Optional;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImplTest.java — tests</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (avant la dernière accolade de la classe)</span></div><p class="note">Style du fichier respecté : Mockito strict, aucun stub global, chaque test déclare ce qu'il consomme. <code>demande(id, statut)</code> est la fixture existante (agence <code>AGENCE</code>, une opération) ; <code>contenu = null</code> soumet le brouillon tel quel, ce qui isole la photo de <code>update()</code> déjà couvert. Dans les deux premiers cas la saga est mockée, <code>ctx.getDemande()</code> reste nul : <code>Mockito.any()</code> accepte <code>null</code>, d'où le stub de <code>toResponseDTO</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ---------------------------------------------------------------- soumettre : photo de l'agence (AER_LM-266)</span>
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> soumettre_reprendLaPhotoDeLAgenceAvantLaSaga() {
+        UUID id = UUID.randomUUID();
+        AgenceReferentiel agence = <span class="k">new</span> AgenceReferentiel(AGENCE, <span class="s">"DAR BOUAAZA"</span>, <span class="s">"CASA"</span>, <span class="s">"Zone Casablanca"</span>, <span class="s">"BRINKS"</span>, <span class="s">"Brink's"</span>);
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande(id, RequestStatus.INITIATED));
+        Mockito.when(referentielAgencePort.trouver(AGENCE)).thenReturn(Optional.of(agence));
+        Mockito.when(webMapper.toResponseDTO(Mockito.any())).thenReturn(<span class="k">new</span> CashRequestDTO());
+
+        assertNotNull(useCase.soumettre(id, <span class="k">null</span>, DA));
+
+        InOrder ordre = Mockito.inOrder(cashDemandRepository, sagaOrchestrator);
+        ordre.verify(cashDemandRepository).figerPhotoAgence(id, agence);
+        ordre.verify(sagaOrchestrator).executer(Mockito.eq(<span class="s">"soumission-demande"</span>), Mockito.any(), Mockito.anyList());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> soumettre_referentielIndisponible_gardeLaPhotoDeLInitialisation() {
+        UUID id = UUID.randomUUID();
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande(id, RequestStatus.INITIATED));
+        Mockito.when(referentielAgencePort.trouver(AGENCE)).thenReturn(Optional.empty());
+        Mockito.when(webMapper.toResponseDTO(Mockito.any())).thenReturn(<span class="k">new</span> CashRequestDTO());
+
+        assertNotNull(useCase.soumettre(id, <span class="k">null</span>, DA));
+
+        Mockito.verify(cashDemandRepository, Mockito.never()).figerPhotoAgence(Mockito.any(), Mockito.any());
+        Mockito.verify(sagaOrchestrator).executer(Mockito.eq(<span class="s">"soumission-demande"</span>), Mockito.any(), Mockito.anyList());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> soumettre_demandeDejaSoumise_neTouchePasALaPhoto() {
+        UUID id = UUID.randomUUID();
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande(id, RequestStatus.SUBMITTED));
+
+        assertThrows(RetailConflictException.<span class="k">class</span>, () -&gt; useCase.soumettre(id, <span class="k">null</span>, DA));
+
+        Mockito.verifyNoInteractions(referentielAgencePort, sagaOrchestrator);
+        Mockito.verify(cashDemandRepository, Mockito.never()).figerPhotoAgence(Mockito.any(), Mockito.any());
+    }</code></pre></div>
+<h3>3.2 Front — l'adapter envoie comment et relit commentaire</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>fundManagement-http.corps.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\adapters\apiAdapters\fundManagement-http.corps.spec.ts</span></div><p class="note">Nom de fichier distinct de <code>fundManagement-http.service.spec.ts</code> pour ne rien écraser : Karma prend tous les <code>*.spec.ts</code>. Lancement : <code>ng test --watch=false</code> (Edge via <code>CHROME_BIN</code>, comme d'habitude).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { TestBed } <span class="k">from</span> <span class="s">'@angular/core/testing'</span>;
+<span class="k">import</span> { HttpClientTestingModule, HttpTestingController } <span class="k">from</span> <span class="s">'@angular/common/http/testing'</span>;
+<span class="k">import</span> { FundHttpService } <span class="k">from</span> <span class="s">'./fundManagement-http.service'</span>;
+
+<span class="c">/** Type du payload lu sur la signature du service : aucun import de modèle à maintenir. */</span>
+<span class="k">type</span> Payload = NonNullable&lt;Parameters&lt;FundHttpService[<span class="s">'soumettreDemande'</span>]&gt;[1]&gt;;
+
+<span class="k">describe</span>(<span class="s">'FundHttpService — commentaire envoyé sous le nom comment'</span>, () =&gt; {
+  <span class="k">let</span> service: FundHttpService;
+  <span class="k">let</span> http: HttpTestingController;
+
+  <span class="k">const</span> payload = {
+    branchCode: <span class="s">'1422'</span>,
+    user: <span class="s">'g10002'</span>,
+    establishment: <span class="s">'001'</span>,
+    operations: [],
+    commentaire: <span class="s">'Livraison avant 11h'</span>
+  } as unknown as Payload;
+
+  <span class="k">const</span> reponse = (comment: string | <span class="k">null</span>) =&gt; ({
+    success: <span class="k">true</span>,
+    message: <span class="s">'ok'</span>,
+    error: <span class="k">null</span>,
+    data: { id: <span class="s">'e39181ca'</span>, requestStatus: <span class="s">'SUBMITTED'</span>, operations: [], comment }
+  });
+
+  <span class="k">beforeEach</span>(() =&gt; {
+    TestBed.configureTestingModule({ imports: [HttpClientTestingModule] });
+    service = TestBed.inject(FundHttpService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  <span class="k">afterEach</span>(() =&gt; http.verify());
+
+  <span class="k">it</span>(<span class="s">'PATCH /submit : envoie comment, pas commentaire, et relit le commentaire'</span>, <span class="k">async</span> () =&gt; {
+    <span class="k">const</span> promesse = service.soumettreDemande(<span class="s">'e39181ca'</span>, payload);
+    <span class="k">const</span> req = http.expectOne(r =&gt; r.method === <span class="s">'PATCH'</span> &amp;&amp; r.url.endsWith(<span class="s">'/e39181ca/submit'</span>));
+    <span class="k">expect</span>(req.request.body.comment).toBe(<span class="s">'Livraison avant 11h'</span>);
+    <span class="k">expect</span>(<span class="s">'commentaire'</span> in req.request.body).toBeFalse();
+    req.flush(reponse(<span class="s">'Livraison avant 11h'</span>));
+    <span class="k">const</span> detail = <span class="k">await</span> promesse;
+    <span class="k">expect</span>(detail.commentaire).toBe(<span class="s">'Livraison avant 11h'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'PATCH /submit sans contenu : corps null'</span>, <span class="k">async</span> () =&gt; {
+    <span class="k">const</span> promesse = service.soumettreDemande(<span class="s">'e39181ca'</span>, <span class="k">null</span>);
+    <span class="k">const</span> req = http.expectOne(r =&gt; r.method === <span class="s">'PATCH'</span> &amp;&amp; r.url.endsWith(<span class="s">'/submit'</span>));
+    <span class="k">expect</span>(req.request.body).toBeNull();
+    req.flush(reponse(<span class="k">null</span>));
+    <span class="k">await</span> promesse;
+  });
+
+  <span class="k">it</span>(<span class="s">'PUT : envoie comment, pas commentaire'</span>, <span class="k">async</span> () =&gt; {
+    <span class="k">const</span> promesse = service.modifierDemande(<span class="s">'e39181ca'</span>, payload);
+    <span class="k">const</span> req = http.expectOne(r =&gt; r.method === <span class="s">'PUT'</span> &amp;&amp; r.url.endsWith(<span class="s">'/e39181ca'</span>));
+    <span class="k">expect</span>(req.request.body.comment).toBe(<span class="s">'Livraison avant 11h'</span>);
+    <span class="k">expect</span>(<span class="s">'commentaire'</span> in req.request.body).toBeFalse();
+    req.flush(reponse(<span class="s">'Livraison avant 11h'</span>));
+    <span class="k">await</span> promesse;
+  });
+
+  <span class="k">it</span>(<span class="s">'commentaire blanc : comment null'</span>, <span class="k">async</span> () =&gt; {
+    <span class="k">const</span> promesse = service.soumettreDemande(<span class="s">'e39181ca'</span>, { ...payload, commentaire: <span class="s">'   '</span> } as Payload);
+    <span class="k">const</span> req = http.expectOne(r =&gt; r.url.endsWith(<span class="s">'/submit'</span>));
+    <span class="k">expect</span>(req.request.body.comment).toBeNull();
+    req.flush(reponse(<span class="k">null</span>));
+    <span class="k">const</span> detail = <span class="k">await</span> promesse;
+    <span class="k">expect</span>(detail.commentaire).toBeNull();
+  });
+});</code></pre></div>
+<h2 id="s4">4. Vérification depuis les écrans</h2>
+<div class="card"><p>Redémarre fund-management (back) et recharge le front (Ctrl+F5). Garde l'onglet <b>Réseau</b> ouvert, filtre Fetch/XHR.</p>
+<h4>A. Commentaire — persona g10002 (Chef de caisse, agence 1422)</h4>
+<ol>
+<li>Portail → carte Gestion des fonds → Nouvelle demande. Saisis une coupure caisse et un commentaire, puis <b>Soumettre</b>.</li>
+<li>Réseau → <code>submit</code> → <b>Payload</b> : la clé est <code>comment</code>, il n'y a plus de <code>commentaire</code>. <b>Preview</b> : <code>comment</code> porte le texte saisi.</li>
+<li>Historique → Détail de la demande : le commentaire est affiché dans la zone de commentaire (lecture seule).</li>
+<li>Modifier la demande → change le commentaire → Enregistrer : le nouveau texte est affiché au retour en consultation (Réseau : <code>PUT</code> avec <code>comment</code>).</li>
+</ol>
+<h4>B. Photo de l'agence reprise à la soumission</h4>
+<ol>
+<li>g10002 : Nouvelle demande, <b>ne soumets pas</b>. Réseau → <code>init</code> → Preview : note <code>prestataire</code> et <code>zoneCode</code> (sur ta capture : <code>G4S</code> / <code>CASA</code>).</li>
+<li>Fenêtre privée, h11111 : <code>/admin</code> → Agences → 1422 → change le prestataire (G4S → BRINKS) → Enregistrer.</li>
+<li>Retour g10002 : remplis le brouillon et <b>Soumettre</b>. Preview du <code>submit</code> : <code>prestataire: "BRINKS"</code>, <code>prestataireNom</code> à jour. Avant ce correctif, on aurait gardé G4S.</li>
+<li>h11111 : remets G4S sur l'agence 1422.</li>
+<li>Caisse Centrale : listing → la demande soumise à l'étape 3 affiche toujours <b>BRINKS</b> ; le filtre Transporteur = BRINKS la retrouve. Une demande soumise ne suit plus la console.</li>
+</ol>
+<details><summary>Contrôles base (pour moi)</summary>
+<pre><button class="copy">Copier</button><code><span class="k">SELECT</span> unique_request_ref, request_status, request_comment, agence_nom, zone_code, prestataire, prestataire_nom, submitted_at
+<span class="k">FROM</span> retail.cash_request
+<span class="k">ORDER</span> <span class="k">BY</span> creation_date <span class="k">DESC</span>
+<span class="k">LIMIT</span> 5;</code></pre>
+<p>Attendu : <code>request_comment</code> rempli sur la demande de l'étape A ; <code>prestataire = BRINKS</code> sur celle de l'étape B, même après le retour à G4S dans la console.</p>
+<p>Si le Payload contient bien <code>comment</code> mais que la Preview renvoie encore <code>comment: null</code>, la perte est côté mappers back : Ctrl+F <code>"comment"</code> dans <code>CashRequestWebMapper</code> et <code>CashRequestPersistenceMapper</code> — aucune ligne <code>@Mapping(target = "comment", ignore = true)</code> ne doit exister.</p></details></div>
+<div class="card"><h4>C. Build</h4><ol>
+<li><code>mvn clean install</code> à la racine de fund-management : les 3 nouveaux tests <code>soumettre_*</code> sont verts avec les existants.</li>
+<li><code>ng test --watch=false</code> dans fund-management-front : 4 nouveaux cas verts dans « FundHttpService — commentaire envoyé sous le nom comment ».</li>
+</ol></div>
+<h2 id="s5">5. Remarque — hors de ce correctif</h2>
+<div class="card"><p>La même Preview montre <code>createdAt: null</code> et <code>updatedAt: null</code>. C'est un défaut distinct, déjà annoté par le collègue dans ses commits 267 : la date de création et de mise à jour ne remonte pas de la base jusqu'au DTO. Sans impact sur ce correctif (l'écran affiche « Soumise le » depuis <code>submittedAt</code>), mais « Traitée le » (<code>updatedAt</code>) restera vide. Je le traite dans un doc dédié si tu me le demandes.</p></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
