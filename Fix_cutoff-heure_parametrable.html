@@ -1,0 +1,69 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fix — heure de cut-off paramétrable (gdf.cutoff-heure)</title>
+<style>:root{--bg:#0f1115;--card:#171a21;--bd:#262b36;--tx:#e6e8ee;--mut:#9aa3b2;--ac:#3ddc97;--ko:#e5484d;--warn:#f5a524;--code:#0b0d11}*{box-sizing:border-box}body{margin:0;font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}header{padding:24px 28px 14px;border-bottom:1px solid var(--bd)}h1{margin:0 0 4px;font-size:21px}header p{margin:0;color:var(--mut)}main{max-width:1100px;margin:0 auto;padding:16px 24px 70px}h2{font-size:18px;margin:30px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bd)}h3{font-size:15px;margin:22px 0 2px;color:var(--ac)}.tag{font-size:11px;background:#1d222c;border:1px solid var(--bd);border-radius:5px;padding:1px 7px;color:var(--warn);margin-left:8px;vertical-align:middle}.path{margin:0 0 6px;color:var(--mut);font-size:13px;font-family:ui-monospace,monospace}pre{position:relative;background:var(--code);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;overflow:auto;font-size:13px;line-height:1.45}code{font-family:ui-monospace,Consolas,monospace}.copy{position:absolute;top:8px;right:8px;background:#1d222c;border:1px solid var(--bd);color:var(--mut);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:12px}.note{color:var(--mut);font-size:14px;margin:6px 0 0}.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 18px;margin:12px 0}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:#1d222c}.warn{border-left:4px solid var(--warn);background:#2a2214;padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0}.chk{list-style:none;padding:0}.chk li{padding:6px 0;border-bottom:1px solid var(--bd)}.chk input{margin-right:10px}
+</style></head><body><header><h1>Fix — heure de cut-off paramétrable : <code>gdf.cutoff-heure</code></h1><p>fund-management (application + external-services + container) · 23/09/2026 · 3 blocs, 5 min · permet de rejouer la modification agence après 16h00 pour la démo</p></header><main>
+<h2>1. Où le 16h00 est codé en dur</h2>
+<div class="card"><table><tr><th>Endroit</th><th>Effet</th></tr>
+<tr><td><code>CutoffPolicy.HEURE_CUTOFF = LocalTime.of(16, 0)</code> (application)</td><td>Calcule <code>journeeCloturee</code> à chaque lecture : bandeau « Lecture seule » à l'écran, 409 « Journée clôturée » sur modification / annulation agence.</td></tr>
+<tr><td><code>InitialiserDemandeHandler</code> : <code>LocalTime.of(16, 0)</code> (external-services)</td><td>Pose <code>dateCutoff16h</code> sur l'instance : le boundary timer déclenche <code>gdf-cloturer-journee</code>. Non interruptif : il ne bloque rien côté back, c'est la <code>CutoffPolicy</code> qui fait foi pour l'écran.</td></tr></table>
+<p>Une seule propriété pour les deux, valeur par défaut 16:00, surchargée en local pour la démo. Comme <code>gdf.verrou-modification-duree</code>.</p></div>
+<h2>2. Propriété</h2><h3>application.yml (container) — bloc gdf <span class="tag">ÉDITION</span></h3><p class="path">fund-management-container\src\main\resources\application.yml  (Ctrl+F : verrou-modification-duree)</p><pre><button class="copy">Copier</button><code>gdf:
+  verrou-modification-duree: PT30M   # ISO-8601, lu par CashDemandUseCaseImpl et transmis au timer BPMN
+  cutoff-heure: &quot;23:30&quot;              # HH:mm, heure JVM. Valeur métier 16:00 — 23:30 uniquement pour la démo, à remettre ensuite</code></pre><p class="note">La JVM tourne en UTC+1 alors que Windows affiche UTC+0 (14:08 à l'écran = 15:08 dans les logs) : 23:30 côté JVM = 22:30 à ta montre, largement après la démo. Même valeur à mettre dans <code>application-local.yml</code> si le profil local surcharge le bloc <code>gdf</code>.</p><h2>3. Back</h2><h3>CutoffPolicy.java <span class="tag">FICHIER COMPLET</span></h3><p class="path">fund-management-application\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CutoffPolicy.java</p><pre><button class="copy">Copier</button><code>package com.bmci.workflow.fund.management.service.domain.retail;
+
+import com.bmci.q360.domain.retail.entity.CashRequest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
+/**
+ * Règle du cut-off (16h00 par défaut, gdf.cutoff-heure), calculée localement — même règle que dateCutoff16h côté worker.
+ * Jour d&#x27;effet = jour de soumission, ou J+1 si soumise après l&#x27;heure de cut-off.
+ * Une demande jamais soumise (brouillon) n&#x27;est pas concernée.
+ */
+@Component
+public class CutoffPolicy {
+
+    private final LocalTime heureCutoff;
+
+    public CutoffPolicy(@Value(&quot;${gdf.cutoff-heure:16:00}&quot;) String heureCutoff) {
+        this.heureCutoff = LocalTime.parse(heureCutoff);
+    }
+
+    public LocalTime heureCutoff() {
+        return heureCutoff;
+    }
+
+    public boolean journeeCloturee(CashRequest demande) {
+        LocalDateTime soumission = demande.getSubmittedAt();
+        if (soumission == null) {
+            return false;
+        }
+        return LocalDateTime.now().isAfter(dateCutoff16h(soumission));
+    }
+
+    public LocalDateTime dateCutoff16h(LocalDateTime soumission) {
+        LocalDate jourEffet = soumission.toLocalTime().isAfter(heureCutoff)
+                ? soumission.toLocalDate().plusDays(1)
+                : soumission.toLocalDate();
+        return jourEffet.atTime(heureCutoff);
+    }
+}</code></pre><p class="note">La constante <code>HEURE_CUTOFF</code> disparaît. Si un test construit <code>new CutoffPolicy()</code> sans argument, passe-lui <code>new CutoffPolicy("16:00")</code>. Si un autre code référence <code>CutoffPolicy.HEURE_CUTOFF</code> (Ctrl+Shift+F), remplace par <code>cutoffPolicy.heureCutoff()</code>.</p><h2>4. Worker</h2><h3>InitialiserDemandeHandler.java — même heure que le back <span class="tag">ÉDITION</span></h3><p class="path">fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\InitialiserDemandeHandler.java</p><pre><button class="copy">Copier</button><code>    // Champ à ajouter dans la classe (import org.springframework.beans.factory.annotation.Value)
+    @Value(&quot;${gdf.cutoff-heure:16:00}&quot;)
+    private String heureCutoff;
+
+    // Dans execute(), remplace les deux lignes qui utilisent LocalTime.of(16, 0) :
+        LocalTime cutoff = LocalTime.parse(heureCutoff);
+        boolean apresCutoff16 = LocalTime.now().isAfter(cutoff);
+        LocalDate jourEffet = apresCutoff16 ? LocalDate.now().plusDays(1) : LocalDate.now();
+        Date dateCutoff16h = Date.from(jourEffet.atTime(cutoff).atZone(ZoneId.systemDefault()).toInstant());</code></pre><p class="note">Si le handler est construit avec <code>@RequiredArgsConstructor</code> et des champs <code>final</code>, garde le champ non final avec <code>@Value</code> : Lombok l'ignore et Spring l'injecte après construction. Redémarre fund-management.</p><h2>5. Vérification</h2>
+<div class="card"><ul class="chk">
+<li><input type="checkbox">Une demande soumise plus tôt aujourd'hui, ouverte en consultation : plus de bandeau « Lecture seule », boutons Modifier / Annuler de retour (la règle est recalculée à la lecture, pas besoin de recréer la demande).</li>
+<li><input type="checkbox">Modifier la demande → écran de modification (après le fix V6 / ALTER de la contrainte).</li>
+<li><input type="checkbox">Nouvelle demande soumise : Postman <code>GET {moteur}/process-instance/&lt;id instance&gt;/variables/dateCutoff16h</code> → aujourd'hui à 23:30 (JVM).</li>
+<li><input type="checkbox">Les trois demandes déjà passées par <code>gdf-cloturer-journee</code> à 16:00 restent utilisables : ce worker ne verrouille rien en base, seule la <code>CutoffPolicy</code> compte pour l'écran.</li>
+</ul>
+<div class="warn">Après la démo : remettre <code>cutoff-heure: "16:00"</code> (ou supprimer la ligne, la valeur par défaut est 16:00). Le décalage JVM/Windows se règle à part avec <code>-Duser.timezone=Africa/Casablanca</code> sur fund-management et sur le moteur.</div></div>
+</main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
