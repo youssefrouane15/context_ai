@@ -1,0 +1,1563 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprint 4 — AER_LM-280 / 278 / 289 / 281 : référence, KPI, listing commun, refonte des écrans</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:22px 0 8px;font-size:16px}h4{margin:14px 0 6px;color:var(--vf)}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+details{margin-top:12px;border:1px dashed #b9c9c1;border-radius:6px;padding:8px 12px;background:#fafcfb}summary{cursor:pointer;font-weight:600;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Sprint 4 — Référence (280), KPI (278), listing commun (289) et refonte des écrans (281)</h1><p>fund-management · fund-management-front · 24/09/2026 · s'applique après le doc « coût de déplacement » · utilisateurs-ci et BPMN inchangés</p></header>
+<nav><a href="#s0">Périmètre</a><a href="#s1">280 Référence</a><a href="#s2">278 KPI</a><a href="#s3">289 Back</a><a href="#s4">Tests back</a><a href="#s5">Front</a><a href="#s6">Tests front</a><a href="#s7">Vérification</a><a href="#s8">Nettoyage</a></nav><main><h2 id="s0">0. Périmètre et ordre d'application</h2>
+<div class="card"><table>
+<tr><th>Jira</th><th>Ce qui est livré</th><th>Où</th></tr>
+<tr><td><b>AER_LM-280</b> Référence</td><td>Nomenclature <code>AAAAMMJJ-CodeAgence-Séquence</code> (ex. <code>20260924-1422-01</code>), séquence par jour et par agence, atomique (compteur <code>retail.request_ref_counter</code>, INSERT … ON CONFLICT). Retail seul ; les demandes existantes gardent leur ancienne référence.</td><td>Étape 1</td></tr>
+<tr><td><b>AER_LM-278</b> KPI</td><td><code>GET /cash/kpi?date=</code> : en attente (SUBMITTED), urgentes (tous statuts), traitées (VALIDATED) avec répartition par transporteur, sur les demandes créées à partir de la date (aujourd'hui par défaut). Jamais filtré.</td><td>Étape 2</td></tr>
+<tr><td><b>AER_LM-289</b> Listing commun</td><td>Back : <code>dateFin</code>, recherche libre (référence, agence, zone), photo de l'agent (nom, profil) sur la demande, correction de la date de création perdue au PUT. Front : un seul composant <code>demandes-list</code> paramétré par le mode <code>agence</code> | <code>caisse-centrale</code>, filtres serveur.</td><td>Étapes 3 et 5</td></tr>
+<tr><td><b>AER_LM-281</b> Écran</td><td>Transposition SCSS des deux maquettes : KPI cliquables, filtres (dates, type, zones, transporteur, statut, urgent, recherche), tableau, pagination, modale d'annulation avec motifs rapides, bouton Export (inactif jusqu'à AER_LM-279).</td><td>Étape 5</td></tr>
+</table>
+<p><b>Décisions du 25/09 intégrées</b> : la Caisse Centrale (et tout profil « toutes agences ») <b>ne voit jamais les brouillons</b> — exclusion côté serveur, quel que soit le filtre, et pas de choix « Brouillon » dans son select ; les KPI « urgentes » les excluent aussi. Un clic sur une carte KPI cadre la liste sur <b>la journée en cours</b> (Date début = Date fin = aujourd'hui) en plus du statut, pour montrer exactement ce que la carte compte. Le transporteur G4S s'affiche avec le lettrage du logo (le 4 en rouge).</p>
+<p><b>Ordre</b> : étapes 1 → 4 (back, <code>mvn clean install</code> vert), puis 5 → 6 (front, <code>ng test</code> vert), puis 7 (vérification par écran). Chaque bloc porte son repère Ctrl+F. Rien à toucher dans utilisateurs-ci ni dans le BPMN.</p>
+<p><b>La date de création, tranché (25/09)</b> : <code>CashRequestEntity</code> n'a pas d'attribut <code>createdAt</code>. Les horodatages viennent de <code>BaseEntity</code> — colonnes <code>creation_date</code> / <code>modification_date</code>, champs <code>creationDate</code> / <code>modificationDate</code> — alors que le domaine et le DTO s'appellent <code>createdAt</code> / <code>updatedAt</code>. MapStruct ne relie pas deux noms différents : la date n'était jamais mappée. Correction en 3.6 : deux <code>@Mapping</code> sur <code>toDomain</code>, deux <code>ignore</code> sur <code>updateHeader</code>. Tout ce qui touche à la date dans ce doc (JPQL des KPI, prédicat <code>dateFin</code>) utilise l'attribut <code>creationDate</code>.</p></div>
+<h2 id="s1">1. AER_LM-280 — Référence de demande (back)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V8__reference_par_jour_et_agence.sql</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\db\migration\V8__reference_par_jour_et_agence.sql</span></div><p class="note">V7 (coût de déplacement) est le dernier script. Le compteur est une table, pas une séquence : la séquence Postgres ne sait pas repartir de 1 chaque jour et par agence.</p><pre><button class="copy">Copier</button><code><span class="c">-- AER_LM-280 : référence de demande AAAAMMJJ-CodeAgence-Séquence (séquence sur 2 chiffres, par jour et par agence).</span>
+<span class="c">-- Compteur atomique : une ligne par (jour, agence), incrémentée par INSERT ... ON CONFLICT (verrou de ligne Postgres).</span>
+CREATE TABLE IF NOT EXISTS retail.request_ref_counter (
+    jour            DATE         NOT NULL,
+    branch_code     VARCHAR(20)  NOT NULL,
+    dernier_numero  INTEGER      NOT NULL DEFAULT 0,
+    CONSTRAINT pk_request_ref_counter PRIMARY KEY (jour, branch_code)
+);
+
+<span class="c">-- 'RT-2026-000033' (14 car.) devient '20260924-1422-01' (16 car.) : marge pour un code agence long ou une séquence &gt; 99.</span>
+ALTER TABLE retail.cash_request ALTER COLUMN unique_request_ref TYPE VARCHAR(40);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>ReferenceDemande.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\ReferenceDemande.java</span></div><p class="note">Fonction pure (testée en 4.1). Même package que <code>CashDemandRepositoryImpl</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.dataaccess.retail.adapter;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.exceptions.RetailValidationException;
+
+<span class="k">import</span> java.time.LocalDate;
+<span class="k">import</span> java.time.format.DateTimeFormatter;
+
+<span class="c">/**
+ * AER_LM-280 — nomenclature de la référence : AAAAMMJJ-CodeAgence-Séquence, éléments séparés par un tiret.
+ * La séquence est sur 2 chiffres minimum (01, 02, …) ; au-delà de 99 elle continue sur 3 chiffres.
+ */</span>
+<span class="k">public</span> <span class="k">final</span> <span class="k">class</span> ReferenceDemande {
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> DateTimeFormatter JOUR = DateTimeFormatter.BASIC_ISO_DATE;
+
+    <span class="k">private</span> ReferenceDemande() {}
+
+    <span class="k">public</span> <span class="k">static</span> String formater(LocalDate jour, String codeAgence, int numero) {
+        <span class="k">if</span> (codeAgence == <span class="k">null</span> || codeAgence.isBlank()) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">"Le code agence est obligatoire pour numéroter la demande"</span>);
+        }
+        <span class="k">if</span> (numero &lt;= 0) {
+            <span class="k">throw</span> <span class="k">new</span> IllegalArgumentException(<span class="s">"La séquence d'une référence commence à 1"</span>);
+        }
+        <span class="k">return</span> <span class="s">"%s-%s-%02d"</span>.formatted(jour.format(JOUR), codeAgence.trim(), numero);
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandJpaRepository — numéro suivant</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\…\CashDemandJpaRepository.java  (le repository JPA de cash_request, à côté de nextRequestRef)</span></div><p class="note">Imports : <code>java.time.LocalDate</code>, <code>org.springframework.data.jpa.repository.Query</code>, <code>org.springframework.data.repository.query.Param</code> (les deux derniers sont déjà là si <code>nextRequestRef</code> est une <code>@Query</code>). Pas de <code>@Modifying</code> : c'est le <code>RETURNING</code> qui renvoie la valeur. <code>nextRequestRef()</code> et sa séquence peuvent rester, ils ne sont plus appelés.</p><pre><button class="copy">Copier</button><code>    <span class="c">/**
+     * AER_LM-280 : numéro suivant pour (jour, agence). INSERT … ON CONFLICT pose un verrou de ligne :
+     * deux demandes simultanées de la même agence reçoivent deux numéros différents.
+     */</span>
+    <span class="a">@Query</span>(value = <span class="s">""</span>"
+            INSERT INTO retail.request_ref_counter (jour, branch_code, dernier_numero)
+            VALUES (:jour, :agence, 1)
+            ON CONFLICT (jour, branch_code)
+            DO <span class="k">UPDATE</span> <span class="k">SET</span> dernier_numero = retail.request_ref_counter.dernier_numero + 1
+            RETURNING dernier_numero
+            <span class="s">""</span>", nativeQuery = <span class="k">true</span>)
+    Integer prochainNumeroDuJour(<span class="a">@Param</span>(<span class="s">"jour"</span>) LocalDate jour, <span class="a">@Param</span>(<span class="s">"agence"</span>) String agence);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandRepositoryImpl.generateRequestRef</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java  (Ctrl+F : private String generateRequestRef()  — remplace la méthode)</span></div><p class="note">La méthode prend maintenant la demande : dans <code>save(...)</code>, l'unique appel <code>generateRequestRef()</code> devient <code>generateRequestRef(cashRequest)</code> (le paramètre de <code>save</code>, même nom que dans <code>establishmentOf</code>). Imports : <code>java.time.LocalDate</code> ; <code>java.time.Year</code> devient inutile.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-280 : AAAAMMJJ-CodeAgence-Séquence, séquence par jour et par agence (compteur retail.request_ref_counter). */</span>
+    <span class="k">private</span> String generateRequestRef(CashRequest cashRequest) {
+        LocalDate jour = LocalDate.now();
+        Integer numero = cashDemandJpaRepository.prochainNumeroDuJour(jour, cashRequest.getBranchCode());
+        <span class="k">return</span> ReferenceDemande.formater(jour, cashRequest.getBranchCode(), numero);
+    }</code></pre></div>
+<h2 id="s2">2. AER_LM-278 — KPI Caisse Centrale (back)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandJpaRepository — compteurs</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\…\CashDemandJpaRepository.java  (après prochainNumeroDuJour)</span></div><p class="note"><code>creationDate</code> est l'attribut de <code>BaseEntity</code> (colonne <code>creation_date</code>). « Urgentes » exclut les brouillons : la Caisse Centrale ne les voit pas, elle ne doit pas les compter. Imports : <code>java.time.LocalDateTime</code>, <code>java.util.List</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-278 — KPI Caisse Centrale (demandes créées à partir de `depuis`, aucun filtre d'écran) =====</span>
+
+    <span class="a">@Query</span>(<span class="s">"select count(c) from CashRequestEntity c where c.requestStatus = 'SUBMITTED' and c.creationDate &gt;= :depuis"</span>)
+    long compterEnAttente(<span class="a">@Param</span>(<span class="s">"depuis"</span>) LocalDateTime depuis);
+
+    <span class="a">@Query</span>(<span class="s">"select count(c) from CashRequestEntity c where c.urgent = true and c.requestStatus &lt;&gt; 'INITIATED' and c.creationDate &gt;= :depuis"</span>)
+    long compterUrgentes(<span class="a">@Param</span>(<span class="s">"depuis"</span>) LocalDateTime depuis);
+
+    <span class="a">@Query</span>(<span class="s">"select count(c) from CashRequestEntity c where c.requestStatus = 'VALIDATED' and c.creationDate &gt;= :depuis"</span>)
+    long compterTraitees(<span class="a">@Param</span>(<span class="s">"depuis"</span>) LocalDateTime depuis);
+
+    <span class="c">/** [prestataire, prestataireNom, nombre] par transporteur, sur les demandes traitées. */</span>
+    <span class="a">@Query</span>(<span class="s">""</span>"
+            select c.prestataire, c.prestataireNom, count(c)
+            <span class="k">from</span> CashRequestEntity c
+            where c.requestStatus = <span class="s">'VALIDATED'</span> and c.creationDate &gt;= :depuis
+            group by c.prestataire, c.prestataireNom
+            order by c.prestataire
+            <span class="s">""</span>")
+    List&lt;Object[]&gt; compterTraiteesParPrestataire(<span class="a">@Param</span>(<span class="s">"depuis"</span>) LocalDateTime depuis);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>KpiDemandes.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\repository\KpiDemandes.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository;
+
+<span class="k">import</span> java.util.List;
+
+<span class="c">/** AER_LM-278 — compteurs de la Caisse Centrale sur les demandes créées à partir d'un instant donné. */</span>
+<span class="k">public</span> record KpiDemandes(long enAttente, long urgentes, long traitees, List&lt;RepartitionPrestataire&gt; traiteesParPrestataire) {
+
+    <span class="c">/** code = BRINKS | G4S (photo de l'agence sur la demande) ; null si la demande n'a pas de photo. */</span>
+    <span class="k">public</span> record RepartitionPrestataire(String code, String nom, long nombre) {}
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepository.java (port)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\repository\CashDemandRepository.java  (après figerPhotoAgence)</span></div><p class="note">Import <code>java.time.LocalDateTime</code>. <code>KpiDemandes</code> est dans le même package.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-278 : KPI Caisse Centrale sur les demandes créées à partir de `depuis` (jamais filtrés). */</span>
+    KpiDemandes kpi(LocalDateTime depuis);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepositoryImpl.kpi</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java  (après figerPhotoAgence)</span></div><p class="note">Imports : <code>KpiDemandes</code> (package du port), <code>java.time.LocalDateTime</code>, <code>java.util.List</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-278 =====</span>
+    <span class="a">@Override</span>
+    <span class="a">@Transactional</span>(readOnly = <span class="k">true</span>)
+    <span class="k">public</span> KpiDemandes kpi(LocalDateTime depuis) {
+        List&lt;KpiDemandes.RepartitionPrestataire&gt; repartition = cashDemandJpaRepository.compterTraiteesParPrestataire(depuis).stream()
+                .map(ligne -&gt; <span class="k">new</span> KpiDemandes.RepartitionPrestataire(
+                        (String) ligne[0], (String) ligne[1], ((Number) ligne[2]).longValue()))
+                .toList();
+        <span class="k">return</span> <span class="k">new</span> KpiDemandes(
+                cashDemandJpaRepository.compterEnAttente(depuis),
+                cashDemandJpaRepository.compterUrgentes(depuis),
+                cashDemandJpaRepository.compterTraitees(depuis),
+                repartition);
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>KpiDemandesDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\dto\KpiDemandesDTO.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.dto;
+
+<span class="k">import</span> java.time.LocalDate;
+<span class="k">import</span> java.util.List;
+
+<span class="c">/** AER_LM-278 — réponse de GET /cash/kpi : indicateurs de la journée (ou de la date demandée), jamais filtrés. */</span>
+<span class="k">public</span> record KpiDemandesDTO(LocalDate date, long enAttente, long urgentes, long traitees,
+                             List&lt;RepartitionTransporteurDTO&gt; traiteesParTransporteur) {
+
+    <span class="k">public</span> record RepartitionTransporteurDTO(String code, String nom, long nombre) {}
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCase.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\inputs\service\CashDemandUseCase.java  (après completerTacheCaisseCentrale)</span></div><p class="note">Imports : <code>KpiDemandesDTO</code> (package dto), <code>java.time.LocalDate</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ----- Caisse Centrale : KPI (AER_LM-278) -----</span>
+    <span class="c">/** Indicateurs des demandes créées à partir de `date` (aujourd'hui si null) ; aucun filtre d'écran ne s'applique. */</span>
+    KpiDemandesDTO kpiCaisseCentrale(LocalDate date);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImpl — kpiCaisseCentrale</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (avant la section « Appels du worker »)</span></div><p class="note">Imports : <code>KpiDemandes</code>, <code>KpiDemandesDTO</code>, <code>java.time.LocalDate</code>. « Urgentes » = toutes les demandes urgentes du jour, quel que soit leur statut (décision du 24/09).</p><pre><button class="copy">Copier</button><code>    <span class="c">// =====================================================================</span>
+    <span class="c">// KPI Caisse Centrale (AER_LM-278)</span>
+    <span class="c">// =====================================================================</span>
+
+    <span class="k">static</span> <span class="k">final</span> String TRANSPORTEUR_NON_RENSEIGNE = <span class="s">"Non renseigné"</span>;
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> KpiDemandesDTO kpiCaisseCentrale(LocalDate date) {
+        LocalDate jour = date == <span class="k">null</span> ? LocalDate.now() : date;
+        KpiDemandes kpi = cashDemandRepository.kpi(jour.atStartOfDay());
+        List&lt;KpiDemandesDTO.RepartitionTransporteurDTO&gt; repartition = kpi.traiteesParPrestataire().stream()
+                .map(r -&gt; <span class="k">new</span> KpiDemandesDTO.RepartitionTransporteurDTO(
+                        r.code(),
+                        r.nom() != <span class="k">null</span> ? r.nom() : (r.code() != <span class="k">null</span> ? r.code() : TRANSPORTEUR_NON_RENSEIGNE),
+                        r.nombre()))
+                .toList();
+        <span class="k">return</span> <span class="k">new</span> KpiDemandesDTO(jour, kpi.enAttente(), kpi.urgentes(), kpi.traitees(), repartition);
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>RetailDemandController — GET /cash/kpi</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\RetailDemandController.java  (juste avant @GetMapping(&quot;/{id}&quot;))</span></div><p class="note">Imports : <code>KpiDemandesDTO</code>, <code>java.time.LocalDate</code>. Visible par les profils « toutes agences » (Caisse Centrale, Support, Super Admin), comme le listing. Placé avant <code>/{id}</code> : Spring préfère le chemin littéral, le placement évite seulement une lecture ambiguë.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ----- Caisse Centrale : KPI (AER_LM-278) -----</span>
+
+    <span class="a">@GetMapping</span>(<span class="s">"/kpi"</span>)
+    <span class="a">@PreAuthorize</span>(<span class="s">"hasAuthority('GDF_TOUTES_AGENCES')"</span>)
+    <span class="k">public</span> ResponseEntity&lt;ApiResponse&lt;KpiDemandesDTO&gt;&gt; kpi(
+            <span class="a">@RequestParam</span>(required = <span class="k">false</span>) <span class="a">@DateTimeFormat</span>(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        <span class="k">return</span> ResponseEntity.ok(ApiResponse.success(cashDemandUseCase.kpiCaisseCentrale(date)));
+    }</code></pre></div>
+<h2 id="s3">3. AER_LM-289 — Listing enrichi (back)</h2>
+<h3>3.1 Base</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V9__photo_agent.sql</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\db\migration\V9__photo_agent.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- AER_LM-289 : photo de l'agent demandeur (nom complet, libellé du profil) figée à l'initialisation de la demande.</span>
+<span class="c">-- Alimente la colonne « Agent » des listings sans appel à utilisateurs-ci à l'affichage.</span>
+ALTER TABLE retail.cash_request ADD COLUMN agent_nom     VARCHAR(150);
+ALTER TABLE retail.cash_request ADD COLUMN agent_profil  VARCHAR(100);</code></pre></div>
+<h3>3.2 Sécurité B2 : l'identité porte le nom et le profil</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ContexteAppelant.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\contexte\ContexteAppelant.java</span></div><p class="note">Le constructeur à 3 arguments est conservé : rien ne casse (tests, <code>transitoire()</code>, mode mock).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.contexte;
+
+<span class="c">/**
+ * Identité de l'appelant telle que vue par les use cases (posée par la sécurité B2 depuis utilisateurs-ci).
+ * uid == null  ⇒ mode transitoire : les gardes d'agence et de verrou sont désactivées.
+ * AER_LM-289 : nomComplet et profilLibelle servent à la photo de l'agent sur la demande (colonne « Agent »).
+ */</span>
+<span class="k">public</span> record ContexteAppelant(String uid, String branchCode, boolean toutesAgences, String nomComplet, String profilLibelle) {
+
+    <span class="c">/** Forme historique (B1/B2, tests) : sans photo de l'agent. */</span>
+    <span class="k">public</span> ContexteAppelant(String uid, String branchCode, boolean toutesAgences) {
+        <span class="k">this</span>(uid, branchCode, toutesAgences, <span class="k">null</span>, <span class="k">null</span>);
+    }
+
+    <span class="k">public</span> <span class="k">static</span> ContexteAppelant transitoire() { <span class="k">return</span> <span class="k">new</span> ContexteAppelant(<span class="k">null</span>, <span class="k">null</span>, <span class="k">true</span>); }
+
+    <span class="k">public</span> boolean estIdentifie() { <span class="k">return</span> uid != <span class="k">null</span> &amp;&amp; !uid.isBlank(); }
+
+    <span class="c">/** uid effectif pour les variables BPMN : l'appelant si connu, sinon le demandeur de la demande. */</span>
+    <span class="k">public</span> String uidOu(String repli) { <span class="k">return</span> estIdentifie() ? uid : repli; }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>UtilisateurInterneDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\security\UtilisateurInterneDTO.java</span></div><p class="note"><code>firstName</code>, <code>lastName</code> et <code>profile.name</code> existent dans <code>InternalUserDTO</code> de utilisateurs-ci (vérifié le 15/09) ; ils étaient simplement ignorés jusqu'ici.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.security;
+
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+<span class="k">import</span> java.util.List;
+
+<span class="c">/**
+ * Sous-ensemble de InternalUserDTO (utilisateurs-ci, GET /api/v1/internal/users/{uid}).
+ * Tout champ inconnu est ignoré : le contrat users peut s'enrichir sans casser fund-management.
+ * AER_LM-289 : firstName, lastName et profile.name alimentent la photo de l'agent.
+ */</span>
+<span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+<span class="k">public</span> record UtilisateurInterneDTO(String uid, String firstName, String lastName, boolean enabled,
+                                    ProfilDTO profile, UniteOrgaDTO orgaUnit) {
+
+    <span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+    <span class="k">public</span> record ProfilDTO(String code, String name, List&lt;RoleDTO&gt; roles) {}
+
+    <span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+    <span class="k">public</span> record RoleDTO(String platform, Boolean actif, List&lt;PermissionDTO&gt; permissions) {}
+
+    <span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+    <span class="k">public</span> record PermissionDTO(String code) {}
+
+    <span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+    <span class="k">public</span> record UniteOrgaDTO(String code, String <span class="k">type</span>) {}
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>IdentiteAppelantResolver.versIdentite</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\security\IdentiteAppelantResolver.java  (Ctrl+F : private IdentiteAppelant versIdentite  — remplace la méthode)</span></div><p class="note">Import à ajouter : <code>java.util.stream.Collectors</code> (<code>Stream</code> et <code>Objects</code> sont déjà importés).</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> IdentiteAppelant versIdentite(UtilisateurInterneDTO utilisateur) {
+        List&lt;String&gt; permissions = permissions(utilisateur);
+        boolean toutesAgences = permissions.contains(PERMISSION_TOUTES_AGENCES);
+        String branchCode = utilisateur.orgaUnit() != <span class="k">null</span> &amp;&amp; TYPE_AGENCE.equals(utilisateur.orgaUnit().<span class="k">type</span>())
+                ? utilisateur.orgaUnit().code() : <span class="k">null</span>;
+        List&lt;GrantedAuthority&gt; authorities = permissions.stream()
+                .&lt;GrantedAuthority&gt;map(SimpleGrantedAuthority::<span class="k">new</span>)
+                .toList();
+        <span class="c">// AER_LM-289 : photo de l'agent (« Salma EL AMRANI », « Chef de caisse »)</span>
+        String nomComplet = Stream.of(utilisateur.firstName(), utilisateur.lastName())
+                .filter(Objects::nonNull).map(String::trim).filter(s -&gt; !s.isEmpty())
+                .collect(Collectors.joining(<span class="s">" "</span>));
+        String profilLibelle = utilisateur.profile() == <span class="k">null</span> ? <span class="k">null</span> : utilisateur.profile().name();
+        log.debug(<span class="s">"Auth &gt;&gt; uid={} agence={} toutesAgences={} permissions={}"</span>, utilisateur.uid(), branchCode, toutesAgences, permissions);
+        <span class="k">return</span> <span class="k">new</span> IdentiteAppelant(
+                <span class="k">new</span> ContexteAppelant(utilisateur.uid(), branchCode, toutesAgences,
+                        nomComplet.isEmpty() ? <span class="k">null</span> : nomComplet, profilLibelle),
+                authorities);
+    }</code></pre></div>
+<h3>3.3 Demande : photo de l'agent</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequest.java (domaine)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\entity\CashRequest.java  (après coutDeplacement)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-289 — photo de l'agent demandeur à l'initialisation (jamais modifiée ensuite) =====</span>
+    <span class="k">private</span> String agentNom;       <span class="c">// « Salma EL AMRANI »</span>
+    <span class="k">private</span> String agentProfil;    <span class="c">// « Chef de caisse »</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestEntity.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\entity\CashRequestEntity.java  (après coutDeplacement)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-289 =====</span>
+    <span class="a">@Column</span>(name = <span class="s">"agent_nom"</span>, length = 150)
+    <span class="k">private</span> String agentNom;
+
+    <span class="a">@Column</span>(name = <span class="s">"agent_profil"</span>, length = 100)
+    <span class="k">private</span> String agentProfil;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\dto\CashRequestDTO.java  (après coutDeplacement)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-289 — lecture seule (photo de l'agent) =====</span>
+    <span class="k">private</span> String agentNom;
+    <span class="k">private</span> String agentProfil;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestWebMapper — toDomain</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\mapper\CashRequestWebMapper.java  (Ctrl+F : @Mapping(target = &quot;coutDeplacement&quot;, ignore = true)  — sur toDomain, ajouter juste après)</span></div><pre><button class="copy">Copier</button><code>    <span class="a">@Mapping</span>(target = <span class="s">"agentNom"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"agentProfil"</span>, ignore = <span class="k">true</span>)</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImpl.initier — photo de l&#x27;agent</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (Ctrl+F : brouillon.setOperations(new ArrayList&lt;&gt;());  — ajouter juste après)</span></div><pre><button class="copy">Copier</button><code>        <span class="c">// AER_LM-289 : photo de l'agent demandeur (nom complet, profil) pour la colonne « Agent » des listings</span>
+        brouillon.setAgentNom(contexte.nomComplet());
+        brouillon.setAgentProfil(contexte.profilLibelle());</code></pre></div>
+<h3>3.4 Critères : dateFin et recherche étendue</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>DemandeSearchCriteria.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-common\src\main\java\com\bmci\common\workflow\fund\management\application\rest\dto\DemandeSearchCriteria.java</span></div><p class="note">13 composants : <code>masquerBrouillons</code> est posé uniquement par <code>enMasquantLesBrouillons()</code> (use case, profils « toutes agences »). Les constructeurs à 8, 11 et 12 arguments gardent tout le code existant compilable : corpo, contrôleur, tests. <code>vide()</code> est le comportement en place (blanc → null, sinon trim).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.common.workflow.fund.management.application.rest.dto;
+
+<span class="k">import</span> java.time.LocalDateTime;
+
+<span class="c">/**
+ * Critères de recherche des demandes (retail et corpo). Une valeur nulle = critère non appliqué.
+ * AER_LM-289 : dateFin (borne haute sur la date de création).
+ */</span>
+<span class="k">public</span> record DemandeSearchCriteria(
+        String statut,
+        String agence,
+        String operationType,
+        String operationSens,
+        String recherche,
+        LocalDateTime dateDebut,
+        LocalDateTime dateFin,        <span class="c">// AER_LM-289 : créées jusqu'à cette date incluse</span>
+        String zone,                  <span class="c">// AER_LM-266 : code de zone de distribution (photo sur la demande)</span>
+        String prestataire,           <span class="c">// AER_LM-266 : code prestataire (BRINKS, G4S)</span>
+        Boolean urgent,               <span class="c">// AER_LM-266 : true = demandes urgentes uniquement</span>
+        int page,
+        int size,
+        boolean masquerBrouillons) {  <span class="c">// AER_LM-289 : la Caisse Centrale ne voit jamais les brouillons (INITIATED)</span>
+
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> int SIZE_DEFAUT = 20;
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> int SIZE_MAX = 100;
+
+    <span class="k">public</span> DemandeSearchCriteria {
+        statut = vide(statut);
+        agence = vide(agence);
+        operationType = vide(operationType);
+        operationSens = vide(operationSens);
+        recherche = vide(recherche);
+        zone = vide(zone);
+        prestataire = vide(prestataire);
+        page = Math.max(page, 0);
+        size = size &lt;= 0 ? SIZE_DEFAUT : Math.min(size, SIZE_MAX);
+    }
+
+    <span class="c">/** Forme courante (12 arguments) : brouillons visibles — c'est le use case qui les masque pour « toutes agences ». */</span>
+    <span class="k">public</span> DemandeSearchCriteria(String statut, String agence, String operationType, String operationSens,
+                                 String recherche, LocalDateTime dateDebut, LocalDateTime dateFin, String zone,
+                                 String prestataire, Boolean urgent, int page, int size) {
+        <span class="k">this</span>(statut, agence, operationType, operationSens, recherche, dateDebut, dateFin, zone, prestataire, urgent, page, size, <span class="k">false</span>);
+    }
+
+    <span class="c">/** Mêmes critères, brouillons exclus (Caisse Centrale, Support). */</span>
+    <span class="k">public</span> DemandeSearchCriteria enMasquantLesBrouillons() {
+        <span class="k">return</span> <span class="k">new</span> DemandeSearchCriteria(statut, agence, operationType, operationSens, recherche, dateDebut, dateFin,
+                zone, prestataire, urgent, page, size, <span class="k">true</span>);
+    }
+
+    <span class="c">/** Compatibilité 266 (11 arguments, sans dateFin). */</span>
+    <span class="k">public</span> DemandeSearchCriteria(String statut, String agence, String operationType, String operationSens,
+                                 String recherche, LocalDateTime dateDebut, String zone, String prestataire,
+                                 Boolean urgent, int page, int size) {
+        <span class="k">this</span>(statut, agence, operationType, operationSens, recherche, dateDebut, <span class="k">null</span>, zone, prestataire, urgent, page, size, <span class="k">false</span>);
+    }
+
+    <span class="c">/** Compatibilité corpo et tests d'origine (8 arguments). */</span>
+    <span class="k">public</span> DemandeSearchCriteria(String statut, String agence, String operationType, String operationSens,
+                                 String recherche, LocalDateTime dateDebut, int page, int size) {
+        <span class="k">this</span>(statut, agence, operationType, operationSens, recherche, dateDebut, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, page, size, <span class="k">false</span>);
+    }
+
+    <span class="k">private</span> <span class="k">static</span> String vide(String valeur) {
+        <span class="k">return</span> valeur == <span class="k">null</span> || valeur.isBlank() ? <span class="k">null</span> : valeur.trim();
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>DemandeSpecifications — dateFin</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-common\src\main\java\com\bmci\common\workflow\fund\management\dataaccess\spec\DemandeSpecifications.java  (après le bloc AER_LM-266 « urgent »)</span></div><p class="note">Contrôle le prédicat <code>dateDebut</code> existant (Ctrl+F <code>c.dateDebut()</code>) : s'il fait <code>root.get("createdAt")</code>, il n'a jamais filtré — passe-le aussi à <code>"creationDate"</code>.</p><pre><button class="copy">Copier</button><code>            <span class="c">// ===== AER_LM-289 — borne haute sur la date de création (même attribut que dateDebut) =====</span>
+            <span class="k">if</span> (c.dateFin() != <span class="k">null</span>) {
+                predicates.add(cb.lessThanOrEqualTo(root.get(<span class="s">"creationDate"</span>), c.dateFin()));
+            }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>DemandeSpecifications — brouillons masqués</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-common\src\main\java\com\bmci\common\workflow\fund\management\dataaccess\spec\DemandeSpecifications.java  (juste après le bloc dateFin)</span></div><p class="note"><code>requestStatus</code> est une <code>String</code> sur l'entité (« INITIATED »). Un brouillon n'existe que pour son agence : la Caisse Centrale et le Support ne le voient dans aucun cas, même en cherchant sa référence.</p><pre><button class="copy">Copier</button><code>            <span class="c">// ===== AER_LM-289 — brouillons invisibles hors de leur agence (Caisse Centrale, Support) =====</span>
+            <span class="k">if</span> (c.masquerBrouillons()) {
+                predicates.add(cb.notEqual(root.get(<span class="s">"requestStatus"</span>), <span class="s">"INITIATED"</span>));
+            }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>DemandeSpecifications — recherche</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-common\src\main\java\com\bmci\common\workflow\fund\management\dataaccess\spec\DemandeSpecifications.java  (Ctrl+F : c.recherche()  — remplace le bloc if entier)</span></div><p class="note">La recherche couvre la référence, le code et le nom de l'agence, le nom de la zone — le placeholder de la maquette Caisse Centrale.</p><pre><button class="copy">Copier</button><code>            <span class="c">// ===== AER_LM-289 — recherche libre : référence, code ou nom d'agence, nom de zone =====</span>
+            <span class="k">if</span> (c.recherche() != <span class="k">null</span>) {
+                String motif = <span class="s">"%"</span> + c.recherche().toLowerCase() + <span class="s">"%"</span>;
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get(<span class="s">"uniqueRequestRef"</span>)), motif),
+                        cb.like(cb.lower(root.get(<span class="s">"branchCode"</span>)), motif),
+                        cb.like(cb.lower(root.get(<span class="s">"agenceNom"</span>)), motif),
+                        cb.like(cb.lower(root.get(<span class="s">"zoneNom"</span>)), motif)));
+            }</code></pre></div>
+<h3>3.5 Contrôleur et use case</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>RetailDemandController.search — paramètre dateFin</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\RetailDemandController.java  (Ctrl+F : LocalDateTime dateDebut,  — ajouter juste après cette ligne)</span></div><pre><button class="copy">Copier</button><code>            <span class="a">@RequestParam</span>(required = <span class="k">false</span>) <span class="a">@DateTimeFormat</span>(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateFin,   <span class="c">// AER_LM-289</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>RetailDemandController.search — construction des critères</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\RetailDemandController.java  (Ctrl+F : new DemandeSearchCriteria(  — remplace l&#x27;instruction)</span></div><pre><button class="copy">Copier</button><code>        DemandeSearchCriteria criteria = <span class="k">new</span> DemandeSearchCriteria(
+                statut, agence, operationType, operationSens, recherche, dateDebut, dateFin, zone, prestataire, urgent, page, size);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.search</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (Ctrl+F : public PageResult&lt;CashRequestDTO&gt; search  — remplace la méthode)</span></div><p class="note">Deux règles dans cette méthode : « toutes agences » → brouillons masqués ; agence → périmètre forcé à son code, <code>dateFin</code> conservée.</p><pre><button class="copy">Copier</button><code>    <span class="a">@Override</span>
+    <span class="k">public</span> PageResult&lt;CashRequestDTO&gt; search(DemandeSearchCriteria criteria, ContexteAppelant contexte) {
+        <span class="c">// « Toutes agences » (Caisse Centrale, Support) : jamais de brouillon ; agence : périmètre forcé à son code</span>
+        DemandeSearchCriteria effectifs = contexte.toutesAgences() ? criteria.enMasquantLesBrouillons()
+                : <span class="k">new</span> DemandeSearchCriteria(criteria.statut(), contexte.branchCode(), criteria.operationType(),
+                        criteria.operationSens(), criteria.recherche(), criteria.dateDebut(), criteria.dateFin(),
+                        criteria.zone(), criteria.prestataire(), criteria.urgent(),
+                        criteria.page(), criteria.size());
+        <span class="k">return</span> cashDemandRepository.search(effectifs).map(<span class="k">this</span>::enrichir);
+    }</code></pre></div>
+<h3>3.6 Date de création : BaseEntity → domaine</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestPersistenceMapper — toDomain</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\mapper\CashRequestPersistenceMapper.java  (Ctrl+F : @Mapping(target = &quot;uidUser&quot;, source = &quot;userProfile.uid&quot;)  — sur toDomain, ajouter juste après)</span></div><p class="note">Le correctif de la colonne Date &amp; heure : <code>creationDate</code> (BaseEntity) → <code>createdAt</code> (domaine, puis DTO par nom identique). Toutes les demandes en base ont une <code>creation_date</code> : l'historique complet retrouve sa date, pas seulement les nouvelles.</p><pre><button class="copy">Copier</button><code>    <span class="a">@Mapping</span>(target = <span class="s">"createdAt"</span>, source = <span class="s">"creationDate"</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"updatedAt"</span>, source = <span class="s">"modificationDate"</span>)</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestPersistenceMapper — updateHeader</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\mapper\CashRequestPersistenceMapper.java  (Ctrl+F : @Mapping(target = &quot;coutDeplacement&quot;, ignore = true)  — sur updateHeader, ajouter juste après)</span></div><p class="note"><code>toDomain</code> / <code>toPersistence</code> mappent <code>agentNom</code> / <code>agentProfil</code> tout seuls (même nom des deux côtés). <code>creationDate</code> / <code>modificationDate</code> n'ont pas de source dans le domaine : les ignorer évite l'avertissement MapStruct et fige la règle « le PUT ne touche pas aux horodatages ».</p><pre><button class="copy">Copier</button><code>    <span class="a">@Mapping</span>(target = <span class="s">"agentNom"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"agentProfil"</span>, ignore = <span class="k">true</span>)
+    <span class="c">// Horodatages de BaseEntity : ils appartiennent à la base, jamais au contenu envoyé par le PUT</span>
+    <span class="a">@Mapping</span>(target = <span class="s">"creationDate"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"modificationDate"</span>, ignore = <span class="k">true</span>)</code></pre></div>
+<h2 id="s4">4. Tests back</h2>
+<h3>4.1 ReferenceDemandeTest (280)</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>ReferenceDemandeTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\test\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\ReferenceDemandeTest.java</span></div><p class="note">Le module data-access n'avait pas de dossier <code>src/test/java</code> : crée l'arborescence, JUnit 5 vient du starter test déjà présent dans le pom parent.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.dataaccess.retail.adapter;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.exceptions.RetailValidationException;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+
+<span class="k">import</span> java.time.LocalDate;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.*;
+
+<span class="c">/** AER_LM-280 — nomenclature AAAAMMJJ-CodeAgence-Séquence. */</span>
+<span class="k">class</span> ReferenceDemandeTest {
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> LocalDate JOUR = LocalDate.of(2026, 9, 24);
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> premiereDemandeDuJour_sequence01() {
+        assertEquals(<span class="s">"20260924-1422-01"</span>, ReferenceDemande.formater(JOUR, <span class="s">"1422"</span>, 1));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> deuxiemeDemandeDuJour_sequence02() {
+        assertEquals(<span class="s">"20260924-1422-02"</span>, ReferenceDemande.formater(JOUR, <span class="s">"1422"</span>, 2));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> auDelaDe99_laSequenceContinueSurTroisChiffres() {
+        assertEquals(<span class="s">"20260924-1001-100"</span>, ReferenceDemande.formater(JOUR, <span class="s">"1001"</span>, 100));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> codeAgenceNettoye() {
+        assertEquals(<span class="s">"20260924-1001-07"</span>, ReferenceDemande.formater(JOUR, <span class="s">" 1001 "</span>, 7));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> codeAgenceAbsent_leveValidation() {
+        assertThrows(RetailValidationException.<span class="k">class</span>, () -&gt; ReferenceDemande.formater(JOUR, <span class="s">" "</span>, 1));
+        assertThrows(RetailValidationException.<span class="k">class</span>, () -&gt; ReferenceDemande.formater(JOUR, <span class="k">null</span>, 1));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> sequenceNulle_refusee() {
+        assertThrows(IllegalArgumentException.<span class="k">class</span>, () -&gt; ReferenceDemande.formater(JOUR, <span class="s">"1422"</span>, 0));
+    }
+}</code></pre></div>
+<h3>4.2 CashDemandUseCaseImplTest (278 + 289)</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImplTest.java — imports</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (bloc d&#x27;imports)</span></div><p class="note"><code>DemandeSearchCriteria</code>, <code>PageResult</code>, <code>ArgumentCaptor</code>, <code>InitDemandeDTO</code>, <code>CashRequestId</code> sont déjà importés.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.KpiDemandesDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.KpiDemandes;
+<span class="k">import</span> java.time.LocalDate;
+<span class="k">import</span> java.time.LocalDateTime;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImplTest.java — 6 tests</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (avant la dernière accolade de la classe)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ---------------------------------------------------------------- KPI Caisse Centrale (AER_LM-278)</span>
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> kpiCaisseCentrale_dateNulle_journeeEnCours_compteursMappes() {
+        KpiDemandes kpi = <span class="k">new</span> KpiDemandes(14, 3, 28, List.of(
+                <span class="k">new</span> KpiDemandes.RepartitionPrestataire(<span class="s">"BRINKS"</span>, <span class="s">"Brink's"</span>, 18),
+                <span class="k">new</span> KpiDemandes.RepartitionPrestataire(<span class="s">"G4S"</span>, <span class="s">"G4S"</span>, 10)));
+        Mockito.when(cashDemandRepository.kpi(Mockito.any())).thenReturn(kpi);
+
+        KpiDemandesDTO dto = useCase.kpiCaisseCentrale(<span class="k">null</span>);
+
+        assertEquals(LocalDate.now(), dto.date());
+        assertEquals(14, dto.enAttente());
+        assertEquals(3, dto.urgentes());
+        assertEquals(28, dto.traitees());
+        assertEquals(2, dto.traiteesParTransporteur().size());
+        assertEquals(<span class="s">"Brink's"</span>, dto.traiteesParTransporteur().get(0).nom());
+        assertEquals(18, dto.traiteesParTransporteur().get(0).nombre());
+        <span class="c">// le repository reçoit le début de la journée demandée (00:00)</span>
+        ArgumentCaptor&lt;LocalDateTime&gt; depuis = ArgumentCaptor.forClass(LocalDateTime.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).kpi(depuis.capture());
+        assertEquals(LocalDate.now().atStartOfDay(), depuis.getValue());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> kpiCaisseCentrale_dateFournie_prestataireSansPhoto_libelleParDefaut() {
+        LocalDate jour = LocalDate.of(2026, 9, 24);
+        Mockito.when(cashDemandRepository.kpi(jour.atStartOfDay())).thenReturn(
+                <span class="k">new</span> KpiDemandes(0, 0, 1, List.of(<span class="k">new</span> KpiDemandes.RepartitionPrestataire(<span class="k">null</span>, <span class="k">null</span>, 1))));
+
+        KpiDemandesDTO dto = useCase.kpiCaisseCentrale(jour);
+
+        assertEquals(jour, dto.date());
+        assertNull(dto.traiteesParTransporteur().get(0).code());
+        assertEquals(CashDemandUseCaseImpl.TRANSPORTEUR_NON_RENSEIGNE, dto.traiteesParTransporteur().get(0).nom());
+    }
+
+    <span class="c">// ---------------------------------------------------------------- photo de l'agent (AER_LM-289)</span>
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> initier_figeLaPhotoDeLAgent() {
+        UUID id = UUID.randomUUID();
+        ContexteAppelant chefDeCaisse = <span class="k">new</span> ContexteAppelant(<span class="s">"g10002"</span>, AGENCE, <span class="k">false</span>, <span class="s">"Salma CAISSE"</span>, <span class="s">"Chef de caisse"</span>);
+        Mockito.when(cashDemandRepository.save(Mockito.any())).thenAnswer(inv -&gt; {
+            CashRequest brouillon = inv.getArgument(0);
+            brouillon.setId(<span class="k">new</span> CashRequestId(id));
+            <span class="k">return</span> brouillon;
+        });
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande(id, RequestStatus.INITIATED));
+        Mockito.when(webMapper.toResponseDTO(Mockito.any())).thenReturn(<span class="k">new</span> CashRequestDTO());
+
+        InitDemandeDTO init = InitDemandeDTO.builder().user(<span class="s">"g10002"</span>).branchCode(AGENCE).establishment(<span class="s">"001"</span>).build();
+        assertNotNull(useCase.initier(init, chefDeCaisse));
+
+        ArgumentCaptor&lt;CashRequest&gt; brouillon = ArgumentCaptor.forClass(CashRequest.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).save(brouillon.capture());
+        assertEquals(<span class="s">"Salma CAISSE"</span>, brouillon.getValue().getAgentNom());
+        assertEquals(<span class="s">"Chef de caisse"</span>, brouillon.getValue().getAgentProfil());
+        assertEquals(<span class="s">"g10002"</span>, brouillon.getValue().getUidUser());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> search_toutesAgences_masqueLesBrouillons() {
+        DemandeSearchCriteria criteria = <span class="k">new</span> DemandeSearchCriteria(<span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, 0, 20);
+        Mockito.when(cashDemandRepository.search(Mockito.any())).thenReturn(<span class="k">new</span> PageResult&lt;&gt;(List.of(), 0, 20, 0, 0));
+
+        useCase.search(criteria, <span class="k">new</span> ContexteAppelant(<span class="s">"c99999"</span>, <span class="k">null</span>, <span class="k">true</span>));   <span class="c">// Caisse Centrale : toutes agences</span>
+
+        ArgumentCaptor&lt;DemandeSearchCriteria&gt; effectifs = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).search(effectifs.capture());
+        assertTrue(effectifs.getValue().masquerBrouillons());
+        assertNull(effectifs.getValue().agence());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> search_agence_voitSesBrouillons() {
+        DemandeSearchCriteria criteria = <span class="k">new</span> DemandeSearchCriteria(<span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, 0, 20);
+        Mockito.when(cashDemandRepository.search(Mockito.any())).thenReturn(<span class="k">new</span> PageResult&lt;&gt;(List.of(), 0, 20, 0, 0));
+
+        useCase.search(criteria, DA);
+
+        ArgumentCaptor&lt;DemandeSearchCriteria&gt; effectifs = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).search(effectifs.capture());
+        assertFalse(effectifs.getValue().masquerBrouillons());
+        assertEquals(AGENCE, effectifs.getValue().agence());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> search_dateFinConserveeQuandLAgenceEstForcee() {
+        LocalDateTime debut = LocalDateTime.of(2026, 9, 1, 0, 0), fin = LocalDateTime.of(2026, 9, 24, 23, 59, 59);
+        DemandeSearchCriteria criteria = <span class="k">new</span> DemandeSearchCriteria(<span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, debut, fin, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, 0, 20);
+        Mockito.when(cashDemandRepository.search(Mockito.any())).thenReturn(<span class="k">new</span> PageResult&lt;&gt;(List.of(), 0, 20, 0, 0));
+
+        useCase.search(criteria, DA);
+
+        ArgumentCaptor&lt;DemandeSearchCriteria&gt; effectifs = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).search(effectifs.capture());
+        assertEquals(AGENCE, effectifs.getValue().agence());
+        assertEquals(debut, effectifs.getValue().dateDebut());
+        assertEquals(fin, effectifs.getValue().dateFin());
+    }</code></pre></div>
+<h3>4.3 RetailDemandControllerTest (278)</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>RetailDemandControllerTest.java — GET /cash/kpi</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\test\java\com\bmci\workflow\fund\management\application\rest\retail\RetailDemandControllerTest.java  (nouvelle classe @Nested, à côté des autres)</span></div><p class="note">Même socle que les 33 cas existants : <code>mockMvc</code> standalone, <code>cashDemandUseCase</code> mocké. Imports : <code>KpiDemandesDTO</code>, <code>java.time.LocalDate</code>, <code>java.util.List</code> ; <code>verifyNoInteractions</code> vient de <code>org.mockito.Mockito</code> (import statique, comme <code>when</code> / <code>verify</code>). La date invalide donne 400 par le handler <code>MethodArgumentTypeMismatch</code> déjà en place.</p><pre><button class="copy">Copier</button><code>    <span class="c">// =====================================================================</span>
+    <span class="a">@Nested</span>
+    <span class="a">@DisplayName</span>(<span class="s">"GET /cash/kpi (AER_LM-278)"</span>)
+    <span class="k">class</span> KpiTests {
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"sans date : 200 avec les compteurs de la journée"</span>)
+        <span class="k">void</span> kpi_sansDate_200() throws Exception {
+            KpiDemandesDTO dto = <span class="k">new</span> KpiDemandesDTO(LocalDate.of(2026, 9, 24), 14, 3, 28,
+                    List.of(<span class="k">new</span> KpiDemandesDTO.RepartitionTransporteurDTO(<span class="s">"BRINKS"</span>, <span class="s">"Brink's"</span>, 18)));
+            when(cashDemandUseCase.kpiCaisseCentrale(<span class="k">null</span>)).thenReturn(dto);
+
+            mockMvc.perform(get(<span class="s">"/cash/kpi"</span>))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">true</span>))
+                    .andExpect(jsonPath(<span class="s">"$.data.enAttente"</span>).value(14))
+                    .andExpect(jsonPath(<span class="s">"$.data.urgentes"</span>).value(3))
+                    .andExpect(jsonPath(<span class="s">"$.data.traitees"</span>).value(28))
+                    .andExpect(jsonPath(<span class="s">"$.data.traiteesParTransporteur[0].code"</span>).value(<span class="s">"BRINKS"</span>))
+                    .andExpect(jsonPath(<span class="s">"$.data.traiteesParTransporteur[0].nombre"</span>).value(18));
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"avec date ISO : la date est transmise au use case"</span>)
+        <span class="k">void</span> kpi_avecDate_200() throws Exception {
+            LocalDate jour = LocalDate.of(2026, 9, 23);
+            when(cashDemandUseCase.kpiCaisseCentrale(jour)).thenReturn(<span class="k">new</span> KpiDemandesDTO(jour, 0, 0, 0, List.of()));
+
+            mockMvc.perform(get(<span class="s">"/cash/kpi"</span>).param(<span class="s">"date"</span>, <span class="s">"2026-09-23"</span>))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(<span class="s">"$.data.date"</span>).value(<span class="s">"2026-09-23"</span>));
+            verify(cashDemandUseCase).kpiCaisseCentrale(jour);
+        }
+
+        <span class="a">@Test</span>
+        <span class="a">@DisplayName</span>(<span class="s">"date invalide : 400"</span>)
+        <span class="k">void</span> kpi_dateInvalide_400() throws Exception {
+            mockMvc.perform(get(<span class="s">"/cash/kpi"</span>).param(<span class="s">"date"</span>, <span class="s">"hier"</span>))
+                    .andExpect(status().isBadRequest());
+            verifyNoInteractions(cashDemandUseCase);
+        }
+    }</code></pre></div>
+<div class="card"><p><code>mvn clean install</code> : 6 + 6 + 3 nouveaux tests verts avec les existants. Le seul ancien test qui doit encore compiler après les changements de signature est <code>soumettre_reprendLaPhotoDeLAgenceAvantLaSaga</code> (déjà à 7 arguments depuis le doc coût de déplacement).</p></div>
+<h2 id="s5">5. AER_LM-289 / 281 — Front : composant commun demandes-list</h2>
+<h3>5.1 Modèles, port, adapter HTTP</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>operation.model.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\operation.model.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// ===== AER_LM-289 — dans l'interface DemandeCriteria (après dateDebut) =====</span>
+  dateFin?: string;       <span class="c">// ISO date-heure, borne haute sur la date de création</span>
+
+<span class="c">// ===== AER_LM-289 — dans l'interface DemandeFonds (photo de l'agent, lecture seule, après coutDeplacement) =====</span>
+  agentNom?: string | <span class="k">null</span>;
+  agentProfil?: string | <span class="k">null</span>;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>kpi.model.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\kpi.model.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">/** AER_LM-278 — réponse de GET /cash/kpi (indicateurs de la journée, jamais filtrés). */</span>
+<span class="k">export</span> <span class="k">interface</span> RepartitionTransporteur {
+  code: string | <span class="k">null</span>;    <span class="c">// BRINKS | G4S | null (demande sans photo d'agence)</span>
+  nom: string;            <span class="c">// « Brink's », « G4S », « Non renseigné »</span>
+  nombre: number;
+}
+
+<span class="k">export</span> <span class="k">interface</span> KpiDemandes {
+  date: string;           <span class="c">// yyyy-MM-dd</span>
+  enAttente: number;
+  urgentes: number;
+  traitees: number;
+  traiteesParTransporteur: RepartitionTransporteur[];
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fundManagement.service.ts (port FundService)</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-application-services\output\fundManagement.service.ts  (après annulerDemande)</span></div><p class="note">Import <code>KpiDemandes</code> depuis <code>../../domain-core/entities/kpi.model</code>.</p><pre><button class="copy">Copier</button><code>  <span class="c">// ===== AER_LM-278 — KPI Caisse Centrale =====</span>
+  <span class="c">/** Indicateurs des demandes créées à partir de `date` (yyyy-MM-dd, aujourd'hui si absent). */</span>
+  getKpi(date?: string): Promise&lt;KpiDemandes&gt;;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fundManagement-http.service.ts — getDemandes</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\adapters\apiAdapters\fundManagement-http.service.ts  (Ctrl+F : const optionnels  — remplace la ligne)</span></div><pre><button class="copy">Copier</button><code>    <span class="k">const</span> optionnels: (keyof DemandeCriteria)[] = [<span class="s">'statut'</span>, <span class="s">'agence'</span>, <span class="s">'operationType'</span>, <span class="s">'operationSens'</span>, <span class="s">'recherche'</span>, <span class="s">'dateDebut'</span>, <span class="s">'dateFin'</span>, <span class="s">'zone'</span>, <span class="s">'prestataire'</span>, <span class="s">'urgent'</span>];</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fundManagement-http.service.ts — getKpi</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\adapters\apiAdapters\fundManagement-http.service.ts  (après annulerDemande)</span></div><p class="note">Import <code>KpiDemandes</code> depuis <code>../../domain/domain-core/entities/kpi.model</code>.</p><pre><button class="copy">Copier</button><code>  <span class="c">// ===== AER_LM-278 — KPI Caisse Centrale =====</span>
+
+  getKpi(date?: string): Promise&lt;KpiDemandes&gt; {
+    <span class="k">let</span> params = <span class="k">new</span> HttpParams();
+    <span class="k">if</span> (date) { params = params.set(<span class="s">'date'</span>, date); }
+    <span class="k">return</span> firstValueFrom(
+      <span class="k">this</span>.http.get&lt;ApiResponse&lt;KpiDemandes&gt;&gt;(<span class="s">`${this.apiUrl}/kpi`</span>, { params }).pipe(
+        map(r =&gt; <span class="k">this</span>.data(r)),
+        catchError(err =&gt; throwError(() =&gt; <span class="k">this</span>.versErreurApi(err)))
+      )
+    );
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>kpi-caisse-centrale.service.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\adapters\localState\kpi-caisse-centrale.service.ts</span></div><p class="note">Même forme que <code>DemandeActionsFacade</code> : signaux, pas de store à toucher.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { Injectable, inject, signal } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { FundHttpService } <span class="k">from</span> <span class="s">'../apiAdapters/fundManagement-http.service'</span>;
+<span class="k">import</span> { KpiDemandes } <span class="k">from</span> <span class="s">'../../domain/domain-core/entities/kpi.model'</span>;
+<span class="k">import</span> { ErreurApi } <span class="k">from</span> <span class="s">'../../domain/domain-core/entities/operation.model'</span>;
+
+<span class="c">/**
+ * AER_LM-278 — état local des indicateurs Caisse Centrale.
+ * Indépendant des filtres du listing : seul « Actualiser » (et l'arrivée sur l'écran) le recharge.
+ */</span>
+<span class="a">@Injectable</span>({ providedIn: <span class="s">'root'</span> })
+<span class="k">export</span> <span class="k">class</span> KpiCaisseCentraleService {
+
+  <span class="k">private</span> readonly service = inject(FundHttpService);
+
+  readonly kpi = signal&lt;KpiDemandes | <span class="k">null</span>&gt;(<span class="k">null</span>);
+  readonly chargement = signal(<span class="k">false</span>);
+  readonly erreur = signal&lt;string | <span class="k">null</span>&gt;(<span class="k">null</span>);
+
+  <span class="k">async</span> charger(date?: string): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">this</span>.chargement.set(<span class="k">true</span>);
+    <span class="k">this</span>.erreur.set(<span class="k">null</span>);
+    try {
+      <span class="k">this</span>.kpi.set(<span class="k">await</span> <span class="k">this</span>.service.getKpi(date));
+    } catch (e) {
+      <span class="k">this</span>.kpi.set(<span class="k">null</span>);
+      <span class="k">this</span>.erreur.set(e instanceof ErreurApi ? e.message : <span class="s">'Indicateurs indisponibles.'</span>);
+    } finally {
+      <span class="k">this</span>.chargement.set(<span class="k">false</span>);
+    }
+  }
+}</code></pre></div>
+<h3>5.2 Le composant commun</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demandes-list.regles.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.ts</span></div><p class="note">Toute la logique sans Angular : filtres → critères serveur, demande → ligne de tableau, motifs rapides, listes déroulantes (<code>STATUTS_AGENCE</code> avec Brouillon, <code>STATUTS_CAISSE_CENTRALE</code> sans), jour courant. Testé en 6.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { DemandeCriteria, DemandeFonds } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/operation.model'</span>;
+<span class="k">import</span> { DemandeFondsDetailBrute } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-detail.model'</span>;
+<span class="k">import</span> { AgenceReferentiel, libelleCoutDeplacement } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/agence-referentiel.model'</span>;
+<span class="k">import</span> { StatutDemande, classeStatut, libelleStatut, versStatutDemande } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/statut-demande'</span>;
+
+<span class="c">/**
+ * AER_LM-289 — règles pures du listing commun (agence / Caisse Centrale), testables sans Angular :
+ * traduction des filtres d'écran en critères serveur, et projection d'une demande en ligne de tableau.
+ */</span>
+
+<span class="k">export</span> <span class="k">type</span> ModeListing = <span class="s">'agence'</span> | <span class="s">'caisse-centrale'</span>;
+
+<span class="c">/** Valeurs « tout » des listes déroulantes. */</span>
+<span class="k">export</span> <span class="k">const</span> TOUS = <span class="s">'TOUS'</span>;
+<span class="k">export</span> <span class="k">const</span> TOUTES = <span class="s">'TOUTES'</span>;
+
+<span class="c">/** Filtre « Type de demande » de l'écran agence → operationType / operationSens du back. */</span>
+<span class="k">export</span> <span class="k">const</span> TYPES_DEMANDE = [
+  { code: TOUS,        libelle: <span class="s">'Tous les types'</span> },
+  { code: <span class="s">'CAISSE'</span>,    libelle: <span class="s">'Alimentation caisse'</span> },
+  { code: <span class="s">'GAB'</span>,       libelle: <span class="s">'Alimentation GAB'</span> },
+  { code: <span class="s">'DEVISES'</span>,   libelle: <span class="s">'Commande devises'</span> },
+  { code: <span class="s">'RAMASSAGE'</span>, libelle: <span class="s">'Ramassage'</span> }
+] as <span class="k">const</span>;
+
+<span class="k">export</span> <span class="k">const</span> STATUTS_AGENCE = [
+  { code: TOUS,              libelle: <span class="s">'Tous les statuts'</span> },
+  { code: <span class="s">'INITIATED'</span>,       libelle: <span class="s">'Brouillon'</span> },
+  { code: <span class="s">'SUBMITTED'</span>,       libelle: <span class="s">'En attente'</span> },
+  { code: <span class="s">'IN_MODIFICATION'</span>, libelle: <span class="s">'En modification'</span> },
+  { code: <span class="s">'VALIDATED'</span>,       libelle: <span class="s">'Traitée'</span> },
+  { code: <span class="s">'CANCELLED'</span>,       libelle: <span class="s">'Annulée'</span> }
+] as <span class="k">const</span>;
+
+<span class="c">/** Caisse Centrale : jamais de brouillon (le back les exclut aussi, quel que soit le filtre). */</span>
+<span class="k">export</span> <span class="k">const</span> STATUTS_CAISSE_CENTRALE = STATUTS_AGENCE.filter(s =&gt; s.code !== <span class="s">'INITIATED'</span>);
+
+<span class="c">/** Jour courant au format des champs date (yyyy-MM-dd), en heure locale. */</span>
+<span class="k">export</span> function aujourdHui(maintenant: Date = <span class="k">new</span> Date()): string {
+  <span class="k">const</span> decale = <span class="k">new</span> Date(maintenant.getTime() - maintenant.getTimezoneOffset() * 60_000);
+  <span class="k">return</span> decale.toISOString().slice(0, 10);
+}
+
+<span class="c">/** Motifs rapides de la modale d'annulation Caisse Centrale (maquette 281). */</span>
+<span class="k">export</span> <span class="k">const</span> MOTIFS_RAPIDES = [
+  <span class="s">'Dépassement du cut-off : demande hors délai'</span>,
+  <span class="s">'Incohérence des montants : bordereau non conforme'</span>,
+  <span class="s">'Montant supérieur au plafond : refus trésorerie centrale'</span>,
+  <span class="s">'Demande doublon : déjà traitée pour cette agence'</span>
+] as <span class="k">const</span>;
+
+<span class="k">export</span> <span class="k">interface</span> FiltresListing {
+  statut: string;
+  urgent: boolean;
+  transporteur: string;
+  zone: string;
+  <span class="k">type</span>: string;
+  recherche: string;
+  dateDebut: string;   <span class="c">// yyyy-MM-dd (input type=date) ou ''</span>
+  dateFin: string;     <span class="c">// yyyy-MM-dd ou ''</span>
+}
+
+<span class="k">export</span> function construireCriteres(f: FiltresListing, page: number, size: number): DemandeCriteria {
+  <span class="k">const</span> c: DemandeCriteria = { page, size };
+  <span class="k">if</span> (f.statut !== TOUS)        { c.statut = f.statut; }
+  <span class="k">if</span> (f.urgent)                 { c.urgent = <span class="k">true</span>; }
+  <span class="k">if</span> (f.transporteur !== TOUS)  { c.prestataire = f.transporteur; }
+  <span class="k">if</span> (f.zone !== TOUTES)        { c.zone = f.zone; }
+  switch (f.<span class="k">type</span>) {
+    case <span class="s">'CAISSE'</span>:    c.operationType = <span class="s">'CASH_DESK'</span>; break;
+    case <span class="s">'GAB'</span>:       c.operationType = <span class="s">'ATM'</span>; break;
+    case <span class="s">'DEVISES'</span>:   c.operationType = <span class="s">'CURRENCY'</span>; break;
+    case <span class="s">'RAMASSAGE'</span>: c.operationSens = <span class="s">'COLLECTION'</span>; break;
+  }
+  <span class="k">const</span> recherche = f.recherche.trim();
+  <span class="k">if</span> (recherche)                { c.recherche = recherche; }
+  <span class="k">if</span> (f.dateDebut)              { c.dateDebut = <span class="s">`${f.dateDebut}T00:00:00`</span>; }
+  <span class="k">if</span> (f.dateFin)                { c.dateFin = <span class="s">`${f.dateFin}T23:59:59`</span>; }
+  <span class="k">return</span> c;
+}
+
+<span class="c">/** Une ligne du tableau, identique dans les deux modes ; chaque mode n'affiche que ses colonnes. */</span>
+<span class="k">export</span> <span class="k">interface</span> LigneListing {
+  demande: DemandeFonds;
+  reference: string;
+  urgente: boolean;
+  date: string | <span class="k">null</span>;             <span class="c">// date de création (Date &amp; heure)</span>
+  agenceCode: string;
+  agenceNom: string | <span class="k">null</span>;
+  zone: string | <span class="k">null</span>;
+  transporteurId: string | <span class="k">null</span>;
+  transporteur: string | <span class="k">null</span>;
+  coutDeplacement: string | <span class="k">null</span>;
+  agentNom: string;                <span class="c">// nom complet, ou l'uid si la demande n'a pas de photo</span>
+  agentProfil: string | <span class="k">null</span>;
+  contenu: string[];
+  statut: StatutDemande;
+  libelleStatut: string;
+  classeStatut: string;
+  <span class="c">/** Traiter / Annuler (Caisse Centrale) : uniquement une demande soumise, et si l'habilitation TRAITER est là. */</span>
+  decidable: boolean;
+  annulee: boolean;
+}
+
+<span class="k">export</span> function versLigne(d: DemandeFonds, repli: AgenceReferentiel | <span class="k">null</span>, peutDecider: boolean): LigneListing {
+  <span class="k">const</span> brut = d as DemandeFondsDetailBrute;
+  <span class="k">const</span> statut = versStatutDemande(d.requestStatus, brut.cancellationOrigin);
+  <span class="k">return</span> {
+    demande: d,
+    reference: d.uniqueRequestRef ?? <span class="s">'–'</span>,
+    urgente: d.urgent ?? (d.operations?.some(op =&gt; op.isUrgent === <span class="k">true</span>) ?? <span class="k">false</span>),
+    date: d.createdAt ?? brut.submittedAt ?? <span class="k">null</span>,
+    agenceCode: d.branchCode,
+    agenceNom: d.agenceNom ?? repli?.nom ?? <span class="k">null</span>,
+    zone: d.zoneNom ?? repli?.zoneNom ?? <span class="k">null</span>,
+    transporteurId: d.prestataire ?? repli?.prestataireId ?? <span class="k">null</span>,
+    transporteur: d.prestataireNom ?? repli?.prestataireNom ?? <span class="k">null</span>,
+    coutDeplacement: libelleCoutDeplacement(d.coutDeplacement ?? repli?.coutDeplacement),
+    agentNom: d.agentNom || d.user || <span class="s">'—'</span>,
+    agentProfil: d.agentProfil ?? <span class="k">null</span>,
+    contenu: chipsContenu(d),
+    statut,
+    libelleStatut: libelleStatut(statut),
+    classeStatut: classeStatut(statut),
+    decidable: peutDecider &amp;&amp; statut === <span class="s">'SOUMISE'</span>,
+    annulee: statut === <span class="s">'ANNULEE_AGENCE'</span> || statut === <span class="s">'ANNULEE_CAISSE_CENTRALE'</span>
+  };
+}
+
+<span class="c">/** Mêmes chips que les listings précédents : CAISSE / GAB / DEVISES / RAMASSAGE, sans doublon. */</span>
+<span class="k">export</span> function chipsContenu(d: DemandeFonds): string[] {
+  <span class="k">const</span> chips = (d.operations ?? []).map(op =&gt; {
+    <span class="k">if</span> (op.operationSens === <span class="s">'COLLECTION'</span>) { <span class="k">return</span> <span class="s">'RAMASSAGE'</span>; }
+    <span class="k">if</span> (op.operationType === <span class="s">'ATM'</span>)        { <span class="k">return</span> <span class="s">'GAB'</span>; }
+    <span class="k">if</span> (op.operationType === <span class="s">'CASH_DESK'</span>)  { <span class="k">return</span> <span class="s">'CAISSE'</span>; }
+    <span class="k">if</span> (op.operationType === <span class="s">'CURRENCY'</span>)   { <span class="k">return</span> <span class="s">'DEVISES'</span>; }
+    <span class="k">return</span> op.operationType;
+  });
+  <span class="k">return</span> [...<span class="k">new</span> Set(chips)];
+}
+
+<span class="c">/** Nombre de pages d'un listing paginé côté serveur. */</span>
+<span class="k">export</span> function nombreDePages(total: number, taille: number): number {
+  <span class="k">return</span> taille &gt; 0 ? Math.max(1, Math.ceil(total / taille)) : 1;
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demandes-list.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts</span></div><p class="note">Le mode vient de <code>route.data.mode</code>. Façades et services existants inchangés (<code>FunManagementFacade.loadDemandes</code>, <code>DemandeActionsFacade.decider</code>, <code>AgencesReferentielService</code>, <code>ContexteUtilisateurService</code>). Plus de <code>mat-paginator</code> ni de champs Material : la maquette a ses propres champs, la pagination est celle du pied de tableau.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { takeUntilDestroyed } <span class="k">from</span> <span class="s">'@angular/core/rxjs-interop'</span>;
+<span class="k">import</span> { FormControl, ReactiveFormsModule, Validators } <span class="k">from</span> <span class="s">'@angular/forms'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { MatSnackBar, MatSnackBarModule } <span class="k">from</span> <span class="s">'@angular/material/snack-bar'</span>;
+<span class="k">import</span> { ActivatedRoute, Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { BehaviorSubject, combineLatest, debounceTime, distinctUntilChanged, map, startWith } <span class="k">from</span> <span class="s">'rxjs'</span>;
+<span class="k">import</span> { FunManagementFacade } <span class="k">from</span> <span class="s">'../../../adapters/localState/fundMangement.facade'</span>;
+<span class="k">import</span> { DemandeActionsFacade } <span class="k">from</span> <span class="s">'../../../adapters/localState/demande-actions.facade'</span>;
+<span class="k">import</span> { KpiCaisseCentraleService } <span class="k">from</span> <span class="s">'../../../adapters/localState/kpi-caisse-centrale.service'</span>;
+<span class="k">import</span> { AgencesReferentielService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/agences-referentiel.service'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { CRITERIA_DEFAUT, DemandeCriteria } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/operation.model'</span>;
+<span class="k">import</span> {
+  FiltresListing, LigneListing, ModeListing, MOTIFS_RAPIDES, STATUTS_AGENCE, STATUTS_CAISSE_CENTRALE, TOUS, TOUTES, TYPES_DEMANDE,
+  aujourdHui, construireCriteres, nombreDePages, versLigne
+} <span class="k">from</span> <span class="s">'./demandes-list.regles'</span>;
+
+<span class="k">type</span> DecisionCaisseCentrale = <span class="s">'TRAITEE'</span> | <span class="s">'ANNULEE'</span>;
+
+<span class="c">/**
+ * AER_LM-289 / 281 — listing commun des demandes.
+ * mode = 'agence' (Historique des demandes de l'agence de l'appelant) | 'caisse-centrale' (toutes agences + KPI + décision).
+ * Le mode vient de la route (data.mode). Tous les filtres sont appliqués par le serveur ; les KPI ne le sont jamais.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-demandes-list'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [CommonModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule],
+  templateUrl: <span class="s">'./demandes-list.component.html'</span>,
+  styleUrl: <span class="s">'./demandes-list.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> DemandesListComponent <span class="k">implements</span> OnInit {
+
+  <span class="k">private</span> readonly destroyRef = inject(DestroyRef);
+  <span class="k">private</span> readonly router = inject(Router);
+  <span class="k">private</span> readonly route = inject(ActivatedRoute);
+  <span class="k">private</span> readonly snackBar = inject(MatSnackBar);
+
+  readonly facade = inject(FunManagementFacade);
+  readonly actions = inject(DemandeActionsFacade);
+  readonly kpi = inject(KpiCaisseCentraleService);
+  readonly referentiel = inject(AgencesReferentielService);
+  readonly contexteUtilisateur = inject(ContexteUtilisateurService);
+
+  readonly mode: ModeListing = (<span class="k">this</span>.route.snapshot.data[<span class="s">'mode'</span>] as ModeListing) ?? <span class="s">'agence'</span>;
+  readonly estCaisseCentrale = <span class="k">this</span>.mode === <span class="s">'caisse-centrale'</span>;
+
+  <span class="c">// ===== Filtres (maquettes 281 : date début / fin, type, zones, transporteur, statut, urgent, recherche) =====</span>
+  readonly dateDebutControl    = <span class="k">new</span> FormControl(<span class="s">''</span>,    { nonNullable: <span class="k">true</span> });
+  readonly dateFinControl      = <span class="k">new</span> FormControl(<span class="s">''</span>,    { nonNullable: <span class="k">true</span> });
+  readonly typeControl         = <span class="k">new</span> FormControl(TOUS,  { nonNullable: <span class="k">true</span> });
+  readonly statutControl       = <span class="k">new</span> FormControl(<span class="k">this</span>.estCaisseCentrale ? <span class="s">'SUBMITTED'</span> : TOUS, { nonNullable: <span class="k">true</span> });
+  readonly urgentControl       = <span class="k">new</span> FormControl(<span class="k">false</span>, { nonNullable: <span class="k">true</span> });
+  readonly transporteurControl = <span class="k">new</span> FormControl(TOUS,  { nonNullable: <span class="k">true</span> });
+  readonly zoneControl         = <span class="k">new</span> FormControl(TOUTES, { nonNullable: <span class="k">true</span> });
+  readonly rechercheControl    = <span class="k">new</span> FormControl(<span class="s">''</span>,    { nonNullable: <span class="k">true</span> });
+
+  readonly types = TYPES_DEMANDE;
+  readonly statuts = <span class="k">this</span>.estCaisseCentrale ? STATUTS_CAISSE_CENTRALE : STATUTS_AGENCE;
+  readonly motifsRapides = MOTIFS_RAPIDES;
+
+  readonly taille = CRITERIA_DEFAUT.size;
+  <span class="k">private</span> readonly page$ = <span class="k">new</span> BehaviorSubject&lt;number&gt;(0);
+  <span class="k">private</span> criteresCourants: DemandeCriteria = { page: 0, size: CRITERIA_DEFAUT.size };
+
+  readonly peutDecider = computed(() =&gt; <span class="k">this</span>.estCaisseCentrale &amp;&amp; <span class="k">this</span>.contexteUtilisateur.habilitations().traiter);
+
+  readonly lignes = computed&lt;LigneListing[]&gt;(() =&gt; {
+    <span class="k">const</span> index = <span class="k">this</span>.referentiel.parCode();
+    <span class="k">const</span> decider = <span class="k">this</span>.peutDecider();
+    <span class="k">return</span> <span class="k">this</span>.facade.demandes().map(d =&gt; versLigne(d, index.get(d.branchCode) ?? <span class="k">null</span>, decider));
+  });
+
+  readonly nombreUrgentes = computed(() =&gt; <span class="k">this</span>.lignes().filter(l =&gt; l.urgente).length);
+  readonly nombrePages = computed(() =&gt; nombreDePages(<span class="k">this</span>.facade.totalDemandes(), <span class="k">this</span>.taille));
+  readonly pageCourante = computed(() =&gt; <span class="k">this</span>.facade.pageDemandes());
+
+  <span class="c">/** Libellé de l'en-tête agence : « 1422 - DAR BOUAAZA ». */</span>
+  readonly agenceAppelant = computed(() =&gt; {
+    <span class="k">const</span> c = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">return</span> c?.agenceCode ? <span class="s">`${c.agenceCode}${c.agenceNom ? ' - ' + c.agenceNom : ''}`</span> : <span class="s">''</span>;
+  });
+
+  <span class="c">// ===== Décision Caisse Centrale : Traiter (confirmation) / Annuler (modale motif) =====</span>
+  readonly decision = signal&lt;{ id: string; reference: string; agence: string; <span class="k">type</span>: DecisionCaisseCentrale } | <span class="k">null</span>&gt;(<span class="k">null</span>);
+  readonly motifAnnulation = <span class="k">new</span> FormControl(<span class="s">''</span>, { nonNullable: <span class="k">true</span>, validators: [Validators.required, Validators.minLength(10)] });
+
+  ngOnInit(): <span class="k">void</span> {
+    <span class="k">this</span>.contexteUtilisateur.charger();
+    <span class="k">if</span> (<span class="k">this</span>.estCaisseCentrale) {
+      <span class="k">this</span>.referentiel.charger();
+      <span class="k">this</span>.kpi.charger();
+    }
+
+    <span class="k">const</span> filtres$ = combineLatest([
+      <span class="k">this</span>.statutControl.valueChanges.pipe(startWith(<span class="k">this</span>.statutControl.value)),
+      <span class="k">this</span>.urgentControl.valueChanges.pipe(startWith(<span class="k">this</span>.urgentControl.value)),
+      <span class="k">this</span>.transporteurControl.valueChanges.pipe(startWith(<span class="k">this</span>.transporteurControl.value)),
+      <span class="k">this</span>.zoneControl.valueChanges.pipe(startWith(<span class="k">this</span>.zoneControl.value)),
+      <span class="k">this</span>.typeControl.valueChanges.pipe(startWith(<span class="k">this</span>.typeControl.value)),
+      <span class="k">this</span>.dateDebutControl.valueChanges.pipe(startWith(<span class="k">this</span>.dateDebutControl.value)),
+      <span class="k">this</span>.dateFinControl.valueChanges.pipe(startWith(<span class="k">this</span>.dateFinControl.value)),
+      <span class="k">this</span>.rechercheControl.valueChanges.pipe(
+        startWith(<span class="k">this</span>.rechercheControl.value),
+        debounceTime(300),
+        map(v =&gt; v.trim()),
+        distinctUntilChanged()
+      )
+    ]).pipe(
+      map(([statut, urgent, transporteur, zone, <span class="k">type</span>, dateDebut, dateFin, recherche]): FiltresListing =&gt;
+        ({ statut, urgent, transporteur, zone, <span class="k">type</span>, dateDebut, dateFin, recherche }))
+    );
+
+    <span class="c">// tout changement de filtre → retour page 0</span>
+    filtres$.pipe(takeUntilDestroyed(<span class="k">this</span>.destroyRef)).subscribe(() =&gt; {
+      <span class="k">if</span> (<span class="k">this</span>.page$.value !== 0) { <span class="k">this</span>.page$.next(0); }
+    });
+
+    combineLatest([filtres$, <span class="k">this</span>.page$])
+      .pipe(
+        map(([filtres, page]) =&gt; construireCriteres(filtres, page, <span class="k">this</span>.taille)),
+        takeUntilDestroyed(<span class="k">this</span>.destroyRef)
+      )
+      .subscribe(criteres =&gt; {
+        <span class="k">this</span>.criteresCourants = criteres;
+        <span class="k">this</span>.facade.loadDemandes(criteres);
+      });
+  }
+
+  <span class="c">// ===== Barre d'outils =====</span>
+
+  rafraichir(): <span class="k">void</span> {
+    <span class="k">this</span>.facade.loadDemandes(<span class="k">this</span>.criteresCourants);
+    <span class="k">if</span> (<span class="k">this</span>.estCaisseCentrale) { <span class="k">this</span>.kpi.charger(); }
+  }
+
+  basculerUrgentes(): <span class="k">void</span> {
+    <span class="k">this</span>.urgentControl.setValue(!<span class="k">this</span>.urgentControl.value);
+  }
+
+  <span class="c">// Les cartes KPI comptent la journée en cours : un clic cadre la liste sur la même journée,</span>
+  <span class="c">// pour qu'elle montre exactement ce que la carte compte (rien si la carte est à 0).</span>
+  <span class="k">private</span> cadrerSurLaJournee(): <span class="k">void</span> {
+    <span class="k">const</span> jour = aujourdHui();
+    <span class="k">this</span>.dateDebutControl.setValue(jour);
+    <span class="k">this</span>.dateFinControl.setValue(jour);
+  }
+
+  <span class="c">/** Clic sur « Demandes en attente » : aujourd'hui, statut En attente, urgent désactivé. */</span>
+  filtrerEnAttente(): <span class="k">void</span> {
+    <span class="k">this</span>.cadrerSurLaJournee();
+    <span class="k">this</span>.urgentControl.setValue(<span class="k">false</span>);
+    <span class="k">this</span>.statutControl.setValue(<span class="s">'SUBMITTED'</span>);
+  }
+
+  <span class="c">/** Clic sur « Demandes urgentes » : aujourd'hui, tous statuts, urgent actif. */</span>
+  filtrerUrgentes(): <span class="k">void</span> {
+    <span class="k">this</span>.cadrerSurLaJournee();
+    <span class="k">this</span>.statutControl.setValue(TOUS);
+    <span class="k">this</span>.urgentControl.setValue(<span class="k">true</span>);
+  }
+
+  <span class="c">/** Clic sur « Demandes traitées » : aujourd'hui, statut Traitée. */</span>
+  filtrerTraitees(): <span class="k">void</span> {
+    <span class="k">this</span>.cadrerSurLaJournee();
+    <span class="k">this</span>.urgentControl.setValue(<span class="k">false</span>);
+    <span class="k">this</span>.statutControl.setValue(<span class="s">'VALIDATED'</span>);
+  }
+
+  pagePrecedente(): <span class="k">void</span> { <span class="k">if</span> (<span class="k">this</span>.pageCourante() &gt; 0) { <span class="k">this</span>.page$.next(<span class="k">this</span>.pageCourante() - 1); } }
+  pageSuivante(): <span class="k">void</span> { <span class="k">if</span> (<span class="k">this</span>.pageCourante() &lt; <span class="k">this</span>.nombrePages() - 1) { <span class="k">this</span>.page$.next(<span class="k">this</span>.pageCourante() + 1); } }
+
+  <span class="c">// ===== Actions sur une ligne =====</span>
+
+  voirDetail(l: LigneListing): <span class="k">void</span> {
+    <span class="k">this</span>.router.navigate([<span class="s">'consultation'</span>, l.demande.id], { relativeTo: <span class="k">this</span>.route.parent });
+  }
+
+  ouvrirDecision(l: LigneListing, <span class="k">type</span>: DecisionCaisseCentrale): <span class="k">void</span> {
+    <span class="k">this</span>.actions.acquitterErreur();
+    <span class="k">this</span>.motifAnnulation.reset(<span class="s">''</span>);
+    <span class="k">this</span>.decision.set({
+      id: l.demande.id, reference: l.reference, <span class="k">type</span>,
+      agence: <span class="s">`${l.agenceCode}${l.agenceNom ? ' - ' + l.agenceNom : ''}`</span>
+    });
+  }
+
+  choisirMotif(motif: string): <span class="k">void</span> {
+    <span class="k">this</span>.motifAnnulation.setValue(motif);
+    <span class="k">this</span>.motifAnnulation.markAsTouched();
+  }
+
+  fermerDecision(): <span class="k">void</span> {
+    <span class="k">this</span>.decision.set(<span class="k">null</span>);
+  }
+
+  <span class="k">async</span> confirmerDecision(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">const</span> d = <span class="k">this</span>.decision();
+    <span class="k">if</span> (!d) { <span class="k">return</span>; }
+    <span class="k">if</span> (d.<span class="k">type</span> === <span class="s">'ANNULEE'</span> &amp;&amp; <span class="k">this</span>.motifAnnulation.invalid) {
+      <span class="k">this</span>.motifAnnulation.markAsTouched();
+      <span class="k">return</span>;
+    }
+    <span class="k">const</span> resultat = <span class="k">await</span> <span class="k">this</span>.actions.decider(d.id, d.<span class="k">type</span>,
+      d.<span class="k">type</span> === <span class="s">'ANNULEE'</span> ? <span class="k">this</span>.motifAnnulation.value.trim() : undefined);
+    <span class="k">if</span> (resultat) {
+      <span class="k">this</span>.decision.set(<span class="k">null</span>);
+      <span class="k">this</span>.snackBar.open(
+        d.<span class="k">type</span> === <span class="s">'TRAITEE'</span>
+          ? <span class="s">`Demande ${d.reference} traitée : le statut sera mis à jour dans quelques secondes.`</span>
+          : <span class="s">`Demande ${d.reference} annulée : motif consigné.`</span>,
+        <span class="s">'Fermer'</span>, { duration: 5000 });
+      setTimeout(() =&gt; <span class="k">this</span>.rafraichir(), 1500);   <span class="c">// le statut final est écrit par le worker (~1 s)</span>
+    } <span class="k">else</span> {
+      <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Erreur lors de la décision.'</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+    }
+  }
+
+  classeTransporteur(l: LigneListing): string {
+    <span class="k">return</span> l.transporteurId ? <span class="s">`transporteur transporteur--${l.transporteurId.toLowerCase()}`</span> : <span class="s">'transporteur'</span>;
+  }
+
+  suivreLigne(_: number, l: LigneListing): string { <span class="k">return</span> l.demande.id; }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demandes-list.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html</span></div><p class="note">Une seule structure, les colonnes et filtres propres à un mode sont sous <code>*ngIf</code>. Les cartes KPI (geste de la maquette : <code>statCardPending</code> / <code>statCardUrgent</code>) filtrent la liste au clic sur la journée en cours + le statut de la carte, sans se filtrer elles-mêmes. G4S : lettrage du logo, le 4 en rouge. Export Excel : bouton présent, inactif jusqu'à AER_LM-279.</p><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">"listing"</span> [<span class="k">class</span>.listing<span class="c">--caisse-centrale]="estCaisseCentrale"&gt;</span>
+
+  &lt;!<span class="c">-- ================= Titre ================= --&gt;</span>
+  &lt;header <span class="k">class</span>=<span class="s">"listing__entete"</span>&gt;
+    &lt;div&gt;
+      &lt;h1 <span class="k">class</span>=<span class="s">"listing__titre"</span>&gt;{{ estCaisseCentrale ? <span class="s">'Demandes de Fonds &amp; Ramassages'</span> : <span class="s">'Historique des Demandes'</span> }}&lt;/h1&gt;
+      &lt;p <span class="k">class</span>=<span class="s">"listing__sous-titre"</span> *ngIf=<span class="s">"!estCaisseCentrale"</span>&gt;
+        Suivi, consultation et traçabilité des flux de caisse de l<span class="s">'agence {{ agenceAppelant() || '</span>—' }}
+      &lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/header&gt;
+
+  &lt;!<span class="c">-- ================= KPI (Caisse Centrale, AER_LM-278) ================= --&gt;</span>
+  &lt;section <span class="k">class</span>=<span class="s">"kpi"</span> *ngIf=<span class="s">"estCaisseCentrale"</span> aria-label=<span class="s">"Indicateurs clés"</span>&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"kpi__carte kpi__carte--attente"</span> (click)=<span class="s">"filtrerEnAttente()"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"kpi__ligne"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"kpi__libelle"</span>&gt;Demandes en attente&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"kpi__icone"</span>&gt;&lt;mat-icon&gt;hourglass_top&lt;/mat-icon&gt;&lt;/span&gt;&lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"kpi__valeur"</span>&gt;{{ kpi.kpi()?.enAttente ?? <span class="s">'–'</span> }} &lt;span <span class="k">class</span>=<span class="s">"kpi__badge"</span>&gt;À arbitrer&lt;/span&gt;&lt;/div&gt;
+    &lt;/button&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"kpi__carte kpi__carte--urgent"</span> (click)=<span class="s">"filtrerUrgentes()"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"kpi__ligne"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"kpi__libelle"</span>&gt;Demandes urgentes&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"kpi__icone"</span>&gt;&lt;mat-icon&gt;warning_amber&lt;/mat-icon&gt;&lt;/span&gt;&lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"kpi__valeur"</span>&gt;{{ kpi.kpi()?.urgentes ?? <span class="s">'–'</span> }} &lt;span <span class="k">class</span>=<span class="s">"kpi__badge"</span>&gt;Priorité haute&lt;/span&gt;&lt;/div&gt;
+    &lt;/button&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"kpi__carte kpi__carte--traite"</span> (click)=<span class="s">"filtrerTraitees()"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"kpi__ligne"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"kpi__libelle"</span>&gt;Demandes traitées&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"kpi__icone"</span>&gt;&lt;mat-icon&gt;check_circle_outline&lt;/mat-icon&gt;&lt;/span&gt;&lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"kpi__valeur"</span>&gt;{{ kpi.kpi()?.traitees ?? <span class="s">'–'</span> }} &lt;span <span class="k">class</span>=<span class="s">"kpi__badge"</span>&gt;Validées&lt;/span&gt;&lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"kpi__repartition"</span> *ngIf=<span class="s">"kpi.kpi()?.traiteesParTransporteur?.length"</span>&gt;
+        &lt;span *ngFor=<span class="s">"let r of kpi.kpi()!.traiteesParTransporteur"</span>&gt;&lt;strong&gt;{{ r.nom }}&lt;/strong&gt; : {{ r.nombre }}&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/button&gt;
+    &lt;p <span class="k">class</span>=<span class="s">"kpi__erreur"</span> *ngIf=<span class="s">"kpi.erreur() as erreur"</span>&gt;&lt;mat-icon&gt;error_outline&lt;/mat-icon&gt; {{ erreur }}&lt;/p&gt;
+  &lt;/section&gt;
+
+  &lt;!<span class="c">-- ================= Filtres ================= --&gt;</span>
+  &lt;section <span class="k">class</span>=<span class="s">"filtres"</span> aria-label=<span class="s">"Filtres"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"filtres__grille"</span>&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Date début&lt;/span&gt;
+        &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> <span class="k">type</span>=<span class="s">"date"</span> [formControl]=<span class="s">"dateDebutControl"</span>&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Date fin&lt;/span&gt;
+        &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> <span class="k">type</span>=<span class="s">"date"</span> [formControl]=<span class="s">"dateFinControl"</span> [attr.min]=<span class="s">"dateDebutControl.value || null"</span>&gt;
+      &lt;/label&gt;
+
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span> *ngIf=<span class="s">"!estCaisseCentrale"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Type de demande&lt;/span&gt;
+        &lt;select <span class="k">class</span>=<span class="s">"champ__saisie"</span> [formControl]=<span class="s">"typeControl"</span>&gt;
+          &lt;option *ngFor=<span class="s">"let t of types"</span> [value]=<span class="s">"t.code"</span>&gt;{{ t.libelle }}&lt;/option&gt;
+        &lt;/select&gt;
+      &lt;/label&gt;
+
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span> *ngIf=<span class="s">"estCaisseCentrale"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Zones&lt;/span&gt;
+        &lt;select <span class="k">class</span>=<span class="s">"champ__saisie"</span> [formControl]=<span class="s">"zoneControl"</span>&gt;
+          &lt;option value=<span class="s">"TOUTES"</span>&gt;Toutes les zones ({{ referentiel.zones().length }})&lt;/option&gt;
+          &lt;option *ngFor=<span class="s">"let z of referentiel.zones()"</span> [value]=<span class="s">"z.code"</span>&gt;{{ z.libelle }}&lt;/option&gt;
+        &lt;/select&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span> *ngIf=<span class="s">"estCaisseCentrale"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Transporteur&lt;/span&gt;
+        &lt;select <span class="k">class</span>=<span class="s">"champ__saisie"</span> [formControl]=<span class="s">"transporteurControl"</span>&gt;
+          &lt;option value=<span class="s">"TOUS"</span>&gt;Tous les transporteurs&lt;/option&gt;
+          &lt;option *ngFor=<span class="s">"let t of referentiel.transporteurs()"</span> [value]=<span class="s">"t.code"</span>&gt;{{ t.libelle }}&lt;/option&gt;
+        &lt;/select&gt;
+      &lt;/label&gt;
+
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Statut&lt;/span&gt;
+        &lt;select <span class="k">class</span>=<span class="s">"champ__saisie"</span> [formControl]=<span class="s">"statutControl"</span>&gt;
+          &lt;option *ngFor=<span class="s">"let s of statuts"</span> [value]=<span class="s">"s.code"</span>&gt;{{ s.libelle }}&lt;/option&gt;
+        &lt;/select&gt;
+      &lt;/label&gt;
+
+      &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton-urgent"</span> [<span class="k">class</span>.bouton-urgent<span class="c">--actif]="urgentControl.value" (click)="basculerUrgentes()"&gt;</span>
+        &lt;mat-icon&gt;warning_amber&lt;/mat-icon&gt; Urgent uniquement
+        &lt;span <span class="k">class</span>=<span class="s">"bouton-urgent__compteur"</span> *ngIf=<span class="s">"nombreUrgentes() &gt; 0"</span>&gt;{{ nombreUrgentes() }}&lt;/span&gt;
+      &lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"filtres__ligne2"</span>&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ champ--recherche"</span>&gt;
+        &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__loupe"</span>&gt;search&lt;/mat-icon&gt;
+        &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> <span class="k">type</span>=<span class="s">"search"</span> [formControl]=<span class="s">"rechercheControl"</span>
+               [placeholder]=<span class="s">"estCaisseCentrale ? 'Rechercher par référence, agence, zone…' : 'Rechercher par référence (ex. 20260924-1422-01)'"</span>&gt;
+      &lt;/label&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"filtres__actions"</span>&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--secondaire"</span> (click)=<span class="s">"rafraichir()"</span> [disabled]=<span class="s">"facade.loadingDemandes()"</span>&gt;
+          &lt;mat-icon&gt;refresh&lt;/mat-icon&gt; Actualiser
+        &lt;/button&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--primaire"</span> *ngIf=<span class="s">"estCaisseCentrale"</span> disabled
+                title=<span class="s">"Export Excel : livré avec AER_LM-279"</span>&gt;
+          &lt;mat-icon&gt;download&lt;/mat-icon&gt; Exporter (Excel)
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;!<span class="c">-- ================= Tableau ================= --&gt;</span>
+  &lt;section <span class="k">class</span>=<span class="s">"tableau"</span> aria-label=<span class="s">"Demandes"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__etat"</span> *ngIf=<span class="s">"facade.loadingDemandes()"</span>&gt;&lt;mat-icon <span class="k">class</span>=<span class="s">"tourne"</span>&gt;autorenew&lt;/mat-icon&gt; Chargement des demandes…&lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__etat tableau__etat--erreur"</span> *ngIf=<span class="s">"!facade.loadingDemandes() &amp;&amp; facade.errorDemandes() as erreur"</span>&gt;
+      &lt;mat-icon&gt;error_outline&lt;/mat-icon&gt; {{ erreur }}
+    &lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__etat"</span> *ngIf=<span class="s">"!facade.loadingDemandes() &amp;&amp; !facade.errorDemandes() &amp;&amp; lignes().length === 0"</span>&gt;
+      &lt;mat-icon&gt;inbox&lt;/mat-icon&gt; Aucune demande ne correspond aux filtres.
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__defilement"</span> *ngIf=<span class="s">"!facade.loadingDemandes() &amp;&amp; !facade.errorDemandes() &amp;&amp; lignes().length &gt; 0"</span>&gt;
+      &lt;table <span class="k">class</span>=<span class="s">"tableau__table"</span>&gt;
+        &lt;thead&gt;
+          &lt;tr&gt;
+            &lt;th&gt;Référence&lt;/th&gt;
+            &lt;th&gt;Urgence&lt;/th&gt;
+            &lt;th&gt;Date &amp;amp; heure&lt;/th&gt;
+            &lt;th *ngIf=<span class="s">"estCaisseCentrale"</span>&gt;Agence &amp;amp; zone&lt;/th&gt;
+            &lt;th *ngIf=<span class="s">"estCaisseCentrale"</span>&gt;Transporteur&lt;/th&gt;
+            &lt;th&gt;Contenu de la demande&lt;/th&gt;
+            &lt;th *ngIf=<span class="s">"!estCaisseCentrale"</span>&gt;Agent&lt;/th&gt;
+            &lt;th&gt;Statut&lt;/th&gt;
+            &lt;th <span class="k">class</span>=<span class="s">"col-actions"</span>&gt;{{ estCaisseCentrale ? <span class="s">'Action'</span> : <span class="s">'Actions'</span> }}&lt;/th&gt;
+          &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+          &lt;tr *ngFor=<span class="s">"let l of lignes(); trackBy: suivreLigne"</span> [<span class="k">class</span>.ligne<span class="c">--annulee]="l.annulee"&gt;</span>
+            &lt;td <span class="k">class</span>=<span class="s">"cell-ref"</span>&gt;&lt;mat-icon&gt;description&lt;/mat-icon&gt; &lt;span&gt;{{ l.reference }}&lt;/span&gt;&lt;/td&gt;
+            &lt;td&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"badge-urgent"</span> *ngIf=<span class="s">"l.urgente"</span>&gt;&lt;mat-icon&gt;warning_amber&lt;/mat-icon&gt; URGENT&lt;/span&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"tiret"</span> *ngIf=<span class="s">"!l.urgente"</span>&gt;—&lt;/span&gt;
+            &lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"cell-date"</span>&gt;
+              &lt;div&gt;{{ (l.date | date: <span class="s">'dd/MM/yyyy'</span>) || <span class="s">'—'</span> }}&lt;/div&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"cell-date__heure"</span>&gt;{{ l.date | date: <span class="s">'HH:mm'</span> }}&lt;/div&gt;
+            &lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"cell-agence"</span> *ngIf=<span class="s">"estCaisseCentrale"</span>&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"cell-agence__nom"</span>&gt;{{ l.agenceCode }}&lt;ng-container *ngIf=<span class="s">"l.agenceNom"</span>&gt; - {{ l.agenceNom }}&lt;/ng-container&gt;&lt;/div&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"cell-agence__zone"</span>&gt;{{ l.zone || <span class="s">'—'</span> }}&lt;/div&gt;
+            &lt;/td&gt;
+            &lt;td *ngIf=<span class="s">"estCaisseCentrale"</span>&gt;
+              &lt;span [<span class="k">class</span>]=<span class="s">"classeTransporteur(l)"</span>&gt;
+                &lt;ng-container *ngIf=<span class="s">"l.transporteurId === 'G4S'; else nomTransporteur"</span>&gt;G&lt;span <span class="k">class</span>=<span class="s">"transporteur__quatre"</span>&gt;4&lt;/span&gt;S&lt;/ng-container&gt;
+                &lt;ng-template #nomTransporteur&gt;{{ l.transporteur || <span class="s">'—'</span> }}&lt;/ng-template&gt;
+              &lt;/span&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"cell-transporteur__cout"</span> *ngIf=<span class="s">"l.coutDeplacement"</span>&gt;Déplacement : {{ l.coutDeplacement }}&lt;/div&gt;
+            &lt;/td&gt;
+            &lt;td&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"chip"</span> *ngFor=<span class="s">"let c of l.contenu"</span> [<span class="k">class</span>]=<span class="s">"'chip chip--' + c.toLowerCase()"</span>&gt;{{ c }}&lt;/span&gt;
+            &lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"cell-agent"</span> *ngIf=<span class="s">"!estCaisseCentrale"</span>&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"cell-agent__nom"</span>&gt;{{ l.agentNom }}&lt;/div&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"cell-agent__profil"</span>&gt;{{ l.agentProfil || <span class="s">'—'</span> }}&lt;/div&gt;
+            &lt;/td&gt;
+            &lt;td&gt;
+              &lt;span [<span class="k">class</span>]=<span class="s">"'chip-statut ' + l.classeStatut"</span>&gt;{{ l.libelleStatut }}&lt;/span&gt;
+            &lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"col-actions"</span>&gt;
+              &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"icone"</span> title=<span class="s">"Détail"</span> (click)=<span class="s">"voirDetail(l)"</span>&gt;&lt;mat-icon&gt;visibility&lt;/mat-icon&gt;&lt;/button&gt;
+              &lt;ng-container *ngIf=<span class="s">"l.decidable"</span>&gt;
+                &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"icone icone--ok"</span> title=<span class="s">"Traiter"</span> (click)=<span class="s">"ouvrirDecision(l, 'TRAITEE')"</span>&gt;&lt;mat-icon&gt;check_circle&lt;/mat-icon&gt;&lt;/button&gt;
+                &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"icone icone--ko"</span> title=<span class="s">"Annuler"</span> (click)=<span class="s">"ouvrirDecision(l, 'ANNULEE')"</span>&gt;&lt;mat-icon&gt;block&lt;/mat-icon&gt;&lt;/button&gt;
+              &lt;/ng-container&gt;
+            &lt;/td&gt;
+          &lt;/tr&gt;
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+    &lt;/div&gt;
+
+    &lt;footer <span class="k">class</span>=<span class="s">"tableau__pied"</span> *ngIf=<span class="s">"!facade.loadingDemandes() &amp;&amp; !facade.errorDemandes() &amp;&amp; lignes().length &gt; 0"</span>&gt;
+      &lt;div&gt;Affichage de &lt;strong&gt;{{ lignes().length }}&lt;/strong&gt; sur &lt;strong&gt;{{ facade.totalDemandes() }}&lt;/strong&gt; demandes&lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"pagination"</span>&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"pagination__fleche"</span> (click)=<span class="s">"pagePrecedente()"</span> [disabled]=<span class="s">"pageCourante() === 0"</span>&gt;&lt;mat-icon&gt;chevron_left&lt;/mat-icon&gt;&lt;/button&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"pagination__page"</span>&gt;{{ pageCourante() + 1 }}&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"pagination__total"</span>&gt;/ {{ nombrePages() }}&lt;/span&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"pagination__fleche"</span> (click)=<span class="s">"pageSuivante()"</span> [disabled]=<span class="s">"pageCourante() &gt;= nombrePages() - 1"</span>&gt;&lt;mat-icon&gt;chevron_right&lt;/mat-icon&gt;&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/footer&gt;
+  &lt;/section&gt;
+
+  &lt;!<span class="c">-- ================= Modale de décision (Caisse Centrale) ================= --&gt;</span>
+  &lt;div <span class="k">class</span>=<span class="s">"modale"</span> *ngIf=<span class="s">"decision() as dec"</span> role=<span class="s">"dialog"</span> aria-modal=<span class="s">"true"</span> aria-labelledby=<span class="s">"modale-titre"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"modale__fond"</span> (click)=<span class="s">"fermerDecision()"</span>&gt;&lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"modale__boite"</span> [<span class="k">class</span>.modale__boite<span class="c">--rejet]="dec.type === 'ANNULEE'"&gt;</span>
+      &lt;div <span class="k">class</span>=<span class="s">"modale__entete"</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"modale__pastille"</span>&gt;&lt;mat-icon&gt;{{ dec.<span class="k">type</span> === <span class="s">'ANNULEE'</span> ? <span class="s">'warning_amber'</span> : <span class="s">'task_alt'</span> }}&lt;/mat-icon&gt;&lt;/div&gt;
+        &lt;div&gt;
+          &lt;h2 id=<span class="s">"modale-titre"</span> <span class="k">class</span>=<span class="s">"modale__titre"</span>&gt;{{ dec.<span class="k">type</span> === <span class="s">'ANNULEE'</span> ? <span class="s">"Motif d'annulation de la demande"</span> : <span class="s">'Traiter la demande'</span> }}&lt;/h2&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"modale__ref"</span>&gt;Réf : &lt;strong&gt;{{ dec.reference }}&lt;/strong&gt; • Agence : {{ dec.agence }}&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"icone modale__fermer"</span> title=<span class="s">"Fermer"</span> (click)=<span class="s">"fermerDecision()"</span>&gt;&lt;mat-icon&gt;close&lt;/mat-icon&gt;&lt;/button&gt;
+      &lt;/div&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"modale__corps"</span>&gt;
+        &lt;ng-container *ngIf=<span class="s">"dec.type === 'ANNULEE'"</span>&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"modale__etiquette"</span>&gt;Motifs fréquents (sélection rapide) :&lt;/p&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"modale__motifs"</span>&gt;
+            &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"motif"</span> *ngFor=<span class="s">"let m of motifsRapides"</span> (click)=<span class="s">"choisirMotif(m)"</span>&gt;{{ m }}&lt;/button&gt;
+          &lt;/div&gt;
+          &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Justification détaillée (obligatoire pour audit bancaire) &lt;em&gt;*&lt;/em&gt;&lt;/span&gt;
+            &lt;textarea <span class="k">class</span>=<span class="s">"champ__saisie"</span> rows=<span class="s">"3"</span> [formControl]=<span class="s">"motifAnnulation"</span>
+                      placeholder=<span class="s">"Précisez le motif (10 caractères minimum)…"</span>&gt;&lt;/textarea&gt;
+          &lt;/label&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"champ__erreur"</span> *ngIf=<span class="s">"motifAnnulation.touched &amp;&amp; motifAnnulation.invalid"</span>&gt;Le motif est obligatoire (10 caractères minimum).&lt;/p&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"modale__info"</span>&gt;&lt;mat-icon&gt;info&lt;/mat-icon&gt; L<span class="s">'agence sera informée de l'</span>annulation ; la demande sort du circuit de traitement.&lt;/p&gt;
+        &lt;/ng-container&gt;
+        &lt;p <span class="k">class</span>=<span class="s">"modale__info"</span> *ngIf=<span class="s">"dec.type === 'TRAITEE'"</span>&gt;
+          &lt;mat-icon&gt;local_shipping&lt;/mat-icon&gt; La demande est validée et transmise au transporteur ; son statut passera à « Traitée ».
+        &lt;/p&gt;
+        &lt;p <span class="k">class</span>=<span class="s">"champ__erreur"</span> *ngIf=<span class="s">"actions.erreur() as erreur"</span>&gt;&lt;mat-icon&gt;error_outline&lt;/mat-icon&gt; {{ erreur }}&lt;/p&gt;
+      &lt;/div&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"modale__pied"</span>&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--secondaire"</span> (click)=<span class="s">"fermerDecision()"</span> [disabled]=<span class="s">"actions.enCours()"</span>&gt;Abandonner&lt;/button&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton"</span> [<span class="k">class</span>.bouton<span class="c">--primaire]="dec.type === 'TRAITEE'" [class.bouton--danger]="dec.type === 'ANNULEE'"</span>
+                [disabled]=<span class="s">"actions.enCours() || (dec.type === 'ANNULEE' &amp;&amp; motifAnnulation.invalid)"</span>
+                (click)=<span class="s">"confirmerDecision()"</span>&gt;
+          &lt;mat-icon&gt;{{ dec.<span class="k">type</span> === <span class="s">'ANNULEE'</span> ? <span class="s">'block'</span> : <span class="s">'check'</span> }}&lt;/mat-icon&gt;
+          {{ actions.enCours() ? <span class="s">'Envoi en cours…'</span> : (dec.<span class="k">type</span> === <span class="s">'ANNULEE'</span> ? <span class="s">'Confirmer le rejet'</span> : <span class="s">'Confirmer le traitement'</span>) }}
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demandes-list.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.scss</span></div><p class="note">Palette de la maquette (<code>bmci-600 #00915a</code>, gris <code>slate</code>), Inter avec repli système, chips et statuts avec les classes <code>statut--*</code> déjà produites par <code>classeStatut</code>.</p><pre><button class="copy">Copier</button><code><span class="c">/* AER_LM-281 — transposition SCSS de la maquette (Tailwind / Inter) : palette BMCI + gris ardoise */</span>
+$vert-50:  #f0fdf6; $vert-100: #dbf9e9; $vert-500: #10b981; $vert-600: #00915a; $vert-700: #007548;
+$ardoise-50: #f8fafc; $ardoise-100: #f1f5f9; $ardoise-200: #e2e8f0; $ardoise-300: #cbd5e1;
+$ardoise-400: #94a3b8; $ardoise-500: #64748b; $ardoise-600: #475569; $ardoise-700: #334155; $ardoise-800: #1e293b; $ardoise-900: #0f172a;
+$rose-50: #fff1f2; $rose-200: #fecdd3; $rose-600: #e11d48; $rose-700: #be123c;
+$ambre-50: #fffbeb; $ambre-200: #fde68a; $ambre-600: #d97706; $ambre-800: #92400e;
+$bleu-50: #eff6ff; $bleu-600: #2563eb;
+
+:host { display: block; font-family: Inter, <span class="s">"Segoe UI"</span>, Roboto, sans-serif; color: $ardoise-700; }
+
+.listing { display: flex; flex-direction: column; gap: 24px; padding: 8px 0 32px; }
+
+<span class="c">/* ===== Titre ===== */</span>
+.listing__titre { margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; color: $vert-700; }
+.listing<span class="c">--caisse-centrale .listing__titre { color: $ardoise-900; }</span>
+.listing__sous-titre { margin: 4px 0 0; color: $ardoise-500; font-size: 0.9rem; }
+
+<span class="c">/* ===== Cartes ===== */</span>
+%carte { background: #fff; border: 1px solid $ardoise-200; border-radius: 14px; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
+
+<span class="c">/* ===== KPI ===== */</span>
+.kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; position: relative; }
+.kpi__carte { <span class="a">@extend</span> %carte; text-align: left; padding: 20px 24px; cursor: pointer; transition: box-shadow .15s, transform .15s; font: inherit;
+  &amp;:hover { box-shadow: 0 6px 18px rgba(15, 23, 42, .08); transform: translateY(-1px); } }
+.kpi__ligne { display: flex; align-items: center; justify-content: space-between; }
+.kpi__libelle { font-size: 0.75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: $ardoise-500; }
+.kpi__icone { width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; }
+.kpi__valeur { margin-top: 14px; font-size: 2rem; font-weight: 700; color: $ardoise-900; display: flex; align-items: center; gap: 12px; }
+.kpi__badge { font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+.kpi__repartition { margin-top: 14px; padding-top: 12px; border-top: 1px solid $ardoise-100; display: flex; justify-content: space-between; font-size: 0.8rem; color: $ardoise-600; }
+.kpi__erreur { grid-column: 1 / -1; margin: 0; display: flex; align-items: center; gap: 6px; color: $rose-700; font-size: 0.85rem; }
+
+.kpi__carte<span class="c">--attente { .kpi__icone { background: $ambre-50; color: $ambre-600; } .kpi__badge { background: $ambre-50; color: $ambre-800; border: 1px solid $ambre-200; } }</span>
+.kpi__carte<span class="c">--urgent  { border-color: $rose-200; .kpi__libelle, .kpi__valeur { color: $rose-700; } .kpi__icone { background: $rose-50; color: $rose-600; } .kpi__badge { background: $rose-50; color: $rose-700; border: 1px solid $rose-200; } }</span>
+.kpi__carte<span class="c">--traite  { .kpi__icone { background: $vert-50; color: $vert-600; } .kpi__badge { background: $vert-50; color: $vert-700; border: 1px solid $vert-100; } }</span>
+
+<span class="c">/* ===== Filtres ===== */</span>
+.filtres { <span class="a">@extend</span> %carte; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.filtres__grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; align-items: end; }
+.filtres__ligne2 { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.filtres__actions { display: flex; gap: 10px; }
+
+.champ { display: flex; flex-direction: column; gap: 6px; position: relative; }
+.champ__libelle { font-size: 0.8rem; font-weight: 600; color: $ardoise-600; em { color: $rose-600; font-style: normal; } }
+.champ__saisie { font: inherit; font-size: 0.9rem; color: $ardoise-800; background: #fff; border: 1px solid $ardoise-300; border-radius: 10px; padding: 9px 12px; outline: none; transition: border-color .15s, box-shadow .15s;
+  &amp;:focus { border-color: $vert-500; box-shadow: 0 0 0 3px rgba(16, 185, 129, .18); } }
+select.champ__saisie { appearance: auto; }
+textarea.champ__saisie { resize: vertical; min-height: 72px; }
+.champ__erreur { margin: 4px 0 0; color: $rose-700; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; mat-icon { font-size: 16px; width: 16px; height: 16px; } }
+.champ<span class="c">--recherche { flex: 1 1 360px; max-width: 560px; .champ__saisie { padding-left: 38px; } }</span>
+.champ__loupe { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: $ardoise-400; font-size: 20px; width: 20px; height: 20px; }
+
+.bouton-urgent { align-self: end; display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 0.85rem; font-weight: 600; padding: 9px 14px; border-radius: 10px; cursor: pointer;
+  background: $rose-50; color: $rose-700; border: 1px solid $rose-200; transition: all .15s;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &amp;<span class="c">--actif { background: $rose-600; color: #fff; border-color: $rose-700; }</span>
+  &amp;__compteur { background: $rose-600; color: #fff; font-size: 0.7rem; border-radius: 999px; min-width: 20px; height: 20px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; }
+  &amp;<span class="c">--actif &amp;__compteur { background: #fff; color: $rose-700; } }</span>
+
+.bouton { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 0.85rem; font-weight: 600; padding: 9px 14px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; transition: all .15s;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &amp;:disabled { opacity: .55; cursor: not-allowed; }
+  &amp;<span class="c">--primaire { background: $vert-600; color: #fff; &amp;:hover:not(:disabled) { background: $vert-700; } }</span>
+  &amp;<span class="c">--secondaire { background: #fff; color: $ardoise-600; border-color: $ardoise-200; &amp;:hover:not(:disabled) { background: $ardoise-100; } }</span>
+  &amp;<span class="c">--danger { background: $rose-600; color: #fff; &amp;:hover:not(:disabled) { background: $rose-700; } } }</span>
+
+<span class="c">/* ===== Tableau ===== */</span>
+.tableau { <span class="a">@extend</span> %carte; overflow: hidden; }
+.tableau__etat { padding: 40px 20px; text-align: center; color: $ardoise-500; display: flex; align-items: center; justify-content: center; gap: 8px; &amp;<span class="c">--erreur { color: $rose-700; } }</span>
+.tourne { animation: tourne 1s linear infinite; }
+<span class="a">@keyframes</span> tourne { to { transform: rotate(360deg); } }
+.tableau__defilement { overflow-x: auto; }
+.tableau__table { width: 100%; border-collapse: collapse; text-align: left;
+  thead tr { background: rgba(248, 250, 252, .8); border-bottom: 1px solid $ardoise-200; }
+  th { padding: 12px 16px; font-size: 0.7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: $ardoise-500; white-space: nowrap; }
+  td { padding: 16px; font-size: 0.85rem; vertical-align: middle; border-bottom: 1px solid $ardoise-100; }
+  tbody tr:hover { background: $ardoise-50; } }
+.ligne<span class="c">--annulee { color: $ardoise-400; .cell-ref span { text-decoration: line-through; } .chip { opacity: .6; } }</span>
+
+.cell-ref { font-family: <span class="s">"JetBrains Mono"</span>, Consolas, monospace; font-weight: 600; color: $vert-700; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px; mat-icon { font-size: 18px; width: 18px; height: 18px; color: $ardoise-400; } }
+.listing<span class="c">--caisse-centrale .cell-ref { color: $ardoise-800; }</span>
+.cell-date { font-family: <span class="s">"JetBrains Mono"</span>, Consolas, monospace; white-space: nowrap; &amp;__heure { color: $ardoise-500; font-size: 0.8rem; } }
+.cell-agence__nom { font-weight: 600; color: $ardoise-800; white-space: nowrap; }
+.cell-agence__zone { color: $ardoise-500; font-size: 0.8rem; }
+.cell-agent__nom { font-weight: 600; color: $ardoise-800; }
+.cell-agent__profil { color: $ardoise-500; font-size: 0.8rem; }
+.cell-transporteur__cout { margin-top: 4px; font-size: 0.75rem; color: $ardoise-500; white-space: nowrap; }
+.tiret { color: $ardoise-300; }
+
+.badge-urgent { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; letter-spacing: .04em;
+  background: $rose-50; color: $rose-700; border: 1px solid $rose-200; white-space: nowrap; mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+
+.transporteur { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; background: $ardoise-100; color: $ardoise-700; white-space: nowrap;
+  &amp;<span class="c">--brinks { background: $ardoise-900; color: #fff; }</span>
+  <span class="c">/* G4S : lettrage du logo, le 4 en rouge */</span>
+  &amp;<span class="c">--g4s { background: #fff; color: #111; border: 1px solid $ardoise-200; font-weight: 800; letter-spacing: .02em;</span>
+    .transporteur__quatre { color: #e2001a; } } }
+
+.chip { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; letter-spacing: .04em; margin: 2px 6px 2px 0; white-space: nowrap;
+  &amp;<span class="c">--caisse    { background: $vert-50; color: $vert-700; border: 1px solid $vert-100; }</span>
+  &amp;<span class="c">--gab       { background: $ardoise-100; color: $ardoise-600; border: 1px solid $ardoise-200; }</span>
+  &amp;<span class="c">--ramassage { background: $ambre-50; color: $ambre-800; border: 1px solid $ambre-200; }</span>
+  &amp;<span class="c">--devises   { background: $bleu-50; color: $bleu-600; border: 1px solid #bfdbfe; } }</span>
+
+.chip-statut { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.statut<span class="c">--initiee                 { background: $ardoise-100; color: $ardoise-600; border-color: $ardoise-200; }</span>
+.statut<span class="c">--soumise                 { background: $ambre-50; color: $ambre-800; border-color: $ambre-200; }</span>
+.statut<span class="c">--en-modification         { background: #fef3c7; color: #a16207; border-color: $ambre-200; }</span>
+.statut<span class="c">--traitee                 { background: $vert-50; color: $vert-700; border-color: $vert-100; }</span>
+.statut<span class="c">--annulee-agence,</span>
+.statut<span class="c">--annulee-caisse-centrale { background: $ardoise-100; color: $ardoise-500; border-color: $ardoise-200; }</span>
+
+.col-actions { text-align: right; white-space: nowrap; }
+.icone { background: transparent; border: 0; border-radius: 8px; padding: 6px; cursor: pointer; color: $ardoise-400; transition: all .15s; display: inline-flex;
+  &amp;:hover { background: $ardoise-100; color: $vert-600; }
+  &amp;<span class="c">--ok:hover { color: $vert-600; } &amp;--ko:hover { color: $rose-600; }</span>
+  mat-icon { font-size: 20px; width: 20px; height: 20px; } }
+
+.tableau__pied { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; border-top: 1px solid $ardoise-200; font-size: 0.8rem; color: $ardoise-500; strong { color: $ardoise-800; } }
+.pagination { display: flex; align-items: center; gap: 6px; }
+.pagination__fleche { <span class="a">@extend</span> .icone; }
+.pagination__page { min-width: 28px; height: 28px; padding: 0 8px; border-radius: 8px; background: $vert-600; color: #fff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.pagination__total { color: $ardoise-400; }
+
+<span class="c">/* ===== Modale ===== */</span>
+.modale { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modale__fond { position: absolute; inset: 0; background: rgba(15, 23, 42, .6); backdrop-filter: blur(3px); }
+.modale__boite { position: relative; width: 100%; max-width: 560px; background: #fff; border-radius: 18px; border: 1px solid $ardoise-200; box-shadow: 0 25px 50px rgba(15, 23, 42, .25); overflow: hidden; animation: apparait .15s ease-out; }
+<span class="a">@keyframes</span> apparait { <span class="k">from</span> { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
+.modale__entete { display: flex; align-items: flex-start; gap: 12px; padding: 20px 24px; background: $vert-50; border-bottom: 1px solid $vert-100; }
+.modale__boite<span class="c">--rejet .modale__entete { background: $rose-50; border-bottom-color: $rose-200; }</span>
+.modale__pastille { width: 40px; height: 40px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: $vert-100; color: $vert-700; flex-shrink: 0; }
+.modale__boite<span class="c">--rejet .modale__pastille { background: #ffe4e6; color: $rose-600; }</span>
+.modale__titre { margin: 0; font-size: 1rem; font-weight: 700; color: $ardoise-900; }
+.modale__ref { margin: 4px 0 0; font-size: 0.8rem; color: $ardoise-500; strong { font-family: <span class="s">"JetBrains Mono"</span>, Consolas, monospace; color: $ardoise-800; } }
+.modale__fermer { margin-left: auto; }
+.modale__corps { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+.modale__etiquette { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: $ardoise-600; }
+.modale__motifs { display: flex; flex-wrap: wrap; gap: 8px; }
+.motif { font: inherit; font-size: 0.78rem; padding: 6px 12px; border-radius: 999px; background: $ardoise-100; color: $ardoise-700; border: 1px solid $ardoise-200; cursor: pointer; transition: background .15s;
+  &amp;:hover { background: $ardoise-200; } }
+.modale__info { margin: 0; display: flex; align-items: flex-start; gap: 8px; padding: 12px; border-radius: 10px; background: $ambre-50; border: 1px solid $ambre-200; color: $ambre-800; font-size: 0.8rem;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: $ambre-600; flex-shrink: 0; } }
+.modale__pied { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 24px; border-top: 1px solid $ardoise-100; }</code></pre></div>
+<h3>5.3 Routage</h3>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fund-management.routes.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\fund-management.routes.ts  (Ctrl+F : FundManagementListComponent puis CaisseCentraleListComponent)</span></div><p class="note">Sur chacune des deux routes, seuls <code>component</code> et <code>data.mode</code> changent ; les gardes sont celles déjà en place (<code>exigePermission</code> prend une clé de <code>HabilitationsGdf</code> : <code>consulter</code>, <code>toutesAgences</code>). Retire ensuite les deux imports devenus inutiles. Les anciens composants <code>fund-management-list</code> et <code>caisse-centrale-list</code> ne sont plus routés ; ils se suppriment quand <code>ng build</code> et <code>ng test</code> sont verts sans eux (leurs specs avec).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { DemandesListComponent } <span class="k">from</span> <span class="s">'../demandes-list/demandes-list.component'</span>;
+
+<span class="c">// Route « list » (Historique agence) : remplace FundManagementListComponent, garde inchangée</span>
+  { path: <span class="s">'list'</span>, component: DemandesListComponent, data: { mode: <span class="s">'agence'</span> },
+    canActivate: [exigePermission(<span class="s">'consulter'</span>)] },
+
+<span class="c">// Route « caisse-centrale » : remplace CaisseCentraleListComponent, garde inchangée</span>
+  { path: <span class="s">'caisse-centrale'</span>, component: DemandesListComponent, data: { mode: <span class="s">'caisse-centrale'</span> },
+    canActivate: [exigePermission(<span class="s">'toutesAgences'</span>)] },</code></pre></div>
+<h2 id="s6">6. Tests front</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demandes-list.regles.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.spec.ts</span></div><p class="note">13 cas, fonctions pures, pas de <code>TestBed</code>. <code>ng test --watch=false</code>.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { DemandeFonds } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/operation.model'</span>;
+<span class="k">import</span> { STATUTS_AGENCE, STATUTS_CAISSE_CENTRALE, aujourdHui, chipsContenu, construireCriteres, nombreDePages, versLigne } <span class="k">from</span> <span class="s">'./demandes-list.regles'</span>;
+
+<span class="c">/** AER_LM-289 — règles pures du listing commun. */</span>
+<span class="k">describe</span>(<span class="s">'demandes-list.regles'</span>, () =&gt; {
+
+  <span class="k">const</span> filtresNeutres = { statut: <span class="s">'TOUS'</span>, urgent: <span class="k">false</span>, transporteur: <span class="s">'TOUS'</span>, zone: <span class="s">'TOUTES'</span>, <span class="k">type</span>: <span class="s">'TOUS'</span>, recherche: <span class="s">''</span>, dateDebut: <span class="s">''</span>, dateFin: <span class="s">''</span> };
+
+  <span class="k">describe</span>(<span class="s">'construireCriteres'</span>, () =&gt; {
+    <span class="k">it</span>(<span class="s">'filtres neutres : seulement page et taille'</span>, () =&gt; {
+      <span class="k">expect</span>(construireCriteres(filtresNeutres, 2, 20)).toEqual({ page: 2, size: 20 });
+    });
+
+    <span class="k">it</span>(<span class="s">'Caisse Centrale : statut, urgent, transporteur, zone et recherche partent au serveur'</span>, () =&gt; {
+      <span class="k">const</span> c = construireCriteres({ ...filtresNeutres, statut: <span class="s">'SUBMITTED'</span>, urgent: <span class="k">true</span>, transporteur: <span class="s">'BRINKS'</span>, zone: <span class="s">'CASA'</span>, recherche: <span class="s">'  1422 '</span> }, 0, 20);
+      <span class="k">expect</span>(c).toEqual({ page: 0, size: 20, statut: <span class="s">'SUBMITTED'</span>, urgent: <span class="k">true</span>, prestataire: <span class="s">'BRINKS'</span>, zone: <span class="s">'CASA'</span>, recherche: <span class="s">'1422'</span> });
+    });
+
+    <span class="k">it</span>(<span class="s">'agence : le type de demande devient operationType, sauf ramassage = operationSens'</span>, () =&gt; {
+      <span class="k">expect</span>(construireCriteres({ ...filtresNeutres, <span class="k">type</span>: <span class="s">'CAISSE'</span> }, 0, 20).operationType).toBe(<span class="s">'CASH_DESK'</span>);
+      <span class="k">expect</span>(construireCriteres({ ...filtresNeutres, <span class="k">type</span>: <span class="s">'GAB'</span> }, 0, 20).operationType).toBe(<span class="s">'ATM'</span>);
+      <span class="k">expect</span>(construireCriteres({ ...filtresNeutres, <span class="k">type</span>: <span class="s">'DEVISES'</span> }, 0, 20).operationType).toBe(<span class="s">'CURRENCY'</span>);
+      <span class="k">const</span> ramassage = construireCriteres({ ...filtresNeutres, <span class="k">type</span>: <span class="s">'RAMASSAGE'</span> }, 0, 20);
+      <span class="k">expect</span>(ramassage.operationSens).toBe(<span class="s">'COLLECTION'</span>);
+      <span class="k">expect</span>(ramassage.operationType).toBeUndefined();
+    });
+
+    <span class="k">it</span>(<span class="s">'dates : début à 00:00:00, fin à 23:59:59'</span>, () =&gt; {
+      <span class="k">const</span> c = construireCriteres({ ...filtresNeutres, dateDebut: <span class="s">'2026-09-01'</span>, dateFin: <span class="s">'2026-09-24'</span> }, 0, 20);
+      <span class="k">expect</span>(c.dateDebut).toBe(<span class="s">'2026-09-01T00:00:00'</span>);
+      <span class="k">expect</span>(c.dateFin).toBe(<span class="s">'2026-09-24T23:59:59'</span>);
+    });
+  });
+
+  <span class="k">describe</span>(<span class="s">'versLigne'</span>, () =&gt; {
+    <span class="k">const</span> demande = {
+      id: <span class="s">'e39181ca'</span>, uniqueRequestRef: <span class="s">'20260924-1422-01'</span>, requestStatus: <span class="s">'SUBMITTED'</span>, branchCode: <span class="s">'1422'</span>, user: <span class="s">'g10002'</span>,
+      createdAt: <span class="s">'2026-09-24T10:58:58'</span>, urgent: <span class="k">true</span>, agenceNom: <span class="s">'DAR BOUAAZA'</span>, zoneNom: <span class="s">'Zone Casablanca'</span>,
+      prestataire: <span class="s">'G4S'</span>, prestataireNom: <span class="s">'G4S'</span>, coutDeplacement: 350.5, agentNom: <span class="s">'Salma CAISSE'</span>, agentProfil: <span class="s">'Chef de caisse'</span>,
+      operations: [{ operationType: <span class="s">'CASH_DESK'</span>, operationSens: <span class="s">'SUPPLY'</span> }, { operationType: <span class="s">'CURRENCY'</span>, operationSens: <span class="s">'COLLECTION'</span> }]
+    } as unknown as DemandeFonds;
+
+    <span class="k">it</span>(<span class="s">'projette la photo de la demande (agence, transporteur, coût, agent) et le statut FR'</span>, () =&gt; {
+      <span class="k">const</span> l = versLigne(demande, <span class="k">null</span>, <span class="k">true</span>);
+      <span class="k">expect</span>(l.reference).toBe(<span class="s">'20260924-1422-01'</span>);
+      <span class="k">expect</span>(l.urgente).toBeTrue();
+      <span class="k">expect</span>(l.date).toBe(<span class="s">'2026-09-24T10:58:58'</span>);
+      <span class="k">expect</span>(l.agenceNom).toBe(<span class="s">'DAR BOUAAZA'</span>);
+      <span class="k">expect</span>(l.zone).toBe(<span class="s">'Zone Casablanca'</span>);
+      <span class="k">expect</span>(l.transporteurId).toBe(<span class="s">'G4S'</span>);
+      <span class="k">expect</span>(l.coutDeplacement).toBe(<span class="s">'350,50 MAD'</span>);
+      <span class="k">expect</span>(l.agentNom).toBe(<span class="s">'Salma CAISSE'</span>);
+      <span class="k">expect</span>(l.agentProfil).toBe(<span class="s">'Chef de caisse'</span>);
+      <span class="k">expect</span>(l.contenu).toEqual([<span class="s">'CAISSE'</span>, <span class="s">'RAMASSAGE'</span>]);
+      <span class="k">expect</span>(l.statut).toBe(<span class="s">'SOUMISE'</span>);
+      <span class="k">expect</span>(l.decidable).toBeTrue();
+      <span class="k">expect</span>(l.annulee).toBeFalse();
+    });
+
+    <span class="k">it</span>(<span class="s">'sans habilitation TRAITER, la ligne n\'</span>est pas décidable', () =&gt; {
+      <span class="k">expect</span>(versLigne(demande, <span class="k">null</span>, <span class="k">false</span>).decidable).toBeFalse();
+    });
+
+    <span class="k">it</span>(<span class="s">'demande sans photo : repli sur le référentiel et sur l\'</span>uid', () =&gt; {
+      <span class="k">const</span> sansPhoto = { ...demande, agenceNom: <span class="k">null</span>, zoneNom: <span class="k">null</span>, prestataire: <span class="k">null</span>, prestataireNom: <span class="k">null</span>, coutDeplacement: <span class="k">null</span>, agentNom: <span class="k">null</span>, agentProfil: <span class="k">null</span> } as unknown as DemandeFonds;
+      <span class="k">const</span> repli = { code: <span class="s">'1422'</span>, nom: <span class="s">'DAR BOUAAZA'</span>, zoneCode: <span class="s">'CASA'</span>, zoneNom: <span class="s">'Zone Casablanca'</span>, prestataireId: <span class="s">'BRINKS'</span>, prestataireNom: <span class="s">"Brink's"</span>, coutDeplacement: 400 };
+      <span class="k">const</span> l = versLigne(sansPhoto, repli, <span class="k">true</span>);
+      <span class="k">expect</span>(l.agenceNom).toBe(<span class="s">'DAR BOUAAZA'</span>);
+      <span class="k">expect</span>(l.transporteur).toBe(<span class="s">"Brink's"</span>);
+      <span class="k">expect</span>(l.coutDeplacement).toBe(<span class="s">'400,00 MAD'</span>);
+      <span class="k">expect</span>(l.agentNom).toBe(<span class="s">'g10002'</span>);
+      <span class="k">expect</span>(l.agentProfil).toBeNull();
+    });
+
+    <span class="k">it</span>(<span class="s">'demande annulée : marquée annulée et non décidable'</span>, () =&gt; {
+      <span class="k">const</span> annulee = { ...demande, requestStatus: <span class="s">'CANCELLED'</span>, cancellationOrigin: <span class="s">'CAISSE_CENTRALE'</span> } as unknown as DemandeFonds;
+      <span class="k">const</span> l = versLigne(annulee, <span class="k">null</span>, <span class="k">true</span>);
+      <span class="k">expect</span>(l.annulee).toBeTrue();
+      <span class="k">expect</span>(l.decidable).toBeFalse();
+    });
+  });
+
+  <span class="k">it</span>(<span class="s">'chipsContenu dédoublonne'</span>, () =&gt; {
+    <span class="k">const</span> d = { operations: [{ operationType: <span class="s">'ATM'</span>, operationSens: <span class="s">'SUPPLY'</span> }, { operationType: <span class="s">'ATM'</span>, operationSens: <span class="s">'SUPPLY'</span> }] } as unknown as DemandeFonds;
+    <span class="k">expect</span>(chipsContenu(d)).toEqual([<span class="s">'GAB'</span>]);
+  });
+
+  <span class="k">it</span>(<span class="s">'la Caisse Centrale n\'</span>a pas de filtre Brouillon, l\<span class="s">'agence si'</span>, () =&gt; {
+    <span class="k">expect</span>(STATUTS_AGENCE.some(s =&gt; s.code === <span class="s">'INITIATED'</span>)).toBeTrue();
+    <span class="k">expect</span>(STATUTS_CAISSE_CENTRALE.some(s =&gt; s.code === <span class="s">'INITIATED'</span>)).toBeFalse();
+    <span class="k">expect</span>(STATUTS_CAISSE_CENTRALE.length).toBe(STATUTS_AGENCE.length - 1);
+  });
+
+  <span class="k">it</span>(<span class="s">'aujourdHui rend la date locale au format des champs date'</span>, () =&gt; {
+    <span class="k">expect</span>(aujourdHui(<span class="k">new</span> Date(2026, 8, 25, 23, 30))).toBe(<span class="s">'2026-09-25'</span>);
+    <span class="k">expect</span>(aujourdHui(<span class="k">new</span> Date(2026, 8, 25, 0, 10))).toBe(<span class="s">'2026-09-25'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'nombreDePages arrondit vers le haut, minimum 1'</span>, () =&gt; {
+    <span class="k">expect</span>(nombreDePages(0, 20)).toBe(1);
+    <span class="k">expect</span>(nombreDePages(20, 20)).toBe(1);
+    <span class="k">expect</span>(nombreDePages(42, 20)).toBe(3);
+  });
+});</code></pre></div>
+<h2 id="s7">7. Vérification depuis les écrans</h2>
+<div class="card"><p>Redémarre fund-management (Flyway applique V8 et V9), redémarre-le une fois de plus si utilisateurs-ci a été relancé entre-temps (cache d'identité 5 min), puis <code>ng serve --port 4201</code> et Ctrl+F5.</p>
+<h4>A. Référence (280) — g10002</h4>
+<ol>
+<li>Portail → Gestion des fonds → Nouvelle demande : la référence affichée est <code>AAAAMMJJ-1422-01</code> (date du jour).</li>
+<li>Retour Historique → Nouvelle demande une deuxième fois : <code>…-1422-02</code>. Une demande de j43709 (agence X) repart à <code>-01</code> pour son agence.</li>
+<li>Les anciennes demandes <code>RT-2026-…</code> restent affichées telles quelles.</li>
+</ol>
+<h4>B. Historique agence (289 / 281) — g10002</h4>
+<ol>
+<li>Titre « Historique des Demandes », sous-titre avec « 1422 - DAR BOUAAZA ». Colonnes : Référence, Urgence, Date &amp; heure, Contenu, Agent, Statut, Actions.</li>
+<li>La colonne Agent affiche « Salma CAISSE » et « Chef de caisse » sur les nouvelles demandes ; l'uid seul sur les anciennes.</li>
+<li>Date &amp; heure : remplie sur <b>toutes</b> les lignes, anciennes demandes comprises (3.6). Réseau → <code>cash?…</code> → Preview : <code>content[0].createdAt</code> non nul.</li>
+<li>Filtres : Date début / fin réduisent la liste (Réseau : <code>dateDebut=…T00:00:00&amp;dateFin=…T23:59:59</code>) ; Type « Ramassage » ne garde que les demandes avec une opération de ramassage ; Urgent uniquement ; recherche par référence.</li>
+<li>Œil → écran de consultation ; Actualiser recharge la page courante.</li>
+</ol>
+<h4>C. Caisse Centrale (278 / 281) — persona Caisse Centrale, fenêtre privée</h4>
+<ol>
+<li>Titre « Demandes de Fonds &amp; Ramassages », 3 cartes KPI : En attente = nombre de demandes SUBMITTED créées aujourd'hui ; Urgentes = urgentes créées aujourd'hui, tous statuts ; Traitées = VALIDATED du jour avec « G4S : n » / « Brink's : n ».</li>
+<li>Change un filtre (statut, zone, transporteur) : la liste change, <b>les KPI ne bougent pas</b>. Actualiser recharge les deux.</li>
+<li>Clic sur une carte KPI : Date début et Date fin passent à aujourd'hui, puis Urgentes → « Tous les statuts » + bouton Urgent actif ; En attente → statut En attente, Urgent désactivé ; Traitées → statut Traitée. La liste montre exactement ce que la carte compte (vide si la carte est à 0). Les KPI ne comptent que la journée : sans demande créée aujourd'hui, 0 partout est le comportement attendu — <code>…/cash/kpi?date=2026-09-01</code> dans le navigateur doit renvoyer des compteurs non nuls.</li>
+<li>Brouillons : g10002 ouvre « Nouvelle demande » sans soumettre ; côté Caisse Centrale, cette demande n'apparaît nulle part, même en cherchant sa référence, et le select Statut n'a pas d'entrée « Brouillon ». Sur l'Historique agence, le brouillon est bien listé.</li>
+<li>Transporteur G4S : affiché « G4S » avec le 4 en rouge sur fond blanc ; Brink's reste sur fond sombre.</li>
+<li>Recherche « DAR » ou « Casablanca » : la demande de l'agence 1422 ressort (recherche serveur sur agence et zone).</li>
+<li>Ligne soumise : œil, coche (Traiter → confirmation), interdit (Annuler → modale : un motif rapide remplit la justification, « Confirmer le rejet » actif à partir de 10 caractères). Après confirmation : toast, puis statut mis à jour au rafraîchissement automatique. La ligne annulée est barrée.</li>
+<li>Traiter une demande puis revenir : la carte Traitées et sa répartition par transporteur augmentent.</li>
+</ol>
+<details><summary>Contrôles base (pour moi)</summary>
+<pre><button class="copy">Copier</button><code><span class="k">SELECT</span> version, success <span class="k">FROM</span> flyway_schema_history <span class="k">ORDER</span> <span class="k">BY</span> installed_rank <span class="k">DESC</span> <span class="k">LIMIT</span> 2;
+
+<span class="k">SELECT</span> unique_request_ref, branch_code, agent_nom, agent_profil, request_status, urgent, prestataire, creation_date
+<span class="k">FROM</span> retail.cash_request
+<span class="k">ORDER</span> <span class="k">BY</span> creation_date <span class="k">DESC</span>
+<span class="k">LIMIT</span> 5;
+
+<span class="k">SELECT</span> * <span class="k">FROM</span> retail.request_ref_counter <span class="k">ORDER</span> <span class="k">BY</span> jour <span class="k">DESC</span>, branch_code;</code></pre>
+<p>Attendu : V8 et V9 en succès ; les nouvelles lignes ont une référence <code>AAAAMMJJ-agence-nn</code> et un agent ; le compteur a une ligne par (jour, agence) avec <code>dernier_numero</code> = nombre de demandes créées.</p></details></div>
+<div class="card"><h4>Build</h4><ol>
+<li><code>mvn clean install</code> : 15 nouveaux tests verts.</li>
+<li><code>ng test --watch=false</code> : 13 cas verts dans « demandes-list.regles ».</li>
+</ol></div>
+<h2 id="s8">8. Nettoyage — ce qui ne sert plus</h2>
+<div class="card"><p>À faire <b>après</b> que <code>mvn clean install</code> et <code>ng build</code> + <code>ng test</code> sont verts avec les étapes 1 à 6. Chaque suppression se vérifie par un « no usages » dans l'IDE avant d'effacer.</p>
+<h4>Back — fund-management</h4>
+<table>
+<tr><th>Élément</th><th>Où</th><th>Pourquoi</th></tr>
+<tr><td><code>nextRequestRef()</code> et sa <code>@Query</code> <code>SELECT nextval('retail.request_ref_seq')</code></td><td><code>CashDemandJpaRepository</code></td><td>Remplacé par <code>prochainNumeroDuJour</code> ; plus aucun appelant après l'étape 1.</td></tr>
+<tr><td>Import <code>java.time.Year</code></td><td><code>CashDemandRepositoryImpl</code></td><td>Servait au <code>RT-%d-%06d</code>.</td></tr>
+<tr><td>Séquence <code>retail.request_ref_seq</code></td><td>Base (créée en V1)</td><td>À laisser en place : Flyway V1 est appliquée, une migration qui la supprime n'apporte rien et compliquerait un retour arrière. Elle ne coûte rien.</td></tr>
+</table>
+<h4>Front — fund-management-front</h4>
+<table>
+<tr><th>Élément</th><th>Où</th><th>Pourquoi</th></tr>
+<tr><td>Imports <code>FundManagementListComponent</code> et <code>CaisseCentraleListComponent</code></td><td><code>fund-management.routes.ts</code></td><td>Plus référencés par aucune route (§5.3).</td></tr>
+<tr><td>Dossier <code>presenter/pages/fund-management-list/</code> (ts, html, scss, spec)</td><td>Listing agence du collègue</td><td>Remplacé par <code>demandes-list</code> en mode <code>agence</code>.</td></tr>
+<tr><td>Dossier <code>presenter/pages/caisse-centrale-list/</code> (ts, html, scss, spec)</td><td>Listing Caisse Centrale de la 266</td><td>Remplacé par <code>demandes-list</code> en mode <code>caisse-centrale</code>. Avant de l'effacer : Ctrl+F <code>caisse-centrale-list.component</code> dans <code>src/</code> — si <code>demande-actions.facade.ts</code> y importe le type <code>DecisionCaisseCentrale</code>, déplace la ligne <code>export type DecisionCaisseCentrale = 'TRAITEE' | 'ANNULEE';</code> dans la façade et fais pointer l'import de <code>demandes-list.component.ts</code> dessus (remplace son <code>type DecisionCaisseCentrale</code> local). Le composant partait avec <code>KPI_STATIQUES</code>, qui part avec lui.</td></tr>
+<tr><td>Dépendances Material devenues inutiles dans <code>demandes-list</code></td><td>—</td><td>Rien à retirer du <code>package.json</code> : <code>MatIconModule</code> et <code>MatSnackBar</code> restent utilisés, et les autres modules Material servent aux écrans de saisie.</td></tr>
+</table>
+<p>Après ces suppressions : <code>ng build</code> puis <code>ng test --watch=false</code> une dernière fois. Si un import cassé apparaît, il pointe forcément vers l'un des deux anciens dossiers : c'est la référence à basculer sur <code>demandes-list</code> ou sur la façade.</p></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
