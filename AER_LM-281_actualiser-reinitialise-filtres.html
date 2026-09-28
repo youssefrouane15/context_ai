@@ -1,0 +1,100 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-281 — Actualiser réinitialise les filtres</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-281 — « Actualiser » remet les filtres à l'état initial (KPI compris)</h1><p>fund-management-front · 28/09/2026 · s'applique après les retouches 2ᵉ passe et AER_LM-279 · un seul composant touché</p></header>
+<nav><a href="#s0">Règle</a><a href="#s1">Composant</a><a href="#s2">Template</a><a href="#s3">Vérification</a></nav><main><h2 id="s0">0. Ce que ce doc change</h2>
+<div class="card"><p><b>Le besoin</b> : un clic sur une carte KPI pose des filtres dans la barre (dates du jour, statut, urgent). Rien ne permettait de les enlever d'un geste ; « Actualiser » ne faisait que recharger la liste avec les filtres en place.</p>
+<p><b>La règle retenue</b> : « Actualiser » = <b>retour à l'état initial de l'écran</b> (tous les filtres à leur valeur de départ, KPI compris) + rechargement de la liste et des KPI. C'est le geste attendu d'un bouton de rafraîchissement : on revoit l'écran tel qu'à l'arrivée.</p>
+<p>Deux méthodes distinctes dans le composant, parce que deux usages n'ont pas la même intention :</p>
+<table>
+<tr><th>Méthode</th><th>Filtres</th><th>Appelée par</th></tr>
+<tr><td><code>actualiser()</code></td><td>Remis à l'initial</td><td>Le bouton « Actualiser »</td></tr>
+<tr><td><code>recharger()</code></td><td>Conservés</td><td>Le retour d'une décision Traiter / Annuler (la Caisse Centrale garde son filtre pendant qu'elle traite une série de demandes)</td></tr>
+</table>
+<p><b>Mécanique</b> : un <code>rechargement$</code> (compteur) entre dans le <code>combineLatest</code> des critères. Réinitialiser huit contrôles d'un coup = une rafale synchrone fondue en une seule requête par le <code>debounceTime(0)</code> déjà en place ; si les filtres étaient déjà à l'initial, c'est le tick qui force le rechargement (le <code>distinctUntilChanged</code> compare critères <b>et</b> tick). Un seul appel API dans tous les cas.</p>
+<p>Ordre : §1 (quatre édits dans le <code>.ts</code>) puis §2 (un bouton dans le <code>.html</code>). Aucun changement back ni dans les règles.</p></div>
+<h2 id="s1">1. demandes-list.component.ts</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Import rxjs</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : from &#x27;rxjs&#x27;  — remplace la ligne)</span></div><p class="note">Ajout de <code>Subject</code> n'est pas nécessaire (un <code>BehaviorSubject</code> porte le tick) ; la ligne est donnée complète.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { BehaviorSubject, Subject, combineLatest, debounceTime, distinctUntilChanged, map, startWith } <span class="k">from</span> <span class="s">'rxjs'</span>;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Champs — tick de rechargement</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : private readonly page$  — remplace les trois lignes taille / page$ / criteresCourants)</span></div><pre><button class="copy">Copier</button><code>  readonly taille = CRITERIA_DEFAUT.size;
+  <span class="k">private</span> readonly page$ = <span class="k">new</span> BehaviorSubject&lt;number&gt;(0);
+  <span class="c">/** Tick de rechargement forcé : « Actualiser » et le retour d'une décision passent par ici. */</span>
+  <span class="k">private</span> readonly rechargement$ = <span class="k">new</span> BehaviorSubject&lt;number&gt;(0);
+  <span class="k">private</span> criteresCourants: DemandeCriteria = { page: 0, size: CRITERIA_DEFAUT.size };</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>ngOnInit — flux des critères</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : // tout changement de filtre → retour page 0  — remplace jusqu&#x27;à la fin du subscribe)</span></div><p class="note">Remplace la version de la 2ᵉ passe de retouches : le <code>rechargement$</code> rejoint le <code>combineLatest</code>, et le <code>distinctUntilChanged</code> compare aussi le tick.</p><pre><button class="copy">Copier</button><code>    <span class="c">// tout changement de filtre → retour page 0</span>
+    filtres$.pipe(takeUntilDestroyed(<span class="k">this</span>.destroyRef)).subscribe(() =&gt; {
+      <span class="k">if</span> (<span class="k">this</span>.page$.value !== 0) { <span class="k">this</span>.page$.next(0); }
+    });
+
+    combineLatest([filtres$, <span class="k">this</span>.page$, <span class="k">this</span>.rechargement$])
+      .pipe(
+        map(([filtres, page, tick]) =&gt; ({ criteres: construireCriteres(filtres, page, <span class="k">this</span>.taille), tick })),
+        <span class="c">// Une rafale synchrone (clic KPI, réinitialisation) = une seule émission ; mêmes critères et même tick = pas d'appel.</span>
+        debounceTime(0),
+        distinctUntilChanged((a, b) =&gt; a.tick === b.tick &amp;&amp; JSON.stringify(a.criteres) === JSON.stringify(b.criteres)),
+        takeUntilDestroyed(<span class="k">this</span>.destroyRef)
+      )
+      .subscribe(({ criteres }) =&gt; {
+        <span class="k">this</span>.criteresCourants = criteres;
+        <span class="k">this</span>.facade.loadDemandes(criteres);
+      });</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Barre d&#x27;outils — actualiser / recharger / reinitialiserFiltres</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : rafraichir(): void  — remplace la méthode rafraichir et son commentaire « Barre d&#x27;outils »)</span></div><p class="note"><code>rafraichir()</code> disparaît au profit de ces deux méthodes. Les méthodes <code>filtrerEnAttente</code> / <code>filtrerUrgentes</code> / <code>filtrerTraitees</code> et <code>basculerUrgentes</code> ne changent pas.</p><pre><button class="copy">Copier</button><code>  <span class="c">// ===== Barre d'outils =====</span>
+
+  <span class="c">/** Bouton « Actualiser » : remet tous les filtres à leur valeur initiale (y compris ceux posés par un clic KPI) et recharge. */</span>
+  actualiser(): <span class="k">void</span> {
+    <span class="k">this</span>.reinitialiserFiltres();
+    <span class="k">this</span>.recharger();
+  }
+
+  <span class="c">/** Recharge la liste (et les KPI) avec les filtres tels qu'ils sont : retour d'une décision Caisse Centrale. */</span>
+  recharger(): <span class="k">void</span> {
+    <span class="k">this</span>.rechargement$.next(<span class="k">this</span>.rechargement$.value + 1);
+    <span class="k">if</span> (<span class="k">this</span>.estCaisseCentrale) { <span class="k">this</span>.kpi.charger(); }
+  }
+
+  <span class="c">/** Valeurs initiales de l'écran : dates vides, listes sur « Tous », urgent désactivé, statut par défaut du mode. */</span>
+  reinitialiserFiltres(): <span class="k">void</span> {
+    <span class="k">this</span>.dateDebutControl.setValue(<span class="s">''</span>);
+    <span class="k">this</span>.dateFinControl.setValue(<span class="s">''</span>);
+    <span class="k">this</span>.typeControl.setValue(TOUS);
+    <span class="k">this</span>.statutControl.setValue(<span class="k">this</span>.estCaisseCentrale ? <span class="s">'SUBMITTED'</span> : TOUS);
+    <span class="k">this</span>.urgentControl.setValue(<span class="k">false</span>);
+    <span class="k">this</span>.transporteurControl.setValue(TOUS);
+    <span class="k">this</span>.zoneControl.setValue(TOUTES);
+    <span class="k">this</span>.rechercheControl.setValue(<span class="s">''</span>);
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>confirmerDecision — rechargement sans toucher aux filtres</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : setTimeout(() =&gt; this.rafraichir()  — remplace la ligne)</span></div><pre><button class="copy">Copier</button><code>      setTimeout(() =&gt; <span class="k">this</span>.recharger(), 1500);   <span class="c">// le statut final est écrit par le worker (~1 s) — filtres conservés</span></code></pre></div>
+<h2 id="s2">2. demandes-list.component.html</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Bouton Actualiser</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html  (Ctrl+F : (click)=&quot;rafraichir()&quot;  — remplace le &lt;button&gt; entier)</span></div><p class="note">Si <code>rafraichir()</code> est référencé ailleurs dans le template (Ctrl+F), remplace par <code>actualiser()</code>. Le bouton « Exporter (Excel) » qui suit ne change pas.</p><pre><button class="copy">Copier</button><code>        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--secondaire"</span> (click)=<span class="s">"actualiser()"</span> [disabled]=<span class="s">"facade.loadingDemandes()"</span>
+                title=<span class="s">"Réinitialise les filtres et recharge la liste"</span>&gt;
+          &lt;mat-icon&gt;refresh&lt;/mat-icon&gt; Actualiser
+        &lt;/button&gt;</code></pre></div>
+<h2 id="s3">3. Vérification depuis les écrans</h2>
+<div class="card"><ol>
+<li><b>Caisse Centrale</b> : clic sur « Demandes urgentes » → dates du jour, statut « Tous les statuts », Urgent actif. Clic sur <b>Actualiser</b> → dates vides, statut « En attente », Urgent inactif, zones / transporteur sur « Tous » ; Réseau : <b>une seule</b> requête <code>cash?statut=SUBMITTED</code> + une requête <code>kpi</code>.</li>
+<li>Sans rien changer, clic sur Actualiser une deuxième fois → la liste et les KPI sont bien rechargés (une requête chacun), malgré des filtres identiques.</li>
+<li>Filtre Transporteur = G4S puis Traiter une demande → après le toast, la liste se recharge <b>en gardant</b> G4S ; la demande traitée disparaît du statut En attente.</li>
+<li><b>Historique agence</b> : saisis deux dates et un type, Actualiser → tout revient à vide / « Tous », statut « Tous les statuts ».</li>
+<li><code>ng build</code> vert ; <code>ng test --watch=false</code> inchangé (aucune règle pure modifiée).</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
