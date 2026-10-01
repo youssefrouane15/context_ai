@@ -1,0 +1,142 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>403 sur /orga/agences — contrôle de la branche users feature/AER_LM-288</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+.attendu{margin:0 12px 12px;padding:10px 14px;background:#f3f7f5;border-left:4px solid var(--v);border-radius:6px;font-size:14px}.attendu b{display:block;color:var(--vf);margin-bottom:4px}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.flow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.flow span{background:#eef3f0;border:1px solid #dfe7e3;border-radius:6px;padding:6px 10px;font-size:13px}.flow span.ko{background:#fde3e3;border-color:#f3b4b4;color:#a11f1f}
+</style></head><body>
+<header><h1>403 sur GET /orga/agences — la branche users <code style="background:rgba(255,255,255,.15);color:#fff">feature/AER_LM-288</code> contient-elle le commit 266 ?</h1><p>utilisateurs-ci · 01/10/2026 · diagnostic en 4 contrôles (Git, code, processus, données) + correctif selon le cas · Git Bash (MINGW64), pgAdmin, DevTools</p></header>
+<nav><a href="#s0">Diagnostic</a><a href="#s1">Git</a><a href="#s2">Code</a><a href="#s3">Processus</a><a href="#s4">Données</a><a href="#s5">Correctif</a><a href="#s6">Vérification</a><a href="#s7">Remarques</a></nav><main><h2 id="s0">0. Diagnostic — pourquoi un 403 ici et seulement ici</h2>
+<div class="card"><p>Capture du 01/10 12:52 : <code>me</code>, <code>kpi</code> et <code>cash?page=0…</code> passent, seul <code>GET /api/v1/public/users/orga/agences</code> renvoie <b>403</b>. Les en-têtes <code>Access-Control-Allow-*</code> sont présents et le corps est en JSON : ce n'est pas du CORS, c'est <b>Spring Security côté utilisateurs-ci</b> qui refuse l'appel après authentification.</p>
+<div class="flow"><span>Front 4201</span><span>→ gateway 9090</span><span>→ utilisateurs-ci</span><span>→ <code>AgenceController.getAllAgences()</code></span><span class="ko">@PreAuthorize → 403</span></div>
+<table>
+<tr><th>Ce que fait la sécurité sur ce contrôleur</th><th>Conséquence</th></tr>
+<tr><td><code>AgenceController</code> porte un <code>@PreAuthorize</code> <b>de classe</b> (CONSOLE_ADMIN_EDIT / CREATE_USER) : réservé à la console admin.</td><td>Un profil GDF (Caisse Centrale, Support, Agence) n'a aucune de ces permissions → 403 sur toutes les méthodes de la classe.</td></tr>
+<tr><td>Le lot 266 a ajouté un <code>@PreAuthorize</code> <b>de méthode</b> sur <code>getAllAgences()</code> incluant <code>GDF_CONSULTER_DEMANDE</code>. En Spring Security, l'annotation de méthode <b>prime</b> sur celle de la classe.</td><td>Avec ce commit : le GET liste est ouvert aux profils GDF, le reste de la classe reste admin. Sans ce commit : retour au 403.</td></tr>
+</table>
+<p><b>Hypothèse principale</b> : « ça marchait » quand utilisateurs-ci tournait sur la branche du lot 266 ; « ça ne marche plus » depuis qu'il tourne sur <code>feature/AER_LM-288</code>, créée depuis <code>develop</code> <i>avant</i> que le commit 266 n'y soit mergé. Tu n'as rien changé dans users ni dans la gateway : c'est le <b>point de départ</b> de la branche qui n'a pas le commit. Les quatre contrôles ci-dessous confirment ou infirment, dans l'ordre : Git (§1) → code à HEAD (§2) → processus qui tourne (§3) → données (§4). On s'arrête au premier qui explique le 403.</p>
+<p>Le front n'est pas en cause : <code>AgencesReferentielService</code> tolère ce 403 par construction (lot 266), c'est pour ça que l'écran s'affiche avec une liste déroulante « Agences » vide au lieu d'une erreur.</p></div>
+<h2 id="s1">1. Git — le commit 266 est-il dans feature/AER_LM-288 ?</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">COMMANDES</span><b>Repérer le commit 266 (par son contenu, pas par son message)</b><br><span class="path">C:\dev\utilisateurs-ci  —  Git Bash, branche feature/AER_LM-288 (note : l&#x27;option est --oneline, pas --one-line)</span></div><p class="note"><code>-S&lt;texte&gt;</code> (« pickaxe ») retrouve le commit qui a ajouté ou retiré la chaîne dans le fichier, quel que soit le libellé du commit. C'est le repère le plus fiable.</p><pre><button class="copy">Copier</button><code><span class="k">cd</span> /c/dev/utilisateurs-ci
+<span class="k">git</span> fetch origin <span class="c">--prune</span>
+
+<span class="c"># 1a. Le commit qui a introduit GDF_CONSULTER_DEMANDE dans AgenceController, toutes branches confondues</span>
+<span class="k">git</span> log <span class="c">--oneline --all -S"GDF_CONSULTER_DEMANDE" -- "*AgenceController.java"</span>
+
+<span class="c"># 1b. Variante par message de commit, si tu veux recouper</span>
+<span class="k">git</span> log <span class="c">--oneline --all -i --grep="266"</span>
+</code></pre><div class="attendu"><b>Attendu</b>Une ligne du type <code>a1b2c3d feat(AER_LM-266): … agences …</code>. Note ce SHA : c'est <b>&lt;sha266&gt;</b> pour la suite. Aucune ligne → le commit 266 users n'a jamais été poussé (il n'existe qu'en local sur une autre copie, ou il a été perdu) : va directement au §5, cas B'.</div></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">COMMANDES</span><b>La branche courante contient-elle ce commit ?</b><br><span class="path">C:\dev\utilisateurs-ci  —  remplace &lt;sha266&gt; par le SHA relevé ci-dessus</span></div><pre><button class="copy">Copier</button><code><span class="c"># 1c. Branches (locales et distantes) qui contiennent le commit</span>
+<span class="k">git</span> branch -a <span class="c">--contains &lt;sha266&gt;</span>
+
+<span class="c"># 1d. Où en est 288 par rapport à develop</span>
+<span class="k">git</span> log <span class="c">--oneline HEAD..origin/develop        # ce que develop a et que 288 n'a PAS</span>
+<span class="k">git</span> log <span class="c">--oneline origin/develop..HEAD        # ce que 288 a en propre (attendu : Permission + V18, 1 ou 2 commits)</span>
+<span class="k">git</span> log -1 <span class="c">--format="%h  %ci  %s" $(git merge-base HEAD origin/develop)   # point de départ de 288</span>
+</code></pre><div class="attendu"><b>Attendu</b><b>1c</b> — si la liste contient <code>* feature/AER_LM-288</code> : le commit est là, passe au §2 (le code) puis §3 (le processus). Si elle ne montre que <code>remotes/origin/feature/AER_LM-266</code> (± <code>remotes/origin/develop</code>) : <b>288 n'a pas le commit</b>, c'est la cause ; va au §5 (cas A si develop l'a, cas B sinon).<br><b>1d</b> — <code>HEAD..origin/develop</code> non vide avec le commit 266 dedans = cas A ; la date du merge-base antérieure au commit 266 confirme que la branche a été créée avant son merge.</div></div>
+<h2 id="s2">2. Code — la preuve directe sur HEAD</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">COMMANDES</span><b>Les annotations de sécurité d&#x27;AgenceController telles qu&#x27;elles sont dans la branche</b><br><span class="path">C:\dev\utilisateurs-ci  —  indépendant de l&#x27;historique : on regarde le fichier à HEAD</span></div><pre><button class="copy">Copier</button><code><span class="c"># 2a. Chemin exact des contrôleurs agence (il y a aussi InternalAgenceController, lot 266)</span>
+<span class="k">git</span> ls-files | grep -i AgenceController
+
+<span class="c"># 2b. Toutes les lignes @PreAuthorize du contrôleur public, avec numéros de ligne</span>
+<span class="k">git</span> grep -n <span class="s">"PreAuthorize"</span> HEAD <span class="c">-- "*AgenceController.java"</span>
+
+<span class="c"># 2c. La même chose sur la branche 266, pour comparer</span>
+<span class="k">git</span> grep -n <span class="s">"PreAuthorize"</span> origin/feature/AER_LM-266 <span class="c">-- "*AgenceController.java"</span>
+
+<span class="c"># 2d. Et sur develop</span>
+<span class="k">git</span> grep -n <span class="s">"PreAuthorize"</span> origin/develop <span class="c">-- "*AgenceController.java"</span>
+</code></pre><div class="attendu"><b>Attendu</b>Sur une branche <b>à jour</b> (2c) : deux lignes dans <code>AgenceController.java</code> — l'annotation de classe (CONSOLE_ADMIN_EDIT / CREATE_USER) et, quelques lignes plus bas, l'annotation de <b>méthode</b> contenant <code>GDF_CONSULTER_DEMANDE</code> juste au-dessus de <code>getAllAgences()</code>. Sur HEAD (2b) : si tu n'as que la ligne de classe → <b>le fichier n'a pas le correctif</b>, 403 expliqué (§5). Si les deux lignes sont là → le code est bon, c'est le processus (§3) ou les données (§4).</div></div>
+<h2 id="s3">3. Processus — ce qui tourne est-il le code de HEAD ?</h2>
+<div class="card"><p>Un changement de branche ne recompile rien : IntelliJ / VS Code servent <code>target/classes</code> tel quel, et un <code>mvn spring-boot:run</code> lancé avant le <code>checkout</code> continue sur l'ancien bytecode. Si §1 et §2 sont bons mais que le 403 persiste, c'est ce cas.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">COMMANDES</span><b>Reconstruire et relancer utilisateurs-ci</b><br><span class="path">C:\dev\utilisateurs-ci  —  arrête d&#x27;abord l&#x27;instance qui tourne (IDE ou terminal)</span></div><p class="note">Flyway valide les migrations au démarrage : si la base a déjà V18 (288) et que la branche lancée ne contient pas <code>V18__role_gdf_export.sql</code>, users refuse de démarrer (« Detected applied migration not resolved locally: 18 »). C'est la raison pour laquelle, au §5, on <b>ramène 266 dans 288</b> plutôt que de relancer users sur la branche 266.</p><pre><button class="copy">Copier</button><code><span class="k">cd</span> /c/dev/utilisateurs-ci
+<span class="k">mvn</span> clean install -DskipTests
+<span class="c"># puis relance (IDE : Run ▸ QlickflowAdminApplication, ou :)</span>
+<span class="k">mvn</span> spring-boot:run -Dspring-boot.run.profiles=local
+</code></pre><div class="attendu"><b>Attendu</b>Au démarrage, la console de users affiche la validation Flyway sans erreur (« Successfully validated 18 migrations » ou équivalent). F5 sur le front → §6.</div></div>
+<h2 id="s4">4. Données — le profil connecté a-t-il GDF_CONSULTER_DEMANDE ?</h2>
+<div class="card"><p>Tu es connecté avec <b>YR</b> (ton compte, pas une persona). <code>kpi</code> passe, donc le profil a <code>GDF_TOUTES_AGENCES</code> ; la liste des agences exige en plus <code>GDF_CONSULTER_DEMANDE</code>. Deux lectures, sans rien deviner :</p>
+<ol>
+<li><b>DevTools</b> → requête <code>me</code> → onglet <b>Preview</b> → <code>profile.code</code> (CAISSE_CENTRALE / SUPPORT / SUPER_ADMIN…) et <code>profile.roles</code> : l'un des rôles doit porter <code>GDF_CONSULTER_DEMANDE</code>.</li>
+<li><b>pgAdmin</b> : la requête de contrôle du doc 288, qui liste les permissions GDF par profil.</li>
+</ol></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">REQUÊTE</span><b>Permissions GDF par profil</b><br><span class="path">pgAdmin — base utilisateurs-ci, schéma qf_admin</span></div><pre><button class="copy">Copier</button><code><span class="k">set</span> search_path to qf_admin;
+<span class="k">SELECT</span> p.code AS profil, r.id AS role_id, r.name AS role,
+       string_agg(rp.permission, <span class="s">', '</span> <span class="k">ORDER</span> <span class="k">BY</span> rp.permission) AS permissions
+<span class="k">FROM</span> hab_profiles p
+<span class="k">JOIN</span> hab_profile_role pr <span class="k">ON</span> pr.profile_id = p.id
+<span class="k">JOIN</span> hab_roles r         <span class="k">ON</span> r.id = pr.role_id
+<span class="k">LEFT</span> <span class="k">JOIN</span> hab_role_permission rp <span class="k">ON</span> rp.role_id = r.id
+<span class="k">WHERE</span> r.platform = <span class="s">'GESTION_FONDS'</span>
+<span class="k">GROUP</span> <span class="k">BY</span> p.code, r.id, r.name
+<span class="k">ORDER</span> <span class="k">BY</span> p.code, r.id;
+
+<span class="c">-- État des migrations (V18 doit être en success = true s'il a été joué)</span>
+<span class="k">SELECT</span> version, description, success, installed_on
+<span class="k">FROM</span> flyway_schema_history <span class="k">ORDER</span> <span class="k">BY</span> installed_rank DESC LIMIT 5;
+</code></pre><div class="attendu"><b>Attendu</b>Le profil lu dans <code>/me</code> doit avoir une ligne dont <code>permissions</code> contient <code>GDF_CONSULTER_DEMANDE</code> (Caisse Centrale : rôle 11 ; Support : rôle 12). Si elle manque alors que §1-§3 sont bons, le 403 est <b>légitime</b> : c'est le profil de YR qui n'est pas un profil GDF (ex. SUPER_ADMIN h11111-like, qui a TOUTES_AGENCES sans CONSULTER). Dans ce cas, teste avec une persona Caisse Centrale plutôt que de toucher aux données.</div></div>
+<h2 id="s5">5. Correctif selon le cas</h2>
+<div class="card"><table>
+<tr><th>Cas</th><th>Constat (§1)</th><th>Action</th></tr>
+<tr><td><b>A</b></td><td>266 est dans <code>origin/develop</code> mais pas dans 288 (branche créée trop tôt)</td><td>Ramener develop dans 288 — bloc A</td></tr>
+<tr><td><b>B</b></td><td>266 n'existe que sur <code>origin/feature/AER_LM-266</code> (PR users pas encore mergée)</td><td>Ramener la branche 266 dans 288 — bloc B</td></tr>
+<tr><td><b>B'</b></td><td>Aucun commit ne contient <code>GDF_CONSULTER_DEMANDE</code> dans AgenceController (jamais poussé)</td><td>Réappliquer l'annotation de méthode du lot 266 sur 288 — bloc B'</td></tr>
+<tr><td><b>C</b></td><td>Commit et code présents, mais le processus est ancien</td><td>§3 (rebuild + restart), rien d'autre</td></tr>
+<tr><td><b>D</b></td><td>Tout est bon côté code ; le profil n'a pas la permission</td><td>Tester avec une persona Caisse Centrale (§4) — pas de correctif code</td></tr>
+</table></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">CORRECTIF</span><b>Bloc A — 266 est déjà dans develop</b><br><span class="path">C:\dev\utilisateurs-ci  —  branche feature/AER_LM-288, arbre propre (git status l&#x27;a confirmé)</span></div><p class="note">Merge plutôt que rebase : 288 n'a qu'un ou deux commits, les deux marchent, mais le merge ne réécrit rien de ce qui est déjà sur <code>origin/feature/AER_LM-288</code>. La PR 288 n'en est pas alourdie : GitLab ne montre que la différence avec develop.</p><pre><button class="copy">Copier</button><code><span class="k">git</span> merge origin/develop
+<span class="c"># conflit improbable ; s'il y en a un sur Permission.java : garde les DEUX ajouts</span>
+<span class="c"># (constantes GDF du 266 puis GDF_EXPORTER_DEMANDE du 288), git add, git commit</span>
+<span class="k">git</span> log <span class="c">--oneline -5</span>
+<span class="k">mvn</span> clean install -DskipTests
+<span class="c"># relance users, puis F5 sur le front → §6</span>
+<span class="k">git</span> push
+</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">CORRECTIF</span><b>Bloc B — 266 n&#x27;est que sur sa branche feature</b><br><span class="path">C:\dev\utilisateurs-ci  —  branche feature/AER_LM-288</span></div><p class="note">Pourquoi pas simplement relancer users sur la branche 266 pour tester ? Parce que la base a V18 et que la branche 266 ne l'a pas : Flyway refuserait de démarrer (§3). Et parce que la PR 288 doit de toute façon se merger <b>après</b> la 266 : une fois 266 dans develop, la différence de 288 se réduit automatiquement à ses propres commits. À signaler dans la PR 288 : « dépend de AER_LM-266 users ».</p><pre><button class="copy">Copier</button><code><span class="k">git</span> merge origin/feature/AER_LM-266
+<span class="c"># même consigne en cas de conflit sur Permission.java : garder les deux ajouts</span>
+<span class="k">mvn</span> clean install -DskipTests
+<span class="c"># relance users, F5 → §6</span>
+<span class="k">git</span> push
+</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Bloc B&#x27; — le commit 266 users n&#x27;existe nulle part sur origin</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\...\AgenceController.java  (Ctrl+F : getAllAgences  — ajoute l&#x27;annotation de méthode juste au-dessus du @GetMapping, sans toucher à celle de la classe)</span></div><p class="note">Reprends les <b>noms exacts</b> des deux permissions de l'annotation de classe telle qu'elle est dans ton fichier (la ligne 2b te les donne) et le type de retour tel qu'il est : seule la ligne <code>@PreAuthorize</code> de méthode est nouvelle. Commit sur 288 avec le préfixe 266 dans le message pour garder la trace : <code>git commit -m "fix(AER_LM-266): liste des agences accessible aux profils GDF (annotation de méthode)"</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// AER_LM-266 : la liste des agences (référentiel) est lisible par les profils Gestion des fonds.</span>
+    <span class="c">// L'annotation de méthode prime sur celle de la classe (CONSOLE_ADMIN_EDIT / CREATE_USER), qui reste</span>
+    <span class="c">// valable pour toutes les autres méthodes du contrôleur.</span>
+    <span class="a">@PreAuthorize</span>(<span class="s">"hasAnyAuthority('CONSOLE_ADMIN_EDIT', 'CREATE_USER', 'GDF_CONSULTER_DEMANDE')"</span>)
+    <span class="a">@GetMapping</span>
+    <span class="k">public</span> ResponseEntity&lt;ApiResponse&lt;List&lt;AgenceDTO&gt;&gt;&gt; getAllAgences() {
+</code></pre></div>
+<h2 id="s6">6. Vérification depuis les écrans</h2>
+<div class="card"><ol>
+<li>users relancé (console : validation Flyway OK, pas d'exception au démarrage).</li>
+<li>Front Caisse Centrale, <b>Ctrl+F5</b>, DevTools ▸ Network ▸ Fetch/XHR : <code>agences</code> passe en <b>200</b>, onglet Response = tableau JSON d'agences (code, nom, zone, prestataire, coût de déplacement).</li>
+<li>Le filtre <b>Agences</b> du listing est de nouveau alimenté ; <code>me</code>, <code>kpi</code>, <code>cash?page=0…</code> toujours en 200.</li>
+<li>Contre-épreuve : persona Agence (g10002) → <code>agences</code> aussi en 200 (elle a CONSULTER) ; un compte sans aucune permission GDF → 403, c'est voulu.</li>
+<li>Si le 403 persiste après §5 : onglet <b>Response</b> de la requête <code>agences</code> (message de l'<code>ApiResponse</code>) et la console de users à l'instant de l'appel (<code>AccessDeniedException</code> avec le nom de la méthode) — envoie-moi ces deux lignes.</li>
+</ol></div>
+<h2 id="s7">7. Remarques en passant</h2>
+<div class="card"><ul>
+<li><b>api-gateway-ci</b> (<code>develop-omega</code>) : <code>application.yml</code> et <code>application-local.yml</code> modifiés, non commités. Si ce sont tes réglages locaux (ports, routes vers tes services), laisse-les non stagés mais fais un <code>git diff</code> pour savoir ce qu'ils contiennent avant tout <code>git checkout .</code> ou <code>git stash</code> qui les effacerait. Si c'est du vrai code de la gateway, ça mérite sa branche.</li>
+<li><b>fund-management-microservice</b> : <code>feature/AER_LM-279</code> poussée et suivie, arbre propre — rien à faire.</li>
+<li><code>git log --one-line</code> → <code>--oneline</code> (un seul mot). Pour l'avoir sous la main : <code>git config --global alias.lg "log --oneline --graph --decorate -20"</code> puis <code>git lg</code>.</li>
+<li>L'avertissement « TLS certificate verification has been disabled » vient de la config Git du poste (<code>http.sslVerify=false</code> sur le GitLab interne) : inchangé, sans rapport.</li>
+</ul></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
