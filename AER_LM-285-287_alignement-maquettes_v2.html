@@ -1,0 +1,1016 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-285-287 — Alignement maquettes v2 (badge persistant, CSS, écran Caisse Centrale)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-285 / 287 — Alignement sur les maquettes, v2 : badge « Mode Modification » persistant, jetons CSS des maquettes, écran de traitement Caisse Centrale complet</h1><p>fund-management-front · 02/10/2026 (soir) · remplace le doc « alignement maquettes » du matin · s'applique par-dessus le doc AER_LM-285-287 (v11)</p></header>
+<nav><a href="#s0">Écarts</a><a href="#s1">Palette</a><a href="#s2">En-tête</a><a href="#s3">Barre & modale</a><a href="#s4">Caisse Centrale</a><a href="#s5">Écran agence</a><a href="#s6">Shell & données</a><a href="#s7">Vérification</a></nav><main><h2 id="s0">0. Écarts constatés le 02/10 (captures) et principe de correction</h2>
+<div class="card"><p>Comparaison écran par écran entre <code>localhost:4201</code> et les sources des maquettes (<code>Agence_Modification-Demande.html</code>, <code>Agence_Modification-Bloquée.html</code>, <code>Caisse-Centrale_Traiter-Demande-En-Attente.html</code>). Ce doc <b>remplace</b> le doc « alignement maquettes » du 02/10 matin et s'applique par-dessus le doc principal AER_LM-285-287 (v11), qui reste la référence pour le back, le listing et le reste.</p>
+<table>
+<tr><th>#</th><th>Écart constaté</th><th>Cause</th><th>Correction</th></tr>
+<tr><td>1</td><td>Clic sur « Mode Modification » → le badge <b>disparaît</b> ; la maquette le garde, en vert « Mode Modification actif »</td><td>Le template avait deux éléments (un <code>&lt;button&gt;</code> en consultation, un <code>&lt;span&gt;</code> en modification) et le <code>&lt;span&gt;</code> n'avait pas la condition qu'il fallait</td><td>§2 — <b>un seul</b> <code>&lt;button class="badge-mode"&gt;</code>, toujours rendu tant que la demande est modifiable, qui passe en <code>--actif</code> (et <code>disabled</code>) en modification</td></tr>
+<tr><td>2</td><td>CSS de l'en-tête, de la barre et de la modale différent des maquettes (couleurs ardoise, arrondis 10-12 px, pastille arrondie, barre non pleine largeur)</td><td>Les composants étaient stylés sur la palette ardoise du listing 281, pas sur le <code>tailwind.config</code> des maquettes 285/287</td><td>§1 — la palette porte désormais les <b>jetons des maquettes</b> (primary #00915A, texte #1b1c1c, bordure #e4e2e2, chip EN ATTENTE #FFF8E1/#E65100/#FFE082, badge actif #E1FFF3/#006D44, champs lecture #f1f5f9/#e2e8f0/#475569, rayon 4 px, cartes rounded-xl, Inter / JetBrains Mono) + mixins <code>carte</code>, <code>titre-carte</code>, <code>bouton</code>, <code>chip-statut</code>, <code>ligne-coupure</code> ; §2, §3, §4 réécrits dessus</td></tr>
+<tr><td>3</td><td>Écran agence en modification : l'en-tête de création (« Gestion des fonds – Vue Agence », case urgent) s'affiche <b>au-dessus</b> de l'en-tête partagé</td><td><code>*ngIf="!estConsultation"</code> est vrai en modification</td><td>§5.1 — <code>*ngIf="estCreation"</code></td></tr>
+<tr><td>4</td><td>Deux barres en bas en modification (Annuler / Enregistrer + la nouvelle)</td><td>L'ancienne <code>div.actions-bar *ngIf="estModification"</code> du lot C n'a pas été supprimée</td><td>§5.2 — suppression (Ctrl+F <code>Enregistrer</code>)</td></tr>
+<tr><td>5</td><td>GAB : 4 lignes (200 / 100 / 50 / 20) et « billets » avant la saisie</td><td>Le référentiel GAB renvoie 4 coupures ; ordre des spans</td><td>§5.3 — filtre <code>COUPURES_GAB = [200, 100]</code> sur le résultat de <code>getDenominationsGab()</code> ; ligne « • 200 DH × [150] billets »</td></tr>
+<tr><td>6</td><td>Ramassage : la devise par défaut est EUR</td><td><code>devisesCommandables</code> appliqué aussi au select du ramassage</td><td>§5.4 — le ramassage revient à <code>devisesDisponibles</code></td></tr>
+<tr><td>7</td><td>Écran Caisse Centrale : seulement les lignes saisies (pas la grille complète), styles différents, GAB / ramassage pas disposés comme la maquette</td><td>La vue était construite sans référentiel, et le template n'était pas celui de la maquette</td><td>§4 — <code>construireVueDossier(d, referentiel)</code> complète la grille à 0 avec <code>getDenominationsCaisse()</code> / <code>getDenominationsGab()</code> (mêmes appels que l'agence) ; page réécrite colonne par colonne sur la maquette</td></tr>
+<tr><td>8</td><td>Titre « Gestion des fonds - Vue Agence » dans la barre du haut sur la page Caisse Centrale</td><td>Titre fixe du shell</td><td>§6.1</td></tr>
+<tr><td>9</td><td>« (Agence 1422) » sans nom d'agence dans l'en-tête CC</td><td>Donnée : <code>agenceNom</code> est null pour les demandes créées pendant que <em>users</em> tournait sur la branche 288 (403 sur <code>/orga/agences</code>, cf. diag)</td><td>§6.2 — pas de code ; recréer une demande après le merge de 267 dans 288</td></tr>
+</table>
+<p><b>Ordre d'application</b> : §1 (palette) → §2, §3, §4 (fichiers complets, à écraser) → §5 (Ctrl+F dans l'écran agence) → §6 → <code>ng build</code> → §7.</p></div>
+<h2 id="s1">1. Palette partagée — jetons des maquettes</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>_palette.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\styles\_palette.scss</span></div><p class="note">Écrase la version précédente. Les variables ardoise du listing 281 sont conservées (bloc 2) : rien ne casse ailleurs. Rappel : <code>@use 'palette' as *;</code> en <b>ligne 1</b> de chaque SCSS (via <code>includePaths</code> d'angular.json, doc principal §2).</p><pre><button class="copy">Copier</button><code><span class="c">/* Palette partagée (shared/presenter/styles) — chargée par angular.json &gt; stylePreprocessorOptions.includePaths,
+   donc  @use 'palette' as *;  en LIGNE 1 de n'importe quel SCSS.
+   Deux jeux : (1) les jetons des maquettes 285 / 287 (tailwind.config des fichiers Agence_* et Caisse-Centrale_*),
+   (2) la palette ardoise du listing 281, conservée pour compatibilité. */</span>
+
+<span class="c">/* ===== (1) Jetons des maquettes ===== */</span>
+$primary: #00915A;          $primary-dark: #007A4B;      $primary-container: #008653;
+$texte: #1b1c1c;            $texte-2: #5d5f5f;           $outline: #6e7a70;           $outline-variant: #bdcabe;
+$bordure: #e4e2e2;          $surface: #fbf9f8;           $surface-basse: #f5f3f3;     $surface-haute: #eae8e7;   $fond-page: #F8F9FA;
+$erreur: #ba1a1a;           $erreur-container: #ffdad6;
+$attente-fond: #FFF8E1;     $attente-texte: #E65100;     $attente-bordure: #FFE082;   <span class="c">/* chip EN ATTENTE */</span>
+$actif-fond: #E1FFF3;       $actif-texte: #006D44;                                    <span class="c">/* badge Mode Modification actif, chip TRAITÉE */</span>
+$lecture-fond: #f1f5f9;     $lecture-bordure: #e2e8f0;   $lecture-texte: #475569;     <span class="c">/* champs en consultation (.mode-consultation .field-input) */</span>
+$rayon: 4px;                $rayon-carte: 0.5rem;        <span class="c">/* rounded-[4px] partout, rounded-xl pour les cartes */</span>
+$sans: Inter, <span class="s">"Segoe UI"</span>, Roboto, sans-serif;
+$mono: <span class="s">"JetBrains Mono"</span>, Consolas, monospace;
+
+<span class="c">/* ===== (2) Palette ardoise du listing 281 ===== */</span>
+$vert-50:  #f0fdf6; $vert-100: #dbf9e9; $vert-500: #10b981; $vert-600: #00915a; $vert-700: #007548;
+$ardoise-50: #f8fafc; $ardoise-100: #f1f5f9; $ardoise-200: #e2e8f0; $ardoise-300: #cbd5e1;
+$ardoise-400: #94a3b8; $ardoise-500: #64748b; $ardoise-600: #475569; $ardoise-700: #334155; $ardoise-800: #1e293b; $ardoise-900: #0f172a;
+$rose-50: #fff1f2; $rose-200: #fecdd3; $rose-600: #e11d48; $rose-700: #be123c;
+$ambre-50: #fffbeb; $ambre-200: #fde68a; $ambre-600: #d97706; $ambre-800: #92400e;
+$bleu-50: #eff6ff; $bleu-100: #dbeafe; $bleu-600: #2563eb; $bleu-800: #1e40af;
+
+<span class="c">/* ===== Mixins ===== */</span>
+<span class="a">@mixin</span> carte { background: #fff; border: 1px solid $bordure; border-radius: $rayon-carte; padding: 24px; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); }
+
+<span class="c">/* Titre de carte des maquettes : h3 vert + icône, souligné */</span>
+<span class="a">@mixin</span> titre-carte {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid $bordure;
+  font-size: 1rem; font-weight: 700; color: $primary;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}
+
+<span class="c">/* Boutons des maquettes : text-xs, rounded 4px */</span>
+<span class="a">@mixin</span> bouton {
+  display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 0.75rem; font-weight: 600;
+  padding: 8px 20px; border-radius: $rayon; cursor: pointer; border: 1px solid transparent; transition: all .15s; white-space: nowrap;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &amp;:disabled { opacity: .55; cursor: not-allowed; }
+  &amp;--primaire  { background: $primary; color: #fff; font-weight: 700; padding: 8px 24px; box-shadow: 0 1px 2px rgba(0,0,0,.08); &amp;:hover:not(:disabled) { filter: brightness(.95); } }
+  &amp;--secondaire { background: #fff; color: $texte-2; border-color: $bordure; &amp;:hover:not(:disabled) { background: $surface-basse; color: $primary; } }
+  &amp;--danger    { background: #fff; color: $erreur; border-color: $erreur; &amp;:hover:not(:disabled) { background: rgba($erreur-container, .4); } }
+}
+
+<span class="c">/* Pastille de statut des maquettes : rounded 4px, icône pleine, texte xs bold uppercase */</span>
+<span class="a">@mixin</span> chip-statut {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: $rayon; font-size: 0.75rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .02em; white-space: nowrap; border: 1px solid transparent; box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  &amp;.statut--initiee                 { background: $surface-basse; color: $texte-2; border-color: $bordure; }
+  &amp;.statut--soumise,
+  &amp;.statut--en-modification         { background: $attente-fond; color: $attente-texte; border-color: $attente-bordure; }
+  &amp;.statut--traitee                 { background: $actif-fond; color: $actif-texte; border-color: rgba($primary, .3); }
+  &amp;.statut--annulee-agence,
+  &amp;.statut--annulee-caisse-centrale { background: $surface-basse; color: $texte-2; border-color: $bordure; }
+}
+
+<span class="c">/* Ligne de coupure des maquettes : « 200  x  [     150] » */</span>
+<span class="a">@mixin</span> ligne-coupure {
+  display: flex; align-items: center; gap: 12px;
+  .coupure__valeur { width: 56px; text-align: right; font-family: $mono; font-size: 0.75rem; font-weight: 500; color: $primary; }
+  .coupure__x { font-size: 0.75rem; color: $texte-2; flex-shrink: 0; }
+  .coupure__champ { flex: 1; font-family: $mono; font-size: 0.75rem; text-align: right; padding: 6px 12px; border-radius: $rayon;
+    background: #fff; border: 1px solid $outline-variant; color: $texte; }
+  &amp;--lecture .coupure__champ { background: $lecture-fond; border-color: $lecture-bordure; color: $lecture-texte; }
+}</code></pre></div>
+<h2 id="s2">2. En-tête partagé — le badge reste affiché en modification</h2>
+<div class="card"><p>Trois fichiers à écraser. Un seul élément <code>.badge-mode</code> : consultation d'une demande modifiable → bouton blanc « Mode Modification » (clic → <code>activerModification</code>) ; modification → même bouton, classe <code>--actif</code> (fond #E1FFF3, texte #006D44, bordure #00915A/30), <code>disabled</code>, libellé « Mode Modification actif ». Demande verrouillée → aucun badge (maquette Bloquée). La pastille suit la maquette : rayon 4 px, icône pleine, EN ATTENTE jaune/orange ; en modification elle reste « EN ATTENTE » (le verrou <code>IN_MODIFICATION</code> est un état technique).</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-entete.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.ts</span></div><p class="note">Entrées inchangées par rapport au doc précédent (<code>modeModification</code>, <code>modificationActivable</code>, <code>activerModification</code>) : ton <code>fund-management.component.html</code> n'a rien à changer côté liaisons.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { StatutDemande, classeStatut, libelleStatut } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/statut-demande'</span>;
+<span class="k">import</span> { BanniereLecture } <span class="k">from</span> <span class="s">'./demande-entete.regles'</span>;
+
+<span class="c">/**
+ * AER_LM-285 / 287 — en-tête commun des écrans de consultation (agence) et de traitement (Caisse Centrale),
+ * au pixel des maquettes Agence_Modification-* et Caisse-Centrale_Traiter-* :
+ * lien de retour, bannière « Consultation seule », carte avec pastille de statut + « Demande Réf: … » + « Soumise le … par … (…) »,
+ * et à droite le bouton-badge « Mode Modification » (toujours visible quand la demande est modifiable ; « actif » une fois dedans)
+ * et le badge / la case « DEMANDE URGENTE ». Composant de présentation pur.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-demande-entete'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [CommonModule, MatIconModule],
+  templateUrl: <span class="s">'./demande-entete.component.html'</span>,
+  styleUrl: <span class="s">'./demande-entete.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> DemandeEnteteComponent {
+
+  <span class="a">@Input</span>({ required: <span class="k">true</span> }) reference!: string;
+  <span class="a">@Input</span>({ required: <span class="k">true</span> }) statut!: StatutDemande;
+
+  <span class="a">@Input</span>() urgent = <span class="k">false</span>;
+  <span class="a">@Input</span>() urgentModifiable = <span class="k">false</span>;
+  <span class="a">@Output</span>() urgentChange = <span class="k">new</span> EventEmitter&lt;boolean&gt;();
+
+  <span class="c">/** Modification en cours (route modification/:id) : le badge affiche « Mode Modification actif ». */</span>
+  <span class="a">@Input</span>() modeModification = <span class="k">false</span>;
+  <span class="c">/** Consultation d'une demande modifiable : le badge « Mode Modification » est cliquable et fait entrer en modification. */</span>
+  <span class="a">@Input</span>() modificationActivable = <span class="k">false</span>;
+  <span class="a">@Output</span>() activerModification = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+
+  <span class="a">@Input</span>() soumiseLe: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="a">@Input</span>() soumisePar: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="a">@Input</span>() soumiseParDetail: string | <span class="k">null</span> = <span class="k">null</span>;
+
+  <span class="a">@Input</span>() decisionLe: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="a">@Input</span>() decisionPar: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="a">@Input</span>() decisionParDetail: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="a">@Input</span>() motifAnnulation: string | <span class="k">null</span> = <span class="k">null</span>;
+
+  <span class="a">@Input</span>() banniere: BanniereLecture | <span class="k">null</span> = <span class="k">null</span>;
+
+  <span class="a">@Input</span>() lienRetour = <span class="s">'Retour à l\'</span>Historique des Demandes';
+  <span class="a">@Output</span>() retour = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+
+  <span class="c">/** En modification, la pastille reste « EN ATTENTE » (maquette) : le verrou IN_MODIFICATION est un état technique, pas un statut métier pour l'agence. */</span>
+  <span class="k">get</span> statutAffiche(): StatutDemande {
+    <span class="k">return</span> <span class="k">this</span>.modeModification &amp;&amp; <span class="k">this</span>.statut === <span class="s">'EN_MODIFICATION'</span> ? <span class="s">'SOUMISE'</span> : <span class="k">this</span>.statut;
+  }
+  <span class="k">get</span> libelleStatut(): string { <span class="k">return</span> libelleStatut(<span class="k">this</span>.statutAffiche); }
+  <span class="k">get</span> classeStatut(): string { <span class="k">return</span> classeStatut(<span class="k">this</span>.statutAffiche); }
+  <span class="k">get</span> iconeStatut(): string {
+    <span class="k">switch</span> (<span class="k">this</span>.statutAffiche) {
+      <span class="k">case</span> <span class="s">'SOUMISE'</span>:         <span class="k">return</span> <span class="s">'pending'</span>;
+      <span class="k">case</span> <span class="s">'TRAITEE'</span>:         <span class="k">return</span> <span class="s">'check_circle'</span>;
+      <span class="k">case</span> <span class="s">'EN_MODIFICATION'</span>: <span class="k">return</span> <span class="s">'edit'</span>;
+      <span class="k">case</span> <span class="s">'INITIEE'</span>:         <span class="k">return</span> <span class="s">'edit_note'</span>;
+      default:                <span class="k">return</span> <span class="s">'cancel'</span>;
+    }
+  }
+  <span class="k">get</span> libelleDecision(): string { <span class="k">return</span> <span class="k">this</span>.statut === <span class="s">'TRAITEE'</span> ? <span class="s">'Traitée'</span> : <span class="s">'Annulée'</span>; }
+  <span class="k">get</span> badgeModeVisible(): boolean { <span class="k">return</span> <span class="k">this</span>.modeModification || <span class="k">this</span>.modificationActivable; }
+
+  basculerUrgent(evt: Event): <span class="k">void</span> {
+    <span class="k">this</span>.urgentChange.emit((evt.target as HTMLInputElement).checked);
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-entete.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.html</span></div><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">"retour-ligne"</span>&gt;
+  &lt;a <span class="k">class</span>=<span class="s">"retour"</span> href=<span class="s">"#"</span> (click)=<span class="s">"$event.preventDefault(); retour.emit()"</span>&gt;
+    &lt;mat-icon&gt;arrow_back&lt;/mat-icon&gt; {{ lienRetour }}
+  &lt;/a&gt;
+&lt;/div&gt;
+
+&lt;section <span class="k">class</span>=<span class="s">"banniere"</span> [<span class="k">class</span>.banniere--alerte]=<span class="s">"b.ton === 'alerte'"</span> *ngIf=<span class="s">"banniere as b"</span> role=<span class="s">"status"</span>&gt;
+  &lt;mat-icon <span class="k">class</span>=<span class="s">"banniere__icone"</span>&gt;lock_clock&lt;/mat-icon&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"banniere__texte"</span>&gt;
+    &lt;h2 <span class="k">class</span>=<span class="s">"banniere__titre"</span>&gt;{{ b.titre }}&lt;/h2&gt;
+    &lt;p <span class="k">class</span>=<span class="s">"banniere__detail"</span>&gt;{{ b.texte }}&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;span <span class="k">class</span>=<span class="s">"banniere__chip"</span>&gt;&lt;mat-icon&gt;lock&lt;/mat-icon&gt; Lecture Seule&lt;/span&gt;
+&lt;/section&gt;
+
+&lt;header <span class="k">class</span>=<span class="s">"entete"</span>&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"entete__principal"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"entete__ligne"</span>&gt;
+      &lt;span [<span class="k">class</span>]=<span class="s">"'chip ' + classeStatut"</span>&gt;&lt;mat-icon&gt;{{ iconeStatut }}&lt;/mat-icon&gt; {{ libelleStatut }}&lt;/span&gt;
+      &lt;h2 <span class="k">class</span>=<span class="s">"entete__titre"</span>&gt;Demande Réf: {{ reference }}&lt;/h2&gt;
+    &lt;/div&gt;
+    &lt;p <span class="k">class</span>=<span class="s">"entete__meta"</span> *ngIf=<span class="s">"soumiseLe"</span>&gt;
+      Soumise le {{ soumiseLe | date: <span class="s">'dd/MM/yyyy'</span> }} à {{ soumiseLe | date: <span class="s">'HH:mm'</span> }}
+      par &lt;strong&gt;{{ soumisePar || <span class="s">'—'</span> }}&lt;/strong&gt;&lt;ng-container *ngIf=<span class="s">"soumiseParDetail"</span>&gt; ({{ soumiseParDetail }})&lt;/ng-container&gt;
+    &lt;/p&gt;
+    &lt;p <span class="k">class</span>=<span class="s">"entete__meta"</span> *ngIf=<span class="s">"decisionLe"</span>&gt;
+      {{ libelleDecision }} le {{ decisionLe | date: <span class="s">'dd/MM/yyyy'</span> }} à {{ decisionLe | date: <span class="s">'HH:mm'</span> }}
+      par &lt;strong&gt;{{ decisionPar || <span class="s">'la Caisse Centrale'</span> }}&lt;/strong&gt;&lt;ng-container *ngIf=<span class="s">"decisionParDetail"</span>&gt; ({{ decisionParDetail }})&lt;/ng-container&gt;
+    &lt;/p&gt;
+    &lt;p <span class="k">class</span>=<span class="s">"entete__meta entete__meta--motif"</span> *ngIf=<span class="s">"motifAnnulation"</span>&gt;
+      &lt;mat-icon&gt;chat_bubble_outline&lt;/mat-icon&gt; Motif : {{ motifAnnulation }}
+    &lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"entete__badges"</span>&gt;
+    <span class="c">&lt;!-- Maquette 287 : un seul bouton-badge, présent tant que la demande est modifiable ; « actif » (et inerte) une fois en modification --&gt;</span>
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"badge-mode"</span> *ngIf=<span class="s">"badgeModeVisible"</span>
+            [<span class="k">class</span>.badge-mode--actif]=<span class="s">"modeModification"</span> [disabled]=<span class="s">"modeModification"</span>
+            (click)=<span class="s">"activerModification.emit()"</span> [title]=<span class="s">"modeModification ? 'Modification en cours' : 'Passer en mode modification'"</span>&gt;
+      &lt;mat-icon&gt;edit_note&lt;/mat-icon&gt; {{ modeModification ? <span class="s">'Mode Modification actif'</span> : <span class="s">'Mode Modification'</span> }}
+    &lt;/button&gt;
+
+    &lt;label <span class="k">class</span>=<span class="s">"badge-urgent badge-urgent--saisie"</span> *ngIf=<span class="s">"urgentModifiable"</span>&gt;
+      &lt;mat-icon&gt;warning&lt;/mat-icon&gt; &lt;span&gt;Demande Urgente&lt;/span&gt;
+      &lt;input <span class="k">type</span>=<span class="s">"checkbox"</span> [checked]=<span class="s">"urgent"</span> (change)=<span class="s">"basculerUrgent($event)"</span>&gt;
+    &lt;/label&gt;
+    &lt;span <span class="k">class</span>=<span class="s">"badge-urgent"</span> *ngIf=<span class="s">"!urgentModifiable &amp;&amp; urgent"</span>&gt;
+      &lt;mat-icon&gt;warning&lt;/mat-icon&gt; &lt;span&gt;Demande Urgente&lt;/span&gt;
+    &lt;/span&gt;
+  &lt;/div&gt;
+&lt;/header&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-entete.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.scss</span></div><pre><button class="copy">Copier</button><code><span class="a">@use</span> <span class="s">'palette'</span> as *;
+
+:host { display: block; font-family: $sans; color: $texte; }
+
+<span class="c">/* ===== Lien de retour (maquette : text-xs semibold, gris → vert au survol) ===== */</span>
+.retour-ligne { margin-bottom: 20px; }
+.retour { display: inline-flex; align-items: center; gap: 8px; color: $texte-2; font-size: 0.75rem; font-weight: 600; text-decoration: none; transition: color .15s;
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  &amp;:hover { color: $primary; } }
+
+<span class="c">/* ===== Bannière lecture seule (maquette Bloquée : fond rouge pâle, titre rouge, chip « Lecture Seule ») ===== */</span>
+.banniere { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; margin-bottom: 24px; border-radius: $rayon-carte;
+  background: rgba($erreur-container, .35); border: 1px solid rgba($erreur, .35); color: $erreur;
+  &amp;--alerte { background: rgba($erreur-container, .35); } }
+.banniere__icone { flex-shrink: 0; font-size: 28px; width: 28px; height: 28px; }
+.banniere__texte { flex: 1; }
+.banniere__titre { margin: 0; font-size: 1rem; font-weight: 700; }
+.banniere__detail { margin: 4px 0 0; font-size: 0.8rem; color: rgba($erreur, .9); }
+.banniere__chip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: $rayon; font-size: 0.72rem; font-weight: 600;
+  background: #fff; border: 1px solid rgba($erreur, .5); color: $erreur;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+
+<span class="c">/* ===== Carte d'en-tête (maquette : bg-white border rounded-xl p-6 shadow-sm, flex justify-between) ===== */</span>
+.entete { <span class="a">@include</span> carte; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.entete__ligne { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.entete__titre { margin: 0; font-size: 1.5rem; font-weight: 700; color: $primary; letter-spacing: -0.02em; }
+.entete__meta { margin: 0; font-size: 0.75rem; color: $texte-2; strong { font-weight: 700; color: $texte; } }
+.entete__meta + .entete__meta { margin-top: 4px; }
+.entete__meta--motif { display: flex; align-items: center; gap: 6px; font-style: italic; mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+
+.chip { <span class="a">@include</span> chip-statut; }
+
+<span class="c">/* ===== Badges de droite ===== */</span>
+.entete__badges { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+<span class="c">/* Bouton-badge « Mode Modification » : même boîte dans les deux états ; actif = vert pâle (maquette : bg #E1FFF3, texte #006D44, bordure #00915A/30) */</span>
+.badge-mode { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: $rayon; font: inherit; font-size: 0.75rem; font-weight: 700;
+  background: #fff; color: $texte-2; border: 1px solid $bordure; cursor: pointer; transition: all .15s;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &amp;:hover:not(:disabled) { background: $actif-fond; color: $actif-texte; border-color: rgba($primary, .3); }
+  &amp;--actif, &amp;--actif:disabled { background: $actif-fond; color: $actif-texte; border-color: rgba($primary, .3); opacity: 1; cursor: default; } }
+
+<span class="c">/* « DEMANDE URGENTE » : maquette bg #ffdad6/40, texte #ba1a1a, bordure #ba1a1a, uppercase tracking-wider */</span>
+.badge-urgent { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: $rayon; font-size: 0.75rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; background: rgba($erreur-container, .4); color: $erreur; border: 1px solid $erreur;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &amp;--saisie { cursor: pointer; &amp;:hover { background: rgba($erreur-container, .7); } }
+  input { width: 16px; height: 16px; accent-color: $erreur; cursor: pointer; margin: 0; } }</code></pre></div>
+<h2 id="s3">3. Barre d'actions et modale — pleine largeur, jetons des maquettes</h2>
+<div class="card"><p>La barre devient un footer pleine largeur (maquette : <code>fixed bottom-0 h-16</code>, retour à gauche, actions à droite, ombre vers le haut). Elle est <code>position: sticky; bottom: 0</code> sur son hôte : elle colle en bas de la zone de contenu sans sortir du shell. La modale ne change pas de structure, seulement ses jetons.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-barre-actions.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-barre-actions\demande-barre-actions.component.ts</span></div><p class="note">Identique au doc précédent (pas de <code>peutModifier</code> / <code>modifier</code>) ; redonné pour que les trois fichiers soient cohérents.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+
+<span class="c">/**
+ * AER_LM-285 / 287 — barre d'actions fixée en bas des écrans de consultation (agence) et de traitement (Caisse Centrale).
+ * Chaque bouton n'existe que si l'écran l'autorise (capacités agence, habilitation TRAITER côté Caisse Centrale).
+ * L'entrée en modification ne se fait pas ici mais par le bouton-badge « Mode Modification » de l'en-tête (maquette 287) ;
+ * « Modification Verrouillée » (désactivé) s'affiche quand la demande n'est pas modifiable.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-demande-barre-actions'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [CommonModule, MatIconModule],
+  templateUrl: <span class="s">'./demande-barre-actions.component.html'</span>,
+  styleUrl: <span class="s">'./demande-barre-actions.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> DemandeBarreActionsComponent {
+
+  <span class="a">@Input</span>() libelleRetour = <span class="s">'Retour au listing'</span>;
+  <span class="a">@Output</span>() retour = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+
+  <span class="c">// ----- Agence -----</span>
+  <span class="a">@Input</span>() verrouille = <span class="k">false</span>;                         <span class="c">// consultation d'une demande non modifiable → « Modification Verrouillée »</span>
+  <span class="a">@Input</span>() peutAnnuler = <span class="k">false</span>;
+  <span class="a">@Input</span>() peutSoumettre = <span class="k">false</span>;                      <span class="c">// brouillon (« Soumettre la demande ») ou modification (« Soumettre les Modifications »)</span>
+  <span class="a">@Input</span>() libelleSoumettre = <span class="s">'Soumettre la demande'</span>;
+  <span class="a">@Input</span>() soumettreDesactive = <span class="k">false</span>;                 <span class="c">// formulaire invalide</span>
+  <span class="a">@Output</span>() annuler = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+  <span class="a">@Output</span>() soumettre = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+
+  <span class="c">// ----- Caisse Centrale -----</span>
+  <span class="a">@Input</span>() peutTraiter = <span class="k">false</span>;                        <span class="c">// « Traiter la demande » (habilitation TRAITER, demande en attente) ; l'annulation CC passe par peutAnnuler</span>
+  <span class="a">@Output</span>() traiter = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+
+  <span class="a">@Input</span>() enCours = <span class="k">false</span>;
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-barre-actions.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-barre-actions\demande-barre-actions.component.html</span></div><pre><button class="copy">Copier</button><code>&lt;footer <span class="k">class</span>=<span class="s">"barre"</span>&gt;
+  &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--lien"</span> (click)=<span class="s">"retour.emit()"</span> [disabled]=<span class="s">"enCours"</span>&gt;
+    &lt;mat-icon&gt;arrow_back&lt;/mat-icon&gt; {{ libelleRetour }}
+  &lt;/button&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"barre__actions"</span>&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--danger"</span> *ngIf=<span class="s">"peutAnnuler"</span> (click)=<span class="s">"annuler.emit()"</span> [disabled]=<span class="s">"enCours"</span>&gt;
+      &lt;mat-icon&gt;{{ peutTraiter ? <span class="s">'cancel'</span> : <span class="s">'close'</span> }}&lt;/mat-icon&gt; Annuler la demande
+    &lt;/button&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--primaire"</span> *ngIf=<span class="s">"peutSoumettre"</span> (click)=<span class="s">"soumettre.emit()"</span> [disabled]=<span class="s">"enCours || soumettreDesactive"</span>&gt;
+      &lt;mat-icon&gt;check_circle&lt;/mat-icon&gt; {{ enCours ? <span class="s">'Envoi en cours…'</span> : libelleSoumettre }}
+    &lt;/button&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--verrou"</span> *ngIf=<span class="s">"verrouille"</span> disabled title=<span class="s">"Cette demande n'est pas modifiable"</span>&gt;
+      &lt;mat-icon&gt;lock&lt;/mat-icon&gt; Modification Verrouillée
+    &lt;/button&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--primaire"</span> *ngIf=<span class="s">"peutTraiter"</span> (click)=<span class="s">"traiter.emit()"</span> [disabled]=<span class="s">"enCours"</span>&gt;
+      &lt;mat-icon&gt;check_circle&lt;/mat-icon&gt; {{ enCours ? <span class="s">'Envoi en cours…'</span> : <span class="s">'Traiter la demande'</span> }}
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/footer&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-barre-actions.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-barre-actions\demande-barre-actions.component.scss</span></div><pre><button class="copy">Copier</button><code><span class="a">@use</span> <span class="s">'palette'</span> as *;
+
+<span class="c">/* Maquette : footer fixe en bas, blanc, bordure haute, ombre, h-16, boutons à gauche (retour) et à droite (actions) */</span>
+:host { display: block; width: 100%; position: sticky; bottom: 0; z-index: 10; margin-top: 24px; font-family: $sans; }
+
+.barre { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; padding: 0 32px;
+  background: #fff; border-top: 1px solid $bordure; box-shadow: 0 -4px 12px rgba(0, 0, 0, .06); }
+.barre__actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.bouton { <span class="a">@include</span> bouton;
+  &amp;--lien { background: #fff; color: $texte-2; border-color: $bordure; padding: 8px 12px; &amp;:hover:not(:disabled) { background: $surface-basse; color: $primary; } }
+  &amp;--verrou { background: $surface-basse; color: $texte-2; border-color: $bordure; opacity: 1 !important; cursor: not-allowed; } }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-decision-modale.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-decision-modale\demande-decision-modale.component.scss</span></div><p class="note">Le <code>.ts</code> et le <code>.html</code> de la modale ne changent pas.</p><pre><button class="copy">Copier</button><code><span class="a">@use</span> <span class="s">'palette'</span> as *;
+
+:host { font-family: $sans; }
+
+.modale { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modale__fond { position: absolute; inset: 0; background: rgba(15, 23, 42, .6); backdrop-filter: blur(3px); }
+.modale__boite { position: relative; width: 100%; max-width: 560px; background: #fff; border-radius: $rayon-carte; border: 1px solid $bordure; box-shadow: 0 25px 50px rgba(15, 23, 42, .25); overflow: hidden; animation: apparait .15s ease-out; }
+<span class="a">@keyframes</span> apparait { <span class="k">from</span> { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
+.modale__entete { display: flex; align-items: flex-start; gap: 12px; padding: 20px 24px; background: $vert-50; border-bottom: 1px solid $vert-100; }
+.modale__boite--rejet .modale__entete { background: $rose-50; border-bottom-color: $rose-200; }
+.modale__pastille { width: 40px; height: 40px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: $vert-100; color: $vert-700; flex-shrink: 0; }
+.modale__boite--rejet .modale__pastille { background: #ffe4e6; color: $rose-600; }
+.modale__titre { margin: 0; font-size: 1rem; font-weight: 700; color: $ardoise-900; }
+.modale__ref { margin: 4px 0 0; font-size: 0.8rem; color: $ardoise-500; strong { font-family: $mono; color: $ardoise-800; } }
+.modale__fermer { margin-left: auto; }
+.modale__corps { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+.modale__etiquette { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: $ardoise-600; }
+.modale__motifs { display: flex; flex-wrap: wrap; gap: 8px; }
+.motif { font: inherit; font-size: 0.78rem; padding: 6px 12px; border-radius: 999px; background: $ardoise-100; color: $ardoise-700; border: 1px solid $ardoise-200; cursor: pointer; transition: background .15s;
+  &amp;:hover { background: $ardoise-200; } }
+.modale__info { margin: 0; display: flex; align-items: flex-start; gap: 8px; padding: 12px; border-radius: 10px; background: $ambre-50; border: 1px solid $ambre-200; color: $ambre-800; font-size: 0.8rem;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: $ambre-600; flex-shrink: 0; } }
+.modale__pied { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 24px; border-top: 1px solid $ardoise-100; }
+
+.champ { display: flex; flex-direction: column; gap: 6px; }
+.champ__libelle { font-size: 0.8rem; font-weight: 600; color: $ardoise-600; em { color: $rose-600; font-style: normal; } }
+.champ__saisie { font: inherit; font-size: 0.9rem; color: $ardoise-800; background: #fff; border: 1px solid $ardoise-300; border-radius: 10px; padding: 9px 12px; outline: none; resize: vertical; min-height: 72px;
+  &amp;:focus { border-color: $vert-500; box-shadow: 0 0 0 3px rgba(16, 185, 129, .18); } }
+.champ__erreur { margin: 0; color: $rose-700; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; mat-icon { font-size: 16px; width: 16px; height: 16px; } }
+
+.icone { width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; color: $ardoise-500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  &amp;:hover { background: $ardoise-100; color: $ardoise-800; } mat-icon { font-size: 20px; width: 20px; height: 20px; } }
+.bouton { <span class="a">@include</span> bouton;
+  &amp;--rejet { background: $rose-600; color: #fff; border-color: $rose-700; &amp;:hover:not(:disabled) { background: $rose-700; } } }</code></pre></div>
+<h2 id="s4">4. Écran de traitement Caisse Centrale — au pixel de la maquette</h2>
+<div class="card"><p>Maquette <code>Caisse-Centrale_Traiter-Demande-En-Attente</code> : même disposition que l'écran agence — colonne principale (8/12) : <b>Alimentation Caisse (MAD)</b> avec les deux grilles complètes Billets / Pièces en lecture (<code>200 x [150]</code> … lignes à 0 comprises), bloc Détail / Total saisi, <b>Commande Devises</b> en table Devise / Montant saisi / Action (cadenas), <b>Commentaire</b> ; colonne latérale (4/12) : <b>Alimentation GAB</b> (« • Billets de 200 DH — Qté : [150] », 2 lignes), <b>Ramassage</b> (« • MAD 500 000,00 🔒 »). En bas : « Retour au tableau de bord » / « Annuler la demande » / « Traiter la demande ».</p>
+<p>Pour afficher la grille complète, la vue reçoit le référentiel : <code>construireVueDossier(dossier, { caisse, gab })</code>, <code>caisse</code> et <code>gab</code> étant les valeurs faciales de <code>getDenominationsCaisse()</code> / <code>getDenominationsGab()</code> (les mêmes appels que l'écran agence, via <code>valeursFaciales()</code> qui accepte le type exact de ces listes). Le GAB est limité à <code>COUPURES_GAB = [200, 100]</code>, même constante que l'agence (§5.3).</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-dossier.model.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\demande-dossier.model.ts</span></div><p class="note">Nouveau : <code>ReferentielCoupures</code>, <code>COUPURES_GAB</code>, <code>valeursFaciales()</code>, second paramètre optionnel de <code>construireVueDossier()</code>. Le spec existant reste valide (sans référentiel, la vue est inchangée).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { StatutDemande, classeStatut, libelleStatut, versStatutDemande } <span class="k">from</span> <span class="s">'./statut-demande'</span>;
+
+<span class="c">/**
+ * AER_LM-285 — lecture complète d'une demande (GET /cash/{id}) telle que le back la renvoie (CashRequestDTO),
+ * et sa projection en vue prête à afficher (écran de traitement Caisse Centrale, en-tête partagé 287).
+ *
+ * DemandeDossier décrit le JSON du back, pas le modèle d'édition de l'écran agence : tout y est optionnel,
+ * la vue se charge des replis. Noms = ceux de CashRequestDTO / CashOperationDTO / OperationCurrencyDetailDTO.
+ */</span>
+<span class="k">export</span> <span class="k">interface</span> DemandeDossier {
+  id: string;
+  uniqueRequestRef?: string | <span class="k">null</span>;
+  branchCode?: string | <span class="k">null</span>;
+  agenceNom?: string | <span class="k">null</span>;
+  zoneNom?: string | <span class="k">null</span>;
+  prestataire?: string | <span class="k">null</span>;
+  prestataireNom?: string | <span class="k">null</span>;
+  requestStatus?: string | <span class="k">null</span>;
+  cancellationOrigin?: string | <span class="k">null</span>;
+  cancellationReason?: string | <span class="k">null</span>;
+  urgent?: boolean | <span class="k">null</span>;
+  createdAt?: string | <span class="k">null</span>;
+  submittedAt?: string | <span class="k">null</span>;
+  updatedAt?: string | <span class="k">null</span>;
+  lockedBy?: string | <span class="k">null</span>;
+  journeeCloturee?: boolean | <span class="k">null</span>;
+  user?: string | <span class="k">null</span>;
+  agentNom?: string | <span class="k">null</span>;
+  agentProfil?: string | <span class="k">null</span>;
+  decisionPar?: string | <span class="k">null</span>;       <span class="c">// AER_LM-285</span>
+  decisionProfil?: string | <span class="k">null</span>;
+  decisionAt?: string | <span class="k">null</span>;
+  comment?: string | <span class="k">null</span>;
+  operations?: OperationDossier[] | <span class="k">null</span>;
+}
+
+<span class="k">export</span> <span class="k">interface</span> OperationDossier {
+  operationType?: string | <span class="k">null</span>;     <span class="c">// CASH_DESK | ATM | CURRENCY</span>
+  operationSens?: string | <span class="k">null</span>;     <span class="c">// SUPPLY | COLLECTION</span>
+  isUrgent?: boolean | <span class="k">null</span>;
+  currencyDetails?: DetailDeviseDossier[] | <span class="k">null</span>;
+}
+
+<span class="k">export</span> <span class="k">interface</span> DetailDeviseDossier {
+  currency?: { isoCode?: string | <span class="k">null</span>; name?: string | <span class="k">null</span> } | <span class="k">null</span>;
+  totalAmountByCurrency?: number | <span class="k">null</span>;
+  operationDenominations?: LigneDenominationDossier[] | <span class="k">null</span>;
+}
+
+<span class="k">export</span> <span class="k">interface</span> LigneDenominationDossier {
+  denomination?: { denominationCode?: string | <span class="k">null</span>; faceValue?: number | string | <span class="k">null</span> } | <span class="k">null</span>;
+  quantity?: number | <span class="k">null</span>;
+}
+
+<span class="c">// ===== Vue =====</span>
+
+<span class="k">export</span> <span class="k">interface</span> LigneCoupure { code: string; faceValue: number; quantite: number; montant: number; }
+<span class="k">export</span> <span class="k">interface</span> LigneDevise  { devise: string; libelle: string; montant: number; }
+
+<span class="k">export</span> <span class="k">interface</span> VueDossier {
+  id: string;
+  reference: string;
+  statut: StatutDemande;
+  libelleStatut: string;
+  classeStatut: string;
+  urgent: boolean;
+  agence: string;                    <span class="c">// « 1001 - Nations Unies »</span>
+  soumiseLe: string | <span class="k">null</span>;
+  soumisePar: string | <span class="k">null</span>;         <span class="c">// nom complet, sinon uid</span>
+  soumiseParProfil: string | <span class="k">null</span>;
+  decisionLe: string | <span class="k">null</span>;         <span class="c">// décision Caisse Centrale (Traitée ou Annulée)</span>
+  decisionPar: string | <span class="k">null</span>;
+  decisionProfil: string | <span class="k">null</span>;
+  motifAnnulation: string | <span class="k">null</span>;
+  verrouillePar: string | <span class="k">null</span>;
+  journeeCloturee: boolean;
+  caisse: { billets: LigneCoupure[]; pieces: LigneCoupure[]; totalBillets: number; totalPieces: number; total: number } | <span class="k">null</span>;
+  gab: { lignes: LigneCoupure[]; total: number } | <span class="k">null</span>;
+  ramassages: LigneDevise[];
+  devises: LigneDevise[];
+  commentaire: string | <span class="k">null</span>;
+}
+
+<span class="c">/** Même règle que l'écran de saisie agence : à partir de 20 DH c'est un billet, en dessous une pièce. */</span>
+<span class="k">export</span> <span class="k">const</span> SEUIL_BILLET = 20;
+
+<span class="k">const</span> NOMS_DEVISES: Record&lt;string, string&gt; = {
+  MAD: <span class="s">'Dirham marocain'</span>, EUR: <span class="s">'Euro'</span>, USD: <span class="s">'US Dollar'</span>, GBP: <span class="s">'British Pound'</span>, CHF: <span class="s">'Franc suisse'</span>,
+  CAD: <span class="s">'Dollar canadien'</span>, SAR: <span class="s">'Riyal saoudien'</span>, AED: <span class="s">'Dirham des Émirats'</span>, JPY: <span class="s">'Yen'</span>
+};
+
+<span class="c">/** Valeurs faciales du référentiel (GET /cash/referentiels/…), pour afficher la grille complète comme la maquette (lignes à 0 comprises). */</span>
+<span class="k">export</span> <span class="k">interface</span> ReferentielCoupures { caisse: number[]; gab: number[]; }
+
+<span class="c">/** Maquette : l'alimentation GAB ne porte que les billets de 200 et 100 DH (« strictement 2 lignes, sans notion de cassette »). */</span>
+<span class="k">export</span> <span class="k">const</span> COUPURES_GAB = [200, 100];
+
+<span class="k">export</span> <span class="k">function</span> construireVueDossier(d: DemandeDossier, referentiel?: ReferentielCoupures): VueDossier {
+  <span class="k">const</span> statut = statutDe(d);
+  <span class="k">const</span> ops = d.operations ?? [];
+  <span class="k">const</span> caisse = completer(coupures(ops, <span class="s">'CASH_DESK'</span>), referentiel?.caisse);
+  <span class="k">const</span> gab = completer(coupures(ops, <span class="s">'ATM'</span>), referentiel ? referentiel.gab.filter(v =&gt; COUPURES_GAB.includes(v)) : COUPURES_GAB);
+  <span class="k">const</span> billets = caisse.filter(l =&gt; l.faceValue &gt;= SEUIL_BILLET);
+  <span class="k">const</span> pieces = caisse.filter(l =&gt; l.faceValue &lt; SEUIL_BILLET);
+  <span class="k">const</span> totalBillets = somme(billets.map(l =&gt; l.montant));
+  <span class="k">const</span> totalPieces = somme(pieces.map(l =&gt; l.montant));
+  <span class="k">const</span> commentaire = d.comment &amp;&amp; d.comment.trim() ? d.comment : <span class="k">null</span>;
+
+  <span class="k">const</span> vue: VueDossier = {
+    id: d.id,
+    reference: d.uniqueRequestRef ?? <span class="s">'—'</span>,
+    statut,
+    libelleStatut: libelleStatut(statut),
+    classeStatut: classeStatut(statut),
+    urgent: Boolean(d.urgent ?? ops.some(op =&gt; op.isUrgent === <span class="k">true</span>)),
+    agence: [d.branchCode, d.agenceNom].filter(Boolean).join(<span class="s">' - '</span>),
+    soumiseLe: d.submittedAt ?? d.createdAt ?? <span class="k">null</span>,
+    soumisePar: d.agentNom || d.user || <span class="k">null</span>,
+    soumiseParProfil: d.agentProfil ?? <span class="k">null</span>,
+    decisionLe: d.decisionAt ?? <span class="k">null</span>,
+    decisionPar: d.decisionPar ?? <span class="k">null</span>,
+    decisionProfil: d.decisionProfil ?? <span class="k">null</span>,
+    motifAnnulation: d.cancellationReason ?? <span class="k">null</span>,
+    verrouillePar: d.lockedBy ?? <span class="k">null</span>,
+    journeeCloturee: d.journeeCloturee ?? <span class="k">false</span>,
+    caisse: caisse.length ? { billets, pieces, totalBillets, totalPieces, total: arrondi(totalBillets + totalPieces) } : <span class="k">null</span>,
+    gab: gab.length ? { lignes: gab, total: somme(gab.map(l =&gt; l.montant)) } : <span class="k">null</span>,
+    ramassages: lignesDevise(ops, <span class="s">'COLLECTION'</span>).map(l =&gt; ({ ...l, libelle: l.devise === <span class="s">'MAD'</span> ? <span class="s">'Espèces'</span> : <span class="s">'Devises'</span> })),
+    devises: lignesDevise(ops, <span class="s">'SUPPLY'</span>).map(l =&gt; ({ ...l, libelle: NOMS_DEVISES[l.devise] ?? l.devise })),
+    commentaire
+  };
+  <span class="k">return</span> vue;
+}
+
+<span class="c">/** Statut métier (FR) depuis le statut back + l'origine d'annulation ; INITIEE si le back ne renvoie rien d'exploitable. */</span>
+<span class="k">function</span> statutDe(d: DemandeDossier): StatutDemande {
+  <span class="k">const</span> statut: StatutDemande | <span class="k">null</span> | undefined =
+    versStatutDemande(d.requestStatus ?? <span class="s">'INITIATED'</span>, d.cancellationOrigin ?? undefined);
+  <span class="k">return</span> statut ?? <span class="s">'INITIEE'</span>;
+}
+
+<span class="c">/** Ajoute à 0 les valeurs faciales du référentiel absentes de la demande, pour une grille complète ; tri décroissant. */</span>
+<span class="k">function</span> completer(lignes: LigneCoupure[], valeurs: number[] | undefined): LigneCoupure[] {
+  <span class="k">if</span> (!valeurs?.length) { <span class="k">return</span> lignes; }
+  <span class="k">const</span> presentes = <span class="k">new</span> Set(lignes.map(l =&gt; l.faceValue));
+  <span class="k">const</span> completes = [...lignes, ...valeurs.filter(v =&gt; !presentes.has(v)).map(v =&gt; ({ code: <span class="s">''</span>, faceValue: v, quantite: 0, montant: 0 }))];
+  <span class="k">return</span> completes.sort((a, b) =&gt; b.faceValue - a.faceValue);
+}
+
+<span class="c">/** Valeurs faciales d'une liste du référentiel, quel que soit le type exact de ses éléments (faceValue numérique ou texte). */</span>
+<span class="k">export</span> <span class="k">function</span> valeursFaciales(liste: ReadonlyArray&lt;{ faceValue?: number | string | <span class="k">null</span> }&gt; | <span class="k">null</span> | undefined): number[] {
+  <span class="k">return</span> (liste ?? []).map(c =&gt; Number(c.faceValue)).filter(v =&gt; !Number.isNaN(v) &amp;&amp; v &gt; 0);
+}
+
+<span class="c">/** Coupures d'une alimentation (CASH_DESK ou ATM, sens SUPPLY), cumulées par valeur faciale, triées par valeur décroissante. */</span>
+<span class="k">function</span> coupures(ops: OperationDossier[], <span class="k">type</span>: <span class="s">'CASH_DESK'</span> | <span class="s">'ATM'</span>): LigneCoupure[] {
+  <span class="k">const</span> parValeur = <span class="k">new</span> Map&lt;number, LigneCoupure&gt;();
+  for (<span class="k">const</span> op of ops) {
+    <span class="k">if</span> (op.operationType !== <span class="k">type</span> || op.operationSens !== <span class="s">'SUPPLY'</span>) { continue; }
+    for (<span class="k">const</span> detail of op.currencyDetails ?? []) {
+      for (<span class="k">const</span> ligne of detail.operationDenominations ?? []) {
+        <span class="k">const</span> code = ligne.denomination?.denominationCode ?? <span class="s">''</span>;
+        <span class="k">const</span> faceValue = valeurFaciale(ligne.denomination?.faceValue, code);
+        <span class="k">if</span> (faceValue === <span class="k">null</span>) { continue; }
+        <span class="k">const</span> quantite = Number(ligne.quantity ?? 0) || 0;
+        <span class="k">const</span> existante = parValeur.<span class="k">get</span>(faceValue);
+        <span class="k">if</span> (existante) {
+          existante.quantite += quantite;
+          existante.montant = arrondi(existante.quantite * faceValue);
+        } <span class="k">else</span> {
+          parValeur.set(faceValue, { code, faceValue, quantite, montant: arrondi(quantite * faceValue) });
+        }
+      }
+    }
+  }
+  <span class="k">return</span> [...parValeur.values()].sort((a, b) =&gt; b.faceValue - a.faceValue);
+}
+
+<span class="c">/** Valeur faciale : celle du back si elle est fournie, sinon lue dans le code (BILLET_200 → 200, PIECE_0_50 → 0.5). */</span>
+<span class="k">export</span> <span class="k">function</span> valeurFaciale(faceValue: number | string | <span class="k">null</span> | undefined, code: string): number | <span class="k">null</span> {
+  <span class="k">const</span> fournie = Number(faceValue);
+  <span class="k">if</span> (faceValue !== <span class="k">null</span> &amp;&amp; faceValue !== undefined &amp;&amp; faceValue !== <span class="s">''</span> &amp;&amp; !Number.isNaN(fournie)) { <span class="k">return</span> fournie; }
+  <span class="k">const</span> m = /(\d+)(?:[._](\d+))?\s*$/.exec(code);
+  <span class="k">if</span> (!m) { <span class="k">return</span> <span class="k">null</span>; }
+  <span class="k">return</span> Number(m[2] ? <span class="s">`${m[1]}.${m[2]}`</span> : m[1]);
+}
+
+<span class="c">/** Ramassages (CURRENCY / COLLECTION) ou commandes de devises (CURRENCY / SUPPLY) : une ligne par devise. */</span>
+<span class="k">function</span> lignesDevise(ops: OperationDossier[], sens: <span class="s">'COLLECTION'</span> | <span class="s">'SUPPLY'</span>): { devise: string; montant: number }[] {
+  <span class="k">const</span> lignes: { devise: string; montant: number }[] = [];
+  for (<span class="k">const</span> op of ops) {
+    <span class="k">if</span> (op.operationType !== <span class="s">'CURRENCY'</span> || op.operationSens !== sens) { continue; }
+    for (<span class="k">const</span> detail of op.currencyDetails ?? []) {
+      lignes.push({ devise: detail.currency?.isoCode ?? <span class="s">'?'</span>, montant: Number(detail.totalAmountByCurrency ?? 0) || 0 });
+    }
+  }
+  <span class="k">return</span> lignes;
+}
+
+<span class="k">function</span> somme(valeurs: number[]): number { <span class="k">return</span> arrondi(valeurs.reduce((a, b) =&gt; a + b, 0)); }
+<span class="k">function</span> arrondi(n: number): number { <span class="k">return</span> Math.round(n * 100) / 100; }
+
+<span class="c">/** « 4 450,00 » — format français, toujours deux décimales. */</span>
+<span class="k">export</span> <span class="k">function</span> formaterMontant(n: number): string {
+  <span class="k">return</span> <span class="k">new</span> Intl.NumberFormat(<span class="s">'fr-FR'</span>, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-traitement.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demande-traitement\demande-traitement.component.ts</span></div><p class="note">Le référentiel est chargé une fois (<code>Promise.all</code>) ; s'il est injoignable, l'écran affiche les seules lignes de la demande au lieu d'échouer.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { MatSnackBar, MatSnackBarModule } <span class="k">from</span> <span class="s">'@angular/material/snack-bar'</span>;
+<span class="k">import</span> { ActivatedRoute, Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { FundHttpService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/fundManagement-http.service'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { DemandeActionsFacade } <span class="k">from</span> <span class="s">'../../../adapters/localState/demande-actions.facade'</span>;
+<span class="k">import</span> { ErreurApi } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/operation.model'</span>;
+<span class="k">import</span> {
+  ReferentielCoupures, VueDossier, construireVueDossier, formaterMontant, valeursFaciales
+} <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-dossier.model'</span>;
+<span class="k">import</span> { DemandeEnteteComponent } <span class="k">from</span> <span class="s">'../../components/demande-entete/demande-entete.component'</span>;
+<span class="k">import</span> { DemandeBarreActionsComponent } <span class="k">from</span> <span class="s">'../../components/demande-barre-actions/demande-barre-actions.component'</span>;
+<span class="k">import</span> {
+  DemandeDecisionModaleComponent, MOTIFS_RAPIDES_CAISSE_CENTRALE, TypeDecision
+} <span class="k">from</span> <span class="s">'../../components/demande-decision-modale/demande-decision-modale.component'</span>;
+<span class="k">import</span> { banniereLectureCaisseCentrale } <span class="k">from</span> <span class="s">'../../components/demande-entete/demande-entete.regles'</span>;
+
+<span class="c">/**
+ * AER_LM-285 — Caisse Centrale : écran de traitement d'une demande agence (route caisse-centrale/:id),
+ * au pixel de la maquette Caisse-Centrale_Traiter-Demande-En-Attente : même disposition que l'écran agence,
+ * grilles complètes de coupures (référentiel) en lecture seule, ramassages et devises cadenassés, commentaire,
+ * et en bas « Annuler la demande » / « Traiter la demande » si la demande est en attente et si l'appelant a GDF_TRAITER_DEMANDE.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-demande-traitement'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [CommonModule, MatIconModule, MatSnackBarModule, DemandeEnteteComponent, DemandeBarreActionsComponent, DemandeDecisionModaleComponent],
+  templateUrl: <span class="s">'./demande-traitement.component.html'</span>,
+  styleUrl: <span class="s">'./demande-traitement.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> DemandeTraitementComponent <span class="k">implements</span> OnInit {
+
+  <span class="k">private</span> <span class="k">readonly</span> route = inject(ActivatedRoute);
+  <span class="k">private</span> <span class="k">readonly</span> router = inject(Router);
+  <span class="k">private</span> <span class="k">readonly</span> snackBar = inject(MatSnackBar);
+  <span class="k">private</span> <span class="k">readonly</span> service = inject(FundHttpService);
+  <span class="k">readonly</span> actions = inject(DemandeActionsFacade);
+  <span class="k">readonly</span> contexteUtilisateur = inject(ContexteUtilisateurService);
+
+  <span class="k">readonly</span> vue = signal&lt;VueDossier | <span class="k">null</span>&gt;(<span class="k">null</span>);
+  <span class="k">readonly</span> chargement = signal(<span class="k">true</span>);
+  <span class="k">readonly</span> erreur = signal&lt;string | <span class="k">null</span>&gt;(<span class="k">null</span>);
+  <span class="k">readonly</span> decision = signal&lt;TypeDecision | <span class="k">null</span>&gt;(<span class="k">null</span>);
+  <span class="k">readonly</span> motifsRapides = MOTIFS_RAPIDES_CAISSE_CENTRALE;
+  <span class="k">readonly</span> montant = formaterMontant;
+
+  <span class="c">/** Référentiel des coupures (mêmes appels que l'écran agence) ; chargé une fois, toléré s'il manque (grille réduite aux lignes de la demande). */</span>
+  <span class="k">private</span> referentiel: ReferentielCoupures | undefined;
+
+  <span class="k">readonly</span> peutDecider = computed(() =&gt; {
+    <span class="k">const</span> v = <span class="k">this</span>.vue();
+    <span class="k">return</span> !!v &amp;&amp; v.statut === <span class="s">'SOUMISE'</span> &amp;&amp; <span class="k">this</span>.contexteUtilisateur.habilitations().traiter;
+  });
+
+  <span class="k">readonly</span> banniere = computed(() =&gt; {
+    <span class="k">const</span> v = <span class="k">this</span>.vue();
+    <span class="k">return</span> v ? banniereLectureCaisseCentrale({
+      statut: v.statut, verrouillePar: v.verrouillePar, agence: v.agence,
+      peutTraiter: <span class="k">this</span>.contexteUtilisateur.habilitations().traiter
+    }) : <span class="k">null</span>;
+  });
+
+  ngOnInit(): <span class="k">void</span> {
+    <span class="k">this</span>.contexteUtilisateur.charger();
+    <span class="k">void</span> <span class="k">this</span>.charger();
+  }
+
+  <span class="k">async</span> charger(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">const</span> id = <span class="k">this</span>.route.snapshot.paramMap.<span class="k">get</span>(<span class="s">'id'</span>);
+    <span class="k">if</span> (!id) { <span class="k">this</span>.erreur.set(<span class="s">'Demande inconnue.'</span>); <span class="k">this</span>.chargement.set(<span class="k">false</span>); <span class="k">return</span>; }
+    <span class="k">this</span>.chargement.set(<span class="k">true</span>);
+    <span class="k">this</span>.erreur.set(<span class="k">null</span>);
+    try {
+      <span class="k">if</span> (!<span class="k">this</span>.referentiel) { <span class="k">this</span>.referentiel = <span class="k">await</span> <span class="k">this</span>.chargerReferentiel(); }
+      <span class="k">this</span>.vue.set(construireVueDossier(<span class="k">await</span> <span class="k">this</span>.service.getDossier(id), <span class="k">this</span>.referentiel));
+    } catch (e) {
+      <span class="k">this</span>.vue.set(<span class="k">null</span>);
+      <span class="k">this</span>.erreur.set(e instanceof ErreurApi ? e.message : <span class="s">'La demande est indisponible.'</span>);
+    } finally {
+      <span class="k">this</span>.chargement.set(<span class="k">false</span>);
+    }
+  }
+
+  <span class="k">private</span> <span class="k">async</span> chargerReferentiel(): Promise&lt;ReferentielCoupures | undefined&gt; {
+    try {
+      <span class="k">const</span> [caisse, gab] = <span class="k">await</span> Promise.all([<span class="k">this</span>.service.getDenominationsCaisse(), <span class="k">this</span>.service.getDenominationsGab()]);
+      <span class="k">return</span> { caisse: valeursFaciales(caisse), gab: valeursFaciales(gab) };
+    } catch {
+      <span class="k">return</span> undefined;   <span class="c">// référentiel injoignable : on affiche les seules lignes de la demande</span>
+    }
+  }
+
+  retour(): <span class="k">void</span> {
+    <span class="k">this</span>.router.navigate([<span class="s">'caisse-centrale'</span>], { relativeTo: <span class="k">this</span>.route.parent });
+  }
+
+  ouvrir(<span class="k">type</span>: TypeDecision): <span class="k">void</span> {
+    <span class="k">if</span> (!<span class="k">this</span>.peutDecider()) { <span class="k">return</span>; }
+    <span class="k">this</span>.actions.acquitterErreur();
+    <span class="k">this</span>.decision.set(<span class="k">type</span>);
+  }
+
+  fermer(): <span class="k">void</span> { <span class="k">this</span>.decision.set(<span class="k">null</span>); }
+
+  <span class="k">async</span> confirmer(motif: string | undefined): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">const</span> v = <span class="k">this</span>.vue();
+    <span class="k">const</span> <span class="k">type</span> = <span class="k">this</span>.decision();
+    <span class="k">if</span> (!v || !<span class="k">type</span>) { <span class="k">return</span>; }
+    <span class="k">const</span> ok = <span class="k">await</span> <span class="k">this</span>.actions.decider(v.id, <span class="k">type</span>, motif);
+    <span class="k">if</span> (ok) {
+      <span class="k">this</span>.decision.set(<span class="k">null</span>);
+      <span class="k">this</span>.snackBar.open(
+        <span class="k">type</span> === <span class="s">'TRAITEE'</span>
+          ? <span class="s">`Demande ${v.reference} traitée : le statut sera mis à jour dans quelques secondes.`</span>
+          : <span class="s">`Demande ${v.reference} annulée : motif consigné.`</span>,
+        <span class="s">'Fermer'</span>, { duration: 5000 });
+      setTimeout(() =&gt; <span class="k">void</span> <span class="k">this</span>.charger(), 1500);
+    } <span class="k">else</span> {
+      <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Erreur lors de la décision.'</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+    }
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-traitement.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demande-traitement\demande-traitement.component.html</span></div><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">"traitement"</span>&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"etat"</span> *ngIf=<span class="s">"chargement()"</span>&gt;&lt;mat-icon <span class="k">class</span>=<span class="s">"tourne"</span>&gt;autorenew&lt;/mat-icon&gt; Chargement de la demande…&lt;/div&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"etat etat--erreur"</span> *ngIf=<span class="s">"!chargement() &amp;&amp; erreur() as e"</span>&gt;
+    &lt;mat-icon&gt;error_outline&lt;/mat-icon&gt; {{ e }}
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--secondaire"</span> (click)=<span class="s">"retour()"</span>&gt;Retour au tableau de bord&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;ng-container *ngIf=<span class="s">"!chargement() &amp;&amp; vue() as v"</span>&gt;
+
+    &lt;app-demande-entete
+      [reference]=<span class="s">"v.reference"</span> [statut]=<span class="s">"v.statut"</span> [urgent]=<span class="s">"v.urgent"</span>
+      [soumiseLe]=<span class="s">"v.soumiseLe"</span> [soumisePar]=<span class="s">"v.soumisePar"</span> [soumiseParDetail]=<span class="s">"v.agence ? 'Agence ' + v.agence : null"</span>
+      [decisionLe]=<span class="s">"v.decisionLe"</span> [decisionPar]=<span class="s">"v.decisionPar"</span> [decisionParDetail]=<span class="s">"v.decisionProfil"</span>
+      [motifAnnulation]=<span class="s">"v.motifAnnulation"</span> [banniere]=<span class="s">"banniere()"</span>
+      lienRetour=<span class="s">"Retour au Tableau de Bord Caisse Centrale"</span> (retour)=<span class="s">"retour()"</span>&gt;
+    &lt;/app-demande-entete&gt;
+
+    <span class="c">&lt;!-- Maquette : grille 12 colonnes — gauche 8 (caisse, devises, commentaire), droite 4 (GAB, ramassage) --&gt;</span>
+    &lt;div <span class="k">class</span>=<span class="s">"grille"</span>&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"colonne colonne--principale"</span>&gt;
+
+        <span class="c">&lt;!-- 1. Alimentation Caisse (MAD) : grille complète, lecture seule --&gt;</span>
+        &lt;section <span class="k">class</span>=<span class="s">"carte"</span>&gt;
+          &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;payments&lt;/mat-icon&gt; Alimentation Caisse (MAD)&lt;/h3&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"coupures"</span>&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"coupures__groupe"</span>&gt;
+              &lt;h4 <span class="k">class</span>=<span class="s">"coupures__entete"</span>&gt;&lt;span&gt;Billets&lt;/span&gt;&lt;span&gt;Quantité&lt;/span&gt;&lt;/h4&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"coupure coupure--lecture"</span> *ngFor=<span class="s">"let l of v.caisse?.billets ?? []"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"coupure__valeur"</span>&gt;{{ l.faceValue }}&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"coupure__x"</span>&gt;x&lt;/span&gt;
+                &lt;div <span class="k">class</span>=<span class="s">"coupure__champ"</span>&gt;{{ l.quantite }}&lt;/div&gt;
+              &lt;/div&gt;
+              &lt;p <span class="k">class</span>=<span class="s">"coupures__vide"</span> *ngIf=<span class="s">"!v.caisse?.billets?.length"</span>&gt;Aucun billet&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"coupures__groupe"</span>&gt;
+              &lt;h4 <span class="k">class</span>=<span class="s">"coupures__entete"</span>&gt;&lt;span&gt;Pièces&lt;/span&gt;&lt;span&gt;Quantité&lt;/span&gt;&lt;/h4&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"coupure coupure--lecture"</span> *ngFor=<span class="s">"let l of v.caisse?.pieces ?? []"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"coupure__valeur"</span>&gt;{{ l.faceValue }}&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"coupure__x"</span>&gt;x&lt;/span&gt;
+                &lt;div <span class="k">class</span>=<span class="s">"coupure__champ"</span>&gt;{{ l.quantite }}&lt;/div&gt;
+              &lt;/div&gt;
+              &lt;p <span class="k">class</span>=<span class="s">"coupures__vide"</span> *ngIf=<span class="s">"!v.caisse?.pieces?.length"</span>&gt;Aucune pièce&lt;/p&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"totaux"</span>&gt;
+            &lt;p <span class="k">class</span>=<span class="s">"totaux__detail"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"puce"</span>&gt;&lt;/span&gt; Détail : Billets {{ montant(v.caisse?.totalBillets ?? 0) }} MAD • Pièces {{ montant(v.caisse?.totalPieces ?? 0) }} MAD&lt;/p&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"totaux__bloc"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"totaux__libelle"</span>&gt;Total saisi&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"totaux__valeur"</span>&gt;{{ montant(v.caisse?.total ?? 0) }} MAD&lt;/span&gt;&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+
+        <span class="c">&lt;!-- 2. Commande Devises : table Devise / Montant saisi / Action (cadenas) --&gt;</span>
+        &lt;section <span class="k">class</span>=<span class="s">"carte"</span>&gt;
+          &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;currency_exchange&lt;/mat-icon&gt; Commande Devises&lt;/h3&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"table-cadre"</span>&gt;
+            &lt;table <span class="k">class</span>=<span class="s">"table"</span>&gt;
+              &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Devise&lt;/th&gt;&lt;th <span class="k">class</span>=<span class="s">"droite"</span>&gt;Montant Saisi&lt;/th&gt;&lt;th <span class="k">class</span>=<span class="s">"centre"</span>&gt;Action&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+              &lt;tbody&gt;
+                &lt;tr *ngFor=<span class="s">"let d of v.devises"</span>&gt;
+                  &lt;td <span class="k">class</span>=<span class="s">"sans"</span>&gt;{{ d.devise }} – {{ d.libelle }}&lt;/td&gt;
+                  &lt;td <span class="k">class</span>=<span class="s">"droite gras"</span>&gt;{{ montant(d.montant) }} {{ d.devise }}&lt;/td&gt;
+                  &lt;td <span class="k">class</span>=<span class="s">"centre"</span>&gt;&lt;mat-icon <span class="k">class</span>=<span class="s">"verrou"</span> title=<span class="s">"Lecture seule"</span>&gt;lock&lt;/mat-icon&gt;&lt;/td&gt;
+                &lt;/tr&gt;
+                &lt;tr *ngIf=<span class="s">"!v.devises.length"</span>&gt;&lt;td colspan=<span class="s">"3"</span> <span class="k">class</span>=<span class="s">"vide"</span>&gt;Aucune devise commandée.&lt;/td&gt;&lt;/tr&gt;
+              &lt;/tbody&gt;
+            &lt;/table&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+
+        <span class="c">&lt;!-- 5. Commentaire --&gt;</span>
+        &lt;section <span class="k">class</span>=<span class="s">"carte"</span>&gt;
+          &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;notes&lt;/mat-icon&gt; Commentaire&lt;/h3&gt;
+          &lt;label <span class="k">class</span>=<span class="s">"etiquette"</span>&gt;Instructions spécifiques ou observations&lt;/label&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"commentaire"</span> [<span class="k">class</span>.commentaire--vide]=<span class="s">"!v.commentaire"</span>&gt;{{ v.commentaire || <span class="s">'Aucun commentaire.'</span> }}&lt;/div&gt;
+        &lt;/section&gt;
+      &lt;/div&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"colonne colonne--laterale"</span>&gt;
+
+        <span class="c">&lt;!-- 3. Alimentation GAB : « • Billets de 200 DH   Qté : [150] » --&gt;</span>
+        &lt;section <span class="k">class</span>=<span class="s">"carte"</span>&gt;
+          &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;payments&lt;/mat-icon&gt; Alimentation GAB&lt;/h3&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"gab"</span>&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"gab__ligne"</span> *ngFor=<span class="s">"let l of v.gab?.lignes ?? []"</span>&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"gab__libelle"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"puce"</span>&gt;&lt;/span&gt; Billets de {{ l.faceValue }} DH&lt;/span&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"gab__qte"</span>&gt;Qté : &lt;span <span class="k">class</span>=<span class="s">"coupure__champ"</span>&gt;{{ l.quantite }}&lt;/span&gt;&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;p <span class="k">class</span>=<span class="s">"coupures__vide"</span> *ngIf=<span class="s">"!v.gab?.lignes?.length"</span>&gt;Aucune alimentation GAB&lt;/p&gt;
+          &lt;/div&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"total-ligne"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"total-ligne__libelle"</span>&gt;Total GAB&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"total-ligne__valeur"</span>&gt;{{ montant(v.gab?.total ?? 0) }} MAD&lt;/span&gt;&lt;/div&gt;
+        &lt;/section&gt;
+
+        <span class="c">&lt;!-- 4. Ramassage : « • MAD  500 000,00  🔒 » --&gt;</span>
+        &lt;section <span class="k">class</span>=<span class="s">"carte"</span>&gt;
+          &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;local_shipping&lt;/mat-icon&gt; Ramassage&lt;/h3&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"ramassage__ligne"</span> *ngFor=<span class="s">"let r of v.ramassages"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"ramassage__devise"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"puce"</span> [<span class="k">class</span>.puce--bleue]=<span class="s">"r.devise !== 'MAD'"</span>&gt;&lt;/span&gt; {{ r.devise }}&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"ramassage__montant"</span>&gt;{{ montant(r.montant) }} &lt;mat-icon <span class="k">class</span>=<span class="s">"verrou"</span> title=<span class="s">"Lecture seule"</span>&gt;lock&lt;/mat-icon&gt;&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"coupures__vide"</span> *ngIf=<span class="s">"!v.ramassages.length"</span>&gt;Aucun ramassage.&lt;/p&gt;
+        &lt;/section&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;app-demande-barre-actions
+      libelleRetour=<span class="s">"Retour au tableau de bord"</span>
+      [peutAnnuler]=<span class="s">"peutDecider()"</span> [peutTraiter]=<span class="s">"peutDecider()"</span> [enCours]=<span class="s">"actions.enCours()"</span>
+      (retour)=<span class="s">"retour()"</span> (annuler)=<span class="s">"ouvrir('ANNULEE')"</span> (traiter)=<span class="s">"ouvrir('TRAITEE')"</span>&gt;
+    &lt;/app-demande-barre-actions&gt;
+
+    &lt;app-demande-decision-modale *ngIf=<span class="s">"decision() as type"</span>
+      [<span class="k">type</span>]=<span class="s">"type"</span> acteur=<span class="s">"caisse-centrale"</span> [reference]=<span class="s">"v.reference"</span> [agence]=<span class="s">"v.agence"</span>
+      [motifsRapides]=<span class="s">"type === 'ANNULEE' ? motifsRapides : []"</span>
+      [enCours]=<span class="s">"actions.enCours()"</span> [erreur]=<span class="s">"actions.erreur()"</span>
+      (confirmer)=<span class="s">"confirmer($event)"</span> (fermer)=<span class="s">"fermer()"</span>&gt;
+    &lt;/app-demande-decision-modale&gt;
+
+  &lt;/ng-container&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-traitement.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demande-traitement\demande-traitement.component.scss</span></div><pre><button class="copy">Copier</button><code><span class="a">@use</span> <span class="s">'palette'</span> as *;
+
+:host { display: block; font-family: $sans; color: $texte; }
+.traitement { display: flex; flex-direction: column; padding: 8px 0 80px; }
+
+.etat { padding: 40px 20px; text-align: center; color: $texte-2; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
+  &amp;--erreur { color: $erreur; } }
+.tourne { animation: tourne 1s linear infinite; }
+<span class="a">@keyframes</span> tourne { to { transform: rotate(360deg); } }
+
+<span class="c">/* ===== Grille 8 / 4 de la maquette ===== */</span>
+.grille { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;
+  <span class="a">@media</span> (max-width: 1100px) { grid-template-columns: 1fr; } }
+.colonne { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+
+.carte { <span class="a">@include</span> carte; }
+.carte__titre { <span class="a">@include</span> titre-carte; }
+.etiquette { display: block; font-size: 0.75rem; font-weight: 600; color: $texte-2; margin-bottom: 6px; }
+
+<span class="c">/* ===== Coupures (même rendu que l'écran agence, champs en lecture) ===== */</span>
+.coupures { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; <span class="a">@media</span> (max-width: 700px) { grid-template-columns: 1fr; } }
+.coupures__entete { display: flex; justify-content: space-between; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 1px solid $bordure;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: $texte-2;
+  span:last-child { font-size: 0.62rem; font-weight: 400; } }
+.coupures__vide { margin: 0; font-size: 0.8rem; font-style: italic; color: $texte-2; }
+.coupure { margin-bottom: 8px; <span class="a">@include</span> ligne-coupure; }
+
+<span class="c">/* ===== Totaux ===== */</span>
+.puce { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: $primary; margin-right: 8px; vertical-align: middle; &amp;--bleue { background: #2563eb; } }
+.totaux { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 24px; padding: 16px; border-top: 1px solid $bordure;
+  background: rgba($surface-basse, .5); border-radius: $rayon; }
+.totaux__detail { margin: 0; font-size: 0.75rem; color: $texte-2; }
+.totaux__bloc { display: flex; flex-direction: column; align-items: flex-end; min-width: 220px; padding: 12px 14px; background: #fff; border: 1px solid $bordure; border-left: 4px solid $primary; border-radius: $rayon; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.totaux__libelle { font-size: 0.69rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: $texte-2; }
+.totaux__valeur { font-family: $mono; font-size: 1.25rem; font-weight: 700; color: $primary; }
+
+<span class="c">/* ===== GAB / ramassage (colonne droite) ===== */</span>
+.gab__ligne, .ramassage__ligne { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; margin-bottom: 12px;
+  border-radius: $rayon; border: 1px solid $bordure; background: rgba($surface-basse, .4); font-size: 0.75rem; }
+.gab__libelle { color: $texte; }
+.gab__qte { display: inline-flex; align-items: center; gap: 8px; color: $texte-2; .coupure__champ { width: 96px; flex: none; font-family: $mono; text-align: right; padding: 6px 10px; border-radius: $rayon; background: $lecture-fond; border: 1px solid $lecture-bordure; color: $lecture-texte; } }
+.ramassage__devise { font-weight: 700; color: $primary; }
+.ramassage__montant { display: inline-flex; align-items: center; gap: 10px; font-family: $mono; font-weight: 700; color: $texte; }
+.total-ligne { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid $bordure; }
+.total-ligne__libelle { font-size: 0.75rem; font-weight: 600; color: $texte-2; }
+.total-ligne__valeur { font-family: $mono; font-size: 1rem; font-weight: 700; color: $primary; }
+.verrou { font-size: 16px; width: 16px; height: 16px; color: $texte-2; }
+
+<span class="c">/* ===== Table devises (maquette : thead bg surface-basse, tbody mono xs) ===== */</span>
+.table-cadre { border: 1px solid $bordure; border-radius: $rayon; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.table { width: 100%; border-collapse: collapse; text-align: left;
+  thead { background: $surface-basse; }
+  th { padding: 10px 16px; font-size: 0.72rem; font-weight: 600; color: $texte-2; border-bottom: 1px solid $bordure; }
+  td { padding: 12px 16px; font-family: $mono; font-size: 0.75rem; border-bottom: 1px solid $bordure; vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  .sans { font-family: $sans; font-weight: 500; color: $texte; }
+  .gras { font-weight: 700; color: $texte; }
+  .droite { text-align: right; } .centre { text-align: center; width: 56px; }
+  .vide { font-family: $sans; font-style: italic; color: $texte-2; } }
+
+<span class="c">/* ===== Commentaire ===== */</span>
+.commentaire { min-height: 90px; padding: 12px; border-radius: $rayon; background: rgba($surface-basse, .3); border: 1px solid $outline-variant; font-size: 0.75rem; line-height: 1.6; color: $texte; white-space: pre-wrap;
+  &amp;--vide { color: $texte-2; font-style: italic; } }
+
+.bouton { <span class="a">@include</span> bouton; }</code></pre></div>
+<h2 id="s5">5. Écran agence — cinq corrections Ctrl+F dans fund-management.component.*</h2>
+<div class="card"><p>Rien d'autre ne change dans l'écran agence : les liaisons de <code>&lt;app-demande-entete&gt;</code> et de <code>&lt;app-demande-barre-actions&gt;</code> collées avec les docs précédents restent valables.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>5.1 — l&#x27;en-tête de création n&#x27;apparaît qu&#x27;en création</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html  (Ctrl+F : *ngIf="!estConsultation")</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- Ctrl+F dans fund-management.component.html :   *ngIf="!estConsultation"
+     C'est la condition du bloc d'en-tête de CRÉATION (titre « Gestion des fonds – Vue Agence », sous-titre, case urgent).
+     Elle est vraie en modification aussi : l'en-tête de création s'empile sur &lt;app-demande-entete&gt;. --&gt;</span>
+
+<span class="c">&lt;!-- AVANT --&gt;</span>
+&lt;div … *ngIf=<span class="s">"!estConsultation"</span>&gt;
+
+<span class="c">&lt;!-- APRÈS : l'en-tête de création n'existe qu'en création ; en modification, l'en-tête partagé porte déjà la case « Demande Urgente » --&gt;</span>
+&lt;div … *ngIf=<span class="s">"estCreation"</span>&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>5.2 — supprimer l&#x27;ancienne barre de modification</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html  (Ctrl+F : Enregistrer)</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- Ctrl+F dans fund-management.component.html :   Enregistrer
+     Le seul résultat est le bouton de l'ANCIENNE barre de modification (lot C). Remonte jusqu'au &lt;div class="actions-bar" …&gt; qui le contient :
+     c'est celui dont la condition est  *ngIf="estModification"  — et supprime ce &lt;div&gt; ENTIER, de son ouverture à son &lt;/div&gt;. --&gt;</span>
+
+<span class="c">&lt;!-- À SUPPRIMER (squelette de ce que tu as aujourd'hui, les « … » sont tes attributs) --&gt;</span>
+&lt;div <span class="k">class</span>=<span class="s">"actions-bar"</span> *ngIf=<span class="s">"estModification"</span>&gt;
+  &lt;button … (click)=<span class="s">"abandonnerModification()"</span>&gt;Annuler&lt;/button&gt;
+  &lt;button … <span class="k">type</span>=<span class="s">"submit"</span> …&gt;Enregistrer&lt;/button&gt;
+&lt;/div&gt;
+
+<span class="c">&lt;!-- Pourquoi : la barre du bas en modification est désormais &lt;app-demande-barre-actions&gt; (condition  *ngIf="estConsultation || estModification"  du doc précédent),
+     avec « Retour au listing » / « Annuler la demande » / « Soumettre les Modifications ». Les deux barres s'affichaient l'une sous l'autre. --&gt;</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>5.3a — GAB : ordre de la ligne « • 200 DH × [150] billets »</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html  (Ctrl+F : gab__unite)</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- Ctrl+F dans fund-management.component.html :   gab__unite
+     Tu es sur la ligne GAB (le *ngFor sur les coupures GAB). Remets le CONTENU de cette ligne dans cet ordre exact — maquette : « • 200 DH × [150] billets ».
+     L'&lt;input&gt; est celui que tu as déjà (garde tous ses attributs : [formControl] / formControlName, appSaisieQuantite, …) : il se place ENTRE la valeur et « billets ». --&gt;</span>
+
+&lt;div <span class="k">class</span>=<span class="s">"gab-ligne"</span>&gt;
+  &lt;span <span class="k">class</span>=<span class="s">"puce"</span>&gt;&lt;/span&gt;
+  &lt;span <span class="k">class</span>=<span class="s">"gab__valeur"</span>&gt;{{ … }} DH &lt;small&gt;×&lt;/small&gt;&lt;/span&gt;     <span class="c">&lt;!-- {{ … }} = ton expression actuelle de la valeur faciale --&gt;</span>
+  &lt;input … &gt;                                                       <span class="c">&lt;!-- ton input de quantité, inchangé --&gt;</span>
+  &lt;span <span class="k">class</span>=<span class="s">"gab__unite"</span>&gt;billets&lt;/span&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>5.3b — GAB : seulement 200 et 100 DH</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.ts  (Ctrl+F : getDenominationsGab()</span></div><pre><button class="copy">Copier</button><code><span class="c">// Ctrl+F dans fund-management.component.ts :   getDenominationsGab(</span>
+<span class="c">// Le résultat de cet appel alimente le FormArray  gab.coupures  (une ligne par coupure du référentiel GAB : 200 / 100 / 50 / 20).</span>
+<span class="c">// Maquette 287 : « strictement 2 lignes, 200 DH et 100 DH, sans notion de cassette » → on ne garde que les valeurs de COUPURES_GAB</span>
+<span class="c">// AVANT de construire les FormGroup. Quel que soit le nom de ta variable, c'est le même .filter(...) :</span>
+
+<span class="c">// 1) import (en haut du fichier, à côté des autres imports du domaine)</span>
+<span class="k">import</span> { COUPURES_GAB } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-dossier.model'</span>;
+
+<span class="c">// 2) sur la liste renvoyée par getDenominationsGab() — exemple si tu l'affectes directement :</span>
+<span class="k">const</span> coupuresGab = (<span class="k">await</span> <span class="k">this</span>.service.getDenominationsGab())
+  .filter(c =&gt; COUPURES_GAB.includes(Number(c.faceValue)));
+<span class="c">//   … et si tu la reçois dans un .then / subscribe : même .filter sur la liste reçue, avant la boucle qui crée les FormGroup.</span>
+
+<span class="c">// Rien d'autre : les totaux, la validation et le payload de soumission se calculent sur le FormArray, donc sur 2 lignes.</span>
+<span class="c">// (Le même COUPURES_GAB sert à l'écran Caisse Centrale : une seule source de vérité.)</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>5.4 — Ramassage : devises complètes (MAD par défaut)</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html  (Ctrl+F : devisesCommandables)</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- Ctrl+F dans fund-management.component.html :   devisesCommandables
+     Il doit y avoir UN SEUL résultat : le select « Devise » du bloc Commande Devises.
+     S'il y en a deux, le second est dans le bloc Ramassage de Fonds (CIT) : remets-le sur devisesDisponibles (le ramassage se fait en MAD, espèces). --&gt;</span>
+
+<span class="c">&lt;!-- Ramassage — AVANT (ce qui fait apparaître EUR par défaut) --&gt;</span>
+&lt;mat-option *ngFor=<span class="s">"let d of devisesCommandables"</span> [value]=<span class="s">"d.isoCode"</span>&gt;…&lt;/mat-option&gt;
+<span class="c">&lt;!-- Ramassage — APRÈS --&gt;</span>
+&lt;mat-option *ngFor=<span class="s">"let d of devisesDisponibles"</span> [value]=<span class="s">"d.isoCode"</span>&gt;…&lt;/mat-option&gt;
+
+<span class="c">&lt;!-- Commande Devises — reste sur devisesCommandables (remarque PO : pas de MAD dans une commande de devises) --&gt;</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>5.5 — styles des sections sur les jetons des maquettes + champs en consultation</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.scss  (Ctrl+F : .gab__valeur  → remplacer le bloc 5.7 du doc précédent par celui-ci)</span></div><p class="note">Les deux derniers sélecteurs (<code>input:disabled</code>, <code>[readonly]</code>…) donnent aux champs de la consultation le rendu <code>.mode-consultation .field-input</code> de la maquette sans dépendre des noms de classes du lot 5. Si des écarts de CSS subsistent dans le <b>corps</b> du formulaire agence (cartes, titres, grilles de coupures), envoie-moi une capture des 40 premières lignes de <code>fund-management.component.scss</code> : ce sont des styles du lot 5 que je ne réécris pas à l'aveugle.</p><pre><button class="copy">Copier</button><code><span class="c">/* ===== AER_LM-287 — sections GAB / Ramassage / Commentaire + champs en consultation, sur les jetons des maquettes =====
+   Remplace le bloc « 5.7 — styles des sections » collé avec le doc précédent (Ctrl+F  .gab__valeur  → supprime depuis le commentaire 5.7 jusqu'à .facultatif inclus).
+   Prérequis inchangé :  @use 'palette' as *;  EN LIGNE 1 du fichier. */</span>
+
+<span class="c">/* Ligne GAB : « • 200 DH × [150] billets » */</span>
+.gab-ligne { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 8px; border-radius: $rayon; border: 1px solid $bordure; background: rgba($surface-basse, .4);
+  input { width: 112px; font-family: $mono; font-size: 0.75rem; text-align: right; padding: 6px 12px; border-radius: $rayon; border: 1px solid $outline-variant; background: #fff; color: $texte;
+    &amp;:focus { outline: none; border-color: $primary; box-shadow: 0 0 0 2px rgba($primary, .15); } } }
+.puce { width: 8px; height: 8px; border-radius: 50%; background: $primary; flex-shrink: 0; display: inline-block;
+  &amp;--bleue { background: #2563eb; } }
+.gab__valeur { font-family: $mono; font-size: 0.8rem; font-weight: 600; color: $texte; small { margin-left: 4px; color: $texte-2; font-weight: 400; } }
+.gab__unite { font-size: 0.75rem; color: $texte-2; }
+
+<span class="c">/* Ligne de ramassage : « • MAD Espèces   500 000,00   🗑 » */</span>
+.ligne__devise { flex: 1; font-size: 0.8rem; font-weight: 700; color: $primary; margin-left: 10px; small { margin-left: 6px; font-weight: 400; color: $texte-2; } }
+.ligne__montant { font-family: $mono; font-size: 0.8rem; font-weight: 700; color: $texte; margin-right: 10px; }
+
+<span class="c">/* « Facultatif » à droite du titre Commentaire */</span>
+.facultatif { margin-left: auto; font-size: 0.72rem; font-weight: 500; color: $texte-2; }
+
+<span class="c">/* Champs en consultation (maquette .mode-consultation .field-input : fond #f1f5f9, bordure #e2e8f0, texte #475569).
+   Sélecteurs génériques : s'appliquent à tout champ désactivé / readonly du formulaire, quel que soit son nom de classe. */</span>
+input:disabled, input[<span class="k">readonly</span>], textarea:disabled, textarea[<span class="k">readonly</span>], select:disabled {
+  background: $lecture-fond; border-color: $lecture-bordure; color: $lecture-texte; cursor: default; }</code></pre></div>
+<div class="card"><p><b>Gardés volontairement</b> (pas dans la maquette 287, mais dans celle de la création, lot 5, et le template est commun) : les liens « Réinitialiser » des grilles et la ligne « Total GAB + Caisse + Ramassage ». Si le PO les veut hors modification : entoure chacun de <code>*ngIf="estCreation"</code> (Ctrl+F <code>Réinitialiser</code>, puis <code>Total GAB</code>).</p></div>
+<h2 id="s6">6. Shell et données</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>6.1 — titre de la barre du haut sur les pages Caisse Centrale</b><br><span class="path">C:\dev\fund-management-front\src\app\  (Ctrl+F sur tout le dossier : Vue Agence)</span></div><pre><button class="copy">Copier</button><code><span class="c">// Ctrl+F sur tout src/app :   Vue Agence</span>
+<span class="c">// Le titre « Gestion des fonds - Vue Agence » de la barre du haut s'affiche aussi sur caisse-centrale et caisse-centrale/:id.</span>
+<span class="c">// Deux cas selon l'endroit où il est écrit :</span>
+
+<span class="c">// CAS 1 — c'est une donnée de route (data: { title: 'Gestion des fonds - Vue Agence' } ou similaire) :</span>
+<span class="c">//   ajoute la même clé sur les deux routes Caisse Centrale (fichier des routes du feature) :</span>
+  { path: <span class="s">'caisse-centrale'</span>,     component: …, canActivate: [exigePermission(<span class="s">'toutesAgences'</span>)], data: { title: <span class="s">'Gestion des fonds - Caisse Centrale'</span> } },
+  { path: <span class="s">'caisse-centrale/:id'</span>, component: DemandeTraitementComponent, canActivate: [exigePermission(<span class="s">'toutesAgences'</span>)], data: { title: <span class="s">'Gestion des fonds - Caisse Centrale'</span> } },
+
+<span class="c">// CAS 2 — c'est une chaîne fixe dans le template du shell / de la barre du haut :</span>
+<span class="c">//   le shell injecte ContexteUtilisateurService (même service que les écrans) et le titre dépend du profil :</span>
+  <span class="k">readonly</span> titre = computed(() =&gt;
+    <span class="k">this</span>.contexteUtilisateur.habilitations().toutesAgences ? <span class="s">'Gestion des fonds - Caisse Centrale'</span> : <span class="s">'Gestion des fonds - Vue Agence'</span>);
+<span class="c">//   et dans le template :  {{ titre() }}  à la place de la chaîne.</span>
+<span class="c">// Si c'est ni l'un ni l'autre, envoie-moi la capture du résultat du Ctrl+F.</span></code></pre></div>
+<div class="card"><p><b>6.2 — « (Agence 1422) » sans nom.</b> <code>agenceNom</code> est figé à la création de la demande (<code>figerPhotoAgence</code>, lot 5) à partir de <code>GET /orga/agences</code>. Les demandes créées pendant que <em>users</em> tournait sur <code>feature/AER_LM-288</code> sans le commit <code>9dcc759</code> de 267 (403 → photo vide) ont <code>agence_nom = null</code> en base : ce n'est pas un bug du front. Après le merge <code>origin/feature/AER_LM-267</code> → <code>feature/AER_LM-288</code> (doc diag), recrée une demande : l'en-tête affiche « Agence 1422 - Nations Unies ». Pour les anciennes, au choix : les laisser, ou un <code>UPDATE retail.cash_request SET agence_nom = … WHERE branch_code = '1422' AND agence_nom IS NULL</code> en local.</p></div>
+<h2 id="s7">7. Vérification</h2>
+<div class="card"><ol>
+<li><code>ng build</code> propre. Si Sass se plaint d'un <code>@use</code>, il n'est pas en ligne 1 du fichier concerné.</li>
+<li><b>Consultation d'une demande en attente, mon agence, avant 16h</b> : pastille jaune « EN ATTENTE » (icône <code>pending</code>), « Demande Réf: … » en vert, badge blanc « Mode Modification » à droite, barre pleine largeur « Retour à l'Historique des Demandes » / « Annuler la demande ». Champs grisés (#f1f5f9).</li>
+<li><b>Clic sur le badge</b> : URL <code>modification/:id</code>, le badge <b>reste</b> et devient vert « Mode Modification actif » (non cliquable) ; case « DEMANDE URGENTE » rouge à côté ; <b>un seul</b> en-tête (plus de « Gestion des fonds – Vue Agence ») ; <b>une seule</b> barre : « Retour au listing » / « Annuler la demande » / « Soumettre les Modifications ».</li>
+<li><b>GAB</b> : 2 lignes « • 200 DH × [ ] billets » et « • 100 DH × [ ] billets ». <b>Ramassage</b> : select sur MAD par défaut ; <b>Commande Devises</b> : pas de MAD.</li>
+<li><b>Demande verrouillée</b> (traitée / après 16h) : bannière rouge pâle + chip « Lecture Seule », aucun badge, barre « Modification Verrouillée » grisée.</li>
+<li><b>Caisse Centrale</b> (profil toutes agences) : <code>caisse-centrale/:id</code> → grilles Billets (200 … 20) et Pièces (10 … 0,05) complètes avec les 0, Détail / Total saisi, table devises avec cadenas, Commentaire ; à droite GAB (2 lignes, Qté) et Ramassage avec cadenas ; barre « Retour au tableau de bord » / « Annuler la demande » / « Traiter la demande » si la demande est en attente et que le profil a <code>GDF_TRAITER_DEMANDE</code>. Traiter → modale → snack → pastille « TRAITÉE » verte au rechargement, barre sans actions.</li>
+<li>Titre de la barre du haut : « Gestion des fonds - Caisse Centrale » sur ces deux pages.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
