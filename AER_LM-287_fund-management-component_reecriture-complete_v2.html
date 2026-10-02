@@ -1,0 +1,1150 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-287 — FundManagementComponent réécrit en entier (ts / html / scss)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-287 — Écran agence : FundManagementComponent réécrit en entier, v2 (ts / html / scss)</h1><p>fund-management-front · 02/10/2026 soir · remplace la v1 de 17h30 · remplace le §5 du doc « alignement maquettes v2 » · s'appuie sur la palette, les composants partagés et le modèle dossier de ce même doc</p></header>
+<nav><a href="#s0">Contenu</a><a href="#s1">component.ts</a><a href="#s2">component.html</a><a href="#s3">component.scss</a><a href="#s4">Vérification</a></nav><main><h2 id="s0">0. Ce que contient cette réécriture (v2 — écarts du 02/10 17h50 corrigés)</h2>
+<div class="card"><p>Les trois fichiers de <code>FundManagementComponent</code> réécrits <b>en entier</b> à partir de ton code réel (captures du 02/10, lignes 1 → 737 du <code>.ts</code> et 1 → 323 du <code>.html</code>). Tu écrases les trois fichiers, rien à chercher ni à supprimer à la main. Toute la logique existante est conservée à l'identique (mêmes noms, mêmes effets, mêmes appels à <code>FunManagementFacade</code> / <code>DemandeActionsFacade</code> / <code>ContexteUtilisateurService</code>, même <code>construirePayload()</code>, même validateur exporté) ; seules les lignes des deux tableaux changent.</p>
+<p><b>Écarts relevés sur tes captures de 17h50 (app vs <code>Agence_Modification-Demande.html</code>) et corrigés dans cette v2 :</b></p>
+<table>
+<tr><th>#</th><th>Écart</th><th>Correction</th></tr>
+<tr><td>A</td><td>Bandeau « BMCI - Agence » au-dessus de l'écran : ce bandeau est le <em>shell</em> de la maquette, pas l'écran</td><td>Supprimé du template : l'écran commence au lien « ← Retour à l'Historique des Demandes », comme la maquette</td></tr>
+<tr><td>B</td><td>Ligne « Total GAB + Caisse + Ramassage » en bas de la modification</td><td>Supprimée en consultation / modification (gardée dans la barre de création du lot 5, hors maquette 287)</td></tr>
+<tr><td>C</td><td>Liens « Réinitialiser » sur Caisse et GAB</td><td>Absents de la maquette → retirés du template et du <code>.ts</code> (<code>reinitialiserCaisse</code> / <code>reinitialiserGab</code>)</td></tr>
+<tr><td>D</td><td>Champs Material (mat-form-field « outline », libellés flottants) dans Commande Devises et Ramassage</td><td>Remplacés par les champs natifs de la maquette : libellé au-dessus (text-xs), <code>&lt;select&gt;</code> et <code>&lt;input&gt;</code> bordés #bdcabe, rounded 4 px, montant en mono aligné à droite avec placeholder « 0.00 » / « Montant à ramasser », le tout dans un sous-bloc bordé fond surface-low. <code>MatFormFieldModule</code> / <code>MatInputModule</code> / <code>MatSelectModule</code> retirés des imports</td></tr>
+<tr><td>E</td><td>Débordement horizontal en bas (barre plus large que la page)</td><td>La barre partagée reste dans la largeur du formulaire (plus de marges négatives) ; grille en <code>minmax(0, …)</code> pour que les colonnes ne poussent jamais au-delà de la largeur disponible</td></tr>
+<tr><td>F</td><td>Icône GAB rendue en texte « ATM »</td><td>La ligature <code>atm</code> n'existe pas dans la police Material Icons du projet → <code>local_atm</code>. Les autres icônes (<code>payments</code>, <code>currency_exchange</code>, <code>notes</code>, <code>local_shipping</code>, <code>add</code>, <code>delete</code>, <code>lock</code>) s'affichent déjà</td></tr>
+<tr><td>G</td><td>Titres de cartes, en-têtes BILLETS / QUANTITÉ, lignes GAB (boîtes bordées plus hautes), corbeilles rouges, table devises, bloc « Total saisi »</td><td>SCSS repris poste par poste sur les classes Tailwind de la maquette (tailles text-xs / text-sm, poids, couleurs, espacements p-4 / p-6, rounded 4 px, rounded-xl pour les cartes)</td></tr>
+</table>
+<p><b>Changements de la v1 conservés :</b> en-tête de création sous <code>estCreation</code> ; une seule barre partagée en consultation / modification (l'ancienne Annuler / Enregistrer est supprimée) ; GAB limité à 200 / 100 DH via <code>COUPURES_GAB</code> dans l'effet (1) ; ligne GAB « • 200 DH x [150] billets » ; ramassage sur <code>devisesDisponibles</code>, commande devises sur <code>devisesCommandables</code> ; champs désactivés en lecture (#f1f5f9) ; <code>cdr.markForCheck()</code> en fin de <code>annulerDemande()</code>.</p>
+<p><b>Polices</b> : la maquette utilise Inter et JetBrains Mono. La palette les déclare en premier avec repli sur Segoe UI / Consolas ; si tu veux le rendu exact, ajoute dans <code>src\index.html</code> : <code>&lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap"&gt;</code> (si le réseau BMCI laisse passer Google Fonts ; sinon le repli s'applique).</p>
+<p><b>Prérequis</b> (doc « alignement maquettes v2 ») : <code>_palette.scss</code> v2 + <code>includePaths</code> dans angular.json, les composants <code>demande-entete</code> / <code>demande-barre-actions</code> / <code>demande-decision-modale</code> v2, et <code>demande-dossier.model.ts</code> v2 (qui exporte <code>COUPURES_GAB</code>).</p></div>
+<h2 id="s1">1. fund-management.component.ts</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>fund-management.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.ts</span></div><p class="note">737 lignes d'origine → même structure : constantes, décorateur, membres, <code>capacites</code> / <code>banniere</code>, <code>form</code>, constructeur avec les 4 effets, cycle de vie, getters, totaux, ramassage, commande devises, navigation, soumission, helpers privés, validateur exporté.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> {
+  ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, computed, effect, inject
+} <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> {
+  AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators
+} <span class="k">from</span> <span class="s">'@angular/forms'</span>;
+<span class="k">import</span> { MatCheckboxModule } <span class="k">from</span> <span class="s">'@angular/material/checkbox'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { MatSnackBar, MatSnackBarModule } <span class="k">from</span> <span class="s">'@angular/material/snack-bar'</span>;
+<span class="k">import</span> { ActivatedRoute, Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+
+<span class="k">import</span> { FunManagementFacade } <span class="k">from</span> <span class="s">'../../../adapters/localState/fundMangement.facade'</span>;
+<span class="k">import</span> { DemandeActionsFacade } <span class="k">from</span> <span class="s">'../../../adapters/localState/demande-actions.facade'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { DemandeFondsPayload, Denomination, Devise, OperationPayload } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/operation.model'</span>;
+<span class="k">import</span> { DemandeFondsDetail, OperationDetail } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-detail.model'</span>;
+<span class="k">import</span> { classeStatut, libelleStatut } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/statut-demande'</span>;
+<span class="k">import</span> {
+  CapacitesDemande, FaitsDemande, calculerCapacites, capacitesCreation, capacitesLectureSeule
+} <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-capacites'</span>;
+<span class="k">import</span> { COUPURES_GAB } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-dossier.model'</span>;
+<span class="k">import</span> { DemandeEnteteComponent } <span class="k">from</span> <span class="s">'../../components/demande-entete/demande-entete.component'</span>;
+<span class="k">import</span> { DemandeBarreActionsComponent } <span class="k">from</span> <span class="s">'../../components/demande-barre-actions/demande-barre-actions.component'</span>;
+<span class="k">import</span> { DemandeDecisionModaleComponent } <span class="k">from</span> <span class="s">'../../components/demande-decision-modale/demande-decision-modale.component'</span>;
+<span class="k">import</span> { BanniereLecture } <span class="k">from</span> <span class="s">'../../components/demande-entete/demande-entete.regles'</span>;
+<span class="k">import</span> { SaisieQuantiteDirective } <span class="k">from</span> <span class="s">'../../../../../shared/presenter/directives/saisie-quantite/saisie-quantite.directive'</span>;
+
+<span class="c">/** À partir de 20 DH c'est un billet, en dessous une pièce (grille caisse). */</span>
+<span class="k">const</span> SEUIL_BILLET = 20;
+
+<span class="k">const</span> PARAMETRES_AGENCE = { establishment: <span class="s">'001'</span>, cashDeskNumber: <span class="s">'002'</span> } as <span class="k">const</span>;
+
+<span class="k">const</span> DEVISE_LOCALE = <span class="s">'MAD'</span>;
+
+<span class="c">/** Mode du formulaire, fixé par la route (`data: { mode }`). */</span>
+<span class="k">type</span> ModeFormulaire = <span class="s">'creation'</span> | <span class="s">'consultation'</span> | <span class="s">'modification'</span>;
+
+<span class="c">/**
+ * Écran agence — création (lot 5), consultation et modification (AER_LM-267 / 287) d'une demande de fonds.
+ *
+ * Un seul template pour les trois modes :
+ *  - création      : en-tête « Gestion des fonds – Vue Agence » + case urgente, barre Annuler / Soumettre ;
+ *  - consultation  : &lt;app-demande-entete&gt; (pastille, réf., bouton-badge « Mode Modification », bannière lecture seule),
+ *                    formulaire désactivé, &lt;app-demande-barre-actions&gt; (Retour / Annuler la demande / Soumettre un brouillon) ;
+ *  - modification  : même en-tête (badge « Mode Modification actif », case urgente), formulaire actif,
+ *                    barre Retour au listing / Annuler la demande / Soumettre les Modifications.
+ *
+ * Les règles métier (qui peut faire quoi) sont dans calculerCapacites() ; ici il n'y a que de l'orchestration.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-application-hub'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [
+    CommonModule, ReactiveFormsModule,
+    MatCheckboxModule, MatIconModule, MatSnackBarModule,
+    DemandeEnteteComponent, DemandeBarreActionsComponent, DemandeDecisionModaleComponent, SaisieQuantiteDirective
+  ],
+  templateUrl: <span class="s">'./fund-management.component.html'</span>,
+  styleUrl: <span class="s">'./fund-management.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> FundManagementComponent <span class="k">implements</span> OnInit, OnDestroy {
+
+  devisesDisponibles: Devise[] = [];
+  submitting = <span class="k">false</span>;
+
+  <span class="k">readonly</span> actions = inject(DemandeActionsFacade);
+  <span class="k">readonly</span> contexteUtilisateur = inject(ContexteUtilisateurService);
+
+  <span class="c">/** Annulation depuis la consultation / modification : saisie du motif (≥ 10 caractères) dans la modale. */</span>
+  annulationOuverte = <span class="k">false</span>;
+  <span class="k">readonly</span> motifAnnulation = <span class="k">new</span> FormControl(<span class="s">''</span>, { nonNullable: <span class="k">true</span>, validators: [Validators.required, Validators.minLength(10)] });
+
+  indexesBillets: number[] = [];
+  indexesPieces: number[] = [];
+
+  <span class="c">// ---- Mode ----</span>
+  <span class="k">readonly</span> mode: ModeFormulaire;
+  <span class="k">readonly</span> estCreation: boolean;
+  <span class="k">readonly</span> estConsultation: boolean;
+  <span class="k">readonly</span> estModification: boolean;
+  <span class="c">/** Consultation ou modification : une demande existante est chargée. */</span>
+  <span class="k">readonly</span> avecDetail: boolean;
+  idDemande: string | <span class="k">null</span>;
+
+  <span class="c">// ---- Consultation ----</span>
+  <span class="k">readonly</span> demande = <span class="k">this</span>.facade.demandeDetail;
+  <span class="k">readonly</span> libelleStatut = libelleStatut;
+  <span class="k">readonly</span> classeStatut = classeStatut;
+
+  <span class="c">/**
+   * Ce que l'utilisateur a le droit de faire sur cette demande.
+   * Aucune règle métier ici : tout est délégué à calculerCapacites().
+   */</span>
+  <span class="k">readonly</span> capacites = computed&lt;CapacitesDemande&gt;(() =&gt; {
+    <span class="k">if</span> (<span class="k">this</span>.estCreation) { <span class="k">return</span> capacitesCreation(); }
+    <span class="k">const</span> d = <span class="k">this</span>.demande();
+    <span class="k">if</span> (!d) { <span class="k">return</span> capacitesLectureSeule(<span class="s">'Chargement de la demande…'</span>); }
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">if</span> (!ctx) { <span class="k">return</span> capacitesLectureSeule(<span class="s">"Chargement de l'utilisateur…"</span>); }
+    <span class="k">const</span> faits: FaitsDemande = {
+      statut: d.statut,
+      journeeCloturee: d.journeeCloturee ?? <span class="k">false</span>,
+      cutoffUrgenceDepasse: d.cutoffUrgenceDepasse ?? <span class="k">false</span>,
+      verrouDetenuParUtilisateurCourant: !!d.lockedBy &amp;&amp; d.lockedBy === ctx.uid,
+      verrouDetenuPar: d.lockedBy ?? <span class="k">null</span>,
+      demandeDeMonAgence: !!ctx.agenceCode &amp;&amp; ctx.agenceCode === d.branchCode,
+      habilitations: ctx.habilitations
+    };
+    <span class="k">return</span> calculerCapacites(faits);
+  });
+
+  <span class="c">/** Bannière « Consultation seule » de l'en-tête, dérivée du motif de verrouillage calculé par capacites(). */</span>
+  <span class="k">readonly</span> banniere = computed&lt;BanniereLecture | <span class="k">null</span>&gt;(() =&gt; {
+    <span class="k">const</span> motif = <span class="k">this</span>.estConsultation ? <span class="k">this</span>.capacites().motifVerrouillage : <span class="k">null</span>;
+    <span class="k">return</span> motif
+      ? { ton: <span class="s">'alerte'</span>, titre: <span class="s">'Consultation seule — Demande verrouillée et non modifiable'</span>, texte: motif }
+      : <span class="k">null</span>;
+  });
+
+  form: FormGroup = <span class="k">this</span>.fb.group(
+    {
+      urgent: [<span class="k">false</span>],
+
+      gab: <span class="k">this</span>.fb.group({
+        coupures: <span class="k">this</span>.fb.array([])
+      }),
+
+      caisse: <span class="k">this</span>.fb.group({
+        coupures: <span class="k">this</span>.fb.array([])
+      }),
+
+      ramassage: <span class="k">this</span>.fb.group({
+        deviseCode: [DEVISE_LOCALE],
+        montant: [<span class="k">null</span> as number | <span class="k">null</span>, [Validators.min(0)]],
+        lignes: <span class="k">this</span>.fb.array([])
+      }),
+
+      commandeDevises: <span class="k">this</span>.fb.group({
+        deviseCode: [<span class="s">''</span>],
+        montant: [<span class="k">null</span> as number | <span class="k">null</span>, [Validators.min(0)]],
+        lignes: <span class="k">this</span>.fb.array([])
+      }),
+
+      comment: [<span class="s">''</span>]
+    },
+    { validators: auMoinsUneSectionRenseigneeValidator() }
+  );
+
+  constructor(
+    <span class="k">private</span> fb: FormBuilder,
+    <span class="k">public</span> facade: FunManagementFacade,
+    <span class="k">private</span> snackBar: MatSnackBar,
+    <span class="k">private</span> cdr: ChangeDetectorRef,
+    <span class="k">private</span> router: Router,
+    <span class="k">private</span> route: ActivatedRoute
+  ) {
+    <span class="k">this</span>.mode = <span class="k">this</span>.route.snapshot.data[<span class="s">'mode'</span>] ?? <span class="s">'creation'</span>;
+    <span class="k">this</span>.estCreation = <span class="k">this</span>.mode === <span class="s">'creation'</span>;
+    <span class="k">this</span>.estConsultation = <span class="k">this</span>.mode === <span class="s">'consultation'</span>;
+    <span class="k">this</span>.estModification = <span class="k">this</span>.mode === <span class="s">'modification'</span>;
+    <span class="k">this</span>.avecDetail = <span class="k">this</span>.estConsultation || <span class="k">this</span>.estModification;
+    <span class="k">this</span>.idDemande = <span class="k">this</span>.route.snapshot.paramMap.<span class="k">get</span>(<span class="s">'id'</span>);
+
+    <span class="c">/*
+     * Effet (1) — reconstruction des FormArrays de coupures, puis application du détail en consultation / modification.
+     *
+     * Les deux sont dans le MÊME effect, volontairement : les référentiels de coupures et le détail arrivent par deux
+     * appels HTTP indépendants. Si le patch vivait dans un effect séparé, une arrivée tardive des coupures viderait
+     * les FormArrays APRÈS le patch, et les quantités affichées seraient toutes à zéro. Ici, chaque réexécution
+     * reconstruit puis repatche : le résultat est le même quel que soit l'ordre d'arrivée.
+     */</span>
+    effect(() =&gt; {
+      <span class="k">const</span> coupuresCaisse = <span class="k">this</span>.facade.coupuresCaisse();
+      <span class="c">// Maquette 287 : l'alimentation GAB ne porte que les billets de 200 et 100 DH (« strictement 2 lignes, sans notion de cassette »).</span>
+      <span class="k">const</span> coupuresGab = <span class="k">this</span>.facade.coupuresGab().filter(c =&gt; COUPURES_GAB.includes(Number(c.faceValue)));
+      <span class="k">const</span> detail = <span class="k">this</span>.avecDetail ? <span class="k">this</span>.facade.demandeDetail() : <span class="k">null</span>;
+
+      <span class="k">this</span>.devisesDisponibles = <span class="k">this</span>.facade.devises();
+
+      <span class="k">this</span>.gabCoupures.clear();
+      <span class="k">this</span>.caisseCoupures.clear();
+
+      coupuresGab.forEach(c =&gt; <span class="k">this</span>.gabCoupures.push(<span class="k">this</span>.creerLigneCoupure(c)));
+      coupuresCaisse.forEach(c =&gt; <span class="k">this</span>.caisseCoupures.push(<span class="k">this</span>.creerLigneCoupure(c)));
+
+      <span class="k">this</span>.repartirCoupuresCaisse();
+
+      <span class="c">// Commande de devises : première devise étrangère par défaut (jamais le MAD — remarque PO).</span>
+      <span class="k">if</span> (!<span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value &amp;&amp; <span class="k">this</span>.devisesDisponibles.length) {
+        <span class="k">const</span> parDefaut = <span class="k">this</span>.devisesDisponibles.find(d =&gt; d.isoCode !== DEVISE_LOCALE)
+          ?? <span class="k">this</span>.devisesDisponibles[0];
+        <span class="k">this</span>.commandeDevisesGroup.patchValue(
+          { deviseCode: parDefaut.isoCode },
+          { emitEvent: <span class="k">false</span> }
+        );
+      }
+
+      <span class="k">if</span> (detail) {
+        <span class="k">this</span>.appliquerDetail(detail);
+      }
+
+      <span class="c">// Les contrôles recréés ci-dessus naissent actifs : on redésactive à chaque passage,</span>
+      <span class="c">// sinon une arrivée tardive des référentiels rouvrirait la saisie en consultation.</span>
+      <span class="k">if</span> (<span class="k">this</span>.estConsultation) {
+        <span class="k">this</span>.form.disable({ emitEvent: <span class="k">false</span> });
+      }
+
+      <span class="c">// En modification, seule la case urgente peut être restreinte (cut-off, en standby aujourd'hui : toujours éditable).</span>
+      <span class="k">if</span> (<span class="k">this</span>.estModification) {
+        <span class="k">const</span> urgent = <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'urgent'</span>)!;
+        <span class="k">this</span>.capacites().peutModifierUrgence
+          ? urgent.enable({ emitEvent: <span class="k">false</span> })
+          : urgent.disable({ emitEvent: <span class="k">false</span> });
+      }
+
+      <span class="k">this</span>.cdr.markForCheck();
+    });
+
+    <span class="c">// Effet (2) — garde : une demande verrouillée ne s'ouvre pas en modification, même en tapant l'URL à la main.</span>
+    <span class="c">// Le backend doit de toute façon rejeter le PUT.</span>
+    effect(() =&gt; {
+      <span class="k">if</span> (!<span class="k">this</span>.estModification || !<span class="k">this</span>.facade.demandeDetail()) { <span class="k">return</span>; }
+      <span class="k">const</span> capacites = <span class="k">this</span>.capacites();
+      <span class="k">if</span> (!capacites.peutModifier) {
+        <span class="k">this</span>.snackBar.open(
+          capacites.motifVerrouillage ?? <span class="s">"Cette demande n'est plus modifiable."</span>,
+          <span class="s">'Fermer'</span>,
+          { duration: 5000 }
+        );
+        <span class="k">this</span>.router.navigate([<span class="s">'consultation'</span>, <span class="k">this</span>.idDemande]);
+      }
+    });
+
+    <span class="c">// Effet (3) — retour PUT en mode modification : libère le verrou (Task_ModifierDemande complétée) puis retourne en consultation.</span>
+    effect(<span class="k">async</span> () =&gt; {
+      <span class="k">const</span> ok = <span class="k">this</span>.facade.demandeModifiee();              <span class="c">// signal de succès du store</span>
+      <span class="k">const</span> erreur = <span class="k">this</span>.facade.erreurModification();      <span class="c">// signal d'erreur du store (ErreurApi | null)</span>
+      <span class="k">if</span> (!ok &amp;&amp; !erreur) { <span class="k">return</span>; }
+      <span class="k">if</span> (erreur) {
+        <span class="k">this</span>.snackBar.open(erreur.message, <span class="s">'Fermer'</span>, { duration: 6000 });
+        <span class="k">this</span>.facade.acquitterModification();
+        <span class="k">return</span>;
+      }
+      <span class="k">this</span>.facade.acquitterModification();
+      <span class="k">if</span> (!<span class="k">this</span>.idDemande) { <span class="k">return</span>; }
+      <span class="k">if</span> (<span class="k">this</span>.demande()?.statut === <span class="s">'EN_MODIFICATION'</span>) {
+        <span class="k">const</span> fin = <span class="k">await</span> <span class="k">this</span>.actions.terminerModification(<span class="k">this</span>.idDemande, <span class="k">true</span>);
+        <span class="k">this</span>.snackBar.open(fin ? <span class="s">'Modification enregistrée.'</span> : (<span class="k">this</span>.actions.erreur() ?? <span class="s">'Erreur lors de la fin de modification.'</span>),
+          <span class="s">'Fermer'</span>, { duration: 4000 });
+      } <span class="k">else</span> {
+        <span class="k">this</span>.snackBar.open(<span class="s">'Modification enregistrée.'</span>, <span class="s">'Fermer'</span>, { duration: 4000 });
+      }
+      <span class="k">this</span>.router.navigate([<span class="s">'consultation'</span>, <span class="k">this</span>.idDemande], { relativeTo: <span class="k">this</span>.route.parent });
+    }, { allowSignalWrites: <span class="k">true</span> });
+
+    <span class="c">// Effet (4) — retour de la création (store).</span>
+    effect(() =&gt; {
+      <span class="k">const</span> creee = <span class="k">this</span>.facade.demandeCreee();
+      <span class="k">const</span> erreur = <span class="k">this</span>.facade.erreurCreation();
+
+      <span class="k">if</span> (creee) {
+        <span class="k">this</span>.submitting = <span class="k">false</span>;
+        <span class="k">this</span>.snackBar.open(<span class="s">`Demande ${creee.id} envoyée avec succès.`</span>, <span class="s">'Fermer'</span>, { duration: 4000 });
+        <span class="k">this</span>.annuler();
+        <span class="k">this</span>.facade.acquitterCreation();
+        <span class="k">this</span>.router.navigate([<span class="s">'list'</span>]);
+      }
+
+      <span class="k">if</span> (erreur) {
+        <span class="k">this</span>.submitting = <span class="k">false</span>;
+        <span class="k">this</span>.snackBar.open(erreur.message, <span class="s">'Fermer'</span>, { duration: 6000 });
+        <span class="k">this</span>.facade.acquitterCreation();
+        <span class="k">if</span> (erreur.erreursChamps) {
+          console.warn(<span class="s">'Erreurs par champ renvoyées par le serveur :'</span>, erreur.erreursChamps);
+        }
+      }
+
+      <span class="k">this</span>.cdr.markForCheck();
+    }, { allowSignalWrites: <span class="k">true</span> });
+  }
+
+  <span class="k">async</span> ngOnInit(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">this</span>.facade.loadCoupures();
+    <span class="k">this</span>.facade.loadDevises();
+    <span class="k">const</span> ctx = <span class="k">await</span> <span class="k">this</span>.contexteUtilisateur.charger();
+    <span class="k">if</span> (<span class="k">this</span>.avecDetail &amp;&amp; <span class="k">this</span>.idDemande) {
+      <span class="k">this</span>.facade.loadDetail(<span class="k">this</span>.idDemande);
+      <span class="k">return</span>;
+    }
+    <span class="k">if</span> (<span class="k">this</span>.estCreation &amp;&amp; ctx) {
+      <span class="c">// Clic « Nouvelle demande » = démarrage du workflow (Task_InitierDemande complétée, Task_SoumettreDemande active)</span>
+      <span class="k">const</span> brouillon = <span class="k">await</span> <span class="k">this</span>.actions.initier({
+        user: ctx.uid,
+        branchCode: ctx.agenceCode ?? <span class="s">''</span>,
+        establishment: PARAMETRES_AGENCE.establishment
+      });
+      <span class="k">if</span> (brouillon) {
+        <span class="k">this</span>.idDemande = brouillon.id;
+      } <span class="k">else</span> {
+        <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">"Impossible d'initialiser la demande."</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+      }
+    }
+  }
+
+  ngOnDestroy(): <span class="k">void</span> {
+    <span class="k">this</span>.facade.reinitialiserDetail();
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Accès aux groupes / tableaux</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="k">get</span> gabGroup(): FormGroup { <span class="k">return</span> <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'gab'</span>) as FormGroup; }
+  <span class="k">get</span> caisseGroup(): FormGroup { <span class="k">return</span> <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'caisse'</span>) as FormGroup; }
+  <span class="k">get</span> ramassageGroup(): FormGroup { <span class="k">return</span> <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'ramassage'</span>) as FormGroup; }
+  <span class="k">get</span> commandeDevisesGroup(): FormGroup { <span class="k">return</span> <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'commandeDevises'</span>) as FormGroup; }
+
+  <span class="k">get</span> gabCoupures(): FormArray { <span class="k">return</span> <span class="k">this</span>.gabGroup.<span class="k">get</span>(<span class="s">'coupures'</span>) as FormArray; }
+  <span class="k">get</span> caisseCoupures(): FormArray { <span class="k">return</span> <span class="k">this</span>.caisseGroup.<span class="k">get</span>(<span class="s">'coupures'</span>) as FormArray; }
+  <span class="k">get</span> ramassageLignes(): FormArray { <span class="k">return</span> <span class="k">this</span>.ramassageGroup.<span class="k">get</span>(<span class="s">'lignes'</span>) as FormArray; }
+  <span class="k">get</span> commandeDeviseLignes(): FormArray { <span class="k">return</span> <span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'lignes'</span>) as FormArray; }
+
+  <span class="c">/** Remarque PO — commande de devises : seules les devises étrangères sont proposées (le ramassage garde devisesDisponibles). */</span>
+  <span class="k">get</span> devisesCommandables(): Devise[] {
+    <span class="k">return</span> <span class="k">this</span>.devisesDisponibles.filter(d =&gt; d.isoCode !== DEVISE_LOCALE);
+  }
+
+  <span class="c">/**
+   * Identifie une ligne caisse par son contrôle, pas par son index.
+   * Sans ça, après une reconstruction du FormArray, Angular réutilise les
+   * lignes existantes et les champs restent liés aux anciens contrôles.
+   */</span>
+  <span class="k">readonly</span> suivreCoupureCaisse = (_: number, i: number) =&gt; <span class="k">this</span>.caisseCoupures.at(i);
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Totaux</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  coupureMontant(row: AbstractControl): number {
+    <span class="k">const</span> valeur = Number(row.<span class="k">get</span>(<span class="s">'valeur'</span>)?.value ?? 0);
+    <span class="k">const</span> quantite = Number(row.<span class="k">get</span>(<span class="s">'quantite'</span>)?.value ?? 0);
+    <span class="k">return</span> valeur * quantite;
+  }
+
+  totalCoupures(coupures: FormArray): number {
+    <span class="k">return</span> coupures.controls.reduce((total: number, row: AbstractControl) =&gt; total + <span class="k">this</span>.coupureMontant(row), 0);
+  }
+
+  totalGab(): number { <span class="k">return</span> <span class="k">this</span>.totalCoupures(<span class="k">this</span>.gabCoupures); }
+  totalCaisse(): number { <span class="k">return</span> <span class="k">this</span>.totalCoupures(<span class="k">this</span>.caisseCoupures); }
+
+  <span class="c">/** Pied de carte caisse : « Détail : Billets … • Pièces … ». */</span>
+  totalBillets(): number {
+    <span class="k">return</span> <span class="k">this</span>.indexesBillets.reduce((t: number, i: number) =&gt; t + <span class="k">this</span>.coupureMontant(<span class="k">this</span>.caisseCoupures.at(i)), 0);
+  }
+
+  totalPieces(): number {
+    <span class="k">return</span> <span class="k">this</span>.indexesPieces.reduce((t: number, i: number) =&gt; t + <span class="k">this</span>.coupureMontant(<span class="k">this</span>.caisseCoupures.at(i)), 0);
+  }
+
+  <span class="c">/** Seules les collectes en MAD entrent dans le total général. */</span>
+  totalRamassageMad(): number {
+    <span class="k">return</span> <span class="k">this</span>.ramassageLignes.controls
+      .filter(l =&gt; l.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value === DEVISE_LOCALE)
+      .reduce((total: number, l: AbstractControl) =&gt; total + Number(l.<span class="k">get</span>(<span class="s">'montant'</span>)?.value ?? 0), 0);
+  }
+
+  montantTotalMad(): number {
+    <span class="k">return</span> <span class="k">this</span>.totalGab() + <span class="k">this</span>.totalCaisse() + <span class="k">this</span>.totalRamassageMad();
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Ramassage</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="k">get</span> peutAjouterRamassage(): boolean {
+    <span class="k">return</span> !!<span class="k">this</span>.ramassageGroup.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value
+      &amp;&amp; Number(<span class="k">this</span>.ramassageGroup.<span class="k">get</span>(<span class="s">'montant'</span>)?.value) &gt; 0;
+  }
+
+  ajouterLigneRamassage(): <span class="k">void</span> {
+    <span class="k">if</span> (!<span class="k">this</span>.peutAjouterRamassage) { <span class="k">return</span>; }
+
+    <span class="k">this</span>.ramassageLignes.push(<span class="k">this</span>.creerLigneDevise(
+      <span class="k">this</span>.ramassageGroup.<span class="k">get</span>(<span class="s">'deviseCode'</span>)!.value,
+      Number(<span class="k">this</span>.ramassageGroup.<span class="k">get</span>(<span class="s">'montant'</span>)!.value)
+    ));
+
+    <span class="k">this</span>.ramassageGroup.patchValue({ montant: <span class="k">null</span> });
+    <span class="k">this</span>.form.updateValueAndValidity();
+  }
+
+  supprimerLigneRamassage(index: number): <span class="k">void</span> {
+    <span class="k">this</span>.ramassageLignes.removeAt(index);
+    <span class="k">this</span>.form.updateValueAndValidity();
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Commande devises</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="k">get</span> peutAjouterCommandeDevise(): boolean {
+    <span class="k">return</span> !!<span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value
+      &amp;&amp; Number(<span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'montant'</span>)?.value) &gt; 0;
+  }
+
+  ajouterCommandeDevise(): <span class="k">void</span> {
+    <span class="k">if</span> (!<span class="k">this</span>.peutAjouterCommandeDevise) { <span class="k">return</span>; }
+
+    <span class="k">this</span>.commandeDeviseLignes.push(<span class="k">this</span>.creerLigneDevise(
+      <span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'deviseCode'</span>)!.value,
+      Number(<span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'montant'</span>)!.value)
+    ));
+
+    <span class="k">this</span>.commandeDevisesGroup.patchValue({ montant: <span class="k">null</span> });
+    <span class="k">this</span>.form.updateValueAndValidity();
+  }
+
+  supprimerCommandeDevise(index: number): <span class="k">void</span> {
+    <span class="k">this</span>.commandeDeviseLignes.removeAt(index);
+    <span class="k">this</span>.form.updateValueAndValidity();
+  }
+
+  libelleDevise(code: string): string {
+    <span class="k">return</span> <span class="k">this</span>.devisesDisponibles.find(d =&gt; d.isoCode === code)?.currencyName ?? code;
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Navigation</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  retourListing(): <span class="k">void</span> {
+    <span class="k">this</span>.router.navigate([<span class="s">'list'</span>], { relativeTo: <span class="k">this</span>.route.parent });
+  }
+
+  <span class="c">/** Bouton-badge « Mode Modification » de l'en-tête : pose le verrou (la Caisse Centrale perd la main) puis ouvre le mode modification. */</span>
+  <span class="k">async</span> modifier(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (!<span class="k">this</span>.idDemande) { <span class="k">return</span>; }
+    <span class="k">const</span> d = <span class="k">this</span>.demande();
+    <span class="k">if</span> (d?.statut === <span class="s">'INITIEE'</span>) {                              <span class="c">// brouillon : pas de verrou, édition directe</span>
+      <span class="k">this</span>.router.navigate([<span class="s">'modification'</span>, <span class="k">this</span>.idDemande], { relativeTo: <span class="k">this</span>.route.parent });
+      <span class="k">return</span>;
+    }
+    <span class="k">const</span> verrouillee = <span class="k">await</span> <span class="k">this</span>.actions.demarrerModification(<span class="k">this</span>.idDemande);
+    <span class="k">if</span> (verrouillee) {
+      <span class="k">this</span>.router.navigate([<span class="s">'modification'</span>, <span class="k">this</span>.idDemande], { relativeTo: <span class="k">this</span>.route.parent });
+    } <span class="k">else</span> {
+      <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Impossible de passer en modification.'</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+    }
+  }
+
+  <span class="c">/** « Retour au listing » du mode modification : libère le verrou sans enregistrer. */</span>
+  <span class="k">async</span> abandonnerModification(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (!<span class="k">this</span>.idDemande) { <span class="k">return</span>; }
+    <span class="k">const</span> d = <span class="k">this</span>.demande();
+    <span class="k">if</span> (d?.statut === <span class="s">'EN_MODIFICATION'</span>) {
+      <span class="k">await</span> <span class="k">this</span>.actions.terminerModification(<span class="k">this</span>.idDemande, <span class="k">false</span>);
+    }
+    <span class="k">this</span>.router.navigate([<span class="s">'consultation'</span>, <span class="k">this</span>.idDemande], { relativeTo: <span class="k">this</span>.route.parent });
+  }
+
+  <span class="c">/** Bouton « Soumettre » en consultation d'un brouillon : soumet le contenu déjà enregistré. */</span>
+  <span class="k">async</span> soumettreDepuisConsultation(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (!<span class="k">this</span>.idDemande) { <span class="k">return</span>; }
+    <span class="k">const</span> soumise = <span class="k">await</span> <span class="k">this</span>.actions.soumettre(<span class="k">this</span>.idDemande, <span class="k">null</span>);
+    <span class="k">if</span> (soumise) {
+      <span class="k">this</span>.snackBar.open(<span class="s">`Demande ${soumise.uniqueRequestRef} soumise.`</span>, <span class="s">'Fermer'</span>, { duration: 4000 });
+      <span class="k">this</span>.facade.loadDetail(<span class="k">this</span>.idDemande);
+    } <span class="k">else</span> {
+      <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Erreur lors de la soumission.'</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+    }
+  }
+
+  ouvrirAnnulation(): <span class="k">void</span> { <span class="k">this</span>.annulationOuverte = <span class="k">true</span>; <span class="k">this</span>.motifAnnulation.reset(<span class="s">''</span>); }
+  fermerAnnulation(): <span class="k">void</span> { <span class="k">this</span>.annulationOuverte = <span class="k">false</span>; }
+
+  <span class="c">/** Bouton « Annuler la demande » : motif ≥ 10 caractères, msgAnnulerDemande côté back, statut écrit par le worker. */</span>
+  <span class="k">async</span> annulerDemande(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (!<span class="k">this</span>.idDemande || <span class="k">this</span>.motifAnnulation.invalid) {
+      <span class="k">this</span>.motifAnnulation.markAsTouched();
+      <span class="k">return</span>;
+    }
+    <span class="k">const</span> resultat = <span class="k">await</span> <span class="k">this</span>.actions.annuler(<span class="k">this</span>.idDemande, <span class="k">this</span>.motifAnnulation.value.trim());
+    <span class="k">if</span> (resultat) {
+      <span class="k">this</span>.annulationOuverte = <span class="k">false</span>;
+      <span class="k">this</span>.snackBar.open(<span class="s">"Annulation transmise : le statut sera mis à jour dans quelques secondes."</span>, <span class="s">'Fermer'</span>, { duration: 5000 });
+      setTimeout(() =&gt; <span class="k">this</span>.idDemande &amp;&amp; <span class="k">this</span>.facade.loadDetail(<span class="k">this</span>.idDemande), 1500);
+    } <span class="k">else</span> {
+      <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">"Erreur lors de l'annulation."</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+    }
+    <span class="k">this</span>.cdr.markForCheck();
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Soumission</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  annuler(): <span class="k">void</span> {
+    <span class="k">this</span>.form.reset({ urgent: <span class="k">false</span>, comment: <span class="s">''</span> });
+
+    [<span class="k">this</span>.gabCoupures, <span class="k">this</span>.caisseCoupures].forEach(arr =&gt;
+      arr.controls.forEach(row =&gt; row.patchValue({ quantite: 0 }))
+    );
+
+    <span class="k">this</span>.ramassageLignes.clear();
+    <span class="k">this</span>.commandeDeviseLignes.clear();
+    <span class="k">this</span>.ramassageGroup.patchValue({ deviseCode: DEVISE_LOCALE, montant: <span class="k">null</span> });
+  }
+
+  <span class="k">async</span> submit(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (<span class="k">this</span>.form.invalid) {
+      <span class="k">const</span> message = <span class="k">this</span>.form.hasError(<span class="s">'formulaireVide'</span>)
+        ? <span class="s">'Renseignez au moins une section (caisse, GAB, ramassage ou commande de devises).'</span>
+        : <span class="s">'Veuillez corriger les champs en erreur.'</span>;
+      <span class="k">this</span>.snackBar.open(message, <span class="s">'Fermer'</span>, { duration: 5000 });
+      <span class="k">return</span>;
+    }
+    <span class="k">const</span> payload = <span class="k">this</span>.construirePayload();
+
+    <span class="k">if</span> (<span class="k">this</span>.estModification &amp;&amp; <span class="k">this</span>.idDemande) {
+      <span class="k">this</span>.facade.modifierDemande(<span class="k">this</span>.idDemande, payload);      <span class="c">// PUT → l'effet (3) termine la modification</span>
+      <span class="k">return</span>;
+    }
+
+    <span class="k">if</span> (<span class="k">this</span>.estCreation) {
+      <span class="k">if</span> (!<span class="k">this</span>.idDemande) {
+        <span class="k">this</span>.snackBar.open(<span class="s">"La demande n'a pas pu être initialisée : rechargez la page."</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+        <span class="k">return</span>;
+      }
+      <span class="k">this</span>.submitting = <span class="k">true</span>;
+      <span class="k">const</span> soumise = <span class="k">await</span> <span class="k">this</span>.actions.soumettre(<span class="k">this</span>.idDemande, payload);   <span class="c">// contenu + Task_SoumettreDemande</span>
+      <span class="k">this</span>.submitting = <span class="k">false</span>;
+      <span class="k">this</span>.cdr.markForCheck();
+      <span class="k">if</span> (soumise) {
+        <span class="k">this</span>.snackBar.open(<span class="s">`Demande ${soumise.uniqueRequestRef} soumise.`</span>, <span class="s">'Fermer'</span>, { duration: 4000 });
+        <span class="k">this</span>.router.navigate([<span class="s">'consultation'</span>, soumise.id], { relativeTo: <span class="k">this</span>.route.parent });
+      } <span class="k">else</span> {
+        <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Erreur lors de la soumission.'</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+      }
+    }
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Helpers privés</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="k">private</span> creerLigneCoupure(d: Denomination): FormGroup {
+    <span class="k">return</span> <span class="k">this</span>.fb.group({
+      denominationId: [d.id],
+      code:           [d.denominationCode],
+      valeur:         [d.faceValue],
+      libelle:        [d.denominationLabel],
+      quantite:       [0, [Validators.min(0)]]
+    });
+  }
+
+  <span class="k">private</span> creerLigneDevise(deviseCode: string, montant: number): FormGroup {
+    <span class="k">return</span> <span class="k">this</span>.fb.group({
+      deviseCode: [deviseCode, Validators.required],
+      montant: [montant, [Validators.required, Validators.min(0)]]
+    });
+  }
+
+  <span class="k">private</span> repartirCoupuresCaisse(): <span class="k">void</span> {
+    <span class="k">this</span>.indexesBillets = [];
+    <span class="k">this</span>.indexesPieces = [];
+
+    <span class="k">this</span>.caisseCoupures.controls.forEach((row: AbstractControl, index: number) =&gt; {
+      <span class="k">const</span> valeur = Number(row.<span class="k">get</span>(<span class="s">'valeur'</span>)?.value ?? 0);
+      (valeur &gt;= SEUIL_BILLET ? <span class="k">this</span>.indexesBillets : <span class="k">this</span>.indexesPieces).push(index);
+    });
+  }
+
+  <span class="c">/**
+   * Applique le détail d'une demande existante au formulaire.
+   * Inverse de construirePayload() : mêmes couples operationType / operationSens.
+   */</span>
+  <span class="k">private</span> appliquerDetail(d: DemandeFondsDetail): <span class="k">void</span> {
+    <span class="k">const</span> operations = d.operations ?? [];
+    <span class="k">const</span> filtrer = (<span class="k">type</span>: string, sens: string) =&gt;
+      operations.filter(o =&gt; o.operationType === <span class="k">type</span> &amp;&amp; o.operationSens === sens);
+
+    <span class="k">this</span>.form.patchValue(
+      {
+        urgent: operations.some(o =&gt; o.isUrgent),
+        comment: d.comment ?? <span class="s">''</span>
+      },
+      { emitEvent: <span class="k">false</span> }
+    );
+
+    <span class="k">this</span>.appliquerQuantites(<span class="k">this</span>.gabCoupures, filtrer(<span class="s">'ATM'</span>, <span class="s">'SUPPLY'</span>));
+    <span class="k">this</span>.appliquerQuantites(<span class="k">this</span>.caisseCoupures, filtrer(<span class="s">'CASH_DESK'</span>, <span class="s">'SUPPLY'</span>));
+
+    <span class="k">this</span>.commandeDeviseLignes.clear({ emitEvent: <span class="k">false</span> });
+    filtrer(<span class="s">'CURRENCY'</span>, <span class="s">'SUPPLY'</span>).forEach(o =&gt;
+      (o.currencyDetails ?? []).forEach(cd =&gt;
+        <span class="k">this</span>.commandeDeviseLignes.push(
+          <span class="k">this</span>.creerLigneDevise(cd.currency.isoCode, cd.totalAmountByCurrency),
+          { emitEvent: <span class="k">false</span> }
+        )
+      )
+    );
+
+    <span class="k">this</span>.ramassageLignes.clear({ emitEvent: <span class="k">false</span> });
+    filtrer(<span class="s">'CURRENCY'</span>, <span class="s">'COLLECTION'</span>).forEach(o =&gt;
+      (o.currencyDetails ?? []).forEach(cd =&gt;
+        <span class="k">this</span>.ramassageLignes.push(
+          <span class="k">this</span>.creerLigneDevise(cd.currency.isoCode, cd.totalAmountByCurrency),
+          { emitEvent: <span class="k">false</span> }
+        )
+      )
+    );
+  }
+
+  <span class="c">/** Reporte les quantités par denominationCode, l'identifiant canonique des coupures. */</span>
+  <span class="k">private</span> appliquerQuantites(coupures: FormArray, operations: OperationDetail[]): <span class="k">void</span> {
+    <span class="k">const</span> quantites = <span class="k">new</span> Map&lt;string, number&gt;();
+    operations.forEach(o =&gt;
+      (o.currencyDetails ?? []).forEach(cd =&gt;
+        (cd.operationDenominations ?? []).forEach(od =&gt;
+          quantites.set(od.denomination.denominationCode, od.quantity)
+        )
+      )
+    );
+
+    coupures.controls.forEach(row =&gt; {
+      <span class="k">const</span> code = row.<span class="k">get</span>(<span class="s">'code'</span>)?.value as string;
+      row.patchValue({ quantite: quantites.<span class="k">get</span>(code) ?? 0 }, { emitEvent: <span class="k">false</span> });
+    });
+  }
+
+  <span class="k">private</span> construirePayload(): DemandeFondsPayload {
+    <span class="k">const</span> urgent: boolean = <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'urgent'</span>)?.value ?? <span class="k">false</span>;
+    <span class="k">const</span> operations: OperationPayload[] = [];
+
+    <span class="c">// GAB — SUPPLY ATM, ventilation MAD</span>
+    <span class="k">if</span> (<span class="k">this</span>.totalGab() &gt; 0) {
+      operations.push({
+        operationType: <span class="s">'ATM'</span>,
+        operationSens: <span class="s">'SUPPLY'</span>,
+        isUrgent: urgent,
+        cashDeskNumber: PARAMETRES_AGENCE.cashDeskNumber,
+        currencyDetails: [<span class="k">this</span>.detailMad(<span class="k">this</span>.gabCoupures, <span class="k">this</span>.totalGab())]
+      });
+    }
+
+    <span class="k">if</span> (<span class="k">this</span>.totalCaisse() &gt; 0) {
+      operations.push({
+        operationType: <span class="s">'CASH_DESK'</span>,
+        operationSens: <span class="s">'SUPPLY'</span>,
+        isUrgent: urgent,
+        cashDeskNumber: PARAMETRES_AGENCE.cashDeskNumber,
+        currencyDetails: [<span class="k">this</span>.detailMad(<span class="k">this</span>.caisseCoupures, <span class="k">this</span>.totalCaisse())]
+      });
+    }
+
+    <span class="k">this</span>.commandeDeviseLignes.controls
+      .filter(l =&gt; Number(l.<span class="k">get</span>(<span class="s">'montant'</span>)?.value ?? 0) &gt; 0 &amp;&amp; !!l.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value)
+      .forEach(l =&gt; operations.push({
+        operationType: <span class="s">'CURRENCY'</span>,
+        operationSens: <span class="s">'SUPPLY'</span>,
+        isUrgent: urgent,
+        cashDeskNumber: PARAMETRES_AGENCE.cashDeskNumber,
+        currencyDetails: [{
+          currency: { isoCode: l.<span class="k">get</span>(<span class="s">'deviseCode'</span>)!.value },
+          totalAmountByCurrency: Number(l.<span class="k">get</span>(<span class="s">'montant'</span>)!.value),
+          operationDenominations: []
+        }]
+      }));
+
+    <span class="k">const</span> ramassageParDevise = <span class="k">new</span> Map&lt;string, number&gt;();
+    <span class="k">this</span>.ramassageLignes.controls.forEach(l =&gt; {
+      <span class="k">const</span> isoCode: string | <span class="k">null</span> = l.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value;
+      <span class="k">const</span> montant = Number(l.<span class="k">get</span>(<span class="s">'montant'</span>)?.value ?? 0);
+      <span class="k">if</span> (!isoCode || montant &lt;= 0) { <span class="k">return</span>; }
+      ramassageParDevise.set(isoCode, (ramassageParDevise.<span class="k">get</span>(isoCode) ?? 0) + montant);
+    });
+    <span class="k">if</span> (ramassageParDevise.size &gt; 0) {
+      operations.push({
+        operationType: <span class="s">'CURRENCY'</span>,
+        operationSens: <span class="s">'COLLECTION'</span>,
+        isUrgent: urgent,
+        cashDeskNumber: PARAMETRES_AGENCE.cashDeskNumber,
+        currencyDetails: Array.<span class="k">from</span>(ramassageParDevise, ([isoCode, total]) =&gt; ({
+          currency: { isoCode },
+          totalAmountByCurrency: total,
+          operationDenominations: []
+        }))
+      });
+    }
+
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">return</span> {
+      branchCode: ctx?.agenceCode ?? <span class="s">''</span>,
+      user: ctx?.uid ?? <span class="s">''</span>,
+      establishment: PARAMETRES_AGENCE.establishment,
+      operations,
+      comment: (<span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'comment'</span>)?.value as string | <span class="k">null</span>) ?? <span class="k">null</span>
+    };
+  }
+
+  <span class="k">private</span> detailMad(coupures: FormArray, total: number) {
+    <span class="k">return</span> {
+      currency: { isoCode: DEVISE_LOCALE },
+      totalAmountByCurrency: total,
+      operationDenominations: coupures.controls
+        .filter(row =&gt; Number(row.<span class="k">get</span>(<span class="s">'quantite'</span>)?.value ?? 0) &gt; 0)
+        .map(row =&gt; ({
+          denomination: { denominationCode: row.<span class="k">get</span>(<span class="s">'code'</span>)?.value as string },
+          quantity: Number(row.<span class="k">get</span>(<span class="s">'quantite'</span>)?.value)
+        }))
+    };
+  }
+}
+
+<span class="k">export</span> <span class="k">function</span> auMoinsUneSectionRenseigneeValidator(): ValidatorFn {
+  <span class="k">return</span> (form: AbstractControl): ValidationErrors | <span class="k">null</span> =&gt; {
+    <span class="k">const</span> quantiteRenseignee = (chemin: string) =&gt;
+      ((form.<span class="k">get</span>(chemin) as FormArray | <span class="k">null</span>)?.controls ?? [])
+        .some(row =&gt; Number(row.<span class="k">get</span>(<span class="s">'quantite'</span>)?.value ?? 0) &gt; 0);
+
+    <span class="k">const</span> listeNonVide = (chemin: string) =&gt;
+      ((form.<span class="k">get</span>(chemin) as FormArray | <span class="k">null</span>)?.length ?? 0) &gt; 0;
+
+    <span class="k">const</span> rempli =
+      quantiteRenseignee(<span class="s">'gab.coupures'</span>) ||
+      quantiteRenseignee(<span class="s">'caisse.coupures'</span>) ||
+      listeNonVide(<span class="s">'ramassage.lignes'</span>) ||
+      listeNonVide(<span class="s">'commandeDevises.lignes'</span>);
+
+    <span class="k">return</span> rempli ? <span class="k">null</span> : { formulaireVide: <span class="k">true</span> };
+  };
+}</code></pre></div>
+<h2 id="s2">2. fund-management.component.html</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>fund-management.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html</span></div><p class="note">Un seul template pour les trois modes, structure de la maquette : lien retour → carte d'en-tête → grille 8/4 (Caisse, Commande Devises, Commentaire | GAB, Ramassage) → barre. Les sous-blocs de saisie (select + montant + Ajouter) sont sous <code>*ngIf="!estConsultation"</code> ; les corbeilles deviennent des cadenas en consultation ; les grilles restent liées aux mêmes FormArrays.</p><pre><button class="copy">Copier</button><code>&lt;form [formGroup]=<span class="s">"form"</span> <span class="k">class</span>=<span class="s">"ecran"</span> (ngSubmit)=<span class="s">"submit()"</span> novalidate&gt;
+
+  <span class="c">&lt;!-- ======================= En-tête de CRÉATION (lot 5) ======================= --&gt;</span>
+  &lt;header <span class="k">class</span>=<span class="s">"page-head"</span> *ngIf=<span class="s">"estCreation"</span>&gt;
+    &lt;h2 <span class="k">class</span>=<span class="s">"page-title"</span>&gt;Gestion des fonds - Vue Agence&lt;/h2&gt;
+    &lt;label <span class="k">class</span>=<span class="s">"urgent-flag"</span>&gt;
+      &lt;mat-checkbox formControlName=<span class="s">"urgent"</span> color=<span class="s">"warn"</span>&gt;Demande Urgente&lt;/mat-checkbox&gt;
+    &lt;/label&gt;
+  &lt;/header&gt;
+
+  <span class="c">&lt;!-- ======================= En-tête CONSULTATION / MODIFICATION (287) ======================= --&gt;</span>
+  &lt;app-demande-entete *ngIf=<span class="s">"avecDetail &amp;&amp; demande() as d"</span>
+    [reference]=<span class="s">"d.uniqueRequestRef ?? '—'"</span>
+    [statut]=<span class="s">"d.statut"</span>
+    [urgent]=<span class="s">"!!form.get('urgent')?.value"</span>
+    [urgentModifiable]=<span class="s">"estModification &amp;&amp; capacites().peutModifierUrgence"</span>
+    (urgentChange)=<span class="s">"form.get('urgent')?.setValue($event)"</span>
+    [modeModification]=<span class="s">"estModification"</span>
+    [modificationActivable]=<span class="s">"estConsultation &amp;&amp; capacites().peutModifier"</span>
+    (activerModification)=<span class="s">"modifier()"</span>
+    [soumiseLe]=<span class="s">"d.submittedAt ?? d.createdAt ?? null"</span>
+    [soumisePar]=<span class="s">"d.agentNom || d.user || null"</span>
+    [soumiseParDetail]=<span class="s">"d.agentProfil ?? null"</span>
+    [decisionLe]=<span class="s">"d.decisionAt ?? null"</span>
+    [decisionPar]=<span class="s">"d.decisionPar ?? null"</span>
+    [decisionParDetail]=<span class="s">"d.decisionProfil ?? null"</span>
+    [motifAnnulation]=<span class="s">"d.cancellationReason ?? null"</span>
+    [banniere]=<span class="s">"banniere()"</span>
+    lienRetour=<span class="s">"Retour à l'Historique des Demandes"</span>
+    (retour)=<span class="s">"estModification ? abandonnerModification() : retourListing()"</span>&gt;
+  &lt;/app-demande-entete&gt;
+
+  <span class="c">&lt;!-- ======================= Grille 8 / 4 de la maquette ======================= --&gt;</span>
+  &lt;div <span class="k">class</span>=<span class="s">"board"</span>&gt;
+
+    <span class="c">&lt;!-- ---------- Colonne principale ---------- --&gt;</span>
+    &lt;div <span class="k">class</span>=<span class="s">"board__col board__col--main"</span>&gt;
+
+      <span class="c">&lt;!-- 1. Alimentation Caisse (MAD) --&gt;</span>
+      &lt;section <span class="k">class</span>=<span class="s">"carte"</span> formGroupName=<span class="s">"caisse"</span>&gt;
+        &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;payments&lt;/mat-icon&gt; Alimentation Caisse (MAD)&lt;/h3&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"coupures"</span> formArrayName=<span class="s">"coupures"</span>&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"coupures__groupe"</span>&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"coupures__entete"</span>&gt;&lt;span&gt;Billets&lt;/span&gt;&lt;span&gt;Quantité&lt;/span&gt;&lt;/div&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"coupure"</span> *ngFor=<span class="s">"let i of indexesBillets; trackBy: suivreCoupureCaisse"</span> [formGroupName]=<span class="s">"i"</span>&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"coupure__valeur"</span>&gt;{{ caisseCoupures.at(i).<span class="k">get</span>(<span class="s">'valeur'</span>)?.value }}&lt;/span&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"coupure__x"</span>&gt;x&lt;/span&gt;
+              &lt;input <span class="k">class</span>=<span class="s">"coupure__champ"</span> <span class="k">type</span>=<span class="s">"number"</span> appSaisieQuantite min=<span class="s">"0"</span> step=<span class="s">"1"</span> formControlName=<span class="s">"quantite"</span>&gt;
+            &lt;/div&gt;
+            &lt;p <span class="k">class</span>=<span class="s">"vide"</span> *ngIf=<span class="s">"!indexesBillets.length"</span>&gt;Aucun billet dans le référentiel&lt;/p&gt;
+          &lt;/div&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"coupures__groupe"</span>&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"coupures__entete"</span>&gt;&lt;span&gt;Pièces&lt;/span&gt;&lt;span&gt;Quantité&lt;/span&gt;&lt;/div&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"coupure"</span> *ngFor=<span class="s">"let i of indexesPieces; trackBy: suivreCoupureCaisse"</span> [formGroupName]=<span class="s">"i"</span>&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"coupure__valeur"</span>&gt;{{ caisseCoupures.at(i).<span class="k">get</span>(<span class="s">'valeur'</span>)?.value }}&lt;/span&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"coupure__x"</span>&gt;x&lt;/span&gt;
+              &lt;input <span class="k">class</span>=<span class="s">"coupure__champ"</span> <span class="k">type</span>=<span class="s">"number"</span> appSaisieQuantite min=<span class="s">"0"</span> step=<span class="s">"1"</span> formControlName=<span class="s">"quantite"</span>&gt;
+            &lt;/div&gt;
+            &lt;p <span class="k">class</span>=<span class="s">"vide"</span> *ngIf=<span class="s">"!indexesPieces.length"</span>&gt;Aucune pièce dans le référentiel&lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"totaux"</span>&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"totaux__detail"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"puce"</span>&gt;&lt;/span&gt;
+            Détail : Billets {{ totalBillets() | number:<span class="s">'1.2-2'</span> }} MAD • Pièces {{ totalPieces() | number:<span class="s">'1.2-2'</span> }} MAD
+          &lt;/p&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"totaux__bloc"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"totaux__libelle"</span>&gt;Total saisi&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"totaux__valeur"</span>&gt;{{ totalCaisse() | number:<span class="s">'1.2-2'</span> }} MAD&lt;/span&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      <span class="c">&lt;!-- 2. Commande Devises --&gt;</span>
+      &lt;section <span class="k">class</span>=<span class="s">"carte"</span> formGroupName=<span class="s">"commandeDevises"</span>&gt;
+        &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;currency_exchange&lt;/mat-icon&gt; Commande Devises&lt;/h3&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"saisie saisie--devise"</span> *ngIf=<span class="s">"!estConsultation"</span>&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+            &lt;label <span class="k">class</span>=<span class="s">"champ__libelle"</span> for=<span class="s">"cd-devise"</span>&gt;Devise&lt;/label&gt;
+            &lt;select id=<span class="s">"cd-devise"</span> <span class="k">class</span>=<span class="s">"champ__select"</span> formControlName=<span class="s">"deviseCode"</span>&gt;
+              <span class="c">&lt;!-- Remarque PO : jamais le MAD dans une commande de devises --&gt;</span>
+              &lt;option *ngFor=<span class="s">"let d of devisesCommandables"</span> [value]=<span class="s">"d.isoCode"</span>&gt;{{ d.isoCode }} - {{ d.currencyName }}&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/div&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+            &lt;label <span class="k">class</span>=<span class="s">"champ__libelle"</span> for=<span class="s">"cd-montant"</span>&gt;Montant Saisi&lt;/label&gt;
+            &lt;input id=<span class="s">"cd-montant"</span> <span class="k">class</span>=<span class="s">"champ__saisie champ__saisie--montant"</span> <span class="k">type</span>=<span class="s">"number"</span> appSaisieQuantite min=<span class="s">"0"</span>
+                   placeholder=<span class="s">"0.00"</span> formControlName=<span class="s">"montant"</span>&gt;
+          &lt;/div&gt;
+          &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--primaire saisie__action"</span>
+                  [disabled]=<span class="s">"!peutAjouterCommandeDevise"</span> (click)=<span class="s">"ajouterCommandeDevise()"</span>&gt;
+            &lt;mat-icon&gt;add&lt;/mat-icon&gt; Ajouter
+          &lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"table-cadre"</span>&gt;
+          &lt;table <span class="k">class</span>=<span class="s">"table"</span> formArrayName=<span class="s">"lignes"</span>&gt;
+            &lt;thead&gt;
+              &lt;tr&gt;&lt;th&gt;Devise&lt;/th&gt;&lt;th <span class="k">class</span>=<span class="s">"droite"</span>&gt;Montant Saisi&lt;/th&gt;&lt;th <span class="k">class</span>=<span class="s">"centre"</span>&gt;Action&lt;/th&gt;&lt;/tr&gt;
+            &lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr *ngFor=<span class="s">"let ligne of commandeDeviseLignes.controls; let i = index"</span> [formGroupName]=<span class="s">"i"</span>&gt;
+                &lt;td <span class="k">class</span>=<span class="s">"sans"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value }} - {{ libelleDevise(ligne.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value) }}&lt;/td&gt;
+                &lt;td <span class="k">class</span>=<span class="s">"droite gras"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'montant'</span>)?.value | number:<span class="s">'1.2-2'</span> }} {{ ligne.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value }}&lt;/td&gt;
+                &lt;td <span class="k">class</span>=<span class="s">"centre"</span>&gt;
+                  &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton-icone bouton-icone--danger"</span> *ngIf=<span class="s">"!estConsultation"</span>
+                          (click)=<span class="s">"supprimerCommandeDevise(i)"</span> aria-label=<span class="s">"Supprimer la ligne"</span> title=<span class="s">"Supprimer"</span>&gt;
+                    &lt;mat-icon&gt;delete&lt;/mat-icon&gt;
+                  &lt;/button&gt;
+                  &lt;mat-icon <span class="k">class</span>=<span class="s">"verrou"</span> *ngIf=<span class="s">"estConsultation"</span> title=<span class="s">"Lecture seule"</span>&gt;lock&lt;/mat-icon&gt;
+                &lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr *ngIf=<span class="s">"!commandeDeviseLignes.length"</span>&gt;
+                &lt;td colspan=<span class="s">"3"</span> <span class="k">class</span>=<span class="s">"vide"</span>&gt;Aucune devise commandée pour le moment.&lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      <span class="c">&lt;!-- 5. Commentaire --&gt;</span>
+      &lt;section <span class="k">class</span>=<span class="s">"carte"</span>&gt;
+        &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;notes&lt;/mat-icon&gt; Commentaire &lt;span <span class="k">class</span>=<span class="s">"facultatif"</span>&gt;Facultatif&lt;/span&gt;&lt;/h3&gt;
+        &lt;label <span class="k">class</span>=<span class="s">"champ__libelle"</span> for=<span class="s">"comment-global"</span>&gt;Instructions spécifiques ou motif de la demande&lt;/label&gt;
+        &lt;textarea id=<span class="s">"comment-global"</span> <span class="k">class</span>=<span class="s">"commentaire"</span> rows=<span class="s">"3"</span> formControlName=<span class="s">"comment"</span>
+                  placeholder=<span class="s">"Ex. : disponibilité de coupures spécifiques, contexte d'une urgence…"</span>&gt;&lt;/textarea&gt;
+      &lt;/section&gt;
+    &lt;/div&gt;
+
+    <span class="c">&lt;!-- ---------- Colonne latérale ---------- --&gt;</span>
+    &lt;div <span class="k">class</span>=<span class="s">"board__col board__col--side"</span>&gt;
+
+      <span class="c">&lt;!-- 3. Alimentation GAB : « • 200 DH × [150] billets », 2 lignes (COUPURES_GAB) --&gt;</span>
+      &lt;section <span class="k">class</span>=<span class="s">"carte"</span> formGroupName=<span class="s">"gab"</span>&gt;
+        &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;local_atm&lt;/mat-icon&gt; Alimentation GAB&lt;/h3&gt;
+
+        &lt;div formArrayName=<span class="s">"coupures"</span>&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"gab-ligne"</span> *ngFor=<span class="s">"let ligne of gabCoupures.controls; let i = index"</span> [formGroupName]=<span class="s">"i"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"puce"</span>&gt;&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"gab-ligne__valeur"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'valeur'</span>)?.value }} DH&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"gab-ligne__x"</span>&gt;x&lt;/span&gt;
+            &lt;input <span class="k">class</span>=<span class="s">"gab-ligne__champ"</span> <span class="k">type</span>=<span class="s">"number"</span> appSaisieQuantite min=<span class="s">"0"</span> step=<span class="s">"1"</span> formControlName=<span class="s">"quantite"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"gab-ligne__unite"</span>&gt;billets&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"vide"</span> *ngIf=<span class="s">"!gabCoupures.length"</span>&gt;Aucune coupure GAB dans le référentiel&lt;/p&gt;
+        &lt;/div&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"total-ligne"</span>&gt;
+          &lt;span <span class="k">class</span>=<span class="s">"total-ligne__libelle"</span>&gt;Total GAB&lt;/span&gt;
+          &lt;span <span class="k">class</span>=<span class="s">"total-ligne__valeur"</span>&gt;{{ totalGab() | number:<span class="s">'1.2-2'</span> }} MAD&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      <span class="c">&lt;!-- 4. Ramassage de Fonds (CIT) --&gt;</span>
+      &lt;section <span class="k">class</span>=<span class="s">"carte"</span> formGroupName=<span class="s">"ramassage"</span>&gt;
+        &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;local_shipping&lt;/mat-icon&gt; Ramassage de Fonds (CIT)&lt;/h3&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"saisie saisie--ramassage"</span> *ngIf=<span class="s">"!estConsultation"</span>&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"saisie__ligne"</span>&gt;
+            &lt;select <span class="k">class</span>=<span class="s">"champ__select champ__select--court"</span> formControlName=<span class="s">"deviseCode"</span> aria-label=<span class="s">"Devise"</span>&gt;
+              <span class="c">&lt;!-- Le ramassage se fait en MAD (espèces) : liste complète, MAD par défaut --&gt;</span>
+              &lt;option *ngFor=<span class="s">"let d of devisesDisponibles"</span> [value]=<span class="s">"d.isoCode"</span>&gt;{{ d.isoCode }}&lt;/option&gt;
+            &lt;/select&gt;
+            &lt;input <span class="k">class</span>=<span class="s">"champ__saisie champ__saisie--montant"</span> <span class="k">type</span>=<span class="s">"number"</span> appSaisieQuantite min=<span class="s">"0"</span>
+                   placeholder=<span class="s">"Montant à ramasser"</span> formControlName=<span class="s">"montant"</span> aria-label=<span class="s">"Montant à ramasser"</span>&gt;
+          &lt;/div&gt;
+          &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--secondaire pleine-largeur"</span>
+                  [disabled]=<span class="s">"!peutAjouterRamassage"</span> (click)=<span class="s">"ajouterLigneRamassage()"</span>&gt;
+            &lt;mat-icon&gt;add&lt;/mat-icon&gt; Ajouter Ramassage
+          &lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"lignes"</span> formArrayName=<span class="s">"lignes"</span>&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"ligne"</span> *ngFor=<span class="s">"let ligne of ramassageLignes.controls; let i = index"</span> [formGroupName]=<span class="s">"i"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"puce"</span> [<span class="k">class</span>.puce--bleue]=<span class="s">"ligne.get('deviseCode')?.value !== 'MAD'"</span>&gt;&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"ligne__devise"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value }}
+              &lt;small&gt;{{ ligne.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value === <span class="s">'MAD'</span> ? <span class="s">'Espèces'</span> : <span class="s">'Devises'</span> }}&lt;/small&gt;&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"ligne__montant"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'montant'</span>)?.value | number:<span class="s">'1.2-2'</span> }}&lt;/span&gt;
+            &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton-icone bouton-icone--danger"</span> *ngIf=<span class="s">"!estConsultation"</span>
+                    (click)=<span class="s">"supprimerLigneRamassage(i)"</span> aria-label=<span class="s">"Supprimer le ramassage"</span> title=<span class="s">"Supprimer"</span>&gt;
+              &lt;mat-icon&gt;delete&lt;/mat-icon&gt;
+            &lt;/button&gt;
+            &lt;mat-icon <span class="k">class</span>=<span class="s">"verrou"</span> *ngIf=<span class="s">"estConsultation"</span> title=<span class="s">"Lecture seule"</span>&gt;lock&lt;/mat-icon&gt;
+          &lt;/div&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"vide"</span> *ngIf=<span class="s">"!ramassageLignes.length"</span>&gt;Aucun ramassage ajouté.&lt;/p&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  <span class="c">&lt;!-- ======================= Barre de CRÉATION (lot 5) ======================= --&gt;</span>
+  &lt;div <span class="k">class</span>=<span class="s">"barre-creation"</span> *ngIf=<span class="s">"estCreation"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"barre-creation__total"</span>&gt;
+      Total GAB + Caisse + Ramassage : &lt;strong&gt;{{ montantTotalMad() | number:<span class="s">'1.2-2'</span> }} MAD&lt;/strong&gt;
+    &lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"barre-creation__actions"</span>&gt;
+      &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--secondaire"</span> (click)=<span class="s">"annuler()"</span>&gt;Annuler&lt;/button&gt;
+      &lt;button <span class="k">type</span>=<span class="s">"submit"</span> <span class="k">class</span>=<span class="s">"bouton bouton--primaire"</span> [disabled]=<span class="s">"submitting"</span>&gt;
+        &lt;mat-icon&gt;check_circle&lt;/mat-icon&gt; {{ submitting ? <span class="s">'Envoi en cours…'</span> : <span class="s">'Soumettre'</span> }}
+      &lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  <span class="c">&lt;!-- ======================= Barre CONSULTATION / MODIFICATION (287) ======================= --&gt;</span>
+  &lt;ng-container *ngIf=<span class="s">"(estConsultation || estModification) &amp;&amp; demande() as d"</span>&gt;
+    &lt;app-demande-barre-actions
+      [libelleRetour]=<span class="s">"estModification ? 'Retour au listing' : 'Retour à l\'Historique des Demandes'"</span>
+      [verrouille]=<span class="s">"estConsultation &amp;&amp; !capacites().peutModifier &amp;&amp; !!capacites().motifVerrouillage"</span>
+      [peutAnnuler]=<span class="s">"capacites().peutAnnuler"</span>
+      [peutSoumettre]=<span class="s">"estModification ? capacites().peutModifier : capacites().peutSoumettre"</span>
+      [libelleSoumettre]=<span class="s">"estModification ? 'Soumettre les Modifications' : 'Soumettre la demande'"</span>
+      [soumettreDesactive]=<span class="s">"estModification &amp;&amp; (submitting || form.invalid)"</span>
+      [enCours]=<span class="s">"actions.enCours() || submitting"</span>
+      (retour)=<span class="s">"estModification ? abandonnerModification() : retourListing()"</span>
+      (annuler)=<span class="s">"ouvrirAnnulation()"</span>
+      (soumettre)=<span class="s">"estModification ? submit() : soumettreDepuisConsultation()"</span>&gt;
+    &lt;/app-demande-barre-actions&gt;
+
+    <span class="c">&lt;!-- Modale d'annulation : même FormControl motifAnnulation, même annulerDemande() --&gt;</span>
+    &lt;app-demande-decision-modale *ngIf=<span class="s">"annulationOuverte"</span>
+      <span class="k">type</span>=<span class="s">"ANNULEE"</span> acteur=<span class="s">"agence"</span>
+      [reference]=<span class="s">"d.uniqueRequestRef ?? ''"</span>
+      [enCours]=<span class="s">"actions.enCours()"</span>
+      [erreur]=<span class="s">"actions.erreur()"</span>
+      (confirmer)=<span class="s">"motifAnnulation.setValue($event ?? ''); annulerDemande()"</span>
+      (fermer)=<span class="s">"fermerAnnulation()"</span>&gt;
+    &lt;/app-demande-decision-modale&gt;
+  &lt;/ng-container&gt;
+
+&lt;/form&gt;</code></pre></div>
+<h2 id="s3">3. fund-management.component.scss</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>fund-management.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.scss</span></div><p class="note"><code>@use 'palette' as *;</code> est en ligne 1. Compilé avec Sass sans erreur contre la palette v2.</p><pre><button class="copy">Copier</button><code><span class="a">@use</span> <span class="s">'palette'</span> as *;
+
+<span class="c">/* ============================================================================
+   Écran agence — création / consultation / modification.
+   Jetons et structure = maquettes Agence_Modification-Demande / Agence_Modification-Bloquée
+   (tailwind.config : primary #00915A, bordure #e4e2e2, surface-low #f5f3f3, rounded 4px, cartes rounded-xl, Inter / JetBrains Mono).
+   Le shell (barre du haut, menu) n'est pas rendu ici : l'écran commence au lien « Retour ».
+   ========================================================================== */</span>
+
+:host { display: block; font-family: $sans; color: $texte; }
+
+<span class="c">/* Le formulaire occupe la zone de contenu du shell ; le padding bas laisse la place à la barre collante */</span>
+.ecran { display: block; width: 100%; max-width: 100%; box-sizing: border-box; padding: 24px 24px 0; }   <span class="c">/* pas d'overflow hidden : il casserait le sticky de la barre */</span>
+
+<span class="c">/* ===== En-tête de création (lot 5) ===== */</span>
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.page-title { margin: 0; font-size: 1.5rem; font-weight: 700; color: $primary; letter-spacing: -0.02em; }
+.urgent-flag { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: $rayon; border: 1px solid $erreur;
+  background: rgba($erreur-container, .4); color: $erreur; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+
+<span class="c">/* ===== Grille 8 / 4 ===== */</span>
+.board { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; align-items: start;
+  <span class="a">@media</span> (max-width: 1100px) { grid-template-columns: minmax(0, 1fr); } }
+.board__col { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+
+<span class="c">/* ===== Cartes (bg-white border rounded-xl p-6 shadow-sm) ===== */</span>
+.carte { <span class="a">@include</span> carte; min-width: 0; }
+.carte__titre { <span class="a">@include</span> titre-carte; }
+.facultatif { margin-left: auto; font-size: 0.72rem; font-weight: 500; color: $texte-2; }
+.vide { margin: 0; font-size: 0.75rem; font-style: italic; color: $texte-2; }
+.puce { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: $primary; flex-shrink: 0;
+  &amp;--bleue { background: #2563eb; } }
+
+<span class="c">/* ===== Boutons (text-xs, rounded 4px) ===== */</span>
+.bouton { <span class="a">@include</span> bouton; }
+.pleine-largeur { width: 100%; justify-content: center; }
+.bouton-icone { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: $rayon; border: 0;
+  background: transparent; cursor: pointer; color: $erreur; transition: background .15s;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &amp;--danger:hover { background: rgba($erreur-container, .6); } }
+.verrou { font-size: 16px; width: 16px; height: 16px; color: $texte-2; }
+
+<span class="c">/* ===== Champs natifs (maquette : label text-xs, champ bordé outline-variant, rounded 4px, montant mono aligné à droite) ===== */</span>
+.champ { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.champ__libelle { display: block; font-size: 0.75rem; font-weight: 600; color: $texte-2; margin-bottom: 6px; }
+.champ__select, .champ__saisie {
+  width: 100%; box-sizing: border-box; height: 40px; padding: 0 12px; border-radius: $rayon; border: 1px solid $outline-variant;
+  background: #fff; color: $texte; font: inherit; font-size: 0.8rem;
+  &amp;:focus { outline: none; border-color: $primary; box-shadow: 0 0 0 2px rgba($primary, .15); } }
+.champ__select { cursor: pointer; appearance: none; -webkit-appearance: none; padding-right: 32px;
+  background-image: url(<span class="s">"data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235d5f5f' stroke-width='2'&gt;&lt;path d='M6 9l6 6 6-6'/&gt;&lt;/svg&gt;"</span>);
+  background-repeat: no-repeat; background-position: right 10px center;
+  &amp;--court { width: 110px; flex: none; } }
+.champ__saisie--montant { font-family: $mono; text-align: right;
+  -moz-appearance: textfield; &amp;::-webkit-outer-spin-button, &amp;::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  &amp;::placeholder { color: $texte-2; } }
+
+<span class="c">/* Sous-bloc de saisie (maquette : bordure, fond surface-low/30, rounded, p-4) */</span>
+.saisie { border: 1px solid $bordure; background: rgba($surface-basse, .4); border-radius: $rayon; padding: 16px; margin-bottom: 16px;
+  &amp;--devise { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 16px; align-items: end;
+    <span class="a">@media</span> (max-width: 700px) { grid-template-columns: minmax(0, 1fr); } }
+  &amp;--ramassage { display: flex; flex-direction: column; gap: 10px; }
+  &amp;__action { height: 40px; }
+  &amp;__ligne { display: flex; gap: 10px; } }
+
+<span class="c">/* ===== Alimentation Caisse : grilles Billets / Pièces « 200  x  [   150] » ===== */</span>
+.coupures { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px;
+  <span class="a">@media</span> (max-width: 700px) { grid-template-columns: minmax(0, 1fr); } }
+.coupures__entete { display: flex; justify-content: space-between; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 1px solid $bordure;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: $texte-2;
+  span:last-child { font-size: 0.62rem; font-weight: 400; } }
+.coupure { margin-bottom: 8px; <span class="a">@include</span> ligne-coupure;
+  .coupure__champ { min-width: 0; -moz-appearance: textfield;
+    &amp;::-webkit-outer-spin-button, &amp;::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    &amp;:focus { outline: none; border-color: $primary; box-shadow: 0 0 0 2px rgba($primary, .15); } } }
+
+<span class="c">/* Totaux caisse (maquette : fond surface-low, « Total saisi » dans un bloc blanc à bordure gauche verte) */</span>
+.totaux { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 24px; padding: 16px;
+  border-top: 1px solid $bordure; background: rgba($surface-basse, .5); border-radius: $rayon; }
+.totaux__detail { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: $texte-2; }
+.totaux__bloc { display: flex; flex-direction: column; align-items: flex-end; min-width: 220px; padding: 12px 14px; background: #fff;
+  border: 1px solid $bordure; border-left: 4px solid $primary; border-radius: $rayon; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.totaux__libelle { font-size: 0.69rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: $texte-2; }
+.totaux__valeur { font-family: $mono; font-size: 1.25rem; font-weight: 700; color: $primary; }
+
+<span class="c">/* ===== Table devises (maquette : thead bg surface-low, tbody mono xs, corbeille rouge) ===== */</span>
+.table-cadre { border: 1px solid $bordure; border-radius: $rayon; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed;
+  thead { background: $surface-basse; }
+  th { padding: 10px 16px; font-size: 0.72rem; font-weight: 600; color: $texte-2; border-bottom: 1px solid $bordure; }
+  td { padding: 12px 16px; font-family: $mono; font-size: 0.75rem; border-bottom: 1px solid $bordure; vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  .sans { font-family: $sans; font-weight: 500; color: $texte; }
+  .gras { font-weight: 700; color: $texte; }
+  .droite { text-align: right; } .centre { text-align: center; width: 72px; }
+  .vide { font-family: $sans; font-style: italic; color: $texte-2; } }
+
+<span class="c">/* ===== Commentaire ===== */</span>
+.commentaire { width: 100%; box-sizing: border-box; min-height: 96px; padding: 12px; border-radius: $rayon; border: 1px solid $outline-variant;
+  background: #fff; font: inherit; font-size: 0.8rem; line-height: 1.6; color: $texte; resize: vertical;
+  &amp;::placeholder { color: $texte-2; }
+  &amp;:focus { outline: none; border-color: $primary; box-shadow: 0 0 0 2px rgba($primary, .15); } }
+
+<span class="c">/* ===== Alimentation GAB : une boîte par coupure « • 200 DH  x  [150]  billets » ===== */</span>
+.gab-ligne { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 12px; border-radius: $rayon; border: 1px solid $bordure; background: rgba($surface-basse, .4); }
+.gab-ligne__valeur { font-family: $mono; font-size: 0.8rem; font-weight: 600; color: $texte; white-space: nowrap; }
+.gab-ligne__x { font-size: 0.75rem; color: $texte-2; }
+.gab-ligne__champ { flex: 1; min-width: 0; height: 36px; font-family: $mono; font-size: 0.75rem; text-align: right; padding: 0 12px; border-radius: $rayon;
+  border: 1px solid $outline-variant; background: #fff; color: $texte;
+  -moz-appearance: textfield; &amp;::-webkit-outer-spin-button, &amp;::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  &amp;:focus { outline: none; border-color: $primary; box-shadow: 0 0 0 2px rgba($primary, .15); } }
+.gab-ligne__unite { font-size: 0.75rem; color: $texte-2; }
+.total-ligne { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid $bordure; }
+.total-ligne__libelle { font-size: 0.75rem; font-weight: 600; color: $texte-2; }
+.total-ligne__valeur { font-family: $mono; font-size: 1rem; font-weight: 700; color: $primary; }
+
+<span class="c">/* ===== Ramassage : lignes « • EUR Devises   5 000,00   🗑 » ===== */</span>
+.lignes { display: flex; flex-direction: column; gap: 10px; }
+.ligne { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: $rayon; border: 1px solid $bordure; background: rgba($surface-basse, .4); }
+.ligne__devise { flex: 1; font-size: 0.8rem; font-weight: 700; color: $primary;
+  small { margin-left: 6px; font-weight: 400; color: $texte-2; } }
+.ligne__montant { font-family: $mono; font-size: 0.8rem; font-weight: 700; color: $texte; }
+
+<span class="c">/* ===== Champs en consultation (maquette .mode-consultation .field-input) ===== */</span>
+input:disabled, textarea:disabled, select:disabled {
+  background: $lecture-fond !important; border-color: $lecture-bordure !important; color: $lecture-texte !important; cursor: default; }
+
+<span class="c">/* ===== Barre de création (lot 5) ===== */</span>
+.barre-creation { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 24px 0; padding: 16px 24px;
+  background: #fff; border: 1px solid $bordure; border-radius: $rayon-carte; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.barre-creation__actions { display: flex; align-items: center; gap: 12px; }
+.barre-creation__total { font-size: 0.8rem; color: $texte-2; strong { font-family: $mono; font-size: 1rem; color: $primary; } }
+
+<span class="c">/* ===== Barre partagée (consultation / modification) : collée en bas, dans la largeur du formulaire, sans débord ===== */</span>
+app-demande-barre-actions { display: block; width: 100%; margin-top: 24px; }</code></pre></div>
+<h2 id="s4">4. Vérification</h2>
+<div class="card"><ol>
+<li><code>ng build</code> propre. Si l'IDE souligne <code>COUPURES_GAB</code>, c'est que <code>demande-dossier.model.ts</code> v2 n'est pas encore en place.</li>
+<li><b>Nouvelle demande</b> : en-tête « Gestion des fonds - Vue Agence » + case rouge « Demande Urgente » ; caisse en deux grilles « 200 x [ ] » ; GAB 2 boîtes « • 200 DH x [ ] billets » / « • 100 DH x [ ] billets » ; Commande Devises : libellés « Devise » / « Montant Saisi » au-dessus de champs natifs, placeholder « 0.00 », bouton « + Ajouter » ; Ramassage : select « MAD » + « Montant à ramasser » + « + Ajouter Ramassage » dans le sous-bloc ; carte Commentaire « Facultatif » ; barre Annuler / Soumettre avec le total (lot 5).</li>
+<li><b>Consultation</b> (demande en attente, mon agence, avant 16h) : pastille « EN ATTENTE », badge « Mode Modification », champs grisés, cadenas sur les lignes devises / ramassage, aucun bloc de saisie, barre « Retour à l'Historique des Demandes » / « Annuler la demande ».</li>
+<li><b>Clic sur le badge</b> : URL <code>modification/:id</code>, badge vert « Mode Modification actif », case « DEMANDE URGENTE » à côté, <b>un seul</b> en-tête, pas de bandeau « BMCI - Agence », pas de ligne de total, <b>une seule</b> barre dans la largeur de la page (aucun ascenseur horizontal) « Retour au listing » / « Annuler la demande » / « Soumettre les Modifications ». Soumettre → PUT → snack « Modification enregistrée. » → retour en consultation.</li>
+<li><b>Demande verrouillée</b> : bannière rouge pâle + chip « Lecture Seule », pas de badge, barre « Modification Verrouillée » grisée.</li>
+<li><b>Annuler la demande</b> : modale, motif ≥ 10 caractères, snack « Annulation transmise… », rechargement après 1,5 s, pastille « ANNULÉE ».</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
