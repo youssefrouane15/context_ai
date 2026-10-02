@@ -1,0 +1,1738 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-285 / 287 — Écrans de traitement (Caisse Centrale) et de consultation / modification (Agence) + remarques PO</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-285 / AER_LM-287 — Écran de traitement Caisse Centrale, écran agence consultation / modification, remarques PO des 01 et 02/10</h1><p>fund-management · fund-management-front · 02/10/2026 (v3 : + PO 7 devises sans MAD §5.4 ; contexte dans completerTacheCaisseCentrale §1.1 bis) · s'applique après 279 (export) et 288 (rôle GDF Export) · maquettes Caisse-Centrale_Traiter-Demande-En-Attente, Agence_Modification-Demande, Agence_Modification-Bloquée</p></header>
+<nav><a href="#s0">Analyse</a><a href="#s1">Back</a><a href="#s2">Fondations front</a><a href="#s3">Composants partagés</a><a href="#s4">285 Caisse Centrale</a><a href="#s5">287 Agence</a><a href="#s6">Listing</a><a href="#s7">Tests</a><a href="#s8">Vérification</a><a href="#s9">Nettoyage</a></nav><main><h2 id="s0">0. Analyse — ce que demandent les deux Jiras et les six remarques du PO</h2>
+<div class="card"><table>
+<tr><th>Demande</th><th>Ce qui existe</th><th>Ce que ce doc livre</th></tr>
+<tr><td><b>AER_LM-285</b> — Caisse Centrale : écran de traitement (maquette <code>Caisse-Centrale_Traiter-Demande-En-Attente.html</code>)</td>
+<td>La Caisse Centrale décide depuis la <i>liste</i> (modale 281) ; aucun écran de consultation côté CC.</td>
+<td>Nouvelle page <code>demande-traitement</code> (route <code>caisse-centrale/:id</code>) : lecture complète de la demande (caisse, GAB, ramassage, devises, commentaire) + « Annuler la demande » / « Traiter la demande » si la demande est en attente et si l'appelant a <code>GDF_TRAITER_DEMANDE</code>. Support : même écran, consultation seule.</td></tr>
+<tr><td><b>AER_LM-287</b> — Agence : consultation avec mise à jour, amélioration (maquettes <code>Agence_Modification-Demande.html</code>, <code>Agence_Modification-Bloquée.html</code>)</td>
+<td>Écran 267 (lot C) : en-tête, bouton Modifier → Enregistrer / Abandonner, Soumettre, annulation à motif inline.</td>
+<td>En-tête refait (pastille, « Soumise le … par … (profil) », « Traitée le … par … (Caisse Centrale) », badge « Mode Modification actif », case « DEMANDE URGENTE »), bannière « Consultation seule » avec la raison, barre d'actions fixe (« Retour au listing » / « Annuler la demande » / « Soumettre les Modifications », ou « Modification Verrouillée »), annulation en modale. Le formulaire de saisie n'est pas touché.</td></tr>
+<tr><td>PO 1 — logs JSON comme utilisateurs-ci</td><td>Logs texte Spring Boot par défaut.</td><td><code>logback-spring.xml</code> + <code>logstash-logback-encoder</code> dans le module container (§1.3).</td></tr>
+<tr><td>PO 2 — plus de recherche multi-critère sur l'écran agence</td><td>Champ présent dans les deux modes.</td><td><code>*ngIf="estCaisseCentrale"</code> sur le champ (§6).</td></tr>
+<tr><td>PO 3 — Actualiser : recharge avec les filtres courants, efface seulement la recherche</td><td>Actualiser remettait <i>tous</i> les filtres à zéro (doc 281 du 29/09).</td><td><code>actualiser()</code> réécrite ; <code>reinitialiserFiltres()</code> supprimée (§6).</td></tr>
+<tr><td>PO 4 — KPI : en attente / urgentes = date ≤ jour ; traitées = statut Traitée et mise à jour du jour</td><td>Les trois compteurs comptaient les demandes <i>créées</i> depuis le début du jour.</td><td>Requêtes JPQL réécrites, port <code>kpi(LocalDate)</code> ; clics KPI alignés côté front (§1.2, §6).</td></tr>
+<tr><td>PO 5 — le 0 des quantités est un placeholder, pas une valeur pré-saisie</td><td>Contrôles initialisés à 0 ; le 0 se sélectionne à la saisie.</td><td>Directive <code>appSaisieQuantite</code> à poser sur les inputs de quantité (§2.4, §5.3).</td></tr>
+<tr><td>PO 6 — plus de Traiter / Annuler dans la liste Caisse Centrale</td><td>Deux icônes + modale dans le listing.</td><td>Icônes et modale retirées ; l'œil mène à l'écran de traitement (§6).</td></tr>
+<tr><td>PO 7 (02/10) — Commande Devises : le MAD n'est pas une devise étrangère, il ne doit pas figurer dans la liste</td><td>Le select « Devise » liste tout le référentiel, MAD compris (capture du 02/10).</td><td>Filtre sur <code>DEVISE_LOCALE</code> au point d'usage ; le ramassage garde le MAD (§5.4).</td></tr>
+</table>
+<p><b>Architecture retenue.</b> Les deux écrans partagent le même en-tête, la même barre d'actions et la même modale de décision : trois composants de présentation purs (<code>presenter/components/demande/</code>), sans injection, pilotés par leurs entrées. L'écran Caisse Centrale (285) est une page nouvelle, écrite de bout en bout ici ; l'écran agence (287) garde son formulaire et ne fait que brancher ces composants à la place de son en-tête et de sa barre. La lecture d'une demande côté CC passe par un type honnête du JSON du back (<code>DemandeDossier</code>) projeté en vue (<code>VueDossier</code>) par une fonction pure testée, sans dépendre du modèle d'édition de l'écran agence.</p>
+<p><b>Permissions — qui voit quoi.</b></p>
+<table>
+<tr><th>Écran</th><th>Agence (DA, Chef de caisse)</th><th>Caisse Centrale</th><th>Support</th><th>Garde route</th></tr>
+<tr><td>Consultation / modification agence (287)</td><td>Sa propre agence : Modifier / Soumettre si <code>modifier</code>, Annuler si <code>annuler</code>, sinon bannière + « Modification Verrouillée »</td><td>—</td><td>—</td><td><code>consulter</code> (inchangée)</td></tr>
+<tr><td>Traitement Caisse Centrale (285)</td><td>—</td><td>Traiter / Annuler si demande en attente (<code>traiter</code>)</td><td>Consultation seule (bannière)</td><td><code>toutesAgences</code></td></tr>
+<tr><td>Listing CC</td><td>—</td><td>Œil → écran de traitement ; Export si <code>exporter</code></td><td>Idem</td><td><code>toutesAgences</code></td></tr>
+</table>
+<p>Le back ne change pas de règle : <code>complete-task</code> exige toujours <code>GDF_TRAITER_DEMANDE</code> et le statut SUBMITTED (403 / 409) ; le front ne fait que ne pas proposer ce qui serait refusé.</p>
+<p><b>Un seul ajout back pour les écrans</b> : la photo du décideur (« Traitée le 05/08/2026 à 16:45 par M. Karim EL IDRISSI (Caisse Centrale Siège) » sur la maquette bloquée) n'existe pas en base. V10 + trois champs + <code>figerDecision</code>, sur le modèle de <code>figerPhotoAgence</code>.</p>
+<p>Ordre : §1 back → §2 fondations front → §3 composants partagés → §4 écran Caisse Centrale → §5 écran agence → §6 listing → §7 tests → §8 vérification → §9 nettoyage. Branche conseillée : <code>feature/AER_LM-285-287</code> depuis <code>develop</code> à jour (après merge de 279 et 288), back et front.</p></div>
+<h2 id="s1">1. Back — fund-management</h2>
+<div class="card"><p><b>1.1 Photo du décideur Caisse Centrale (285 / 287).</b> Figée au moment où la décision est acceptée par Camunda, pour les deux décisions (Traitée, Annulée). Jamais réécrite par le PUT.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V10__photo_decision.sql</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\db\migration\V10__photo_decision.sql</span></div><p class="note">V9 est le dernier script (photo de l'agent). Même convention : un ALTER par colonne, pas de valeur par défaut.</p><pre><button class="copy">Copier</button><code><span class="c">-- AER_LM-285 / AER_LM-287 : photo du décideur Caisse Centrale (« Traitée le … par … »), figée au moment de la décision.</span>
+<span class="c">-- Renseignée par figerDecision (jamais par le PUT) pour les décisions TRAITEE et ANNULEE de la Caisse Centrale.</span>
+<span class="k">ALTER</span> <span class="k">TABLE</span> retail.cash_request <span class="k">ADD</span> <span class="k">COLUMN</span> decision_par     VARCHAR(150);
+<span class="k">ALTER</span> <span class="k">TABLE</span> retail.cash_request <span class="k">ADD</span> <span class="k">COLUMN</span> decision_profil  VARCHAR(100);
+<span class="k">ALTER</span> <span class="k">TABLE</span> retail.cash_request <span class="k">ADD</span> <span class="k">COLUMN</span> decision_at      TIMESTAMP;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestEntity.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\entity\CashRequestEntity.java  (après agentProfil)</span></div><p class="note">Import <code>java.time.LocalDateTime</code> s'il n'y est pas déjà.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-285 — photo du décideur Caisse Centrale (figée par figerDecision, jamais touchée par le PUT) =====</span>
+    <span class="a">@Column</span>(name = <span class="s">"decision_par"</span>, length = 150)
+    <span class="k">private</span> String decisionPar;
+
+    <span class="a">@Column</span>(name = <span class="s">"decision_profil"</span>, length = 100)
+    <span class="k">private</span> String decisionProfil;
+
+    <span class="a">@Column</span>(name = <span class="s">"decision_at"</span>)
+    <span class="k">private</span> LocalDateTime decisionAt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequest.java (domaine)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\entity\CashRequest.java  (après agentProfil)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-285 — photo du décideur Caisse Centrale (Traitée / Annulée le … par …) =====</span>
+    <span class="k">private</span> String decisionPar;        <span class="c">// « Karim EL IDRISSI »</span>
+    <span class="k">private</span> String decisionProfil;     <span class="c">// « Caisse Centrale Siège »</span>
+    <span class="k">private</span> LocalDateTime decisionAt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\dto\CashRequestDTO.java  (après agentProfil)</span></div><p class="note">Lecture seule : exposé par GET /cash/{id} et le listing, ignoré en entrée (mappers ci-dessous).</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-285 — lecture seule (photo du décideur Caisse Centrale) =====</span>
+    <span class="k">private</span> String decisionPar;
+    <span class="k">private</span> String decisionProfil;
+    <span class="k">private</span> LocalDateTime decisionAt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestPersistenceMapper — updateHeader</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\mapper\CashRequestPersistenceMapper.java  (Ctrl+F : @Mapping(target = "agentProfil", ignore = true)  — sur updateHeader, ajouter juste après)</span></div><p class="note"><code>toDomain</code> et <code>toPersistence</code> mappent par nom : rien à ajouter. Si <code>toPersistence</code> porte aussi une liste d'<code>ignore</code> pour la photo (agentNom…), ajoute-y les trois mêmes lignes.</p><pre><button class="copy">Copier</button><code>    <span class="a">@Mapping</span>(target = <span class="s">"decisionPar"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"decisionProfil"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"decisionAt"</span>, ignore = <span class="k">true</span>)</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestWebMapper — toDomain</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\mapper\CashRequestWebMapper.java  (Ctrl+F : @Mapping(target = "agentProfil", ignore = true)  — sur toDomain, ajouter juste après)</span></div><pre><button class="copy">Copier</button><code>    <span class="a">@Mapping</span>(target = <span class="s">"decisionPar"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"decisionProfil"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"decisionAt"</span>, ignore = <span class="k">true</span>)</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepository.java (port)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\repository\CashDemandRepository.java  (après figerPhotoAgence)</span></div><p class="note">Imports : <code>java.time.LocalDateTime</code>, <code>java.util.UUID</code> (déjà présents pour figerPhotoAgence / kpi).</p><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-285 : fige la photo du décideur Caisse Centrale (nom, profil, instant) sur la demande. */</span>
+    CashRequest figerDecision(UUID id, String decisionPar, String decisionProfil, LocalDateTime decisionAt);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepositoryImpl.figerDecision</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java  (après figerPhotoAgence)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-285 — photo du décideur (même schéma que figerPhotoAgence : une méthode qui écrit exactement ses colonnes) =====</span>
+    <span class="a">@Override</span>
+    <span class="a">@Transactional</span>
+    <span class="k">public</span> CashRequest figerDecision(UUID id, String decisionPar, String decisionProfil, LocalDateTime decisionAt) {
+        CashRequestEntity entity = cashDemandJpaRepository.findByIdWithTree(id)
+                .orElseThrow(() -&gt; <span class="k">new</span> RetailNotFoundException(<span class="s">"La demande "</span> + id + <span class="s">" est introuvable"</span>));
+        entity.setDecisionPar(decisionPar);
+        entity.setDecisionProfil(decisionProfil);
+        entity.setDecisionAt(decisionAt);
+        <span class="k">return</span> mapper.toDomain(cashDemandJpaRepository.save(entity));
+    }</code></pre></div>
+<div class="card"><p><b>1.1 bis — le contexte de l'appelant entre dans <code>completerTacheCaisseCentrale</code></b> (constat du 02/10 : la méthode n'a que <code>(id, decision)</code>). Même forme que <code>search</code> et <code>exporterCaisseCentrale</code> : l'interface, l'impl, le contrôleur, et les tests qui appellent la méthode. Au passage, la garde de périmètre B2 (un agent d'agence identifié → 403), que l'export a déjà et que cette méthode n'avait pas.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCase.java — signature</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\inputs\service\CashDemandUseCase.java  (Ctrl+F : completerTacheCaisseCentrale(  — remplace la déclaration et son commentaire)</span></div><p class="note">Import <code>com.bmci.workflow.fund.management.service.domain.retail.contexte.ContexteAppelant</code> s'il n'y est pas déjà (il l'est si <code>search</code> le reçoit).</p><pre><button class="copy">Copier</button><code>    <span class="c">/**
+     * Décision Caisse Centrale (TRAITEE | ANNULEE + motif) : complète la user task et fige la photo du décideur (AER_LM-285).
+     * contexte : l'appelant (B2) — périmètre « toutes agences » et identité du décideur.
+     */</span>
+    CashRequestDTO completerTacheCaisseCentrale(UUID id, DecisionCaisseCentraleDTO decision, ContexteAppelant contexte);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.completerTacheCaisseCentrale — signature et garde 0</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (Ctrl+F : public CashRequestDTO completerTacheCaisseCentrale  — remplace la ligne de signature ; la garde 0 se place avant la garde 1 existante)</span></div><p class="note"><code>RetailForbiddenException</code> est celle de l'export (279). Les gardes 1-3 (statut SUBMITTED, tâche active…) et le bloc <code>variables</code> ne changent pas.</p><pre><button class="copy">Copier</button><code>    <span class="a">@Override</span>
+    <span class="k">public</span> CashRequestDTO completerTacheCaisseCentrale(UUID id, DecisionCaisseCentraleDTO decision, ContexteAppelant contexte) {
+        <span class="c">// Garde 0 (B2) — même règle que l'export : un agent d'agence identifié n'a pas le périmètre Caisse Centrale</span>
+        <span class="k">if</span> (contexte.estIdentifie() &amp;&amp; !contexte.toutesAgences()) {
+            <span class="k">throw</span> <span class="k">new</span> RetailForbiddenException(<span class="s">"La décision sur une demande est réservée à la Caisse Centrale"</span>);
+        }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImpl.completerTacheCaisseCentrale — photo du décideur</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (juste après processusWorkflowPort.completerTache(taskId, variables); — avant return enrichir(demande);)</span></div><p class="note">Import <code>java.time.LocalDateTime</code>. Posée après l'acceptation par Camunda : si <code>completerTache</code> lève, rien n'est figé.</p><pre><button class="copy">Copier</button><code>        <span class="c">// AER_LM-285 : photo du décideur, pour « Traitée / Annulée le … par … » sur les écrans agence et Caisse Centrale.</span>
+        <span class="c">// Posée après l'acceptation de la décision par Camunda (complete-task OK) ; le statut final reste écrit par le worker.</span>
+        cashDemandRepository.figerDecision(id,
+                contexte.nomComplet() != <span class="k">null</span> ? contexte.nomComplet() : contexte.uidOu(<span class="k">null</span>),
+                contexte.profilLibelle(),
+                LocalDateTime.now());</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>RetailDemandController — endpoint complete-task</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\RetailDemandController.java  (Ctrl+F : completerTacheCaisseCentrale(  — ajoute le troisième argument, garde tes noms de variables)</span></div><p class="note"><code>contexteCourant</code> est déjà injecté dans le contrôleur (search, export).</p><pre><button class="copy">Copier</button><code>        <span class="c">// avant :</span>
+        <span class="c">//   cashDemandUseCase.completerTacheCaisseCentrale(id, decision)</span>
+        <span class="c">// après (même forme que search / exporter) :</span>
+        cashDemandUseCase.completerTacheCaisseCentrale(id, decision, contexteCourant.courant())</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImplTest — appels existants</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (Ctrl+F : useCase.completerTacheCaisseCentrale(  — chaque appel, y compris ceux dans assertThrows)</span></div><pre><button class="copy">Copier</button><code>        <span class="c">// avant :</span>
+        <span class="c">//   useCase.completerTacheCaisseCentrale(id, decision);</span>
+        <span class="c">// après : la constante Caisse Centrale du test (identifiée, toutes agences, avec photo)</span>
+        useCase.completerTacheCaisseCentrale(id, decision, CAISSE_CENTRALE);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImplTest — garde 0</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (à la suite des tests de completerTacheCaisseCentrale)</span></div><p class="note"><code>decisionTraitee()</code> = la fabrique de <code>DecisionCaisseCentraleDTO</code> TRAITEE déjà utilisée par les tests voisins ; prends son vrai nom. Si <code>processusWorkflowPort</code> est nommé autrement dans les <code>@Mock</code>, adapte.</p><pre><button class="copy">Copier</button><code>    <span class="a">@Test</span>
+    <span class="k">void</span> completerTacheCaisseCentrale_agentAgence_403() {
+        UUID id = UUID.randomUUID();
+        ContexteAppelant agence = <span class="k">new</span> ContexteAppelant(<span class="s">"g10002"</span>, <span class="s">"1422"</span>, <span class="k">false</span>, <span class="s">"Salma EL AMRANI"</span>, <span class="s">"Chef de caisse"</span>);
+
+        assertThrows(RetailForbiddenException.<span class="k">class</span>,
+                () -&gt; useCase.completerTacheCaisseCentrale(id, decisionTraitee(), agence));
+
+        Mockito.verifyNoInteractions(processusWorkflowPort);
+        Mockito.verify(cashDemandRepository, Mockito.never()).figerDecision(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>RetailDemandControllerTest — complete-task</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\test\java\…\RetailDemandControllerTest.java  (Ctrl+F : completerTacheCaisseCentrale(  — chaque when / verify)</span></div><p class="note">Si le test est dans le module application plutôt que container, même chose au même endroit.</p><pre><button class="copy">Copier</button><code>        <span class="c">// avant :</span>
+        <span class="c">//   when(cashDemandUseCase.completerTacheCaisseCentrale(eq(id), any())).thenReturn(dto);</span>
+        <span class="c">//   verify(cashDemandUseCase).completerTacheCaisseCentrale(eq(id), any());</span>
+        <span class="c">// après : un troisième matcher pour le contexte</span>
+        when(cashDemandUseCase.completerTacheCaisseCentrale(eq(id), any(), any())).thenReturn(dto);
+        verify(cashDemandUseCase).completerTacheCaisseCentrale(eq(id), any(), any());</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImplTest — constante Caisse Centrale avec photo</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (Ctrl+F : new ContexteAppelant(  — la constante Caisse Centrale du test)</span></div><p class="note">Si ta constante s'appelle autrement (<code>CC</code>, <code>CAISSE</code>…), garde son nom et ajoute seulement les deux derniers arguments.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** Caisse Centrale identifiée, avec photo (AER_LM-289) : remplace la constante existante si elle n'a que 3 arguments. */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> ContexteAppelant CAISSE_CENTRALE =
+            <span class="k">new</span> ContexteAppelant(<span class="s">"k00001"</span>, <span class="k">null</span>, <span class="k">true</span>, <span class="s">"Karim EL IDRISSI"</span>, <span class="s">"Caisse Centrale Siège"</span>);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImplTest — vérification de la photo</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (dans le test existant du cas TRAITEE de completerTacheCaisseCentrale, à la fin)</span></div><pre><button class="copy">Copier</button><code>        <span class="c">// AER_LM-285 : la photo du décideur est figée après l'acceptation de la décision</span>
+        Mockito.verify(cashDemandRepository).figerDecision(
+                Mockito.eq(id), Mockito.eq(CAISSE_CENTRALE.nomComplet()), Mockito.eq(CAISSE_CENTRALE.profilLibelle()),
+                Mockito.any(LocalDateTime.<span class="k">class</span>));</code></pre></div>
+<div class="card"><p><b>1.2 KPI Caisse Centrale — règle PO du 01/10.</b> Trois compteurs, trois périmètres : en attente et urgentes = toutes les demandes créées <i>jusqu'à la fin du jour demandé</i> (une demande en attente depuis trois jours compte) ; traitées = décidées <i>dans la journée demandée</i>. Pour « traitées », la date retenue est celle de la décision Caisse Centrale (V10), avec repli sur la dernière mise à jour (<code>modification_date</code>, écrite par le worker Camunda au changement de statut) pour les demandes antérieures à V10. Le paramètre <code>date=</code> du GET garde son sens : le jour de référence.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandJpaRepository — compteurs</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\…\CashDemandJpaRepository.java  (Ctrl+F : compterEnAttente  — remplace les quatre requêtes du bloc AER_LM-278)</span></div><p class="note"><code>c.urgent</code>, <code>c.creationDate</code>, <code>c.modificationDate</code> : attributs existants. <code>c.decisionAt</code> : §1.1. <code>coalesce</code> est du JPQL standard (Hibernate 6).</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-278 — KPI Caisse Centrale (règle PO du 01/10) =====</span>
+    <span class="c">// En attente / urgentes : toutes les demandes créées jusqu'à la fin du jour demandé (date ≤ jour), quel que soit leur âge.</span>
+    <span class="c">// Traitées : statut Traitée et décision Caisse Centrale (sinon dernière mise à jour) dans la journée demandée.</span>
+    <span class="c">// Urgentes exclut ce que la Caisse Centrale ne voit pas : brouillons et modifications en cours.</span>
+
+    <span class="a">@Query</span>(<span class="s">"select count(c) from CashRequestEntity c where c.requestStatus = 'SUBMITTED' and c.creationDate &lt; :fin"</span>)
+    long compterEnAttente(<span class="a">@Param</span>(<span class="s">"fin"</span>) LocalDateTime fin);
+
+    <span class="a">@Query</span>(<span class="s">"select count(c) from CashRequestEntity c where c.urgent = true "</span>
+         + <span class="s">"and c.requestStatus not in ('INITIATED', 'IN_MODIFICATION') and c.creationDate &lt; :fin"</span>)
+    long compterUrgentes(<span class="a">@Param</span>(<span class="s">"fin"</span>) LocalDateTime fin);
+
+    <span class="a">@Query</span>(<span class="s">"select count(c) from CashRequestEntity c where c.requestStatus = 'VALIDATED' "</span>
+         + <span class="s">"and coalesce(c.decisionAt, c.modificationDate) &gt;= :debut and coalesce(c.decisionAt, c.modificationDate) &lt; :fin"</span>)
+    long compterTraitees(<span class="a">@Param</span>(<span class="s">"debut"</span>) LocalDateTime debut, <span class="a">@Param</span>(<span class="s">"fin"</span>) LocalDateTime fin);
+
+    <span class="c">/** [prestataire, prestataireNom, nombre] par transporteur, sur les demandes traitées dans la journée. */</span>
+    <span class="a">@Query</span>(<span class="s">""</span>"
+            select c.prestataire, c.prestataireNom, count(c)
+            <span class="k">from</span> CashRequestEntity c
+            where c.requestStatus = <span class="s">'VALIDATED'</span>
+              and coalesce(c.decisionAt, c.modificationDate) &gt;= :debut
+              and coalesce(c.decisionAt, c.modificationDate) &lt; :fin
+            group by c.prestataire, c.prestataireNom
+            order by c.prestataire
+            <span class="s">""</span>")
+    List&lt;Object[]&gt; compterTraiteesParPrestataire(<span class="a">@Param</span>(<span class="s">"debut"</span>) LocalDateTime debut, <span class="a">@Param</span>(<span class="s">"fin"</span>) LocalDateTime fin);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandRepository.java (port) — kpi</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\repository\CashDemandRepository.java  (Ctrl+F : KpiDemandes kpi(  — remplace la signature et son commentaire)</span></div><p class="note">Import <code>java.time.LocalDate</code> ; <code>LocalDateTime</code> reste utilisé par figerDecision.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-278 (règle PO 01/10) : KPI Caisse Centrale du jour demandé — en attente / urgentes jusqu'à ce jour inclus, traitées ce jour-là. */</span>
+    KpiDemandes kpi(LocalDate jour);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandRepositoryImpl.kpi</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java  (Ctrl+F : public KpiDemandes kpi(  — remplace la méthode)</span></div><p class="note">Import <code>java.time.LocalDate</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-278 (règle PO 01/10) =====</span>
+    <span class="a">@Override</span>
+    <span class="a">@Transactional</span>(readOnly = <span class="k">true</span>)
+    <span class="k">public</span> KpiDemandes kpi(LocalDate jour) {
+        LocalDateTime debut = jour.atStartOfDay();
+        LocalDateTime fin = jour.plusDays(1).atStartOfDay();    <span class="c">// borne exclusive : « date ≤ jour »</span>
+        List&lt;KpiDemandes.RepartitionPrestataire&gt; repartition = cashDemandJpaRepository.compterTraiteesParPrestataire(debut, fin).stream()
+                .map(ligne -&gt; <span class="k">new</span> KpiDemandes.RepartitionPrestataire(
+                        (String) ligne[0], (String) ligne[1], ((Number) ligne[2]).longValue()))
+                .toList();
+        <span class="k">return</span> <span class="k">new</span> KpiDemandes(
+                cashDemandJpaRepository.compterEnAttente(fin),
+                cashDemandJpaRepository.compterUrgentes(fin),
+                cashDemandJpaRepository.compterTraitees(debut, fin),
+                repartition);
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.kpiCaisseCentrale</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (Ctrl+F : cashDemandRepository.kpi(jour.atStartOfDay())  — remplace la ligne)</span></div><p class="note">Le reste de la méthode (libellé « Non renseigné », mapping DTO) ne change pas. Le contrôleur ne change pas.</p><pre><button class="copy">Copier</button><code>        KpiDemandes kpi = cashDemandRepository.kpi(jour);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImplTest — les deux tests KPI</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (Ctrl+F : kpiCaisseCentrale_dateNulle  — remplace les deux tests KPI)</span></div><p class="note">Le captor passe de <code>LocalDateTime</code> à <code>LocalDate</code> : c'est le repository qui pose désormais les bornes.</p><pre><button class="copy">Copier</button><code>    <span class="a">@Test</span>
+    <span class="k">void</span> kpiCaisseCentrale_dateNulle_journeeEnCours_compteursMappes() {
+        KpiDemandes kpi = <span class="k">new</span> KpiDemandes(14, 3, 28, List.of(
+                <span class="k">new</span> KpiDemandes.RepartitionPrestataire(<span class="s">"BRINKS"</span>, <span class="s">"Brink's"</span>, 18),
+                <span class="k">new</span> KpiDemandes.RepartitionPrestataire(<span class="s">"G4S"</span>, <span class="s">"G4S"</span>, 10)));
+        Mockito.when(cashDemandRepository.kpi(Mockito.any())).thenReturn(kpi);
+
+        KpiDemandesDTO dto = useCase.kpiCaisseCentrale(<span class="k">null</span>);
+
+        assertEquals(LocalDate.now(), dto.date());
+        assertEquals(14, dto.enAttente());
+        assertEquals(3, dto.urgentes());
+        assertEquals(28, dto.traitees());
+        assertEquals(2, dto.traiteesParTransporteur().size());
+        assertEquals(<span class="s">"Brink's"</span>, dto.traiteesParTransporteur().<span class="k">get</span>(0).nom());
+        assertEquals(18, dto.traiteesParTransporteur().<span class="k">get</span>(0).nombre());
+        <span class="c">// le repository reçoit le jour demandé ; c'est lui qui pose les bornes (début / fin de journée)</span>
+        ArgumentCaptor&lt;LocalDate&gt; jour = ArgumentCaptor.forClass(LocalDate.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).kpi(jour.capture());
+        assertEquals(LocalDate.now(), jour.getValue());
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> kpiCaisseCentrale_dateFournie_prestataireSansPhoto_libelleParDefaut() {
+        LocalDate jour = LocalDate.of(2026, 9, 23);
+        Mockito.when(cashDemandRepository.kpi(jour)).thenReturn(
+                <span class="k">new</span> KpiDemandes(0, 0, 1, List.of(
+                        <span class="k">new</span> KpiDemandes.RepartitionPrestataire(<span class="k">null</span>, <span class="k">null</span>, 1))));
+
+        KpiDemandesDTO dto = useCase.kpiCaisseCentrale(jour);
+
+        assertEquals(jour, dto.date());
+        assertEquals(<span class="s">"Non renseigné"</span>, dto.traiteesParTransporteur().<span class="k">get</span>(0).nom());
+    }</code></pre></div>
+<div class="card"><p><b>1.3 Logs au format JSON (PO 1).</b> Si utilisateurs-ci a son <code>logback-spring.xml</code> (Ctrl+F dans le repo users : <code>logback-spring.xml</code>, <code>LogstashEncoder</code>), copie-le tel quel dans le module container de fund-management et saute le fichier ci-dessous : « comme utilisateurs-ci » veut dire le même fichier. Sinon, voici une configuration équivalente.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>pom.xml (parent) — version et dependencyManagement</b><br><span class="path">C:\dev\fund-management-microservice\pom.xml  (Ctrl+F : &lt;dependencyManagement&gt;  — la propriété dans &lt;properties&gt;, la dépendance dans &lt;dependencyManagement&gt;)</span></div><p class="note">Convention du projet : les versions vivent dans le parent, les modules déclarent sans version. Users est en 8.1 (Spring Boot 3.5) ; 8.1 fonctionne aussi avec le logback 1.5.x de Spring Boot 3.3.1.</p><pre><button class="copy">Copier</button><code>    <span class="c">&lt;!-- dans &lt;properties&gt; du pom parent : même version que utilisateurs-ci (sa propriété s'appelle logstash-logback-envoder.version, avec la coquille) --&gt;</span>
+    &lt;logstash-logback-encoder.version&gt;8.1&lt;/logstash-logback-encoder.version&gt;
+
+    <span class="c">&lt;!-- dans &lt;dependencyManagement&gt;&lt;dependencies&gt; du pom parent --&gt;</span>
+            &lt;dependency&gt;
+                &lt;groupId&gt;net.logstash.logback&lt;/groupId&gt;
+                &lt;artifactId&gt;logstash-logback-encoder&lt;/artifactId&gt;
+                &lt;version&gt;${logstash-logback-encoder.version}&lt;/version&gt;
+            &lt;/dependency&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>pom.xml (module container) — dépendance</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\pom.xml  (dans &lt;dependencies&gt;)</span></div><p class="note">Le module container porte le démarrage Spring Boot et <code>application*.yml</code> : c'est lui qui charge <code>logback-spring.xml</code>. Vérifie qu'aucun <code>logging.pattern.console</code> ne reste dans les yml. <b>Tracing</b> : <code>micrometer-tracing-bridge-brave</code> est celui de users ; avec lui, chaque requête HTTP reçoit un <code>traceId</code> (posé dans le MDC, donc dans le JSON) et le propage aux appels sortants faits via les builders Spring (<code>RestClient.Builder</code>, <code>WebClient.Builder</code>, <code>RestTemplateBuilder</code>). Si <code>UtilisateursAgenceAdapter</code> construit son client avec <code>new RestTemplate()</code> / <code>WebClient.create()</code>, passe par le builder injecté pour que le traceId suive jusqu'à users. Les tâches du worker Camunda ouvrent leur propre trace (pas de propagation à travers le moteur).</p><pre><button class="copy">Copier</button><code>        <span class="c">&lt;!-- Remarque PO (01/10) : logs JSON, comme utilisateurs-ci — version gérée par le pom parent --&gt;</span>
+        &lt;dependency&gt;
+            &lt;groupId&gt;net.logstash.logback&lt;/groupId&gt;
+            &lt;artifactId&gt;logstash-logback-encoder&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+        <span class="c">&lt;!-- Tracing, comme utilisateurs-ci : traceId / spanId dans chaque ligne de log, propagés d'un service à l'autre.
+             Version gérée par le BOM Spring Boot (spring-boot-dependencies) : rien à déclarer dans le parent. --&gt;</span>
+        &lt;dependency&gt;
+            &lt;groupId&gt;io.micrometer&lt;/groupId&gt;
+            &lt;artifactId&gt;micrometer-tracing-bridge-brave&lt;/artifactId&gt;
+        &lt;/dependency&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>application-local.yml — échantillonnage du tracing</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\application-local.yml  (racine du yml ; si une clé management: existe déjà, fusionne)</span></div><pre><button class="copy">Copier</button><code># Tracing (micrometer / brave) : en local on trace 100 % des requêtes pour voir un traceId sur chaque ligne ;
+# en prod garder la valeur de users (0.1 par défaut si rien n'est posé).
+management:
+  tracing:
+    sampling:
+      probability: 1.0</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>logback-spring.xml</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\logback-spring.xml</span></div><p class="note">Une ligne JSON par événement sur la console (<code>timestamp</code>, <code>level</code>, <code>logger_name</code>, <code>thread_name</code>, <code>message</code>, <code>application</code>, MDC <code>correlationId</code> / <code>uid</code> / <code>branchCode</code> s'ils sont posés). Les clés sont celles de LogstashEncoder, lisibles telles quelles par la stack de logs du groupe.</p><pre><button class="copy">Copier</button><code>&lt;?xml version=<span class="s">"1.0"</span> encoding=<span class="s">"UTF-8"</span>?&gt;
+<span class="c">&lt;!-- Remarque PO (01/10) : même structure de log que utilisateurs-ci — une ligne JSON par événement.
+     Si utilisateurs-ci possède déjà son logback-spring.xml, copie-le tel quel à la place de ce fichier (seul le nom d'application change). --&gt;</span>
+&lt;configuration&gt;
+    &lt;springProperty scope=<span class="s">"context"</span> name=<span class="s">"application"</span> source=<span class="s">"spring.application.name"</span> defaultValue=<span class="s">"fund-management"</span>/&gt;
+
+    &lt;appender name=<span class="s">"JSON"</span> <span class="k">class</span>=<span class="s">"ch.qos.logback.core.ConsoleAppender"</span>&gt;
+        &lt;encoder <span class="k">class</span>=<span class="s">"net.logstash.logback.encoder.LogstashEncoder"</span>&gt;
+            &lt;customFields&gt;{<span class="s">"application"</span>:<span class="s">"${application}"</span>}&lt;/customFields&gt;
+            <span class="c">&lt;!-- clés identiques à utilisateurs-ci : horodatage, niveau, logger, thread, message, MDC (traceId / spanId du tracing, correlationId…) --&gt;</span>
+            &lt;fieldNames&gt;
+                &lt;timestamp&gt;timestamp&lt;/timestamp&gt;
+                &lt;version&gt;[ignore]&lt;/version&gt;
+                &lt;levelValue&gt;[ignore]&lt;/levelValue&gt;
+            &lt;/fieldNames&gt;
+            &lt;includeMdcKeyName&gt;traceId&lt;/includeMdcKeyName&gt;
+            &lt;includeMdcKeyName&gt;spanId&lt;/includeMdcKeyName&gt;
+            &lt;includeMdcKeyName&gt;correlationId&lt;/includeMdcKeyName&gt;
+            &lt;includeMdcKeyName&gt;uid&lt;/includeMdcKeyName&gt;
+            &lt;includeMdcKeyName&gt;branchCode&lt;/includeMdcKeyName&gt;
+            &lt;shortenedLoggerNameLength&gt;40&lt;/shortenedLoggerNameLength&gt;
+            &lt;throwableConverter <span class="k">class</span>=<span class="s">"net.logstash.logback.stacktrace.ShortenedThrowableConverter"</span>&gt;
+                &lt;maxDepthPerThrowable&gt;30&lt;/maxDepthPerThrowable&gt;
+                &lt;rootCauseFirst&gt;<span class="k">true</span>&lt;/rootCauseFirst&gt;
+            &lt;/throwableConverter&gt;
+        &lt;/encoder&gt;
+    &lt;/appender&gt;
+
+    &lt;logger name=<span class="s">"org.camunda"</span> level=<span class="s">"WARN"</span>/&gt;
+    &lt;logger name=<span class="s">"org.hibernate.SQL"</span> level=<span class="s">"WARN"</span>/&gt;
+
+    &lt;root level=<span class="s">"INFO"</span>&gt;
+        &lt;appender-ref ref=<span class="s">"JSON"</span>/&gt;
+    &lt;/root&gt;
+&lt;/configuration&gt;</code></pre></div>
+<h2 id="s2">2. Front — fondations (modèle, port, directive, palette)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>operation.model.ts — DemandeFonds</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\operation.model.ts  (interface DemandeFonds, après agentProfil)</span></div><p class="note"><code>DemandeFondsDetail</code> (demande-detail.model.ts) étend <code>DemandeFonds</code> : les trois champs arrivent sur l'écran agence sans autre changement.</p><pre><button class="copy">Copier</button><code><span class="c">// ===== AER_LM-285 — dans l'interface DemandeFonds (photo du décideur Caisse Centrale, lecture seule, après agentProfil) =====</span>
+  decisionPar?: string | <span class="k">null</span>;
+  decisionProfil?: string | <span class="k">null</span>;
+  decisionAt?: string | <span class="k">null</span>;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-dossier.model.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\demande-dossier.model.ts</span></div><p class="note"><code>DemandeDossier</code> décrit le JSON de GET /cash/{id} (noms de <code>CashRequestDTO</code> / <code>CashOperationDTO</code> / <code>OperationCurrencyDetailDTO</code>, captures du 28/09). La valeur faciale d'une coupure vient du back si <code>denomination.faceValue</code> est renseigné, sinon du code (<code>BILLET_200</code> → 200, <code>PIECE_0_50</code> → 0,5). Les lignes affichées sont celles de la demande : si le payload de l'écran agence n'envoie pas les coupures à 0, elles n'apparaissent pas côté Caisse Centrale (c'est aussi plus lisible).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { StatutDemande, classeStatut, libelleStatut, versStatutDemande } <span class="k">from</span> <span class="s">'./statut-demande'</span>;
+
+<span class="c">/**
+ * AER_LM-285 — lecture complète d'une demande (GET /cash/{id}) telle que le back la renvoie (CashRequestDTO),
+ * et sa projection en vue prête à afficher (écran de traitement Caisse Centrale, en-tête partagé 287).
+ *
+ * DemandeDossier décrit le JSON du back, pas le modèle d'édition de l'écran agence : tout y est optionnel,
+ * la vue se charge des replis. Noms = ceux de CashRequestDTO / CashOperationDTO / OperationCurrencyDetailDTO.
+ */</span>
+<span class="k">export</span> <span class="k">interface</span> DemandeDossier {
+  id: string;
+  uniqueRequestRef?: string | <span class="k">null</span>;
+  branchCode?: string | <span class="k">null</span>;
+  agenceNom?: string | <span class="k">null</span>;
+  zoneNom?: string | <span class="k">null</span>;
+  prestataire?: string | <span class="k">null</span>;
+  prestataireNom?: string | <span class="k">null</span>;
+  requestStatus?: string | <span class="k">null</span>;
+  cancellationOrigin?: string | <span class="k">null</span>;
+  cancellationReason?: string | <span class="k">null</span>;
+  urgent?: boolean | <span class="k">null</span>;
+  createdAt?: string | <span class="k">null</span>;
+  submittedAt?: string | <span class="k">null</span>;
+  updatedAt?: string | <span class="k">null</span>;
+  lockedBy?: string | <span class="k">null</span>;
+  journeeCloturee?: boolean | <span class="k">null</span>;
+  user?: string | <span class="k">null</span>;
+  agentNom?: string | <span class="k">null</span>;
+  agentProfil?: string | <span class="k">null</span>;
+  decisionPar?: string | <span class="k">null</span>;       <span class="c">// AER_LM-285</span>
+  decisionProfil?: string | <span class="k">null</span>;
+  decisionAt?: string | <span class="k">null</span>;
+  comment?: string | <span class="k">null</span>;
+  operations?: OperationDossier[] | <span class="k">null</span>;
+}
+
+<span class="k">export</span> <span class="k">interface</span> OperationDossier {
+  operationType?: string | <span class="k">null</span>;     <span class="c">// CASH_DESK | ATM | CURRENCY</span>
+  operationSens?: string | <span class="k">null</span>;     <span class="c">// SUPPLY | COLLECTION</span>
+  isUrgent?: boolean | <span class="k">null</span>;
+  currencyDetails?: DetailDeviseDossier[] | <span class="k">null</span>;
+}
+
+<span class="k">export</span> <span class="k">interface</span> DetailDeviseDossier {
+  currency?: { isoCode?: string | <span class="k">null</span>; name?: string | <span class="k">null</span> } | <span class="k">null</span>;
+  totalAmountByCurrency?: number | <span class="k">null</span>;
+  operationDenominations?: LigneDenominationDossier[] | <span class="k">null</span>;
+}
+
+<span class="k">export</span> <span class="k">interface</span> LigneDenominationDossier {
+  denomination?: { denominationCode?: string | <span class="k">null</span>; faceValue?: number | string | <span class="k">null</span> } | <span class="k">null</span>;
+  quantity?: number | <span class="k">null</span>;
+}
+
+<span class="c">// ===== Vue =====</span>
+
+<span class="k">export</span> <span class="k">interface</span> LigneCoupure { code: string; faceValue: number; quantite: number; montant: number; }
+<span class="k">export</span> <span class="k">interface</span> LigneDevise  { devise: string; libelle: string; montant: number; }
+
+<span class="k">export</span> <span class="k">interface</span> VueDossier {
+  id: string;
+  reference: string;
+  statut: StatutDemande;
+  libelleStatut: string;
+  classeStatut: string;
+  urgent: boolean;
+  agence: string;                    <span class="c">// « 1001 - Nations Unies »</span>
+  soumiseLe: string | <span class="k">null</span>;
+  soumisePar: string | <span class="k">null</span>;         <span class="c">// nom complet, sinon uid</span>
+  soumiseParProfil: string | <span class="k">null</span>;
+  decisionLe: string | <span class="k">null</span>;         <span class="c">// décision Caisse Centrale (Traitée ou Annulée)</span>
+  decisionPar: string | <span class="k">null</span>;
+  decisionProfil: string | <span class="k">null</span>;
+  motifAnnulation: string | <span class="k">null</span>;
+  verrouillePar: string | <span class="k">null</span>;
+  journeeCloturee: boolean;
+  caisse: { billets: LigneCoupure[]; pieces: LigneCoupure[]; totalBillets: number; totalPieces: number; total: number } | <span class="k">null</span>;
+  gab: { lignes: LigneCoupure[]; total: number } | <span class="k">null</span>;
+  ramassages: LigneDevise[];
+  devises: LigneDevise[];
+  commentaire: string | <span class="k">null</span>;
+}
+
+<span class="c">/** Même règle que l'écran de saisie agence : à partir de 20 DH c'est un billet, en dessous une pièce. */</span>
+<span class="k">export</span> <span class="k">const</span> SEUIL_BILLET = 20;
+
+<span class="k">const</span> NOMS_DEVISES: Record&lt;string, string&gt; = {
+  MAD: <span class="s">'Dirham marocain'</span>, EUR: <span class="s">'Euro'</span>, USD: <span class="s">'US Dollar'</span>, GBP: <span class="s">'British Pound'</span>, CHF: <span class="s">'Franc suisse'</span>,
+  CAD: <span class="s">'Dollar canadien'</span>, SAR: <span class="s">'Riyal saoudien'</span>, AED: <span class="s">'Dirham des Émirats'</span>, JPY: <span class="s">'Yen'</span>
+};
+
+<span class="k">export</span> <span class="k">function</span> construireVueDossier(d: DemandeDossier): VueDossier {
+  <span class="k">const</span> statut = versStatutDemande(d.requestStatus ?? <span class="s">'INITIATED'</span>, d.cancellationOrigin ?? undefined);
+  <span class="k">const</span> ops = d.operations ?? [];
+  <span class="k">const</span> caisse = coupures(ops, <span class="s">'CASH_DESK'</span>);
+  <span class="k">const</span> gab = coupures(ops, <span class="s">'ATM'</span>);
+  <span class="k">const</span> billets = caisse.filter(l =&gt; l.faceValue &gt;= SEUIL_BILLET);
+  <span class="k">const</span> pieces = caisse.filter(l =&gt; l.faceValue &lt; SEUIL_BILLET);
+  <span class="k">const</span> totalBillets = somme(billets.map(l =&gt; l.montant));
+  <span class="k">const</span> totalPieces = somme(pieces.map(l =&gt; l.montant));
+  <span class="k">return</span> {
+    id: d.id,
+    reference: d.uniqueRequestRef ?? <span class="s">'—'</span>,
+    statut,
+    libelleStatut: libelleStatut(statut),
+    classeStatut: classeStatut(statut),
+    urgent: d.urgent ?? ops.some(op =&gt; op.isUrgent === <span class="k">true</span>),
+    agence: [d.branchCode, d.agenceNom].filter(Boolean).join(<span class="s">' - '</span>),
+    soumiseLe: d.submittedAt ?? d.createdAt ?? <span class="k">null</span>,
+    soumisePar: d.agentNom || d.user || <span class="k">null</span>,
+    soumiseParProfil: d.agentProfil ?? <span class="k">null</span>,
+    decisionLe: d.decisionAt ?? <span class="k">null</span>,
+    decisionPar: d.decisionPar ?? <span class="k">null</span>,
+    decisionProfil: d.decisionProfil ?? <span class="k">null</span>,
+    motifAnnulation: d.cancellationReason ?? <span class="k">null</span>,
+    verrouillePar: d.lockedBy ?? <span class="k">null</span>,
+    journeeCloturee: d.journeeCloturee ?? <span class="k">false</span>,
+    caisse: caisse.length ? { billets, pieces, totalBillets, totalPieces, total: totalBillets + totalPieces } : <span class="k">null</span>,
+    gab: gab.length ? { lignes: gab, total: somme(gab.map(l =&gt; l.montant)) } : <span class="k">null</span>,
+    ramassages: lignesDevise(ops, <span class="s">'COLLECTION'</span>).map(l =&gt; ({ ...l, libelle: l.devise === <span class="s">'MAD'</span> ? <span class="s">'Espèces'</span> : <span class="s">'Devises'</span> })),
+    devises: lignesDevise(ops, <span class="s">'SUPPLY'</span>).map(l =&gt; ({ ...l, libelle: NOMS_DEVISES[l.devise] ?? l.devise })),
+    commentaire: d.comment?.trim() ? d.comment : <span class="k">null</span>
+  };
+}
+
+<span class="c">/** Coupures d'une alimentation (CASH_DESK ou ATM, sens SUPPLY), cumulées par valeur faciale, triées par valeur décroissante. */</span>
+<span class="k">function</span> coupures(ops: OperationDossier[], <span class="k">type</span>: <span class="s">'CASH_DESK'</span> | <span class="s">'ATM'</span>): LigneCoupure[] {
+  <span class="k">const</span> parValeur = <span class="k">new</span> Map&lt;number, LigneCoupure&gt;();
+  for (<span class="k">const</span> op of ops) {
+    <span class="k">if</span> (op.operationType !== <span class="k">type</span> || op.operationSens !== <span class="s">'SUPPLY'</span>) { continue; }
+    for (<span class="k">const</span> detail of op.currencyDetails ?? []) {
+      for (<span class="k">const</span> ligne of detail.operationDenominations ?? []) {
+        <span class="k">const</span> code = ligne.denomination?.denominationCode ?? <span class="s">''</span>;
+        <span class="k">const</span> faceValue = valeurFaciale(ligne.denomination?.faceValue, code);
+        <span class="k">if</span> (faceValue === <span class="k">null</span>) { continue; }
+        <span class="k">const</span> quantite = Number(ligne.quantity ?? 0) || 0;
+        <span class="k">const</span> existante = parValeur.<span class="k">get</span>(faceValue);
+        <span class="k">if</span> (existante) {
+          existante.quantite += quantite;
+          existante.montant = arrondi(existante.quantite * faceValue);
+        } <span class="k">else</span> {
+          parValeur.set(faceValue, { code, faceValue, quantite, montant: arrondi(quantite * faceValue) });
+        }
+      }
+    }
+  }
+  <span class="k">return</span> [...parValeur.values()].sort((a, b) =&gt; b.faceValue - a.faceValue);
+}
+
+<span class="c">/** Valeur faciale : celle du back si elle est fournie, sinon lue dans le code (BILLET_200 → 200, PIECE_0_50 → 0.5). */</span>
+<span class="k">export</span> <span class="k">function</span> valeurFaciale(faceValue: number | string | <span class="k">null</span> | undefined, code: string): number | <span class="k">null</span> {
+  <span class="k">const</span> fournie = Number(faceValue);
+  <span class="k">if</span> (faceValue !== <span class="k">null</span> &amp;&amp; faceValue !== undefined &amp;&amp; faceValue !== <span class="s">''</span> &amp;&amp; !Number.isNaN(fournie)) { <span class="k">return</span> fournie; }
+  <span class="k">const</span> m = /(\d+)(?:[._](\d+))?\s*$/.exec(code);
+  <span class="k">if</span> (!m) { <span class="k">return</span> <span class="k">null</span>; }
+  <span class="k">return</span> Number(m[2] ? <span class="s">`${m[1]}.${m[2]}`</span> : m[1]);
+}
+
+<span class="c">/** Ramassages (CURRENCY / COLLECTION) ou commandes de devises (CURRENCY / SUPPLY) : une ligne par devise. */</span>
+<span class="k">function</span> lignesDevise(ops: OperationDossier[], sens: <span class="s">'COLLECTION'</span> | <span class="s">'SUPPLY'</span>): { devise: string; montant: number }[] {
+  <span class="k">const</span> lignes: { devise: string; montant: number }[] = [];
+  for (<span class="k">const</span> op of ops) {
+    <span class="k">if</span> (op.operationType !== <span class="s">'CURRENCY'</span> || op.operationSens !== sens) { continue; }
+    for (<span class="k">const</span> detail of op.currencyDetails ?? []) {
+      lignes.push({ devise: detail.currency?.isoCode ?? <span class="s">'?'</span>, montant: Number(detail.totalAmountByCurrency ?? 0) || 0 });
+    }
+  }
+  <span class="k">return</span> lignes;
+}
+
+<span class="k">function</span> somme(valeurs: number[]): number { <span class="k">return</span> arrondi(valeurs.reduce((a, b) =&gt; a + b, 0)); }
+<span class="k">function</span> arrondi(n: number): number { <span class="k">return</span> Math.round(n * 100) / 100; }
+
+<span class="c">/** « 4 450,00 » — format français, toujours deux décimales. */</span>
+<span class="k">export</span> <span class="k">function</span> formaterMontant(n: number): string {
+  <span class="k">return</span> <span class="k">new</span> Intl.NumberFormat(<span class="s">'fr-FR'</span>, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fundManagement.service.ts (port FundService)</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-application-services\output\fundManagement.service.ts  (après exporterDemandes)</span></div><p class="note">Import <code>DemandeDossier</code> depuis <code>../../domain-core/entities/demande-dossier.model</code>.</p><pre><button class="copy">Copier</button><code>  <span class="c">// ===== AER_LM-285 — lecture complète d'une demande (écran de traitement Caisse Centrale) =====</span>
+  <span class="c">/** GET /cash/{id} tel quel (CashRequestDTO), sans passer par le modèle d'édition de l'écran agence. */</span>
+  getDossier(id: string): Promise&lt;DemandeDossier&gt;;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fundManagement-http.service.ts — getDossier</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\adapters\apiAdapters\fundManagement-http.service.ts  (après exporterDemandes)</span></div><p class="note">Import <code>DemandeDossier</code> depuis <code>../../domain/domain-core/entities/demande-dossier.model</code>. Même route que <code>getDemande</code>, sans la transformation en modèle d'édition.</p><pre><button class="copy">Copier</button><code>  <span class="c">// ===== AER_LM-285 — lecture complète d'une demande =====</span>
+
+  getDossier(id: string): Promise&lt;DemandeDossier&gt; {
+    <span class="k">return</span> firstValueFrom(
+      <span class="k">this</span>.http.<span class="k">get</span>&lt;ApiResponse&lt;DemandeDossier&gt;&gt;(<span class="s">`${this.apiUrl}/${id}`</span>).pipe(
+        map(r =&gt; <span class="k">this</span>.data(r)),
+        catchError(err =&gt; throwError(() =&gt; <span class="k">this</span>.versErreurApi(err)))
+      )
+    );
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>saisie-quantite.directive.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\directives\saisie-quantite.directive.ts</span></div><p class="note">Posée au §5.3 sur les inputs de quantité de l'écran agence (création et modification). Si <code>construirePayload</code> fait <code>Number(ctrl.value)</code>, rien à changer : <code>Number(null)</code> vaut 0. S'il lit la valeur telle quelle, écris <code>Number(ctrl.value) || 0</code>.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { DestroyRef, Directive, HostBinding, HostListener, OnInit, inject } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { takeUntilDestroyed } <span class="k">from</span> <span class="s">'@angular/core/rxjs-interop'</span>;
+<span class="k">import</span> { NgControl } <span class="k">from</span> <span class="s">'@angular/forms'</span>;
+
+<span class="c">/**
+ * Remarque PO (01/10) — champs de quantité : le 0 est un placeholder, jamais une valeur pré-saisie.
+ *  - un champ dont la valeur est 0 (ou absente) se présente vide avec « 0 » en placeholder ;
+ *  - au focus, un 0 éventuel disparaît : l'agent tape directement sa quantité ;
+ *  - un champ laissé vide vaut 0 pour les totaux et le payload (Number(null) === 0, Number('') === 0).
+ * Se pose sur tout &lt;input type="number"&gt; relié à un FormControl : &lt;input type="number" appSaisieQuantite formControlName="…"&gt;.
+ * Ne change rien aux validateurs : min(0) ignore une valeur vide ; auMoinsUneSectionRenseignee compare des nombres.
+ */</span>
+<span class="a">@Directive</span>({ selector: <span class="s">'input[appSaisieQuantite]'</span>, standalone: <span class="k">true</span> })
+<span class="k">export</span> <span class="k">class</span> SaisieQuantiteDirective <span class="k">implements</span> OnInit {
+
+  <span class="k">private</span> <span class="k">readonly</span> ngControl = inject(NgControl, { optional: <span class="k">true</span>, self: <span class="k">true</span> });
+  <span class="k">private</span> <span class="k">readonly</span> destroyRef = inject(DestroyRef);
+
+  <span class="a">@HostBinding</span>(<span class="s">'attr.placeholder'</span>) <span class="k">readonly</span> placeholder = <span class="s">'0'</span>;
+
+  ngOnInit(): <span class="k">void</span> {
+    <span class="k">const</span> ctrl = <span class="k">this</span>.ngControl?.control;
+    <span class="k">if</span> (!ctrl) { <span class="k">return</span>; }
+    <span class="k">this</span>.remplacerZero();
+    <span class="c">// un patchValue(0) (chargement d'une demande, « Réinitialiser ») doit lui aussi se présenter vide</span>
+    ctrl.valueChanges.pipe(takeUntilDestroyed(<span class="k">this</span>.destroyRef)).subscribe(() =&gt; <span class="k">this</span>.remplacerZero());
+  }
+
+  <span class="a">@HostListener</span>(<span class="s">'focus'</span>)
+  auFocus(): <span class="k">void</span> { <span class="k">this</span>.remplacerZero(); }
+
+  <span class="k">private</span> remplacerZero(): <span class="k">void</span> {
+    <span class="k">const</span> ctrl = <span class="k">this</span>.ngControl?.control;
+    <span class="k">if</span> (!ctrl) { <span class="k">return</span>; }
+    <span class="k">const</span> v = ctrl.value;
+    <span class="k">if</span> (v === 0 || v === <span class="s">'0'</span>) {
+      <span class="c">// sans émission : la valeur métier ne change pas (0 ⇔ vide), seul l'affichage passe en placeholder</span>
+      ctrl.setValue(<span class="k">null</span>, { emitEvent: <span class="k">false</span> });
+    }
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>_palette.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\_palette.scss</span></div><p class="note">Mêmes couleurs que le listing 281, plus trois mixins (carte, bouton, pastille de statut) pour les composants ci-dessous. Chaque SCSS fait <code>@use '../palette' as *;</code> (le préfixe <code>_</code> et l'extension sont implicites).</p><pre><button class="copy">Copier</button><code><span class="c">/* AER_LM-285 / 287 — palette des écrans demande (même transposition SCSS des maquettes Tailwind que le listing 281) */</span>
+$vert-50:  #f0fdf6; $vert-100: #dbf9e9; $vert-500: #10b981; $vert-600: #00915a; $vert-700: #007548;
+$ardoise-50: #f8fafc; $ardoise-100: #f1f5f9; $ardoise-200: #e2e8f0; $ardoise-300: #cbd5e1;
+$ardoise-400: #94a3b8; $ardoise-500: #64748b; $ardoise-600: #475569; $ardoise-700: #334155; $ardoise-800: #1e293b; $ardoise-900: #0f172a;
+$rose-50: #fff1f2; $rose-200: #fecdd3; $rose-600: #e11d48; $rose-700: #be123c;
+$ambre-50: #fffbeb; $ambre-200: #fde68a; $ambre-600: #d97706; $ambre-800: #92400e;
+$bleu-50: #eff6ff; $bleu-100: #dbeafe; $bleu-600: #2563eb; $bleu-800: #1e40af;
+$mono: <span class="s">"JetBrains Mono"</span>, Consolas, monospace;
+
+<span class="a">@mixin</span> carte { background: #fff; border: 1px solid $ardoise-200; border-radius: 14px; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
+
+<span class="a">@mixin</span> bouton {
+  display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 0.85rem; font-weight: 600;
+  padding: 9px 14px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; transition: all .15s;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &amp;:disabled { opacity: .55; cursor: not-allowed; }
+  &amp;--primaire  { background: $vert-600; color: #fff; &amp;:hover:not(:disabled) { background: $vert-700; } }
+  &amp;--secondaire { background: #fff; color: $ardoise-600; border-color: $ardoise-200; &amp;:hover:not(:disabled) { background: $ardoise-100; } }
+  &amp;--danger    { background: #fff; color: $rose-700; border-color: $rose-200; &amp;:hover:not(:disabled) { background: $rose-50; } }
+}
+
+<span class="a">@mixin</span> chip-statut {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; border: 1px solid transparent;
+  mat-icon { font-size: 14px; width: 18px; height: 18px; border: 1.5px solid currentColor; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+  &amp;.statut--initiee                 { background: $ardoise-100; color: $ardoise-600; border-color: $ardoise-200; }
+  &amp;.statut--soumise                 { background: $ambre-50; color: $ambre-800; border-color: $ambre-200; }
+  &amp;.statut--en-modification         { background: #fef3c7; color: #a16207; border-color: $ambre-200; }
+  &amp;.statut--traitee                 { background: $vert-50; color: $vert-700; border-color: $vert-100; }
+  &amp;.statut--annulee-agence,
+  &amp;.statut--annulee-caisse-centrale { background: $ardoise-100; color: $ardoise-500; border-color: $ardoise-200; }
+}</code></pre></div>
+<h2 id="s3">3. Front — composants partagés (en-tête, barre d'actions, modale de décision)</h2>
+<div class="card"><p>Trois composants standalone de présentation, sans injection : tout entre par <code>@Input</code>, tout sort par <code>@Output</code>. Le parent (page CC ou écran agence) décide, eux affichent. Dossier : <code>presenter/components/demande/</code>.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-ecran.regles.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-ecran.regles.ts</span></div><p class="note">Règles pures : quand un écran est en lecture seule et ce que dit la bannière — agence (statut, autre agence, verrou d'un tiers, cut-off, habilitation, dans cet ordre) et Caisse Centrale (statut, réservation par l'agence, habilitation TRAITER). Testé au §7.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { StatutDemande } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/statut-demande'</span>;
+
+<span class="c">/**
+ * AER_LM-285 / 287 — règles pures des écrans de consultation (agence) et de traitement (Caisse Centrale) :
+ * quand l'écran est en lecture seule, et ce que dit la bannière. Testable sans Angular.
+ */</span>
+
+<span class="k">export</span> <span class="k">interface</span> BanniereLecture {
+  titre: string;      <span class="c">// « Consultation seule — Demande verrouillée et non modifiable »</span>
+  texte: string;      <span class="c">// la raison, en une ou deux phrases</span>
+  ton: <span class="s">'info'</span> | <span class="s">'alerte'</span>;
+}
+
+<span class="k">const</span> INTERVENTION_CC = <span class="s">"Toute modification ultérieure nécessite l'intervention exceptionnelle de la Caisse Centrale."</span>;
+
+<span class="c">// ===== Agence (287) =====</span>
+
+<span class="k">export</span> <span class="k">interface</span> FaitsLectureAgence {
+  statut: StatutDemande;
+  journeeCloturee: boolean;
+  verrouillePar: string | <span class="k">null</span>;     <span class="c">// lockedBy</span>
+  verrouDetenu: boolean;            <span class="c">// le verrou est à moi (mode modification en cours)</span>
+  demandeDeMonAgence: boolean;
+  peutModifier: boolean;            <span class="c">// habilitation GDF_MODIFIER_DEMANDE</span>
+}
+
+<span class="c">/** null ⇒ l'écran est modifiable (ou en cours de modification) : pas de bannière. */</span>
+<span class="k">export</span> <span class="k">function</span> banniereLectureAgence(f: FaitsLectureAgence): BanniereLecture | <span class="k">null</span> {
+  <span class="k">if</span> (f.verrouDetenu) { <span class="k">return</span> <span class="k">null</span>; }
+  <span class="k">switch</span> (f.statut) {
+    <span class="k">case</span> <span class="s">'TRAITEE'</span>:
+      <span class="k">return</span> { ton: <span class="s">'alerte'</span>, titre: <span class="s">'Consultation seule — Demande traitée et non modifiable'</span>,
+        texte: <span class="s">`Cette demande a été traitée par la Caisse Centrale (statut : Traitée). La saisie et les ajustements sont définitivement fermés. ${INTERVENTION_CC}`</span> };
+    <span class="k">case</span> <span class="s">'ANNULEE_AGENCE'</span>:
+      <span class="k">return</span> { ton: <span class="s">'info'</span>, titre: <span class="s">'Consultation seule — Demande annulée par l\'</span>agence',
+        texte: <span class="s">'Cette demande a été annulée par l\'</span>agence ; elle est conservée pour l\<span class="s">'historique et ne peut plus être modifiée.'</span> };
+    <span class="k">case</span> <span class="s">'ANNULEE_CAISSE_CENTRALE'</span>:
+      <span class="k">return</span> { ton: <span class="s">'alerte'</span>, titre: <span class="s">'Consultation seule — Demande annulée par la Caisse Centrale'</span>,
+        texte: <span class="s">'Cette demande a été annulée par la Caisse Centrale (voir le motif ci-dessous). Elle ne peut plus être modifiée ; une nouvelle demande doit être initiée si le besoin persiste.'</span> };
+  }
+  <span class="k">if</span> (!f.demandeDeMonAgence) {
+    <span class="k">return</span> { ton: <span class="s">'info'</span>, titre: <span class="s">'Consultation seule — Demande d\'</span>une autre agence',
+      texte: <span class="s">'Cette demande appartient à une autre agence : elle est consultable mais ne peut être ni modifiée ni annulée depuis votre agence.'</span> };
+  }
+  <span class="k">if</span> (f.statut === <span class="s">'EN_MODIFICATION'</span>) {
+    <span class="k">return</span> { ton: <span class="s">'alerte'</span>, titre: <span class="s">'Consultation seule — Demande réservée en modification'</span>,
+      texte: <span class="s">`Cette demande est en cours de modification par ${f.verrouillePar ?? 'un autre agent'}. Elle redeviendra modifiable dès que cette modification sera soumise ou abandonnée.`</span> };
+  }
+  <span class="k">if</span> (f.journeeCloturee) {
+    <span class="k">return</span> { ton: <span class="s">'alerte'</span>, titre: <span class="s">'Consultation seule — Journée clôturée (cut-off de 16h00 dépassé)'</span>,
+      texte: <span class="s">`La saisie et les ajustements sont définitivement fermés pour cette journée comptable. ${INTERVENTION_CC}`</span> };
+  }
+  <span class="k">if</span> (!f.peutModifier) {
+    <span class="k">return</span> { ton: <span class="s">'info'</span>, titre: <span class="s">'Consultation seule — Habilitation de modification absente'</span>,
+      texte: <span class="s">'Votre profil permet la consultation des demandes de l\'</span>agence, pas leur mise à jour.' };
+  }
+  <span class="k">return</span> <span class="k">null</span>;
+}
+
+<span class="c">// ===== Caisse Centrale (285) =====</span>
+
+<span class="k">export</span> <span class="k">interface</span> FaitsLectureCaisseCentrale {
+  statut: StatutDemande;
+  verrouillePar: string | <span class="k">null</span>;
+  agence: string;
+  peutTraiter: boolean;             <span class="c">// habilitation GDF_TRAITER_DEMANDE (Caisse Centrale oui, Support non)</span>
+}
+
+<span class="c">/** null ⇒ Traiter / Annuler sont proposés. */</span>
+<span class="k">export</span> <span class="k">function</span> banniereLectureCaisseCentrale(f: FaitsLectureCaisseCentrale): BanniereLecture | <span class="k">null</span> {
+  <span class="k">switch</span> (f.statut) {
+    <span class="k">case</span> <span class="s">'TRAITEE'</span>:
+      <span class="k">return</span> { ton: <span class="s">'info'</span>, titre: <span class="s">'Demande déjà traitée'</span>,
+        texte: <span class="s">'Cette demande a été validée et transmise au transporteur. Aucune action n\'</span>est plus possible.' };
+    <span class="k">case</span> <span class="s">'ANNULEE_AGENCE'</span>:
+      <span class="k">return</span> { ton: <span class="s">'info'</span>, titre: <span class="s">'Demande annulée par l\'</span>agence',
+        texte: <span class="s">'L\'</span>agence a annulé cette demande avant son traitement ; elle est sortie du circuit.' };
+    <span class="k">case</span> <span class="s">'ANNULEE_CAISSE_CENTRALE'</span>:
+      <span class="k">return</span> { ton: <span class="s">'info'</span>, titre: <span class="s">'Demande annulée par la Caisse Centrale'</span>,
+        texte: <span class="s">'Cette demande a été rejetée (voir le motif ci-dessous) ; elle est sortie du circuit.'</span> };
+    <span class="k">case</span> <span class="s">'EN_MODIFICATION'</span>:
+      <span class="k">return</span> { ton: <span class="s">'alerte'</span>, titre: <span class="s">'Demande réservée en mise à jour par l\'</span>agence',
+        texte: <span class="s">`L'agence ${f.agence} modifie actuellement cette demande${f.verrouillePar ? `</span> (${f.verrouillePar})<span class="s">` : ''}. Le traitement et l'annulation seront possibles dès que la modification sera soumise.`</span> };
+    <span class="k">case</span> <span class="s">'INITIEE'</span>:
+      <span class="k">return</span> { ton: <span class="s">'info'</span>, titre: <span class="s">'Brouillon non soumis'</span>,
+        texte: <span class="s">'Cette demande n\'</span>a pas encore été soumise par l\<span class="s">'agence ; elle n\'</span>est pas à traiter.' };
+  }
+  <span class="k">if</span> (!f.peutTraiter) {
+    <span class="k">return</span> { ton: <span class="s">'info'</span>, titre: <span class="s">'Consultation seule'</span>,
+      texte: <span class="s">'Votre profil permet la consultation des demandes de toutes les agences, pas leur traitement.'</span> };
+  }
+  <span class="k">return</span> <span class="k">null</span>;
+}
+
+<span class="c">/** Icône Material de la pastille de statut — identique au listing 281 (dessinée dans un cercle). */</span>
+<span class="k">export</span> <span class="k">function</span> iconeStatutEcran(statut: StatutDemande): string {
+  <span class="k">switch</span> (statut) {
+    <span class="k">case</span> <span class="s">'INITIEE'</span>:                 <span class="k">return</span> <span class="s">'edit'</span>;
+    <span class="k">case</span> <span class="s">'SOUMISE'</span>:                 <span class="k">return</span> <span class="s">'more_horiz'</span>;
+    <span class="k">case</span> <span class="s">'EN_MODIFICATION'</span>:         <span class="k">return</span> <span class="s">'edit'</span>;
+    <span class="k">case</span> <span class="s">'TRAITEE'</span>:                 <span class="k">return</span> <span class="s">'check'</span>;
+    <span class="k">case</span> <span class="s">'ANNULEE_AGENCE'</span>:
+    <span class="k">case</span> <span class="s">'ANNULEE_CAISSE_CENTRALE'</span>: <span class="k">return</span> <span class="s">'close'</span>;
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-entete.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-entete\demande-entete.component.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { StatutDemande, classeStatut, libelleStatut } <span class="k">from</span> <span class="s">'../../../../domain/domain-core/entities/statut-demande'</span>;
+<span class="k">import</span> { BanniereLecture, iconeStatutEcran } <span class="k">from</span> <span class="s">'../demande-ecran.regles'</span>;
+
+<span class="c">/**
+ * AER_LM-285 / 287 — en-tête commun des écrans de consultation (agence) et de traitement (Caisse Centrale) :
+ * lien de retour, bannière de lecture seule, pastille de statut, référence, « Soumise le … par … »,
+ * « Traitée / Annulée le … par … », motif d'annulation, badge « Mode Modification actif », badge / case « DEMANDE URGENTE ».
+ * Composant de présentation pur : aucune injection, tout vient des entrées.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-demande-entete'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [CommonModule, MatIconModule],
+  templateUrl: <span class="s">'./demande-entete.component.html'</span>,
+  styleUrl: <span class="s">'./demande-entete.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> DemandeEnteteComponent {
+
+  <span class="a">@Input</span>({ required: <span class="k">true</span> }) reference!: string;
+  <span class="a">@Input</span>({ required: <span class="k">true</span> }) statut!: StatutDemande;
+
+  <span class="c">/** Urgence : badge en lecture ; case à cocher si urgentModifiable (mode modification agence). */</span>
+  <span class="a">@Input</span>() urgent = <span class="k">false</span>;
+  <span class="a">@Input</span>() urgentModifiable = <span class="k">false</span>;
+  <span class="a">@Output</span>() urgentChange = <span class="k">new</span> EventEmitter&lt;boolean&gt;();
+
+  <span class="a">@Input</span>() modeModification = <span class="k">false</span>;
+
+  <span class="a">@Input</span>() soumiseLe: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="a">@Input</span>() soumisePar: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="c">/** Entre parenthèses après le nom : « BackOffice » (profil, écran agence) ou « Agence 1001 - Nations Unies » (Caisse Centrale). */</span>
+  <span class="a">@Input</span>() soumiseParDetail: string | <span class="k">null</span> = <span class="k">null</span>;
+
+  <span class="a">@Input</span>() decisionLe: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="a">@Input</span>() decisionPar: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="a">@Input</span>() decisionParDetail: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="a">@Input</span>() motifAnnulation: string | <span class="k">null</span> = <span class="k">null</span>;
+
+  <span class="a">@Input</span>() banniere: BanniereLecture | <span class="k">null</span> = <span class="k">null</span>;
+
+  <span class="a">@Input</span>() lienRetour = <span class="s">'Retour à l\'</span>Historique des Demandes';
+  <span class="a">@Output</span>() retour = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+
+  <span class="k">get</span> libelleStatut(): string { <span class="k">return</span> libelleStatut(<span class="k">this</span>.statut); }
+  <span class="k">get</span> classeStatut(): string { <span class="k">return</span> classeStatut(<span class="k">this</span>.statut); }
+  <span class="k">get</span> iconeStatut(): string { <span class="k">return</span> iconeStatutEcran(<span class="k">this</span>.statut); }
+  <span class="k">get</span> libelleDecision(): string { <span class="k">return</span> <span class="k">this</span>.statut === <span class="s">'TRAITEE'</span> ? <span class="s">'Traitée'</span> : <span class="s">'Annulée'</span>; }
+
+  basculerUrgent(evt: Event): <span class="k">void</span> {
+    <span class="k">this</span>.urgentChange.emit((evt.target as HTMLInputElement).checked);
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-entete.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-entete\demande-entete.component.html</span></div><p class="note">Maquettes : lien de retour, bannière « Consultation seule — … » avec chip « Lecture Seule », pastille de statut cerclée, « Demande Réf: … », « Soumise le … par … (…) », « Traitée le … par … (…) », badge « Mode Modification actif », « DEMANDE URGENTE » en badge (lecture) ou en case à cocher (modification).</p><pre><button class="copy">Copier</button><code>&lt;a <span class="k">class</span>=<span class="s">"retour"</span> href=<span class="s">"#"</span> (click)=<span class="s">"$event.preventDefault(); retour.emit()"</span>&gt;
+  &lt;mat-icon&gt;arrow_back&lt;/mat-icon&gt; {{ lienRetour }}
+&lt;/a&gt;
+
+&lt;section <span class="k">class</span>=<span class="s">"banniere"</span> [<span class="k">class</span>.banniere--alerte]=<span class="s">"b.ton === 'alerte'"</span> *ngIf=<span class="s">"banniere as b"</span> role=<span class="s">"status"</span>&gt;
+  &lt;mat-icon <span class="k">class</span>=<span class="s">"banniere__icone"</span>&gt;lock_clock&lt;/mat-icon&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"banniere__texte"</span>&gt;
+    &lt;h2 <span class="k">class</span>=<span class="s">"banniere__titre"</span>&gt;{{ b.titre }}&lt;/h2&gt;
+    &lt;p <span class="k">class</span>=<span class="s">"banniere__detail"</span>&gt;{{ b.texte }}&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;span <span class="k">class</span>=<span class="s">"banniere__chip"</span>&gt;&lt;mat-icon&gt;lock&lt;/mat-icon&gt; Lecture Seule&lt;/span&gt;
+&lt;/section&gt;
+
+&lt;header <span class="k">class</span>=<span class="s">"entete"</span>&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"entete__principal"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"entete__ligne"</span>&gt;
+      &lt;span [<span class="k">class</span>]=<span class="s">"'chip-statut ' + classeStatut"</span>&gt;&lt;mat-icon&gt;{{ iconeStatut }}&lt;/mat-icon&gt; {{ libelleStatut }}&lt;/span&gt;
+      &lt;h1 <span class="k">class</span>=<span class="s">"entete__titre"</span>&gt;Demande Réf: {{ reference }}&lt;/h1&gt;
+    &lt;/div&gt;
+    &lt;p <span class="k">class</span>=<span class="s">"entete__meta"</span> *ngIf=<span class="s">"soumiseLe"</span>&gt;
+      Soumise le {{ soumiseLe | date: <span class="s">'dd/MM/yyyy'</span> }} à {{ soumiseLe | date: <span class="s">'HH:mm'</span> }}
+      par &lt;strong&gt;{{ soumisePar || <span class="s">'—'</span> }}&lt;/strong&gt;&lt;ng-container *ngIf=<span class="s">"soumiseParDetail"</span>&gt; ({{ soumiseParDetail }})&lt;/ng-container&gt;
+    &lt;/p&gt;
+    &lt;p <span class="k">class</span>=<span class="s">"entete__meta"</span> *ngIf=<span class="s">"decisionLe"</span>&gt;
+      {{ libelleDecision }} le {{ decisionLe | date: <span class="s">'dd/MM/yyyy'</span> }} à {{ decisionLe | date: <span class="s">'HH:mm'</span> }}
+      par &lt;strong&gt;{{ decisionPar || <span class="s">'la Caisse Centrale'</span> }}&lt;/strong&gt;&lt;ng-container *ngIf=<span class="s">"decisionParDetail"</span>&gt; ({{ decisionParDetail }})&lt;/ng-container&gt;
+    &lt;/p&gt;
+    &lt;p <span class="k">class</span>=<span class="s">"entete__meta entete__meta--motif"</span> *ngIf=<span class="s">"motifAnnulation"</span>&gt;
+      &lt;mat-icon&gt;chat_bubble_outline&lt;/mat-icon&gt; Motif : {{ motifAnnulation }}
+    &lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"entete__badges"</span>&gt;
+    &lt;span <span class="k">class</span>=<span class="s">"badge-mode"</span> *ngIf=<span class="s">"modeModification"</span>&gt;&lt;mat-icon&gt;edit_note&lt;/mat-icon&gt; Mode Modification actif&lt;/span&gt;
+
+    &lt;label <span class="k">class</span>=<span class="s">"badge-urgent badge-urgent--saisie"</span> *ngIf=<span class="s">"urgentModifiable"</span> [<span class="k">class</span>.badge-urgent--actif]=<span class="s">"urgent"</span>&gt;
+      &lt;mat-icon&gt;warning_amber&lt;/mat-icon&gt; DEMANDE URGENTE
+      &lt;input <span class="k">type</span>=<span class="s">"checkbox"</span> [checked]=<span class="s">"urgent"</span> (change)=<span class="s">"basculerUrgent($event)"</span>&gt;
+    &lt;/label&gt;
+    &lt;span <span class="k">class</span>=<span class="s">"badge-urgent badge-urgent--actif"</span> *ngIf=<span class="s">"!urgentModifiable &amp;&amp; urgent"</span>&gt;
+      &lt;mat-icon&gt;warning_amber&lt;/mat-icon&gt; DEMANDE URGENTE
+    &lt;/span&gt;
+  &lt;/div&gt;
+&lt;/header&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-entete.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-entete\demande-entete.component.scss</span></div><pre><button class="copy">Copier</button><code><span class="a">@use</span> <span class="s">'../palette'</span> as *;
+
+:host { display: block; font-family: Inter, <span class="s">"Segoe UI"</span>, Roboto, sans-serif; color: $ardoise-700; }
+
+.retour { display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 16px; color: $ardoise-500; font-size: 0.9rem; text-decoration: none;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &amp;:hover { color: $vert-700; } }
+
+<span class="c">/* ===== Bannière lecture seule ===== */</span>
+.banniere { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; margin-bottom: 18px; border-radius: 12px;
+  background: $bleu-50; border: 1px solid $bleu-100; color: $bleu-800;
+  &amp;--alerte { background: $rose-50; border-color: $rose-200; color: $rose-700; } }
+.banniere__icone { flex-shrink: 0; font-size: 28px; width: 28px; height: 28px; }
+.banniere__texte { flex: 1; }
+.banniere__titre { margin: 0; font-size: 1rem; font-weight: 700; }
+.banniere__detail { margin: 4px 0 0; font-size: 0.85rem; opacity: .9; }
+.banniere__chip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600;
+  background: #fff; border: 1px solid currentColor;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+
+<span class="c">/* ===== En-tête ===== */</span>
+.entete { <span class="a">@include</span> carte; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 20px 24px; }
+.entete__ligne { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.entete__titre { margin: 0; font-size: 1.6rem; font-weight: 700; color: $vert-700; letter-spacing: -0.01em; }
+.entete__meta { margin: 8px 0 0; font-size: 0.85rem; color: $ardoise-500; strong { color: $ardoise-800; } }
+.entete__meta--motif { display: flex; align-items: center; gap: 6px; color: $ardoise-700; font-style: italic;
+  mat-icon { font-size: 16px; width: 16px; height: 16px; } }
+
+.chip-statut { <span class="a">@include</span> chip-statut; }
+
+.entete__badges { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.badge-mode { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; font-weight: 600;
+  background: $vert-50; color: $vert-700; border: 1px solid $vert-100;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; } }
+.badge-urgent { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; font-weight: 700; letter-spacing: .04em;
+  background: $rose-50; color: $rose-700; border: 1px solid $rose-200;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &amp;--saisie { cursor: pointer; background: #fff; color: $ardoise-500; border-color: $ardoise-200; }
+  &amp;--actif { background: $rose-50; color: $rose-700; border-color: $rose-200; }
+  input { width: 18px; height: 18px; accent-color: $rose-600; cursor: pointer; } }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-barre-actions.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-barre-actions\demande-barre-actions.component.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+
+<span class="c">/**
+ * AER_LM-285 / 287 — barre d'actions fixée en bas des écrans de consultation (agence) et de traitement (Caisse Centrale).
+ * Chaque bouton n'existe que si l'écran l'autorise (capacités agence, habilitation TRAITER côté Caisse Centrale) ;
+ * « Modification Verrouillée » (désactivé) remplace « Modifier » quand la demande n'est pas modifiable.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-demande-barre-actions'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [CommonModule, MatIconModule],
+  templateUrl: <span class="s">'./demande-barre-actions.component.html'</span>,
+  styleUrl: <span class="s">'./demande-barre-actions.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> DemandeBarreActionsComponent {
+
+  <span class="a">@Input</span>() libelleRetour = <span class="s">'Retour au listing'</span>;
+  <span class="a">@Output</span>() retour = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+
+  <span class="c">// ----- Agence -----</span>
+  <span class="a">@Input</span>() peutModifier = <span class="k">false</span>;                       <span class="c">// consultation d'une demande modifiable → « Modifier la demande »</span>
+  <span class="a">@Input</span>() verrouille = <span class="k">false</span>;                         <span class="c">// consultation d'une demande non modifiable → « Modification Verrouillée »</span>
+  <span class="a">@Input</span>() peutAnnuler = <span class="k">false</span>;
+  <span class="a">@Input</span>() peutSoumettre = <span class="k">false</span>;                      <span class="c">// brouillon (« Soumettre la demande ») ou modification (« Soumettre les Modifications »)</span>
+  <span class="a">@Input</span>() libelleSoumettre = <span class="s">'Soumettre la demande'</span>;
+  <span class="a">@Input</span>() soumettreDesactive = <span class="k">false</span>;                 <span class="c">// formulaire invalide</span>
+  <span class="a">@Output</span>() modifier = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+  <span class="a">@Output</span>() annuler = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+  <span class="a">@Output</span>() soumettre = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+
+  <span class="c">// ----- Caisse Centrale -----</span>
+  <span class="a">@Input</span>() peutTraiter = <span class="k">false</span>;                        <span class="c">// « Traiter la demande » (habilitation TRAITER, demande en attente) ; l'annulation CC passe par peutAnnuler</span>
+  <span class="a">@Output</span>() traiter = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+
+  <span class="a">@Input</span>() enCours = <span class="k">false</span>;
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-barre-actions.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-barre-actions\demande-barre-actions.component.html</span></div><p class="note">Barre collée en bas (sticky). Boutons possibles : Retour · Annuler la demande · Soumettre (brouillon ou modifications) · Modifier la demande · Modification Verrouillée (désactivé) · Traiter la demande. Chacun n'existe que si son entrée est vraie.</p><pre><button class="copy">Copier</button><code>&lt;footer <span class="k">class</span>=<span class="s">"barre"</span>&gt;
+  &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--lien"</span> (click)=<span class="s">"retour.emit()"</span> [disabled]=<span class="s">"enCours"</span>&gt;
+    &lt;mat-icon&gt;arrow_back&lt;/mat-icon&gt; {{ libelleRetour }}
+  &lt;/button&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"barre__actions"</span>&gt;
+    <span class="c">&lt;!-- Agence et Caisse Centrale --&gt;</span>
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--danger"</span> *ngIf=<span class="s">"peutAnnuler"</span> (click)=<span class="s">"annuler.emit()"</span> [disabled]=<span class="s">"enCours"</span>&gt;
+      &lt;mat-icon&gt;highlight_off&lt;/mat-icon&gt; Annuler la demande
+    &lt;/button&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--primaire"</span> *ngIf=<span class="s">"peutSoumettre"</span> (click)=<span class="s">"soumettre.emit()"</span> [disabled]=<span class="s">"enCours || soumettreDesactive"</span>&gt;
+      &lt;mat-icon&gt;check_circle&lt;/mat-icon&gt; {{ enCours ? <span class="s">'Envoi en cours…'</span> : libelleSoumettre }}
+    &lt;/button&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--primaire"</span> *ngIf=<span class="s">"peutModifier &amp;&amp; !peutSoumettre"</span> (click)=<span class="s">"modifier.emit()"</span> [disabled]=<span class="s">"enCours"</span>&gt;
+      &lt;mat-icon&gt;edit&lt;/mat-icon&gt; {{ enCours ? <span class="s">'Verrouillage…'</span> : <span class="s">'Modifier la demande'</span> }}
+    &lt;/button&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--verrou"</span> *ngIf=<span class="s">"verrouille"</span> disabled title=<span class="s">"Cette demande n'est pas modifiable"</span>&gt;
+      &lt;mat-icon&gt;lock&lt;/mat-icon&gt; Modification Verrouillée
+    &lt;/button&gt;
+
+    <span class="c">&lt;!-- Caisse Centrale --&gt;</span>
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--primaire"</span> *ngIf=<span class="s">"peutTraiter"</span> (click)=<span class="s">"traiter.emit()"</span> [disabled]=<span class="s">"enCours"</span>&gt;
+      &lt;mat-icon&gt;check_circle&lt;/mat-icon&gt; {{ enCours ? <span class="s">'Envoi en cours…'</span> : <span class="s">'Traiter la demande'</span> }}
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/footer&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-barre-actions.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-barre-actions\demande-barre-actions.component.scss</span></div><pre><button class="copy">Copier</button><code><span class="a">@use</span> <span class="s">'../palette'</span> as *;
+
+:host { display: block; position: sticky; bottom: 0; z-index: 10; margin-top: 24px; font-family: Inter, <span class="s">"Segoe UI"</span>, Roboto, sans-serif; }
+
+.barre { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 20px;
+  background: rgba(255, 255, 255, .92); backdrop-filter: blur(6px); border-top: 1px solid $ardoise-200; box-shadow: 0 -6px 18px rgba(15, 23, 42, .06); }
+.barre__actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.bouton { <span class="a">@include</span> bouton; padding: 11px 18px;
+  &amp;--lien { background: #fff; color: $ardoise-600; border-color: $ardoise-200; &amp;:hover:not(:disabled) { background: $ardoise-100; } }
+  &amp;--verrou { background: $ardoise-100; color: $ardoise-500; border-color: $ardoise-200; opacity: 1 !important; cursor: not-allowed; } }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-decision-modale.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-decision-modale\demande-decision-modale.component.ts</span></div><p class="note">La modale du listing 281, sortie dans un composant : Traiter (confirmation) ou Annuler (motif ≥ 10 caractères, motifs rapides pour la Caisse Centrale). <code>acteur</code> change les textes : l'agence annule sa demande, la Caisse Centrale rejette ou traite.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { FormControl, ReactiveFormsModule, Validators } <span class="k">from</span> <span class="s">'@angular/forms'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+
+<span class="k">export</span> <span class="k">type</span> TypeDecision = <span class="s">'TRAITEE'</span> | <span class="s">'ANNULEE'</span>;
+
+<span class="c">/** Motifs rapides de l'annulation Caisse Centrale (maquette 281) ; l'agence saisit librement. */</span>
+<span class="k">export</span> <span class="k">const</span> MOTIFS_RAPIDES_CAISSE_CENTRALE: <span class="k">readonly</span> string[] = [
+  <span class="s">'Dépassement du cut-off : demande hors délai'</span>,
+  <span class="s">'Incohérence des montants : bordereau non conforme'</span>,
+  <span class="s">'Montant supérieur au plafond : refus trésorerie centrale'</span>,
+  <span class="s">'Demande doublon : déjà traitée pour cette agence'</span>
+];
+
+<span class="c">/**
+ * AER_LM-285 / 287 — modale de confirmation d'une décision : Traiter (confirmation simple) ou Annuler (motif ≥ 10 caractères).
+ * Reprise de la modale du listing 281, désormais partagée par l'écran de traitement (Caisse Centrale) et l'écran agence (annulation).
+ * Le parent déclenche l'appel et renseigne enCours / erreur ; la modale ne connaît pas l'API.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-demande-decision-modale'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [CommonModule, ReactiveFormsModule, MatIconModule],
+  templateUrl: <span class="s">'./demande-decision-modale.component.html'</span>,
+  styleUrl: <span class="s">'./demande-decision-modale.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> DemandeDecisionModaleComponent <span class="k">implements</span> OnChanges {
+
+  <span class="a">@Input</span>({ required: <span class="k">true</span> }) <span class="k">type</span>!: TypeDecision;
+  <span class="c">/** Qui décide : change les textes (l'agence annule sa propre demande ; la Caisse Centrale rejette ou traite). */</span>
+  <span class="a">@Input</span>() acteur: <span class="s">'agence'</span> | <span class="s">'caisse-centrale'</span> = <span class="s">'caisse-centrale'</span>;
+  <span class="a">@Input</span>() reference = <span class="s">''</span>;
+  <span class="a">@Input</span>() agence = <span class="s">''</span>;
+  <span class="a">@Input</span>() motifsRapides: <span class="k">readonly</span> string[] = [];
+  <span class="a">@Input</span>() enCours = <span class="k">false</span>;
+  <span class="a">@Input</span>() erreur: string | <span class="k">null</span> = <span class="k">null</span>;
+
+  <span class="c">/** motif renseigné pour ANNULEE, undefined pour TRAITEE */</span>
+  <span class="a">@Output</span>() confirmer = <span class="k">new</span> EventEmitter&lt;string | undefined&gt;();
+  <span class="a">@Output</span>() fermer = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();
+
+  <span class="k">readonly</span> motif = <span class="k">new</span> FormControl(<span class="s">''</span>, { nonNullable: <span class="k">true</span>, validators: [Validators.required, Validators.minLength(10)] });
+
+  ngOnChanges(): <span class="k">void</span> {
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">'TRAITEE'</span>) { <span class="k">this</span>.motif.reset(<span class="s">''</span>); }
+  }
+
+  <span class="k">get</span> titre(): string {
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">'TRAITEE'</span>) { <span class="k">return</span> <span class="s">'Traiter la demande'</span>; }
+    <span class="k">return</span> <span class="k">this</span>.acteur === <span class="s">'agence'</span> ? <span class="s">'Annuler la demande'</span> : <span class="s">'Motif d\'</span>annulation de la demande';
+  }
+
+  <span class="k">get</span> information(): string {
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">'TRAITEE'</span>) { <span class="k">return</span> <span class="s">'La demande est validée et transmise au transporteur ; son statut passera à « Traitée ».'</span>; }
+    <span class="k">return</span> <span class="k">this</span>.acteur === <span class="s">'agence'</span>
+      ? <span class="s">'La demande sort du circuit de traitement ; la Caisse Centrale en sera informée. Une nouvelle demande devra être initiée si le besoin persiste.'</span>
+      : <span class="s">'L\'</span>agence sera informée de l\<span class="s">'annulation ; la demande sort du circuit de traitement.'</span>;
+  }
+
+  <span class="k">get</span> libelleConfirmer(): string {
+    <span class="k">if</span> (<span class="k">this</span>.enCours) { <span class="k">return</span> <span class="s">'Envoi en cours…'</span>; }
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">'TRAITEE'</span>) { <span class="k">return</span> <span class="s">'Confirmer le traitement'</span>; }
+    <span class="k">return</span> <span class="k">this</span>.acteur === <span class="s">'agence'</span> ? <span class="s">'Confirmer l\'</span>annulation<span class="s">' : '</span>Confirmer le rejet';
+  }
+
+  choisirMotif(m: string): <span class="k">void</span> {
+    <span class="k">this</span>.motif.setValue(m);
+    <span class="k">this</span>.motif.markAsTouched();
+  }
+
+  valider(): <span class="k">void</span> {
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">'ANNULEE'</span>) {
+      <span class="k">if</span> (<span class="k">this</span>.motif.invalid) { <span class="k">this</span>.motif.markAsTouched(); <span class="k">return</span>; }
+      <span class="k">this</span>.confirmer.emit(<span class="k">this</span>.motif.value.trim());
+    } <span class="k">else</span> {
+      <span class="k">this</span>.confirmer.emit(undefined);
+    }
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-decision-modale.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-decision-modale\demande-decision-modale.component.html</span></div><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">"modale"</span> role=<span class="s">"dialog"</span> aria-modal=<span class="s">"true"</span> aria-labelledby=<span class="s">"modale-titre"</span>&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"modale__fond"</span> (click)=<span class="s">"fermer.emit()"</span>&gt;&lt;/div&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"modale__boite"</span> [<span class="k">class</span>.modale__boite--rejet]=<span class="s">"type === 'ANNULEE'"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"modale__entete"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"modale__pastille"</span>&gt;&lt;mat-icon&gt;{{ <span class="k">type</span> === <span class="s">'ANNULEE'</span> ? <span class="s">'warning_amber'</span> : <span class="s">'task_alt'</span> }}&lt;/mat-icon&gt;&lt;/div&gt;
+      &lt;div&gt;
+        &lt;h2 id=<span class="s">"modale-titre"</span> <span class="k">class</span>=<span class="s">"modale__titre"</span>&gt;{{ titre }}&lt;/h2&gt;
+        &lt;p <span class="k">class</span>=<span class="s">"modale__ref"</span>&gt;Réf : &lt;strong&gt;{{ reference || <span class="s">'—'</span> }}&lt;/strong&gt;&lt;ng-container *ngIf=<span class="s">"agence"</span>&gt; • Agence : {{ agence }}&lt;/ng-container&gt;&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"icone modale__fermer"</span> title=<span class="s">"Fermer"</span> (click)=<span class="s">"fermer.emit()"</span>&gt;&lt;mat-icon&gt;close&lt;/mat-icon&gt;&lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"modale__corps"</span>&gt;
+      &lt;ng-container *ngIf=<span class="s">"type === 'ANNULEE'"</span>&gt;
+        &lt;ng-container *ngIf=<span class="s">"motifsRapides.length"</span>&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"modale__etiquette"</span>&gt;Motifs fréquents (sélection rapide) :&lt;/p&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"modale__motifs"</span>&gt;
+            &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"motif"</span> *ngFor=<span class="s">"let m of motifsRapides"</span> (click)=<span class="s">"choisirMotif(m)"</span>&gt;{{ m }}&lt;/button&gt;
+          &lt;/div&gt;
+        &lt;/ng-container&gt;
+        &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+          &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Justification détaillée (obligatoire pour audit bancaire) &lt;em&gt;*&lt;/em&gt;&lt;/span&gt;
+          &lt;textarea <span class="k">class</span>=<span class="s">"champ__saisie"</span> rows=<span class="s">"3"</span> [formControl]=<span class="s">"motif"</span> placeholder=<span class="s">"Précisez le motif (10 caractères minimum)…"</span>&gt;&lt;/textarea&gt;
+        &lt;/label&gt;
+        &lt;p <span class="k">class</span>=<span class="s">"champ__erreur"</span> *ngIf=<span class="s">"motif.touched &amp;&amp; motif.invalid"</span>&gt;Le motif est obligatoire (10 caractères minimum).&lt;/p&gt;
+      &lt;/ng-container&gt;
+
+      &lt;p <span class="k">class</span>=<span class="s">"modale__info"</span>&gt;&lt;mat-icon&gt;{{ <span class="k">type</span> === <span class="s">'ANNULEE'</span> ? <span class="s">'info'</span> : <span class="s">'local_shipping'</span> }}&lt;/mat-icon&gt; {{ information }}&lt;/p&gt;
+      &lt;p <span class="k">class</span>=<span class="s">"champ__erreur"</span> *ngIf=<span class="s">"erreur"</span>&gt;&lt;mat-icon&gt;error_outline&lt;/mat-icon&gt; {{ erreur }}&lt;/p&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"modale__pied"</span>&gt;
+      &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--secondaire"</span> (click)=<span class="s">"fermer.emit()"</span> [disabled]=<span class="s">"enCours"</span>&gt;Abandonner&lt;/button&gt;
+      &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton"</span> [<span class="k">class</span>.bouton--primaire]=<span class="s">"type === 'TRAITEE'"</span> [<span class="k">class</span>.bouton--rejet]=<span class="s">"type === 'ANNULEE'"</span>
+              [disabled]=<span class="s">"enCours || (type === 'ANNULEE' &amp;&amp; motif.invalid)"</span> (click)=<span class="s">"valider()"</span>&gt;
+        &lt;mat-icon&gt;{{ <span class="k">type</span> === <span class="s">'ANNULEE'</span> ? <span class="s">'block'</span> : <span class="s">'check'</span> }}&lt;/mat-icon&gt; {{ libelleConfirmer }}
+      &lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-decision-modale.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-decision-modale\demande-decision-modale.component.scss</span></div><pre><button class="copy">Copier</button><code><span class="a">@use</span> <span class="s">'../palette'</span> as *;
+
+:host { font-family: Inter, <span class="s">"Segoe UI"</span>, Roboto, sans-serif; }
+
+.modale { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modale__fond { position: absolute; inset: 0; background: rgba(15, 23, 42, .6); backdrop-filter: blur(3px); }
+.modale__boite { position: relative; width: 100%; max-width: 560px; background: #fff; border-radius: 18px; border: 1px solid $ardoise-200; box-shadow: 0 25px 50px rgba(15, 23, 42, .25); overflow: hidden; animation: apparait .15s ease-out; }
+<span class="a">@keyframes</span> apparait { <span class="k">from</span> { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
+.modale__entete { display: flex; align-items: flex-start; gap: 12px; padding: 20px 24px; background: $vert-50; border-bottom: 1px solid $vert-100; }
+.modale__boite--rejet .modale__entete { background: $rose-50; border-bottom-color: $rose-200; }
+.modale__pastille { width: 40px; height: 40px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: $vert-100; color: $vert-700; flex-shrink: 0; }
+.modale__boite--rejet .modale__pastille { background: #ffe4e6; color: $rose-600; }
+.modale__titre { margin: 0; font-size: 1rem; font-weight: 700; color: $ardoise-900; }
+.modale__ref { margin: 4px 0 0; font-size: 0.8rem; color: $ardoise-500; strong { font-family: $mono; color: $ardoise-800; } }
+.modale__fermer { margin-left: auto; }
+.modale__corps { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+.modale__etiquette { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: $ardoise-600; }
+.modale__motifs { display: flex; flex-wrap: wrap; gap: 8px; }
+.motif { font: inherit; font-size: 0.78rem; padding: 6px 12px; border-radius: 999px; background: $ardoise-100; color: $ardoise-700; border: 1px solid $ardoise-200; cursor: pointer; transition: background .15s;
+  &amp;:hover { background: $ardoise-200; } }
+.modale__info { margin: 0; display: flex; align-items: flex-start; gap: 8px; padding: 12px; border-radius: 10px; background: $ambre-50; border: 1px solid $ambre-200; color: $ambre-800; font-size: 0.8rem;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: $ambre-600; flex-shrink: 0; } }
+.modale__pied { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 24px; border-top: 1px solid $ardoise-100; }
+
+.champ { display: flex; flex-direction: column; gap: 6px; }
+.champ__libelle { font-size: 0.8rem; font-weight: 600; color: $ardoise-600; em { color: $rose-600; font-style: normal; } }
+.champ__saisie { font: inherit; font-size: 0.9rem; color: $ardoise-800; background: #fff; border: 1px solid $ardoise-300; border-radius: 10px; padding: 9px 12px; outline: none; resize: vertical; min-height: 72px;
+  &amp;:focus { border-color: $vert-500; box-shadow: 0 0 0 3px rgba(16, 185, 129, .18); } }
+.champ__erreur { margin: 0; color: $rose-700; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; mat-icon { font-size: 16px; width: 16px; height: 16px; } }
+
+.icone { width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; color: $ardoise-500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  &amp;:hover { background: $ardoise-100; color: $ardoise-800; } mat-icon { font-size: 20px; width: 20px; height: 20px; } }
+.bouton { <span class="a">@include</span> bouton;
+  &amp;--rejet { background: $rose-600; color: #fff; border-color: $rose-700; &amp;:hover:not(:disabled) { background: $rose-700; } } }</code></pre></div>
+<h2 id="s4">4. Front — AER_LM-285 : écran de traitement Caisse Centrale</h2>
+<div class="card"><p>Page nouvelle, route <code>caisse-centrale/:id</code>, garde <code>toutesAgences</code>. Elle charge le dossier (<code>getDossier</code>), le projette en <code>VueDossier</code>, et compose les trois composants du §3 autour de ses sections en lecture seule. Décision : <code>DemandeActionsFacade.decider(id, 'TRAITEE' | 'ANNULEE', motif)</code>, exactement l'appel que faisait la modale du listing ; après succès, rechargement du dossier 1,5 s plus tard (le statut final est écrit par le worker).</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-traitement.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demande-traitement\demande-traitement.component.ts</span></div><p class="note"><code>peutDecider</code> = demande en attente <b>et</b> habilitation <code>traiter</code> : la Caisse Centrale voit Annuler / Traiter, le Support voit la bannière « Consultation seule ». Le back refuse de toute façon (403 / 409).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { MatSnackBar, MatSnackBarModule } <span class="k">from</span> <span class="s">'@angular/material/snack-bar'</span>;
+<span class="k">import</span> { ActivatedRoute, Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { FundHttpService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/fundManagement-http.service'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { DemandeActionsFacade } <span class="k">from</span> <span class="s">'../../../adapters/localState/demande-actions.facade'</span>;
+<span class="k">import</span> { ErreurApi } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/operation.model'</span>;
+<span class="k">import</span> { VueDossier, construireVueDossier, formaterMontant } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-dossier.model'</span>;
+<span class="k">import</span> { DemandeEnteteComponent } <span class="k">from</span> <span class="s">'../../components/demande/demande-entete/demande-entete.component'</span>;
+<span class="k">import</span> { DemandeBarreActionsComponent } <span class="k">from</span> <span class="s">'../../components/demande/demande-barre-actions/demande-barre-actions.component'</span>;
+<span class="k">import</span> {
+  DemandeDecisionModaleComponent, MOTIFS_RAPIDES_CAISSE_CENTRALE, TypeDecision
+} <span class="k">from</span> <span class="s">'../../components/demande/demande-decision-modale/demande-decision-modale.component'</span>;
+<span class="k">import</span> { banniereLectureCaisseCentrale } <span class="k">from</span> <span class="s">'../../components/demande/demande-ecran.regles'</span>;
+
+<span class="c">/**
+ * AER_LM-285 — Caisse Centrale : écran de traitement d'une demande agence (route caisse-centrale/:id).
+ * Lecture complète de la demande (coupures, GAB, ramassages, devises, commentaire) et décision :
+ * Traiter / Annuler avec motif, uniquement si la demande est en attente et si l'appelant a GDF_TRAITER_DEMANDE
+ * (Support : consultation seule). Le back revérifie les deux (403 / 409).
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-demande-traitement'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [CommonModule, MatIconModule, MatSnackBarModule, DemandeEnteteComponent, DemandeBarreActionsComponent, DemandeDecisionModaleComponent],
+  templateUrl: <span class="s">'./demande-traitement.component.html'</span>,
+  styleUrl: <span class="s">'./demande-traitement.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> DemandeTraitementComponent <span class="k">implements</span> OnInit {
+
+  <span class="k">private</span> <span class="k">readonly</span> route = inject(ActivatedRoute);
+  <span class="k">private</span> <span class="k">readonly</span> router = inject(Router);
+  <span class="k">private</span> <span class="k">readonly</span> snackBar = inject(MatSnackBar);
+  <span class="k">private</span> <span class="k">readonly</span> service = inject(FundHttpService);
+  <span class="k">readonly</span> actions = inject(DemandeActionsFacade);
+  <span class="k">readonly</span> contexteUtilisateur = inject(ContexteUtilisateurService);
+
+  <span class="k">readonly</span> vue = signal&lt;VueDossier | <span class="k">null</span>&gt;(<span class="k">null</span>);
+  <span class="k">readonly</span> chargement = signal(<span class="k">true</span>);
+  <span class="k">readonly</span> erreur = signal&lt;string | <span class="k">null</span>&gt;(<span class="k">null</span>);
+
+  <span class="c">/** Décision ouverte dans la modale (null = fermée). */</span>
+  <span class="k">readonly</span> decision = signal&lt;TypeDecision | <span class="k">null</span>&gt;(<span class="k">null</span>);
+  <span class="k">readonly</span> motifsRapides = MOTIFS_RAPIDES_CAISSE_CENTRALE;
+
+  <span class="c">/** Traiter / Annuler : demande en attente + habilitation TRAITER (Caisse Centrale oui, Support non). */</span>
+  <span class="k">readonly</span> peutDecider = computed(() =&gt; {
+    <span class="k">const</span> v = <span class="k">this</span>.vue();
+    <span class="k">return</span> !!v &amp;&amp; v.statut === <span class="s">'SOUMISE'</span> &amp;&amp; <span class="k">this</span>.contexteUtilisateur.habilitations().traiter;
+  });
+
+  <span class="k">readonly</span> banniere = computed(() =&gt; {
+    <span class="k">const</span> v = <span class="k">this</span>.vue();
+    <span class="k">return</span> v ? banniereLectureCaisseCentrale({
+      statut: v.statut, verrouillePar: v.verrouillePar, agence: v.agence,
+      peutTraiter: <span class="k">this</span>.contexteUtilisateur.habilitations().traiter
+    }) : <span class="k">null</span>;
+  });
+
+  <span class="k">readonly</span> montant = formaterMontant;
+
+  ngOnInit(): <span class="k">void</span> {
+    <span class="k">this</span>.contexteUtilisateur.charger();
+    <span class="k">void</span> <span class="k">this</span>.charger();
+  }
+
+  <span class="k">async</span> charger(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">const</span> id = <span class="k">this</span>.route.snapshot.paramMap.<span class="k">get</span>(<span class="s">'id'</span>);
+    <span class="k">if</span> (!id) { <span class="k">this</span>.erreur.set(<span class="s">'Demande inconnue.'</span>); <span class="k">this</span>.chargement.set(<span class="k">false</span>); <span class="k">return</span>; }
+    <span class="k">this</span>.chargement.set(<span class="k">true</span>);
+    <span class="k">this</span>.erreur.set(<span class="k">null</span>);
+    try {
+      <span class="k">this</span>.vue.set(construireVueDossier(<span class="k">await</span> <span class="k">this</span>.service.getDossier(id)));
+    } catch (e) {
+      <span class="k">this</span>.vue.set(<span class="k">null</span>);
+      <span class="k">this</span>.erreur.set(e instanceof ErreurApi ? e.message : <span class="s">'La demande est indisponible.'</span>);
+    } finally {
+      <span class="k">this</span>.chargement.set(<span class="k">false</span>);
+    }
+  }
+
+  retour(): <span class="k">void</span> {
+    <span class="k">this</span>.router.navigate([<span class="s">'caisse-centrale'</span>], { relativeTo: <span class="k">this</span>.route.parent });
+  }
+
+  ouvrir(<span class="k">type</span>: TypeDecision): <span class="k">void</span> {
+    <span class="k">if</span> (!<span class="k">this</span>.peutDecider()) { <span class="k">return</span>; }
+    <span class="k">this</span>.actions.acquitterErreur();
+    <span class="k">this</span>.decision.set(<span class="k">type</span>);
+  }
+
+  fermer(): <span class="k">void</span> {
+    <span class="k">this</span>.decision.set(<span class="k">null</span>);
+  }
+
+  <span class="c">/** Même appel que l'ancienne modale du listing : DemandeActionsFacade.decider (complete-task TRAITEE | ANNULEE). */</span>
+  <span class="k">async</span> confirmer(motif: string | undefined): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">const</span> v = <span class="k">this</span>.vue();
+    <span class="k">const</span> <span class="k">type</span> = <span class="k">this</span>.decision();
+    <span class="k">if</span> (!v || !<span class="k">type</span>) { <span class="k">return</span>; }
+    <span class="k">const</span> ok = <span class="k">await</span> <span class="k">this</span>.actions.decider(v.id, <span class="k">type</span>, motif);
+    <span class="k">if</span> (ok) {
+      <span class="k">this</span>.decision.set(<span class="k">null</span>);
+      <span class="k">this</span>.snackBar.open(
+        <span class="k">type</span> === <span class="s">'TRAITEE'</span>
+          ? <span class="s">`Demande ${v.reference} traitée : le statut sera mis à jour dans quelques secondes.`</span>
+          : <span class="s">`Demande ${v.reference} annulée : motif consigné.`</span>,
+        <span class="s">'Fermer'</span>, { duration: 5000 });
+      setTimeout(() =&gt; <span class="k">void</span> <span class="k">this</span>.charger(), 1500);   <span class="c">// le statut final est écrit par le worker (~1 s)</span>
+    } <span class="k">else</span> {
+      <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Erreur lors de la décision.'</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+    }
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-traitement.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demande-traitement\demande-traitement.component.html</span></div><p class="note">Maquette : colonne principale (Alimentation Caisse billets / pièces + « Détail : Billets … • Pièces … » + TOTAL SAISI, Commande Devises avec cadenas, Commentaire), colonne latérale (Alimentation GAB « Billets de 200 DH — Qté : 150 » + Total GAB, Ramassage MAD / EUR avec cadenas). Une section n'apparaît que si la demande la contient.</p><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">"traitement"</span>&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"etat"</span> *ngIf=<span class="s">"chargement()"</span>&gt;&lt;mat-icon <span class="k">class</span>=<span class="s">"tourne"</span>&gt;autorenew&lt;/mat-icon&gt; Chargement de la demande…&lt;/div&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"etat etat--erreur"</span> *ngIf=<span class="s">"!chargement() &amp;&amp; erreur() as e"</span>&gt;
+    &lt;mat-icon&gt;error_outline&lt;/mat-icon&gt; {{ e }}
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--secondaire"</span> (click)=<span class="s">"retour()"</span>&gt;Retour au tableau de bord&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;ng-container *ngIf=<span class="s">"!chargement() &amp;&amp; vue() as v"</span>&gt;
+
+    &lt;app-demande-entete
+      [reference]=<span class="s">"v.reference"</span> [statut]=<span class="s">"v.statut"</span> [urgent]=<span class="s">"v.urgent"</span>
+      [soumiseLe]=<span class="s">"v.soumiseLe"</span> [soumisePar]=<span class="s">"v.soumisePar"</span> [soumiseParDetail]=<span class="s">"v.agence ? 'Agence ' + v.agence : null"</span>
+      [decisionLe]=<span class="s">"v.decisionLe"</span> [decisionPar]=<span class="s">"v.decisionPar"</span> [decisionParDetail]=<span class="s">"v.decisionProfil"</span>
+      [motifAnnulation]=<span class="s">"v.motifAnnulation"</span> [banniere]=<span class="s">"banniere()"</span>
+      lienRetour=<span class="s">"Retour au Tableau de Bord Caisse Centrale"</span> (retour)=<span class="s">"retour()"</span>&gt;
+    &lt;/app-demande-entete&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"grille"</span>&gt;
+
+      <span class="c">&lt;!-- ===== Colonne principale ===== --&gt;</span>
+      &lt;div <span class="k">class</span>=<span class="s">"colonne colonne--principale"</span>&gt;
+
+        &lt;section <span class="k">class</span>=<span class="s">"carte"</span> *ngIf=<span class="s">"v.caisse as caisse"</span>&gt;
+          &lt;h2 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;point_of_sale&lt;/mat-icon&gt; Alimentation Caisse (MAD)&lt;/h2&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"coupures"</span>&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"coupures__groupe"</span>&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"coupures__entete"</span>&gt;&lt;span&gt;Billets&lt;/span&gt;&lt;span&gt;Quantité&lt;/span&gt;&lt;/div&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"coupure"</span> *ngFor=<span class="s">"let l of caisse.billets"</span> [<span class="k">class</span>.coupure--vide]=<span class="s">"!l.quantite"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"coupure__valeur"</span>&gt;{{ l.faceValue }} &lt;small&gt;×&lt;/small&gt;&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"coupure__quantite"</span>&gt;{{ l.quantite }}&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;p <span class="k">class</span>=<span class="s">"coupures__vide"</span> *ngIf=<span class="s">"!caisse.billets.length"</span>&gt;Aucun billet&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"coupures__groupe"</span>&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"coupures__entete"</span>&gt;&lt;span&gt;Pièces&lt;/span&gt;&lt;span&gt;Quantité&lt;/span&gt;&lt;/div&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"coupure"</span> *ngFor=<span class="s">"let l of caisse.pieces"</span> [<span class="k">class</span>.coupure--vide]=<span class="s">"!l.quantite"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"coupure__valeur"</span>&gt;{{ l.faceValue }} &lt;small&gt;×&lt;/small&gt;&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"coupure__quantite"</span>&gt;{{ l.quantite }}&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;p <span class="k">class</span>=<span class="s">"coupures__vide"</span> *ngIf=<span class="s">"!caisse.pieces.length"</span>&gt;Aucune pièce&lt;/p&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"total"</span>&gt;
+            &lt;p <span class="k">class</span>=<span class="s">"total__detail"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"puce"</span>&gt;&lt;/span&gt; Détail : Billets {{ montant(caisse.totalBillets) }} MAD • Pièces {{ montant(caisse.totalPieces) }} MAD&lt;/p&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"total__bloc"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"total__libelle"</span>&gt;Total saisi&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"total__valeur"</span>&gt;{{ montant(caisse.total) }} MAD&lt;/span&gt;&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+
+        &lt;section <span class="k">class</span>=<span class="s">"carte"</span> *ngIf=<span class="s">"v.devises.length"</span>&gt;
+          &lt;h2 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;currency_exchange&lt;/mat-icon&gt; Commande Devises&lt;/h2&gt;
+          &lt;table <span class="k">class</span>=<span class="s">"table"</span>&gt;
+            &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Devise&lt;/th&gt;&lt;th <span class="k">class</span>=<span class="s">"droite"</span>&gt;Montant saisi&lt;/th&gt;&lt;th <span class="k">class</span>=<span class="s">"droite"</span>&gt;Action&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr *ngFor=<span class="s">"let d of v.devises"</span>&gt;
+                &lt;td&gt;{{ d.devise }} – {{ d.libelle }}&lt;/td&gt;
+                &lt;td <span class="k">class</span>=<span class="s">"droite mono"</span>&gt;{{ montant(d.montant) }} {{ d.devise }}&lt;/td&gt;
+                &lt;td <span class="k">class</span>=<span class="s">"droite"</span>&gt;&lt;mat-icon <span class="k">class</span>=<span class="s">"verrou"</span> title=<span class="s">"Lecture seule"</span>&gt;lock&lt;/mat-icon&gt;&lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/section&gt;
+
+        &lt;section <span class="k">class</span>=<span class="s">"carte"</span>&gt;
+          &lt;h2 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;notes&lt;/mat-icon&gt; Commentaire&lt;/h2&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"carte__sous-titre"</span>&gt;Instructions spécifiques ou observations&lt;/p&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"commentaire"</span> [<span class="k">class</span>.commentaire--vide]=<span class="s">"!v.commentaire"</span>&gt;{{ v.commentaire || <span class="s">'Aucun commentaire.'</span> }}&lt;/div&gt;
+        &lt;/section&gt;
+      &lt;/div&gt;
+
+      <span class="c">&lt;!-- ===== Colonne latérale ===== --&gt;</span>
+      &lt;div <span class="k">class</span>=<span class="s">"colonne colonne--laterale"</span>&gt;
+
+        &lt;section <span class="k">class</span>=<span class="s">"carte"</span> *ngIf=<span class="s">"v.gab as gab"</span>&gt;
+          &lt;h2 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;local_atm&lt;/mat-icon&gt; Alimentation GAB&lt;/h2&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"gab"</span> *ngFor=<span class="s">"let l of gab.lignes"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"puce"</span>&gt;&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"gab__libelle"</span>&gt;Billets de {{ l.faceValue }} DH&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"gab__qte"</span>&gt;Qté : &lt;strong&gt;{{ l.quantite }}&lt;/strong&gt;&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"total total--compact"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"total__libelle"</span>&gt;Total GAB&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"total__valeur"</span>&gt;{{ montant(gab.total) }} MAD&lt;/span&gt;&lt;/div&gt;
+        &lt;/section&gt;
+
+        &lt;section <span class="k">class</span>=<span class="s">"carte"</span> *ngIf=<span class="s">"v.ramassages.length"</span>&gt;
+          &lt;h2 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;mat-icon&gt;local_shipping&lt;/mat-icon&gt; Ramassage&lt;/h2&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"ramassage"</span> *ngFor=<span class="s">"let r of v.ramassages"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"puce"</span> [<span class="k">class</span>.puce--bleue]=<span class="s">"r.devise !== 'MAD'"</span>&gt;&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"ramassage__devise"</span>&gt;{{ r.devise }} &lt;small&gt;{{ r.libelle }}&lt;/small&gt;&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"ramassage__montant mono"</span>&gt;{{ montant(r.montant) }}&lt;/span&gt;
+            &lt;mat-icon <span class="k">class</span>=<span class="s">"verrou"</span> title=<span class="s">"Lecture seule"</span>&gt;lock&lt;/mat-icon&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+
+        &lt;section <span class="k">class</span>=<span class="s">"carte carte--vide"</span> *ngIf=<span class="s">"!v.caisse &amp;&amp; !v.gab &amp;&amp; !v.ramassages.length &amp;&amp; !v.devises.length"</span>&gt;
+          &lt;mat-icon&gt;inbox&lt;/mat-icon&gt; Cette demande ne contient aucune opération.
+        &lt;/section&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;app-demande-barre-actions
+      libelleRetour=<span class="s">"Retour au tableau de bord"</span>
+      [peutAnnuler]=<span class="s">"peutDecider()"</span> [peutTraiter]=<span class="s">"peutDecider()"</span> [enCours]=<span class="s">"actions.enCours()"</span>
+      (retour)=<span class="s">"retour()"</span> (annuler)=<span class="s">"ouvrir('ANNULEE')"</span> (traiter)=<span class="s">"ouvrir('TRAITEE')"</span>&gt;
+    &lt;/app-demande-barre-actions&gt;
+
+    &lt;app-demande-decision-modale *ngIf=<span class="s">"decision() as type"</span>
+      [<span class="k">type</span>]=<span class="s">"type"</span> acteur=<span class="s">"caisse-centrale"</span> [reference]=<span class="s">"v.reference"</span> [agence]=<span class="s">"v.agence"</span>
+      [motifsRapides]=<span class="s">"type === 'ANNULEE' ? motifsRapides : []"</span>
+      [enCours]=<span class="s">"actions.enCours()"</span> [erreur]=<span class="s">"actions.erreur()"</span>
+      (confirmer)=<span class="s">"confirmer($event)"</span> (fermer)=<span class="s">"fermer()"</span>&gt;
+    &lt;/app-demande-decision-modale&gt;
+
+  &lt;/ng-container&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-traitement.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demande-traitement\demande-traitement.component.scss</span></div><pre><button class="copy">Copier</button><code><span class="a">@use</span> <span class="s">'../../components/demande/palette'</span> as *;
+
+:host { display: block; font-family: Inter, <span class="s">"Segoe UI"</span>, Roboto, sans-serif; color: $ardoise-700; }
+
+.traitement { display: flex; flex-direction: column; gap: 20px; padding: 8px 0 0; }
+
+.etat { padding: 40px 20px; text-align: center; color: $ardoise-500; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
+  &amp;--erreur { color: $rose-700; } }
+.tourne { animation: tourne 1s linear infinite; }
+<span class="a">@keyframes</span> tourne { to { transform: rotate(360deg); } }
+
+.grille { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: 20px; align-items: start;
+  <span class="a">@media</span> (max-width: 1100px) { grid-template-columns: 1fr; } }
+.colonne { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+.carte { <span class="a">@include</span> carte; padding: 22px 24px; }
+.carte__titre { margin: 0 0 16px; display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 700; color: $vert-700;
+  mat-icon { font-size: 22px; width: 22px; height: 22px; } }
+.carte__sous-titre { margin: -8px 0 10px; font-size: 0.8rem; color: $ardoise-500; }
+.carte--vide { display: flex; align-items: center; gap: 8px; color: $ardoise-500; }
+
+<span class="c">/* ===== Coupures (billets / pièces) ===== */</span>
+.coupures { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; <span class="a">@media</span> (max-width: 700px) { grid-template-columns: 1fr; } }
+.coupures__entete { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: $ardoise-500; }
+.coupures__vide { margin: 0; font-size: 0.85rem; color: $ardoise-400; }
+.coupure { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 10px; margin-bottom: 8px;
+  &amp;--vide .coupure__quantite { color: $ardoise-400; } }
+.coupure__valeur { font-family: $mono; font-size: 0.95rem; color: $ardoise-700; text-align: right; small { color: $ardoise-400; } }
+.coupure__quantite { font-family: $mono; text-align: right; padding: 8px 12px; border-radius: 10px; background: $ardoise-50; border: 1px solid $ardoise-200; color: $ardoise-800; }
+
+<span class="c">/* ===== Totaux ===== */</span>
+.total { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding-top: 16px; border-top: 1px solid $ardoise-100; flex-wrap: wrap;
+  &amp;--compact { margin-top: 12px; } }
+.total__detail { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: $ardoise-600; }
+.total__bloc { display: flex; flex-direction: column; align-items: flex-end; padding-left: 16px; border-left: 4px solid $vert-600; }
+.total__libelle { font-size: 0.7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: $ardoise-500; }
+.total__valeur { font-family: $mono; font-size: 1.4rem; font-weight: 700; color: $vert-700; }
+.total--compact .total__valeur { font-size: 1.1rem; }
+
+.puce { width: 8px; height: 8px; border-radius: 50%; background: $vert-600; flex-shrink: 0; display: inline-block;
+  &amp;--bleue { background: $bleu-600; } }
+
+<span class="c">/* ===== GAB / ramassage ===== */</span>
+.gab, .ramassage { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 8px; border-radius: 10px; background: $ardoise-50; border: 1px solid $ardoise-200; }
+.gab__libelle, .ramassage__devise { flex: 1; font-size: 0.9rem; color: $ardoise-700; small { margin-left: 6px; color: $ardoise-400; } }
+.gab__qte { font-size: 0.85rem; color: $ardoise-500; strong { font-family: $mono; color: $ardoise-800; margin-left: 4px; } }
+.ramassage__montant { color: $ardoise-800; }
+.verrou { font-size: 18px; width: 18px; height: 18px; color: $ardoise-400; }
+.mono { font-family: $mono; }
+
+<span class="c">/* ===== Devises ===== */</span>
+.table { width: 100%; border-collapse: collapse; text-align: left;
+  th { padding: 10px 12px; font-size: 0.7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: $ardoise-500; border-bottom: 1px solid $ardoise-200; }
+  td { padding: 14px 12px; font-size: 0.9rem; border-bottom: 1px solid $ardoise-100; vertical-align: middle; }
+  .droite { text-align: right; } }
+
+<span class="c">/* ===== Commentaire ===== */</span>
+.commentaire { padding: 14px 16px; border-radius: 10px; background: $ardoise-50; border: 1px solid $ardoise-200; font-size: 0.9rem; color: $ardoise-800; white-space: pre-wrap; min-height: 72px;
+  &amp;--vide { color: $ardoise-400; font-style: italic; } }
+
+.bouton { <span class="a">@include</span> bouton; }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fund-management.routes.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\fund-management.routes.ts  (import en tête ; la route juste après { path: 'caisse-centrale', … })</span></div><p class="note">Ordre : <code>caisse-centrale</code> puis <code>caisse-centrale/:id</code>. Si une route <code>:id</code> générique existe plus haut dans le tableau, place celle-ci avant elle.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { DemandeTraitementComponent } <span class="k">from</span> <span class="s">'./presenter/pages/demande-traitement/demande-traitement.component'</span>;
+
+<span class="c">// AER_LM-285 — écran de traitement Caisse Centrale : juste après la route « caisse-centrale » (même garde)</span>
+  { path: <span class="s">'caisse-centrale/:id'</span>, component: DemandeTraitementComponent,
+    canActivate: [exigePermission(<span class="s">'toutesAgences'</span>)] },</code></pre></div>
+<h2 id="s5">5. Front — AER_LM-287 : écran agence consultation / modification</h2>
+<div class="card"><p><b>5.0 Ce que les blocs supposent de ton composant.</b> Je n'ai pas le fichier sous les yeux ; les fragments utilisent les identifiants du lot C. Vérifie-les une fois (Ctrl+F) avant de coller — si l'un porte un autre nom chez toi, renomme dans le fragment, pas dans ton composant.</p>
+<table>
+<tr><th>Identifiant utilisé</th><th>Ce que c'est</th><th>Où le retrouver</th></tr>
+<tr><td><code>detail()</code></td><td>signal du <code>DemandeFondsDetail</code> chargé en consultation</td><td>voisin de <code>facade.loadingDetail()</code> dans le template</td></tr>
+<tr><td><code>estConsultation</code></td><td>booléen : route <code>consultation/:id</code></td><td>en-tête <code>*ngIf="estConsultation"</code></td></tr>
+<tr><td><code>modeModification()</code></td><td>signal : modification en cours (verrou posé par <code>demarrerModification</code>)</td><td>ce qui affiche Enregistrer / Abandonner aujourd'hui</td></tr>
+<tr><td><code>capacites()</code></td><td>computed <code>CapacitesDemande</code> : <code>peutModifier</code>, <code>peutAnnuler</code>, <code>peutSoumettre</code>, <code>peutEnregistrer</code>, <code>demandeDeMonAgence</code></td><td><code>demande-capacites.ts</code> ; si <code>demandeDeMonAgence</code> est dans <code>FaitsDemande</code> plutôt que dans les capacités, lis-le là</td></tr>
+<tr><td><code>urgentControl</code></td><td>le <code>FormControl</code> de la case « urgent » de l'en-tête de création</td><td><code>form.get('urgent')</code> ou équivalent</td></tr>
+<tr><td><code>form</code></td><td>le <code>FormGroup</code> de saisie (pour <code>form.invalid</code>)</td><td>—</td></tr>
+<tr><td><code>demarrerModification()</code>, <code>terminerModification(true | false)</code>, <code>soumettreDepuisConsultation()</code>, <code>rechargerDetail()</code></td><td>méthodes du lot C (verrou, PUT + déverrouillage, PATCH /submit, relecture)</td><td>si la relecture a un autre nom (<code>chargerDetail(id)</code>…), adapte <code>confirmerAnnulation</code></td></tr>
+<tr><td><code>actions</code>, <code>contexteUtilisateur</code>, <code>router</code>, <code>route</code>, <code>snackBar</code></td><td><code>DemandeActionsFacade</code>, <code>ContexteUtilisateurService</code>, <code>Router</code>, <code>ActivatedRoute</code>, <code>MatSnackBar</code> injectés</td><td>ajoute ceux qui manquent (<code>inject(...)</code>)</td></tr>
+<tr><td><code>actions.annuler(id, motif)</code></td><td>annulation agence (PATCH /cancel) — retourne vrai/faux comme <code>decider</code></td><td><code>demande-actions.facade.ts</code></td></tr>
+</table>
+<p><b>Comportement livré.</b> Consultation d'une demande modifiable : « Modifier la demande » → mode modification (badge « Mode Modification actif », case « DEMANDE URGENTE » éditable, « Retour au listing » libère le verrou, « Soumettre les Modifications » = <code>terminerModification(true)</code>). Demande non modifiable : bannière avec la raison, « Modification Verrouillée » désactivé. Brouillon : « Soumettre la demande ». Annulation : modale avec motif, puis relecture.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fund-management.component.ts — imports</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.ts  (en tête, avec les autres imports ; chemins relatifs depuis presenter/pages/fund-management/)</span></div><pre><button class="copy">Copier</button><code><span class="c">// ===== AER_LM-287 — composants partagés et règles d'écran =====</span>
+<span class="k">import</span> { DemandeEnteteComponent } <span class="k">from</span> <span class="s">'../../components/demande/demande-entete/demande-entete.component'</span>;
+<span class="k">import</span> { DemandeBarreActionsComponent } <span class="k">from</span> <span class="s">'../../components/demande/demande-barre-actions/demande-barre-actions.component'</span>;
+<span class="k">import</span> { DemandeDecisionModaleComponent } <span class="k">from</span> <span class="s">'../../components/demande/demande-decision-modale/demande-decision-modale.component'</span>;
+<span class="k">import</span> { banniereLectureAgence } <span class="k">from</span> <span class="s">'../../components/demande/demande-ecran.regles'</span>;
+<span class="k">import</span> { SaisieQuantiteDirective } <span class="k">from</span> <span class="s">'../../directives/saisie-quantite.directive'</span>;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fund-management.component.ts — @Component.imports</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.ts  (Ctrl+F : imports: [  — dans le décorateur)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">// dans le tableau imports du @Component, à la suite des modules existants :</span>
+  DemandeEnteteComponent, DemandeBarreActionsComponent, DemandeDecisionModaleComponent, SaisieQuantiteDirective</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fund-management.component.ts — membres</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.ts  (dans la classe, après les capacités)</span></div><p class="note">Imports Angular : <code>computed</code>, <code>signal</code> (déjà là). Supprime ensuite l'ancien motif inline (<code>motifAnnulation</code> FormControl, <code>annulerDemande()</code>) : §9.</p><pre><button class="copy">Copier</button><code>  <span class="c">// ===== AER_LM-287 — en-tête, bannière de lecture seule, barre d'actions et annulation (modale) =====</span>
+
+  <span class="c">/** Modale d'annulation ouverte (agence) — null = fermée. */</span>
+  <span class="k">readonly</span> annulationOuverte = signal(<span class="k">false</span>);
+
+  <span class="c">/**
+   * Bannière « Consultation seule » : null tant que la demande est modifiable ou en cours de modification par moi.
+   * Les faits viennent de ce que l'écran calcule déjà (capacités / contexte) ; voir le tableau des identifiants au §5.0.
+   */</span>
+  <span class="k">readonly</span> banniere = computed(() =&gt; {
+    <span class="k">const</span> d = <span class="k">this</span>.detail();
+    <span class="k">if</span> (!d || !<span class="k">this</span>.estConsultation) { <span class="k">return</span> <span class="k">null</span>; }
+    <span class="k">const</span> uid = <span class="k">this</span>.contexteUtilisateur.contexte()?.uid ?? <span class="k">null</span>;
+    <span class="k">return</span> banniereLectureAgence({
+      statut: d.statut,
+      journeeCloturee: d.journeeCloturee,
+      verrouillePar: d.lockedBy ?? <span class="k">null</span>,
+      verrouDetenu: <span class="k">this</span>.modeModification() || (!!uid &amp;&amp; d.lockedBy === uid),
+      demandeDeMonAgence: <span class="k">this</span>.capacites().demandeDeMonAgence,
+      peutModifier: <span class="k">this</span>.contexteUtilisateur.habilitations().modifier
+    });
+  });
+
+  <span class="c">/** Lien / bouton de retour : en modification, le verrou est libéré avant de quitter l'écran. */</span>
+  <span class="k">async</span> retourListing(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (<span class="k">this</span>.modeModification()) { <span class="k">await</span> <span class="k">this</span>.terminerModification(<span class="k">false</span>); }
+    <span class="k">this</span>.router.navigate([<span class="s">'list'</span>], { relativeTo: <span class="k">this</span>.route.parent });
+  }
+
+  ouvrirAnnulation(): <span class="k">void</span> {
+    <span class="k">this</span>.actions.acquitterErreur();
+    <span class="k">this</span>.annulationOuverte.set(<span class="k">true</span>);
+  }
+
+  <span class="c">/** Annulation par l'agence (PATCH /cancel, origine CREATEUR) avec le motif saisi dans la modale. */</span>
+  <span class="k">async</span> confirmerAnnulation(motif: string | undefined): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">const</span> d = <span class="k">this</span>.detail();
+    <span class="k">if</span> (!d) { <span class="k">return</span>; }
+    <span class="k">const</span> ok = <span class="k">await</span> <span class="k">this</span>.actions.annuler(d.id, motif ?? <span class="s">''</span>);
+    <span class="k">if</span> (ok) {
+      <span class="k">this</span>.annulationOuverte.set(<span class="k">false</span>);
+      <span class="k">this</span>.snackBar.open(<span class="s">`Demande ${d.uniqueRequestRef ?? ''} annulée.`</span>, <span class="s">'Fermer'</span>, { duration: 5000 });
+      <span class="k">await</span> <span class="k">this</span>.rechargerDetail();
+    } <span class="k">else</span> {
+      <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Erreur lors de l\'</span>annulation.<span class="s">', '</span>Fermer', { duration: 6000 });
+    }
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fund-management.component.html — en-tête de consultation</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html  (Ctrl+F : *ngIf="estConsultation"  — remplace le ng-container de l'en-tête de consultation : lien Retour, chip, référence, méta, bouton Modifier)</span></div><p class="note">Le bloc <code>etat-transitoire</code> (<code>facade.loadingDetail()</code>) et le bloc d'erreur restent où ils sont, au-dessus. L'en-tête de création (<code>*ngIf="!estConsultation"</code>) ne change pas.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- AER_LM-287 — en-tête de consultation / modification (remplace le bloc *ngIf="estConsultation" de l'en-tête) --&gt;</span>
+&lt;app-demande-entete *ngIf=<span class="s">"estConsultation &amp;&amp; detail() as d"</span>
+  [reference]=<span class="s">"d.uniqueRequestRef ?? '—'"</span>
+  [statut]=<span class="s">"d.statut"</span>
+  [urgent]=<span class="s">"urgentControl.value"</span>
+  [urgentModifiable]=<span class="s">"modeModification()"</span>
+  (urgentChange)=<span class="s">"urgentControl.setValue($event)"</span>
+  [modeModification]=<span class="s">"modeModification()"</span>
+  [soumiseLe]=<span class="s">"d.submittedAt ?? null"</span>
+  [soumisePar]=<span class="s">"d.agentNom || d.user || null"</span>
+  [soumiseParDetail]=<span class="s">"d.agentProfil ?? null"</span>
+  [decisionLe]=<span class="s">"d.decisionAt ?? null"</span>
+  [decisionPar]=<span class="s">"d.decisionPar ?? null"</span>
+  [decisionParDetail]=<span class="s">"d.decisionProfil ?? null"</span>
+  [motifAnnulation]=<span class="s">"d.cancellationReason ?? null"</span>
+  [banniere]=<span class="s">"banniere()"</span>
+  lienRetour=<span class="s">"Retour à l'Historique des Demandes"</span>
+  (retour)=<span class="s">"retourListing()"</span>&gt;
+&lt;/app-demande-entete&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fund-management.component.html — barre d&#x27;actions et modale</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html  (Ctrl+F : soumettreDepuisConsultation  — remplace la barre de consultation entière, y compris le motif d'annulation inline, par ces deux blocs ; à placer en fin de template, hors du &lt;form&gt;)</span></div><p class="note">Le bouton « Enregistrer » du mode modification disparaît : la maquette n'a plus qu'un bouton « Soumettre les Modifications » (PUT du contenu + libération du verrou, ce que fait déjà <code>terminerModification(true)</code>).</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- AER_LM-287 — barre d'actions (remplace la barre de consultation Retour / Annuler + motif / Soumettre / Modifier / Enregistrer / Abandonner) --&gt;</span>
+&lt;app-demande-barre-actions *ngIf=<span class="s">"estConsultation &amp;&amp; detail() as d"</span>
+  [libelleRetour]=<span class="s">"modeModification() ? 'Retour au listing' : 'Retour à l\'Historique des Demandes'"</span>
+  [peutModifier]=<span class="s">"!modeModification() &amp;&amp; capacites().peutModifier"</span>
+  [verrouille]=<span class="s">"!modeModification() &amp;&amp; !capacites().peutModifier &amp;&amp; d.statut !== 'INITIEE'"</span>
+  [peutAnnuler]=<span class="s">"capacites().peutAnnuler"</span>
+  [peutSoumettre]=<span class="s">"modeModification() ? capacites().peutEnregistrer : capacites().peutSoumettre"</span>
+  [libelleSoumettre]=<span class="s">"modeModification() ? 'Soumettre les Modifications' : 'Soumettre la demande'"</span>
+  [soumettreDesactive]=<span class="s">"modeModification() &amp;&amp; form.invalid"</span>
+  [enCours]=<span class="s">"actions.enCours()"</span>
+  (retour)=<span class="s">"retourListing()"</span>
+  (modifier)=<span class="s">"demarrerModification()"</span>
+  (annuler)=<span class="s">"ouvrirAnnulation()"</span>
+  (soumettre)=<span class="s">"modeModification() ? terminerModification(true) : soumettreDepuisConsultation()"</span>&gt;
+&lt;/app-demande-barre-actions&gt;
+
+&lt;app-demande-decision-modale *ngIf=<span class="s">"annulationOuverte() &amp;&amp; detail() as d"</span>
+  <span class="k">type</span>=<span class="s">"ANNULEE"</span> acteur=<span class="s">"agence"</span>
+  [reference]=<span class="s">"d.uniqueRequestRef ?? ''"</span>
+  [enCours]=<span class="s">"actions.enCours()"</span> [erreur]=<span class="s">"actions.erreur()"</span>
+  (confirmer)=<span class="s">"confirmerAnnulation($event)"</span> (fermer)=<span class="s">"annulationOuverte.set(false)"</span>&gt;
+&lt;/app-demande-decision-modale&gt;</code></pre></div>
+<div class="card"><p><b>5.3 Le 0 placeholder (PO 5).</b></p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fund-management.component.html — inputs de quantité</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html  (Ctrl+F : type="number"  — sur chaque input de quantité : billets, pièces, GAB ; pas sur les montants de ramassage / devises)</span></div><p class="note">Un seul attribut par input. La directive vide le champ quand sa valeur est 0 (au chargement, au focus, après « Réinitialiser ») et affiche « 0 » en placeholder ; un champ vide vaut 0.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- Remarque PO (01/10) — sur chaque input de quantité (billets, pièces, GAB) : ajoute l'attribut appSaisieQuantite.
+     Exemple, avant / après : --&gt;</span>
+&lt;input <span class="k">type</span>=<span class="s">"number"</span> min=<span class="s">"0"</span> <span class="k">class</span>=<span class="s">"…"</span> [formControlName]=<span class="s">"coupure.code"</span>&gt;
+&lt;input <span class="k">type</span>=<span class="s">"number"</span> min=<span class="s">"0"</span> <span class="k">class</span>=<span class="s">"…"</span> [formControlName]=<span class="s">"coupure.code"</span> appSaisieQuantite&gt;</code></pre></div>
+<div class="card"><p><b>5.4 Commande Devises sans MAD (PO 7).</b> Une commande de devises porte sur des devises <i>étrangères</i> ; le dirham n'a rien à y faire. Le référentiel <code>getDevises()</code> reste complet parce que le bloc Ramassage, lui, doit proposer le MAD (espèces) : le filtre se fait au point d'usage, avec la constante <code>DEVISE_LOCALE</code> déjà présente dans le composant. La valeur par défaut du select (EUR) ne change pas.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fund-management.component.ts — devises commandables</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.ts  (Ctrl+F : getDevises(  — selon la forme de ta liste : (a) signal → la ligne computed ; (b) tableau → remplace l'affectation)</span></div><p class="note">Garde une seule des deux formes. Le nom du champ ISO est <code>isoCode</code> (même DTO que <code>currency.isoCode</code> dans les opérations) ; si ton modèle de devise le nomme autrement, adapte le prédicat.</p><pre><button class="copy">Copier</button><code>  <span class="c">// ===== Remarque PO (02/10) — commande de devises : seules les devises étrangères sont proposées =====</span>
+  <span class="c">// Le MAD n'est pas une devise à commander ; DEVISE_LOCALE ('MAD') est la constante existante de l'écran.</span>
+  <span class="c">// Le ramassage, lui, garde le MAD (espèces) : on filtre au point d'usage, pas dans le référentiel.</span>
+
+  <span class="c">// (a) si la liste des devises est un signal :</span>
+  <span class="k">readonly</span> devisesCommandables = computed(() =&gt; <span class="k">this</span>.devises().filter(d =&gt; d.isoCode !== DEVISE_LOCALE));
+
+  <span class="c">// (b) si c'est un tableau rempli dans ngOnInit — remplace l'affectation existante :</span>
+  <span class="c">//     this.devises = await this.service.getDevises();</span>
+  <span class="c">// par :</span>
+  <span class="c">//     const devises = await this.service.getDevises();</span>
+  <span class="c">//     this.devises = devises;                                                 // ramassage : toutes, MAD compris</span>
+  <span class="c">//     this.devisesCommandables = devises.filter(d =&gt; d.isoCode !== DEVISE_LOCALE);   // commande : étrangères seulement</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fund-management.component.html — select Commande Devises</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html  (Ctrl+F : Commande Devises  — le select « Devise » de ce bloc uniquement)</span></div><p class="note">Avec la forme (b), écris <code>devisesCommandables</code> sans parenthèses. Aucun changement côté back ni sur l'écran Caisse Centrale : une demande existante avec une commande en MAD s'affiche toujours.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- Remarque PO (02/10) — select « Devise » du bloc Commande Devises : itère sur devisesCommandables au lieu de devises.
+     Avant / après (le select du bloc Ramassage ne change pas) : --&gt;</span>
+&lt;mat-option *ngFor=<span class="s">"let d of devises"</span> [value]=<span class="s">"d.isoCode"</span>&gt;{{ d.isoCode }} – {{ d.name }}&lt;/mat-option&gt;
+&lt;mat-option *ngFor=<span class="s">"let d of devisesCommandables()"</span> [value]=<span class="s">"d.isoCode"</span>&gt;{{ d.isoCode }} – {{ d.name }}&lt;/mat-option&gt;</code></pre></div>
+<h2 id="s6">6. Front — listing commun (PO 2, 3, 6 et clics KPI)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html — recherche</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html  (Ctrl+F : champ--recherche  — remplace le &lt;label&gt; entier)</span></div><pre><button class="copy">Copier</button><code>      <span class="c">&lt;!-- Remarque PO (01/10) : la recherche multi-critère n'existe que sur l'écran Caisse Centrale --&gt;</span>
+      &lt;label <span class="k">class</span>=<span class="s">"champ champ--recherche"</span> *ngIf=<span class="s">"estCaisseCentrale"</span>&gt;
+        &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__loupe"</span>&gt;search&lt;/mat-icon&gt;
+        &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> <span class="k">type</span>=<span class="s">"search"</span> [formControl]=<span class="s">"rechercheControl"</span>
+               placeholder=<span class="s">"Rechercher par référence, agence, zone…"</span>&gt;
+      &lt;/label&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html — bouton Actualiser</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html  (Ctrl+F : (click)="actualiser()"  — remplace le &lt;button&gt; entier : seul le title change)</span></div><pre><button class="copy">Copier</button><code>        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--secondaire"</span> (click)=<span class="s">"actualiser()"</span> [disabled]=<span class="s">"facade.loadingDemandes()"</span>
+                title=<span class="s">"Recharge la liste avec les filtres courants (et efface la recherche)"</span>&gt;
+          &lt;mat-icon&gt;refresh&lt;/mat-icon&gt; Actualiser
+        &lt;/button&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html — cellule Actions</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html  (Ctrl+F : col-actions">  — remplace le &lt;td&gt; entier)</span></div><pre><button class="copy">Copier</button><code>            &lt;td <span class="k">class</span>=<span class="s">"col-actions"</span>&gt;
+              <span class="c">&lt;!-- Remarque PO (01/10) : Traiter / Annuler se font depuis l'écran de traitement (AER_LM-285), plus depuis la liste --&gt;</span>
+              &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"icone icone--detail"</span> [title]=<span class="s">"estCaisseCentrale ? 'Consulter et traiter' : 'Détail'"</span> (click)=<span class="s">"voirDetail(l)"</span>&gt;
+                &lt;mat-icon&gt;visibility&lt;/mat-icon&gt;
+              &lt;/button&gt;
+            &lt;/td&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>demandes-list.component.html — modale</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html  (Ctrl+F : ================= Modale de décision  — supprime le bloc jusqu'à la fin du &lt;div class="modale"&gt;)</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- supprimé : la décision se prend sur l'écran de traitement (AER_LM-285) --&gt;</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.ts — imports</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (remplace tout le bloc d'imports)</span></div><p class="note">Disparaissent : <code>Validators</code>, <code>DemandeActionsFacade</code>, <code>MOTIFS_RAPIDES</code>. Arrivent : <code>debounce</code>, <code>timer</code>.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { takeUntilDestroyed } <span class="k">from</span> <span class="s">'@angular/core/rxjs-interop'</span>;
+<span class="k">import</span> { FormControl, ReactiveFormsModule } <span class="k">from</span> <span class="s">'@angular/forms'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { MatSnackBar, MatSnackBarModule } <span class="k">from</span> <span class="s">'@angular/material/snack-bar'</span>;
+<span class="k">import</span> { ActivatedRoute, Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { BehaviorSubject, combineLatest, debounce, debounceTime, distinctUntilChanged, map, startWith, timer } <span class="k">from</span> <span class="s">'rxjs'</span>;
+<span class="k">import</span> { FunManagementFacade } <span class="k">from</span> <span class="s">'../../../adapters/localState/fundMangement.facade'</span>;
+<span class="k">import</span> { KpiCaisseCentraleService } <span class="k">from</span> <span class="s">'../../../adapters/localState/kpi-caisse-centrale.service'</span>;
+<span class="k">import</span> { AgencesReferentielService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/agences-referentiel.service'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { FundHttpService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/fundManagement-http.service'</span>;
+<span class="k">import</span> { CRITERIA_DEFAUT, DemandeCriteria, ErreurApi } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/operation.model'</span>;
+<span class="k">import</span> {
+  FiltresListing, LigneListing, ModeListing, STATUTS_AGENCE, STATUTS_CAISSE_CENTRALE, TOUS, TOUTES, TYPES_DEMANDE,
+  aujourdHui, construireCriteres, nomFichierExtraction, nombreDePages, telechargerBlob, versLigne
+} <span class="k">from</span> <span class="s">'./demandes-list.regles'</span>;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.ts — flux recherche</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : this.rechercheControl.valueChanges.pipe(  — remplace jusqu'à la parenthèse fermante du pipe)</span></div><pre><button class="copy">Copier</button><code>      <span class="k">this</span>.rechercheControl.valueChanges.pipe(
+        startWith(<span class="k">this</span>.rechercheControl.value),
+        <span class="c">// 300 ms pendant la frappe ; immédiat quand le champ est vidé (bouton Actualiser)</span>
+        debounce(v =&gt; timer(v.trim() ? 300 : 0)),
+        map(v =&gt; v.trim()),
+        distinctUntilChanged()
+      )</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.ts — barre d&#x27;outils</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : // ===== Barre d'outils =====  — remplace actualiser, recharger et reinitialiserFiltres par ces deux méthodes)</span></div><p class="note"><code>reinitialiserFiltres()</code> disparaît (plus appelée). <code>exporter()</code> et <code>basculerUrgentes()</code> restent.</p><pre><button class="copy">Copier</button><code>  <span class="c">// ===== Barre d'outils =====</span>
+
+  <span class="c">/**
+   * Remarque PO (01/10) — « Actualiser » : recharge la liste et les KPI avec les filtres courants, sans y toucher ;
+   * seule la recherche multi-critère est effacée si elle est remplie (son effacement recharge la liste à lui seul).
+   */</span>
+  actualiser(): <span class="k">void</span> {
+    <span class="k">if</span> (<span class="k">this</span>.rechercheControl.value.trim()) {
+      <span class="k">this</span>.rechercheControl.setValue(<span class="s">''</span>);
+      <span class="k">if</span> (<span class="k">this</span>.estCaisseCentrale) { <span class="k">this</span>.kpi.charger(); }
+    } <span class="k">else</span> {
+      <span class="k">this</span>.recharger();
+    }
+  }
+
+  <span class="c">/** Recharge la liste (et les KPI) avec les filtres tels qu'ils sont. */</span>
+  recharger(): <span class="k">void</span> {
+    <span class="k">this</span>.rechargement$.next(<span class="k">this</span>.rechargement$.value + 1);
+    <span class="k">if</span> (<span class="k">this</span>.estCaisseCentrale) { <span class="k">this</span>.kpi.charger(); }
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.ts — clics KPI</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : private cadrerSurLaJournee  — remplace cadrerSurLaJournee et les trois méthodes filtrer…)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">// Remarque PO (01/10) — les cartes comptent : en attente / urgentes = demandes créées jusqu'à aujourd'hui inclus ;</span>
+  <span class="c">// traitées = décidées aujourd'hui. Un clic pose les mêmes filtres visibles (option A) pour que la liste montre ce que la carte compte.</span>
+
+  <span class="c">/** Clic sur « Demandes en attente » : créées jusqu'à aujourd'hui, statut En attente, urgent désactivé. */</span>
+  filtrerEnAttente(): <span class="k">void</span> {
+    <span class="k">this</span>.dateDebutControl.setValue(<span class="s">''</span>);
+    <span class="k">this</span>.dateFinControl.setValue(aujourdHui());
+    <span class="k">this</span>.urgentControl.setValue(<span class="k">false</span>);
+    <span class="k">this</span>.statutControl.setValue(<span class="s">'SUBMITTED'</span>);
+  }
+
+  <span class="c">/** Clic sur « Demandes urgentes » : créées jusqu'à aujourd'hui, tous statuts, urgent actif. */</span>
+  filtrerUrgentes(): <span class="k">void</span> {
+    <span class="k">this</span>.dateDebutControl.setValue(<span class="s">''</span>);
+    <span class="k">this</span>.dateFinControl.setValue(aujourdHui());
+    <span class="k">this</span>.statutControl.setValue(TOUS);
+    <span class="k">this</span>.urgentControl.setValue(<span class="k">true</span>);
+  }
+
+  <span class="c">/**
+   * Clic sur « Demandes traitées » : statut Traitée, sans borne de date — la carte compte les décisions du jour,
+   * alors que les dates du listing portent sur la création ; la liste montre donc toutes les traitées, les plus récentes en tête.
+   */</span>
+  filtrerTraitees(): <span class="k">void</span> {
+    <span class="k">this</span>.dateDebutControl.setValue(<span class="s">''</span>);
+    <span class="k">this</span>.dateFinControl.setValue(<span class="s">''</span>);
+    <span class="k">this</span>.urgentControl.setValue(<span class="k">false</span>);
+    <span class="k">this</span>.statutControl.setValue(<span class="s">'VALIDATED'</span>);
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.ts — voirDetail</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : // ===== Actions sur une ligne =====  — remplace le commentaire et voirDetail)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">// ===== Actions sur une ligne =====</span>
+
+  <span class="c">/** Agence : écran de consultation / modification (267-287) ; Caisse Centrale : écran de traitement (285). */</span>
+  voirDetail(l: LigneListing): <span class="k">void</span> {
+    <span class="k">const</span> chemin = <span class="k">this</span>.estCaisseCentrale ? [<span class="s">'caisse-centrale'</span>, l.demande.id] : [<span class="s">'consultation'</span>, l.demande.id];
+    <span class="k">this</span>.router.navigate(chemin, { relativeTo: <span class="k">this</span>.route.parent });
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>demandes-list.component.ts — décision</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F dans l'ordre : type DecisionCaisseCentrale · readonly actions = inject(DemandeActionsFacade) · // ===== Décision Caisse Centrale · ouvrirDecision · choisirMotif · fermerDecision · confirmerDecision)</span></div><p class="note"><code>peutDecider</code> et <code>versLigne(…, decider)</code> restent : <code>decidable</code> n'est plus affiché mais la règle (et son test) est encore vraie.</p><pre><button class="copy">Copier</button><code><span class="c">// supprimés : le type DecisionCaisseCentrale, l'injection de DemandeActionsFacade, les champs decision / motifAnnulation</span>
+<span class="c">// et les quatre méthodes ouvrirDecision / choisirMotif / fermerDecision / confirmerDecision (décision portée par l'écran 285)</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.scss  (Ctrl+F : .filtres__actions  — remplace la ligne ; puis supprime les blocs /* ===== Modale ===== */ jusqu'à .modale__pied inclus, et .motif)</span></div><pre><button class="copy">Copier</button><code><span class="c">/* Remarque PO (01/10) : sans recherche sur l'écran agence, les boutons restent calés à droite */</span>
+.filtres__actions { display: flex; gap: 10px; margin-left: auto; }</code></pre></div>
+<h2 id="s7">7. Tests front</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-dossier.model.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\demande-dossier.model.spec.ts</span></div><p class="note">7 cas : en-tête, billets / pièces / totaux, GAB, ramassages / devises, dossier vide, lecture de la valeur faciale, format des montants.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { DemandeDossier, construireVueDossier, formaterMontant, valeurFaciale } <span class="k">from</span> <span class="s">'./demande-dossier.model'</span>;
+
+<span class="k">describe</span>(<span class="s">'demande-dossier.model (AER_LM-285)'</span>, () =&gt; {
+
+  <span class="k">const</span> dossier: DemandeDossier = {
+    id: <span class="s">'e39181ca'</span>, uniqueRequestRef: <span class="s">'20260805-1001-02'</span>, branchCode: <span class="s">'1001'</span>, agenceNom: <span class="s">'Nations Unies'</span>,
+    requestStatus: <span class="s">'SUBMITTED'</span>, urgent: <span class="k">true</span>, submittedAt: <span class="s">'2026-08-05T18:10:00'</span>,
+    agentNom: <span class="s">'Salma EL AMRANI'</span>, agentProfil: <span class="s">'Directeur d\'</span>agence<span class="s">', comment: '</span>Demande urgente',
+    operations: [
+      { operationType: <span class="s">'CASH_DESK'</span>, operationSens: <span class="s">'SUPPLY'</span>, currencyDetails: [{ currency: { isoCode: <span class="s">'MAD'</span> }, operationDenominations: [
+        { denomination: { denominationCode: <span class="s">'BILLET_200'</span>, faceValue: 200 }, quantity: 10 },
+        { denomination: { denominationCode: <span class="s">'BILLET_100'</span> }, quantity: 20 },
+        { denomination: { denominationCode: <span class="s">'BILLET_50'</span> }, quantity: 5 },
+        { denomination: { denominationCode: <span class="s">'PIECE_10'</span> }, quantity: 0 },
+        { denomination: { denominationCode: <span class="s">'PIECE_0_50'</span> }, quantity: 4 }
+      ] }] },
+      { operationType: <span class="s">'ATM'</span>, operationSens: <span class="s">'SUPPLY'</span>, currencyDetails: [{ currency: { isoCode: <span class="s">'MAD'</span> }, operationDenominations: [
+        { denomination: { denominationCode: <span class="s">'BILLET_200'</span> }, quantity: 150 },
+        { denomination: { denominationCode: <span class="s">'BILLET_100'</span> }, quantity: 150 }
+      ] }] },
+      { operationType: <span class="s">'CURRENCY'</span>, operationSens: <span class="s">'COLLECTION'</span>, currencyDetails: [
+        { currency: { isoCode: <span class="s">'MAD'</span> }, totalAmountByCurrency: 500000 },
+        { currency: { isoCode: <span class="s">'EUR'</span> }, totalAmountByCurrency: 5000 }
+      ] },
+      { operationType: <span class="s">'CURRENCY'</span>, operationSens: <span class="s">'SUPPLY'</span>, currencyDetails: [
+        { currency: { isoCode: <span class="s">'USD'</span> }, totalAmountByCurrency: 10000 },
+        { currency: { isoCode: <span class="s">'GBP'</span> }, totalAmountByCurrency: 5000 }
+      ] }
+    ]
+  };
+
+  <span class="k">it</span>(<span class="s">'projette l’en-tête : référence, statut, agence, soumise par'</span>, () =&gt; {
+    <span class="k">const</span> v = construireVueDossier(dossier);
+    <span class="k">expect</span>(v.reference).toBe(<span class="s">'20260805-1001-02'</span>);
+    <span class="k">expect</span>(v.statut).toBe(<span class="s">'SOUMISE'</span>);
+    <span class="k">expect</span>(v.agence).toBe(<span class="s">'1001 - Nations Unies'</span>);
+    <span class="k">expect</span>(v.soumisePar).toBe(<span class="s">'Salma EL AMRANI'</span>);
+    <span class="k">expect</span>(v.soumiseParProfil).toBe(<span class="s">'Directeur d\'</span>agence');
+    <span class="k">expect</span>(v.urgent).toBeTrue();
+  });
+
+  <span class="k">it</span>(<span class="s">'sépare billets et pièces (seuil 20), trie par valeur décroissante et totalise'</span>, () =&gt; {
+    <span class="k">const</span> v = construireVueDossier(dossier);
+    <span class="k">expect</span>(v.caisse!.billets.map(l =&gt; l.faceValue)).toEqual([200, 100, 50]);
+    <span class="k">expect</span>(v.caisse!.pieces.map(l =&gt; l.faceValue)).toEqual([10, 0.5]);
+    <span class="k">expect</span>(v.caisse!.totalBillets).toBe(4250);
+    <span class="k">expect</span>(v.caisse!.totalPieces).toBe(2);
+    <span class="k">expect</span>(v.caisse!.total).toBe(4252);
+  });
+
+  <span class="k">it</span>(<span class="s">'GAB : lignes et total'</span>, () =&gt; {
+    <span class="k">const</span> v = construireVueDossier(dossier);
+    <span class="k">expect</span>(v.gab!.lignes.map(l =&gt; l.quantite)).toEqual([150, 150]);
+    <span class="k">expect</span>(v.gab!.total).toBe(45000);
+  });
+
+  <span class="k">it</span>(<span class="s">'ramassages (COLLECTION) et commandes de devises (SUPPLY) avec libellés'</span>, () =&gt; {
+    <span class="k">const</span> v = construireVueDossier(dossier);
+    <span class="k">expect</span>(v.ramassages).toEqual([
+      { devise: <span class="s">'MAD'</span>, montant: 500000, libelle: <span class="s">'Espèces'</span> },
+      { devise: <span class="s">'EUR'</span>, montant: 5000, libelle: <span class="s">'Devises'</span> }
+    ]);
+    <span class="k">expect</span>(v.devises.map(d =&gt; d.libelle)).toEqual([<span class="s">'US Dollar'</span>, <span class="s">'British Pound'</span>]);
+  });
+
+  <span class="k">it</span>(<span class="s">'sans opération : sections absentes, commentaire vide → null'</span>, () =&gt; {
+    <span class="k">const</span> v = construireVueDossier({ id: <span class="s">'x'</span>, requestStatus: <span class="s">'INITIATED'</span>, comment: <span class="s">'   '</span> });
+    <span class="k">expect</span>(v.caisse).toBeNull();
+    <span class="k">expect</span>(v.gab).toBeNull();
+    <span class="k">expect</span>(v.ramassages).toEqual([]);
+    <span class="k">expect</span>(v.commentaire).toBeNull();
+    <span class="k">expect</span>(v.statut).toBe(<span class="s">'INITIEE'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'valeurFaciale : valeur du back, sinon lue dans le code'</span>, () =&gt; {
+    <span class="k">expect</span>(valeurFaciale(200, <span class="s">'BILLET_200'</span>)).toBe(200);
+    <span class="k">expect</span>(valeurFaciale(<span class="s">'100'</span>, <span class="s">'X'</span>)).toBe(100);
+    <span class="k">expect</span>(valeurFaciale(<span class="k">null</span>, <span class="s">'BILLET_50'</span>)).toBe(50);
+    <span class="k">expect</span>(valeurFaciale(undefined, <span class="s">'PIECE_0_50'</span>)).toBe(0.5);
+    <span class="k">expect</span>(valeurFaciale(undefined, <span class="s">'PIECE_0.20'</span>)).toBe(0.2);
+    <span class="k">expect</span>(valeurFaciale(undefined, <span class="s">'INCONNU'</span>)).toBeNull();
+  });
+
+  <span class="k">it</span>(<span class="s">'formaterMontant : format français à deux décimales'</span>, () =&gt; {
+    <span class="k">expect</span>(formaterMontant(4450).replace(/ | /g, <span class="s">' '</span>)).toBe(<span class="s">'4 450,00'</span>);
+    <span class="k">expect</span>(formaterMontant(0)).toBe(<span class="s">'0,00'</span>);
+  });
+});</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>demande-ecran.regles.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande\demande-ecran.regles.spec.ts</span></div><p class="note">8 cas : bannières agence (ordre des raisons) et Caisse Centrale (Support, réservation, traitée / annulée). <code>ng test --watch=false</code> (Edge via CHROME_BIN) ; <code>demandes-list.regles.spec.ts</code> ne change pas.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { banniereLectureAgence, banniereLectureCaisseCentrale } <span class="k">from</span> <span class="s">'./demande-ecran.regles'</span>;
+
+<span class="k">describe</span>(<span class="s">'demande-ecran.regles (AER_LM-285 / 287)'</span>, () =&gt; {
+
+  <span class="k">const</span> base = { statut: <span class="s">'SOUMISE'</span> as <span class="k">const</span>, journeeCloturee: <span class="k">false</span>, verrouillePar: <span class="k">null</span>, verrouDetenu: <span class="k">false</span>, demandeDeMonAgence: <span class="k">true</span>, peutModifier: <span class="k">true</span> };
+
+  <span class="k">it</span>(<span class="s">'agence : demande modifiable → pas de bannière'</span>, () =&gt; {
+    <span class="k">expect</span>(banniereLectureAgence(base)).toBeNull();
+  });
+
+  <span class="k">it</span>(<span class="s">'agence : en cours de modification par moi → pas de bannière, même journée clôturée'</span>, () =&gt; {
+    <span class="k">expect</span>(banniereLectureAgence({ ...base, verrouDetenu: <span class="k">true</span>, journeeCloturee: <span class="k">true</span> })).toBeNull();
+  });
+
+  <span class="k">it</span>(<span class="s">'agence : traitée → bannière alerte, mention Caisse Centrale'</span>, () =&gt; {
+    <span class="k">const</span> b = banniereLectureAgence({ ...base, statut: <span class="s">'TRAITEE'</span> })!;
+    <span class="k">expect</span>(b.ton).toBe(<span class="s">'alerte'</span>);
+    <span class="k">expect</span>(b.titre).toContain(<span class="s">'traitée'</span>);
+    <span class="k">expect</span>(b.texte).toContain(<span class="s">'Caisse Centrale'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'agence : ordre des raisons — statut, autre agence, verrou d’un tiers, cut-off, habilitation'</span>, () =&gt; {
+    <span class="k">expect</span>(banniereLectureAgence({ ...base, statut: <span class="s">'ANNULEE_AGENCE'</span>, demandeDeMonAgence: <span class="k">false</span> })!.titre).toContain(<span class="s">'annulée'</span>);
+    <span class="k">expect</span>(banniereLectureAgence({ ...base, demandeDeMonAgence: <span class="k">false</span>, journeeCloturee: <span class="k">true</span> })!.titre).toContain(<span class="s">'autre agence'</span>);
+    <span class="k">expect</span>(banniereLectureAgence({ ...base, statut: <span class="s">'EN_MODIFICATION'</span>, verrouillePar: <span class="s">'g10002'</span>, journeeCloturee: <span class="k">true</span> })!.texte).toContain(<span class="s">'g10002'</span>);
+    <span class="k">expect</span>(banniereLectureAgence({ ...base, journeeCloturee: <span class="k">true</span>, peutModifier: <span class="k">false</span> })!.titre).toContain(<span class="s">'cut-off'</span>);
+    <span class="k">expect</span>(banniereLectureAgence({ ...base, peutModifier: <span class="k">false</span> })!.titre).toContain(<span class="s">'Habilitation'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'caisse centrale : en attente + TRAITER → actions proposées (null)'</span>, () =&gt; {
+    <span class="k">expect</span>(banniereLectureCaisseCentrale({ statut: <span class="s">'SOUMISE'</span>, verrouillePar: <span class="k">null</span>, agence: <span class="s">'1001 - Nations Unies'</span>, peutTraiter: <span class="k">true</span> })).toBeNull();
+  });
+
+  <span class="k">it</span>(<span class="s">'caisse centrale : Support (sans TRAITER) → consultation seule'</span>, () =&gt; {
+    <span class="k">expect</span>(banniereLectureCaisseCentrale({ statut: <span class="s">'SOUMISE'</span>, verrouillePar: <span class="k">null</span>, agence: <span class="s">'1001'</span>, peutTraiter: <span class="k">false</span> })!.titre).toBe(<span class="s">'Consultation seule'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'caisse centrale : réservée par l’agence → bannière alerte avec l’agence et le verrou'</span>, () =&gt; {
+    <span class="k">const</span> b = banniereLectureCaisseCentrale({ statut: <span class="s">'EN_MODIFICATION'</span>, verrouillePar: <span class="s">'g10002'</span>, agence: <span class="s">'1001 - Nations Unies'</span>, peutTraiter: <span class="k">true</span> })!;
+    <span class="k">expect</span>(b.ton).toBe(<span class="s">'alerte'</span>);
+    <span class="k">expect</span>(b.texte).toContain(<span class="s">'1001 - Nations Unies'</span>);
+    <span class="k">expect</span>(b.texte).toContain(<span class="s">'g10002'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'caisse centrale : traitée / annulée → bannière info'</span>, () =&gt; {
+    <span class="k">expect</span>(banniereLectureCaisseCentrale({ statut: <span class="s">'TRAITEE'</span>, verrouillePar: <span class="k">null</span>, agence: <span class="s">''</span>, peutTraiter: <span class="k">true</span> })!.ton).toBe(<span class="s">'info'</span>);
+    <span class="k">expect</span>(banniereLectureCaisseCentrale({ statut: <span class="s">'ANNULEE_CAISSE_CENTRALE'</span>, verrouillePar: <span class="k">null</span>, agence: <span class="s">''</span>, peutTraiter: <span class="k">true</span> })!.titre).toContain(<span class="s">'Caisse Centrale'</span>);
+  });
+});</code></pre></div>
+<h2 id="s8">8. Vérification depuis les écrans</h2>
+<div class="card"><p>Back : <code>mvn clean install</code> (V10 appliquée au démarrage ; 3 tests modifiés / ajoutés verts) puis relance. Front : <code>ng build</code> puis <code>ng test --watch=false</code>. Onglet Réseau ouvert, Fetch/XHR.</p>
+<ol>
+<li><b>Logs</b> — console de fund-management : chaque ligne est un objet JSON (<code>{"timestamp":…,"level":"INFO","logger_name":…,"message":…,"application":"fund-management"}</code>), même forme que users.</li>
+<li><b>Caisse Centrale (k00001 ou ta persona CC)</b> — listing : plus de coche ni d'interdit, seul l'œil ; KPI « en attente » = nombre total de demandes SUBMITTED (pas seulement celles du jour) ; clic sur la carte → Date fin = aujourd'hui, statut En attente, la liste montre le même nombre.</li>
+<li>Œil sur une demande en attente → <code>GET /cash/{id}</code>, écran de traitement : pastille EN ATTENTE, « Soumise le … par … (Agence 1422 - …) », sections remplies, cadenas sur ramassage et devises, boutons « Annuler la demande » / « Traiter la demande ».</li>
+<li>« Traiter la demande » → modale → Confirmer → <code>PATCH …/complete-task</code> 200 → snack, puis 1,5 s plus tard l'écran se recharge : pastille TRAITÉE, « Traitée le … par &lt;ton nom&gt; (Caisse Centrale …) », bannière « Demande déjà traitée », plus de boutons. En base : <code>decision_par / decision_profil / decision_at</code> renseignés.</li>
+<li>« Annuler la demande » sur une autre : motif rapide → Confirmer le rejet → ANNULÉE, motif affiché sous l'en-tête.</li>
+<li>Demande en cours de modification par une agence (IN_MODIFICATION) : bannière rouge « réservée en mise à jour par l'agence », aucun bouton. (Tape l'URL à la main : la liste CC ne montre pas ces demandes.)</li>
+<li>KPI « traitées » : incrémenté de 1 après la décision du point 4 ; clic → statut Traitée, dates vides.</li>
+<li>Actualiser : tape « 1422 » dans la recherche (liste filtrée), change le statut sur Traitée, clique Actualiser → la recherche est vidée, le statut reste sur Traitée, un seul <code>GET /cash?…</code> dans le Réseau, KPI rechargés.</li>
+<li><b>Support (h11111 ou persona SUPPORT)</b> — même écran de traitement : bannière bleue « Consultation seule », pas de bouton Annuler / Traiter. L'URL <code>/complete-task</code> en Postman avec ce profil → 403.</li>
+<li><b>Agence (g10002, agence 1422)</b> — Historique : plus de champ de recherche, les boutons Actualiser calés à droite. Œil sur une demande en attente de son agence : nouvel en-tête (pastille, « Soumise le … par Salma … (Chef de caisse) »), pas de bannière, barre en bas « Retour à l'Historique » / « Annuler la demande » / « Modifier la demande ».</li>
+<li>« Modifier la demande » → badge « Mode Modification actif », case « DEMANDE URGENTE » cliquable, quantités : les 0 sont en placeholder, un clic dans le champ ne sélectionne rien, taper 5 donne 5 ; « Retour au listing » → <code>PATCH …/modification/abandon</code> (ou équivalent) puis retour : le verrou est libéré (la demande est de nouveau EN ATTENTE dans la liste).</li>
+<li>Re-modifier, changer une quantité, « Soumettre les Modifications » → PUT + déverrouillage, écran relu avec les nouvelles valeurs.</li>
+<li>Œil sur une demande TRAITÉE : bannière rouge « Consultation seule — Demande traitée et non modifiable », « Traitée le … par Karim … (Caisse Centrale Siège) », barre : « Retour » + « Modification Verrouillée » grisé.</li>
+<li>Persona agence sans <code>GDF_MODIFIER_DEMANDE</code> (ou journée clôturée en forçant <code>journeeCloturee</code>) : bannière avec la raison correspondante.</li>
+<li>Annulation agence : « Annuler la demande » → modale « Annuler la demande » → motif → « Confirmer l'annulation » → <code>PATCH …/cancel</code> → ANNULÉE (agence), motif sous l'en-tête.</li>
+<li>Nouvelle demande et mode modification : le select « Devise » de Commande Devises ne propose plus MAD (EUR par défaut, USD, GBP…) ; celui du Ramassage le propose toujours.</li>
+</ol></div>
+<h2 id="s9">9. Nettoyage</h2>
+<div class="card"><ul>
+<li><code>demandes-list.regles.ts</code> : <code>MOTIFS_RAPIDES</code> n'est plus importé par le listing ; supprime la constante (la modale partagée porte <code>MOTIFS_RAPIDES_CAISSE_CENTRALE</code>) — ou garde-la si un spec s'en sert.</li>
+<li><code>fund-management.component.ts/.html/.scss</code> (agence) : l'ancien en-tête de consultation, la barre Retour / Annuler + motif inline / Soumettre / Modifier / Enregistrer / Abandonner, le <code>FormControl</code> du motif, <code>annulerDemande()</code>, et leurs styles (chips, barre, motif). Les classes SCSS de l'ancien en-tête ne servent plus.</li>
+<li><code>demandes-list.component.scss</code> : blocs <code>.modale*</code>, <code>.motif</code>, <code>.icone--ok</code>, <code>.icone--ko</code>.</li>
+<li>Back : rien à supprimer.</li>
+</ul>
+<p>À remonter au PO en une ligne : sur la carte « Demandes traitées », le clic ne borne pas la liste à la journée (les dates du listing portent sur la création, la carte sur la décision) ; si le PO veut la liste exacte des traitées du jour, il faut un critère « date de décision » côté back — petit ticket à part.</p></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
