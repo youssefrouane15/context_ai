@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tests écrans — manipuler les dates des demandes (local)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Tests écrans — manipuler les dates des demandes (création, soumission, décision, date d'effet)</h1><p>pgAdmin · base fund-management · local uniquement · 05/10/2026</p></header>
+<nav><a href="#s0">Mode d'emploi</a><a href="#s1">Colonnes</a><a href="#s2">Par référence</a><a href="#s3">En masse</a><a href="#s4">Contrôle</a></nav><main><h2 id="s0">0. Mode d'emploi</h2>
+<div class="card"><p>Scripts pgAdmin (base fund-management, schéma <code>retail</code>), <b>local uniquement</b>. Chaque script commence par un bloc <code>WITH p AS (…)</code> : tu ne saisis que là (référence, décalage en jours, statut) et tu lances tel quel ; le <code>RETURNING</code> affiche immédiatement les lignes touchées. Les décalages gardent la chronologie (création → soumission → décision → effet bougent ensemble) pour que les gardes du back (cut-off, « déjà traitée ») restent cohérentes.</p>
+<table>
+<tr><th>Script</th><th>Cas d'usage</th><th>Saisie</th></tr>
+<tr><td>0 — colonnes</td><td>Lire les noms exacts des colonnes de dates (le champ du collègue est supposé s'appeler <code>date_effet</code> : vérifie ici)</td><td>—</td></tr>
+<tr><td>1 — par ref, décalage</td><td>« Cette demande a été créée il y a 3 jours »</td><td>ref + jours</td></tr>
+<tr><td>2 — par ref, valeurs</td><td>« Soumise hier 17h30 après cut-off, effet aujourd'hui, pas décidée »</td><td>ref + dates (NULL = inchangé)</td></tr>
+<tr><td>3 — en masse, par date d'effet</td><td>« Toutes celles d'aujourd'hui passent à hier » (teste les KPI en attente / urgentes avec date d'effet antérieure)</td><td>cible + jours + statut</td></tr>
+<tr><td>4 — en masse, par date de décision</td><td>« Toutes les traitées aujourd'hui passent à hier » (vide le KPI traitées du jour)</td><td>cible + jours</td></tr>
+<tr><td>5 — contrôle</td><td>Vue d'ensemble + comptages attendus des 3 cartes</td><td>—</td></tr>
+</table>
+<p>Si une colonne listée dans un <code>SET</code> n'existe pas chez toi (étape 0), supprime sa ligne : le reste du script reste valable. Les dates côté Camunda (tâches) ne sont pas touchées : les écrans ne les lisent pas.</p></div>
+<h2 id="s1">1. Lire les colonnes</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 0</b><br><span class="path">dates-00-colonnes.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Étape 0 — Les colonnes de dates réellement présentes sur cash_request (noms exacts à reporter dans les scripts suivants).</span>
+<span class="c">-- Attendu : creation_date / submitted_at (ou submission_date) / modification_date / decision_at / date_effet (+ éventuellement validation_date, cancellation_date).</span>
+<span class="k">SELECT</span> column_name, data_type, is_nullable
+<span class="k">FROM</span> information_schema.columns
+<span class="k">WHERE</span> table_schema = <span class="s">'retail'</span> AND table_name = <span class="s">'cash_request'</span>
+  AND (data_type LIKE <span class="s">'timestamp%'</span> OR data_type = <span class="s">'date'</span>)
+ORDER BY ordinal_position;</code></pre></div>
+<h2 id="s2">2. Une demande, par référence</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 1 — décaler toutes les dates de n jours</b><br><span class="path">dates-01-par-ref.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Étape 1 — UNE demande, par référence : décaler TOUTES ses dates du même nombre de jours (la chronologie création → soumission → décision reste cohérente).</span>
+<span class="c">-- Saisis la référence et le décalage (négatif = vers le passé) dans le bloc p, rien d'autre à toucher.</span>
+<span class="c">-- Colonnes : adapte les noms à ceux de l'étape 0 ; supprime une ligne SET si la colonne n'existe pas chez toi.</span>
+WITH p AS (
+  <span class="k">SELECT</span> <span class="s">'20261005-1422-14'</span>::text AS ref,
+         -3                        AS jours        -- ex. -3 : la demande semble avoir été créée il y a 3 jours
+)
+UPDATE retail.cash_request c
+SET creation_date     = c.creation_date     + make_interval(days =&gt; p.jours),
+    submitted_at      = c.submitted_at      + make_interval(days =&gt; p.jours),
+    modification_date = c.modification_date + make_interval(days =&gt; p.jours),
+    decision_at       = c.decision_at       + make_interval(days =&gt; p.jours),
+    date_effet        = c.date_effet        + make_interval(days =&gt; p.jours)
+<span class="k">FROM</span> p
+<span class="k">WHERE</span> c.unique_request_ref = p.ref
+RETURNING c.unique_request_ref, c.request_status, c.creation_date, c.submitted_at, c.decision_at, c.date_effet;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 2 — poser des dates précises</b><br><span class="path">dates-02-par-ref-valeurs.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Étape 2 — UNE demande, par référence : poser des dates PRÉCISES (NULL = ne pas toucher cette colonne).</span>
+<span class="c">-- Utile pour fabriquer un cas exact : « soumise hier 17h30 (après cut-off), date d'effet aujourd'hui, pas encore décidée ».</span>
+WITH p AS (
+  <span class="k">SELECT</span> <span class="s">'20261005-1422-14'</span>::text                     AS ref,
+         (current_date - 1 + time <span class="s">'09:00'</span>)::timestamp AS creation,     -- NULL pour ne pas changer
+         (current_date - 1 + time <span class="s">'17:30'</span>)::timestamp AS soumission,   -- NULL pour ne pas changer
+         NULL::timestamp                              AS decision,     -- NULL pour ne pas changer
+         current_date::date                           AS effet         -- NULL pour ne pas changer
+)
+UPDATE retail.cash_request c
+SET creation_date = COALESCE(p.creation,   c.creation_date),
+    submitted_at  = COALESCE(p.soumission, c.submitted_at),
+    decision_at   = COALESCE(p.decision,   c.decision_at),
+    date_effet    = COALESCE(p.effet,      c.date_effet)
+<span class="k">FROM</span> p
+<span class="k">WHERE</span> c.unique_request_ref = p.ref
+RETURNING c.unique_request_ref, c.request_status, c.creation_date, c.submitted_at, c.decision_at, c.date_effet;</code></pre></div>
+<h2 id="s3">3. En masse, par filtre</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 3 — par date d&#x27;effet (aujourd&#x27;hui / hier / demain)</b><br><span class="path">dates-03-par-filtre.sql</span></div><p class="note"><code>cible</code> désigne les demandes à prendre (0 = date d'effet aujourd'hui, -1 = hier), <code>jours</code> le décalage à leur appliquer. Relance avec d'autres valeurs pour construire un jeu « hier / aujourd'hui / demain » en trois exécutions.</p><pre><button class="copy">Copier</button><code><span class="c">-- Étape 3 — EN MASSE, par filtre sur la date d'effet : « toutes les demandes dont la date d'effet est J → les passer à J + n ».</span>
+<span class="c">-- Exemples : (0, -1) = celles d'aujourd'hui passent à hier ; (-1, -1) = celles d'hier passent à avant-hier ; (0, +1) = celles d'aujourd'hui passent à demain.</span>
+<span class="c">-- Les autres dates suivent du même décalage pour rester cohérentes ; statut optionnel (NULL = tous).</span>
+WITH p AS (
+  <span class="k">SELECT</span>  0                     AS cible,     -- 0 = aujourd<span class="s">'hui, -1 = hier, 1 = demain (par rapport à la date d'</span>effet)
+         -1                     AS jours,     -- décalage à appliquer
+         NULL::text             AS statut     -- <span class="s">'SUBMITTED'</span> | <span class="s">'VALIDATED'</span> | <span class="s">'CANCELLED'</span> | NULL (tous)
+)
+UPDATE retail.cash_request c
+SET creation_date     = c.creation_date     + make_interval(days =&gt; p.jours),
+    submitted_at      = c.submitted_at      + make_interval(days =&gt; p.jours),
+    modification_date = c.modification_date + make_interval(days =&gt; p.jours),
+    decision_at       = c.decision_at       + make_interval(days =&gt; p.jours),
+    date_effet        = c.date_effet        + make_interval(days =&gt; p.jours)
+<span class="k">FROM</span> p
+<span class="k">WHERE</span> c.date_effet = current_date + p.cible
+  AND (p.statut IS NULL OR c.request_status = p.statut)
+RETURNING c.unique_request_ref, c.request_status, c.date_effet, c.submitted_at, c.decision_at;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 4 — par date de décision (KPI traitées)</b><br><span class="path">dates-04-par-filtre-decision.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Étape 4 — EN MASSE, par date de décision (KPI « traitées aujourd'hui ») : « toutes les traitées décidées J → décidées J + n ».</span>
+<span class="c">-- Ne touche QUE decision_at (les autres dates restent) : sert à vider / remplir le KPI traitées du jour.</span>
+WITH p AS (
+  <span class="k">SELECT</span>  0  AS cible,   -- 0 = décidées aujourd'hui, -1 = hier
+         -1  AS jours    -- décalage
+)
+UPDATE retail.cash_request c
+SET decision_at = c.decision_at + make_interval(days =&gt; p.jours)
+<span class="k">FROM</span> p
+<span class="k">WHERE</span> c.decision_at::date = current_date + p.cible
+  AND c.request_status IN (<span class="s">'VALIDATED'</span>, <span class="s">'CANCELLED'</span>)
+RETURNING c.unique_request_ref, c.request_status, c.decision_at, c.date_effet;</code></pre></div>
+<h2 id="s4">4. Contrôle</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 5 — vue d&#x27;ensemble et comptages attendus</b><br><span class="path">dates-05-controle.sql</span></div><p class="note">Le second SELECT applique la règle de demain (date d'effet ≤ aujourd'hui pour en attente / urgentes). Tant que le back n'est pas modifié, les cartes affichent encore la règle actuelle (date de création) : compare les deux pour préparer le dev.</p><pre><button class="copy">Copier</button><code><span class="c">-- Contrôle — ce que les KPI et les filtres vont voir (à lancer après chaque manipulation).</span>
+<span class="k">SELECT</span> unique_request_ref AS ref,
+       request_status     AS statut,
+       urgent,
+       date_effet,
+       CASE WHEN date_effet  &lt; current_date THEN <span class="s">'antérieure'</span>
+            WHEN date_effet  = current_date THEN <span class="s">'aujourd'</span><span class="s">'hui'</span>
+            ELSE <span class="s">'future'</span> END                    AS effet_vs_jour,
+       creation_date::date  AS cree_le,
+       submitted_at         AS soumise_le,
+       decision_at          AS decidee_le,
+       decision_par
+<span class="k">FROM</span> retail.cash_request
+ORDER BY date_effet DESC NULLS LAST, submitted_at DESC;
+<span class="c">
+-- Comptages attendus par les cartes (règle en vigueur demain : en attente / urgentes = date_effet &lt;= aujourd'hui ; traitées = décidées aujourd'hui)</span>
+<span class="k">SELECT</span>
+  count(*) FILTER (<span class="k">WHERE</span> request_status IN (<span class="s">'SUBMITTED'</span>,<span class="s">'IN_MODIFICATION'</span>) AND date_effet &lt;= current_date)                 AS en_attente,
+  count(*) FILTER (<span class="k">WHERE</span> request_status IN (<span class="s">'SUBMITTED'</span>,<span class="s">'IN_MODIFICATION'</span>) AND date_effet &lt;= current_date AND urgent)      AS urgentes,
+  count(*) FILTER (<span class="k">WHERE</span> request_status = <span class="s">'VALIDATED'</span> AND decision_at::date = current_date)                                 AS traitees_jour
+<span class="k">FROM</span> retail.cash_request;</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
