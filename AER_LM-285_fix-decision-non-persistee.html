@@ -1,0 +1,107 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix — décision Caisse Centrale non persistée (decision_par / decision_at null)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-285 — Fix : « Traitée le … par … » reste vide (decision_par / decision_profil / decision_at null en base)</h1><p>fund-management-microservice · 05/10/2026 · 4 étapes dans l'ordre, puis contrôle SQL</p></header>
+<nav><a href="#s0">Problème</a><a href="#s1">Mapper persistance</a><a href="#s2">Mapper web</a><a href="#s3">Use case</a><a href="#s4">Contrôle</a><a href="#s5">Diagnostic</a></nav><main><h2 id="s0">0. Le problème en une phrase</h2>
+<div class="card"><p>Après « Traiter la demande », <code>decision_par / decision_profil / decision_at</code> sont <b>null en base</b> alors que <code>figerDecision</code> est bien appelé. Cause la plus probable : quelques secondes après ton clic, le <b>worker Camunda</b> pose le statut VALIDATED en sauvegardant la demande complète ; comme le mapper domaine → entité <b>ignore</b> les trois champs décision, cette sauvegarde les remet à null. Deuxième cause possible, moins probable : une transaction en lecture seule sur le use case qui empêche l'écriture de <code>figerDecision</code>.</p>
+<p>Les étapes ci-dessous corrigent les deux d'un coup, dans l'ordre. Compte 15 minutes.</p></div>
+<h2 id="s1">1. Étape 1 — Mapper de persistance : retirer les « ignore »</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>CashRequestPersistenceMapper (data-access)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\…\CashRequestPersistenceMapper.java  (Ctrl+F : decisionPar)</span></div><pre><button class="copy">Copier</button><code><span class="c">// fund-management-data-access — CashRequestPersistenceMapper (le MapStruct entité &lt;-&gt; domaine)</span>
+<span class="c">// Ctrl+F : decisionPar   → tu dois trouver les 3 lignes ci-dessous. SUPPRIME-LES, quelle que soit la méthode qui les porte</span>
+<span class="c">// (toEntity ou toDomain). Entité et domaine ont les trois mêmes champs : MapStruct les copie tout seul.</span>
+    <span class="a">@Mapping</span>(target = <span class="s">"decisionPar"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"decisionProfil"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"decisionAt"</span>, ignore = <span class="k">true</span>)
+<span class="c">// Pourquoi : le worker Camunda sauve la demande complète (domaine -&gt; entité) pour poser VALIDATED ;</span>
+<span class="c">// avec "ignore", l'entité reconstruite a decision_* = null et l'UPDATE efface ce que figerDecision venait d'écrire.</span></code></pre></div>
+<h2 id="s2">2. Étape 2 — Mapper web : les « ignore » uniquement sur la requête entrante</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashRequestWebMapper (application)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\…\CashRequestWebMapper.java  (Ctrl+F : decisionPar)</span></div><p class="note">Si les trois lignes sont sur la méthode qui fabrique le <code>CashRequestDTO</code> de réponse, déplace-les sur celle qui lit la requête de modification. Si elles y sont déjà : rien à changer.</p><pre><button class="copy">Copier</button><code><span class="c">// fund-management-application — CashRequestWebMapper (DTO &lt;-&gt; domaine) : ON GARDE les ignore, mais uniquement sur le sens</span>
+<span class="c">// requête -&gt; domaine (celui qu'utilise le PUT de modification et le POST de soumission), jamais sur domaine -&gt; DTO (la réponse).</span>
+<span class="c">// Ctrl+F : decisionPar</span>
+<span class="c">//   - sur la méthode qui produit le CashRequestDTO (toDto / toResponse)      → aucun ignore (sinon le JSON renvoie toujours null)</span>
+<span class="c">//   - sur la méthode qui lit la requête (toDomain(CashRequestRequestDTO …))   → les 3 ignore restent :</span>
+    <span class="a">@Mapping</span>(target = <span class="s">"decisionPar"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"decisionProfil"</span>, ignore = <span class="k">true</span>)
+    <span class="a">@Mapping</span>(target = <span class="s">"decisionAt"</span>, ignore = <span class="k">true</span>)</code></pre></div>
+<h2 id="s3">3. Étape 3 — Use case : figer la décision avant de compléter la tâche</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.completerTacheCaisseCentrale</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application-service\…\CashDemandUseCaseImpl.java  (Ctrl+F : figerDecision)</span></div><p class="note">Avant : <code>completerTache</code> puis <code>figerDecision</code> puis <code>return enrichir(demande)</code> (la demande d'avant). Après : <code>figerDecision</code> puis <code>completerTache</code> puis <code>return enrichir(decidee)</code>. Ta capture montre exactement le bloc à remplacer (lignes 288-294).</p><pre><button class="copy">Copier</button><code>    <span class="c">// CashDemandUseCaseImpl.completerTacheCaisseCentrale — REMPLACE le bloc qui va de</span>
+    <span class="c">//   processusWorkflowPort.completerTache(taskId, variables);</span>
+    <span class="c">// jusqu'à</span>
+    <span class="c">//   return enrichir(demande);</span>
+    <span class="c">// par celui-ci (la décision est figée AVANT de rendre la main au workflow, et c'est la demande relue qui est renvoyée) :</span>
+
+        <span class="c">// AER_LM-285 : photo du décideur figée d'abord — quand le worker relit la demande pour poser le statut final,</span>
+        <span class="c">// elle porte déjà la décision et la réécrit à l'identique.</span>
+        CashRequest decidee = cashDemandRepository.figerDecision(id,
+                contexte.nomComplet() != <span class="k">null</span> ? contexte.nomComplet() : contexte.uidOu(<span class="k">null</span>),
+                contexte.profilLibelle(),
+                LocalDateTime.now());
+
+        processusWorkflowPort.completerTache(taskId, variables);
+
+        <span class="k">return</span> enrichir(decidee);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Transaction du use case</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application-service\…\CashDemandUseCaseImpl.java  (Ctrl+F : @Transactional, en tête de classe)</span></div><pre><button class="copy">Copier</button><code><span class="c">// CashDemandUseCaseImpl — en tête de classe. Ctrl+F : @Transactional</span>
+<span class="c">// Si tu trouves  @Transactional(readOnly = true)  SUR LA CLASSE : la méthode doit l'annuler, sinon Hibernate n'écrit jamais.</span>
+    <span class="a">@Override</span>
+    <span class="a">@Transactional</span>                       <span class="c">// &lt;- à ajouter juste au-dessus de completerTacheCaisseCentrale (écriture)</span>
+    <span class="k">public</span> CashRequestDTO completerTacheCaisseCentrale(UUID id, DecisionCaisseCentraleDTO decision, ContexteAppelant contexte) {
+<span class="c">// Si la classe n'a pas de @Transactional(readOnly = true) : rien à faire ici.</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Test unitaire — ordre des appels</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application-service\…\CashDemandUseCaseImplTest.java  (Ctrl+F : figerDecision)</span></div><p class="note">Remplace le test de la décision livré avec le doc principal (il vérifiait l'ordre inverse) ; <code>InOrder</code> vient de <code>org.mockito.InOrder</code>, <code>inOrder</code> de <code>org.mockito.Mockito</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// CashDemandUseCaseImplTest — le test existant « figerDecision appelé après completerTache » devient :</span>
+    <span class="a">@Test</span>
+    <span class="k">void</span> completerTacheCaisseCentrale_figeLaDecisionAvantDeCompleterLaTache() {
+        <span class="c">// given : demande SUBMITTED, tâche active, contexte Caisse Centrale (voir constante CAISSE_CENTRALE)</span>
+        <span class="c">// when</span>
+        useCase.completerTacheCaisseCentrale(ID, decisionTraitee(), CAISSE_CENTRALE);
+        <span class="c">// then : ordre figerDecision -&gt; completerTache</span>
+        InOrder ordre = inOrder(cashDemandRepository, processusWorkflowPort);
+        ordre.verify(cashDemandRepository).figerDecision(eq(ID), eq(<span class="s">"Karim EL IDRISSI"</span>), eq(<span class="s">"Caisse Centrale Siège"</span>), any(LocalDateTime.<span class="k">class</span>));
+        ordre.verify(processusWorkflowPort).completerTache(eq(TASK_ID), anyMap());
+    }</code></pre></div>
+<h2 id="s4">4. Étape 4 — Rebuild, redémarrage, contrôle</h2>
+<div class="card"><ol>
+<li><code>mvn clean install -DskipTests</code> puis relance le back.</li>
+<li><b>Crée une demande neuve</b> (les anciennes gardent leur null : la décision n'est figée qu'au moment du clic), soumets-la, traite-la côté Caisse Centrale.</li>
+<li>Lance la requête ci-dessous tout de suite, puis 10 secondes plus tard : les trois colonnes doivent être remplies <b>et le rester</b> une fois le statut VALIDATED.</li>
+</ol></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contrôle en base</b><br><span class="path">fix-decision-check.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Après redémarrage du back et traitement d'une demande NEUVE (créée après le redémarrage) :</span>
+select unique_request_ref, request_status, decision_par, decision_profil, decision_at
+<span class="k">from</span> retail.cash_request
+order by created_at desc
+limit 3;
+<span class="c">-- Attendu : la demande traitée a decision_par = ton nom complet (ou ton uid), decision_profil = ton profil, decision_at = l'heure du clic,</span>
+<span class="c">-- et ces valeurs RESTENT après que request_status soit passé à VALIDATED (relance la requête 10 s plus tard).</span></code></pre></div>
+<div class="card"><p>Côté écran : l'en-tête CC et agence affiche « Traitée le 05/10/2026 à 13:42 par <b>Youssef ROUANE</b> (Caisse Centrale) » sous la ligne « Soumise le … ».</p></div>
+<h2 id="s5">5. Si ça ne suffit pas — diagnostic SQL (2 minutes)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Tracer les UPDATE Hibernate</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\application-local.yml</span></div><pre><button class="copy">Copier</button><code># application-local.yml (ou le profil que tu lances) — à ajouter, à retirer après le diagnostic
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE</code></pre></div>
+<div class="card"><p>Retraite une demande et lis la console :</p>
+<ul>
+<li><b>Aucun</b> <code>update … cash_request … decision_par=?</code> pendant le POST → l'écriture n'est pas flushée : c'est l'étape 3 bis (transaction), vérifie que <code>@Transactional</code> est bien sur la méthode et qu'aucun <code>readOnly = true</code> ne reste au-dessus.</li>
+<li>Un <code>update</code> avec <code>decision_par=?</code> pendant le POST, puis un second <code>update</code> quelques secondes après avec <code>decision_par=NULL</code> → un « ignore » est resté dans un mapper ou le worker construit l'entité autrement (envoie-moi la méthode du worker qui pose VALIDATED, Ctrl+F <code>RequestStatus.VALIDATED</code>).</li>
+</ul>
+<p>Retire les deux lignes de log une fois le diagnostic fait.</p></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
