@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Purge des demandes — base fund-management + Camunda (local)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Purge des demandes de fonds pour repartir de zéro — base fund-management + instances Camunda</h1><p>local uniquement · 05/10/2026 · référentiels et déploiements BPMN conservés</p></header>
+<nav><a href="#s0">Ordre</a><a href="#s1">Base</a><a href="#s2">Camunda</a><a href="#s3">Vérification</a></nav><main><h2 id="s0">0. Ordre et périmètre</h2>
+<div class="card"><p><b>Local uniquement.</b> Deux stocks à vider pour repartir de zéro : les tables métier de fund-management (demandes et tout ce qui en dépend) et les instances Camunda du processus gestion-des-fonds (sinon des tâches actives orphelines restent dans l'engine et ressortent dans les listings). Les référentiels (coupures, devises, agences, zones, transporteurs) et les déploiements BPMN ne sont pas touchés.</p>
+<table>
+<tr><th>Étape</th><th>Où</th><th>Quoi</th><th>Back</th></tr>
+<tr><td>0</td><td>pgAdmin, base fund-management</td><td>Lister les tables dépendantes de <code>cash_request</code> (contrôle avant purge)</td><td>—</td></tr>
+<tr><td>1</td><td>pgAdmin</td><td><code>TRUNCATE retail.cash_request CASCADE</code></td><td>arrêté</td></tr>
+<tr><td>2</td><td>pgAdmin</td><td>Optionnel : remettre le compteur de référence à 1</td><td>arrêté</td></tr>
+<tr><td>3</td><td>HTTP Client IntelliJ (ou Postman)</td><td>Supprimer instances actives + historique Camunda via engine-rest</td><td>démarré</td></tr>
+<tr><td>3 bis</td><td>pgAdmin</td><td>Même chose en SQL si engine-rest n'est pas exposé</td><td>arrêté</td></tr>
+</table>
+<p>Si le schéma ou le nom de table diffère (<code>retail.cash_request</code> est celui des migrations V1-V10), l'étape 0 ne renvoie rien : adapte le nom, le <code>CASCADE</code> fait le reste.</p></div>
+<h2 id="s1">1. Base fund-management</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 0 — tables dépendantes</b><br><span class="path">purge-01-dependances.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Étape 0 — Repérer les tables qui référencent cash_request (FK) : ce sont elles que TRUNCATE … CASCADE videra aussi.</span>
+<span class="c">-- Si cette requête ne renvoie rien, vérifie le schéma / le nom de table (onglet Tables de pgAdmin) et adapte les scripts suivants.</span>
+<span class="k">SELECT</span> tc.table_schema || <span class="s">'.'</span> || tc.table_name AS table_dependante,
+       tc.constraint_name
+<span class="k">FROM</span> information_schema.table_constraints tc
+JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
+<span class="k">WHERE</span> tc.constraint_type = <span class="s">'FOREIGN KEY'</span>
+  AND ccu.table_schema = <span class="s">'retail'</span>
+  AND ccu.table_name   = <span class="s">'cash_request'</span>
+ORDER BY 1;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 1 — purge des demandes</b><br><span class="path">purge-02-demandes.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Étape 1 — Purge des demandes et de tout ce qui en dépend (opérations, détails devises, dénominations saisies, verrous, décisions).</span>
+<span class="c">-- Les référentiels (denomination, currency, agences, zones, transporteurs) ne sont PAS touchés : ils n'ont pas de FK vers cash_request.</span>
+<span class="c">-- LOCAL UNIQUEMENT. Back arrêté de préférence (sinon une demande en cours de création peut réapparaître).</span>
+BEGIN;
+
+TRUNCATE <span class="k">TABLE</span> retail.cash_request CASCADE;
+
+COMMIT;
+<span class="c">
+-- Contrôle : tout doit être à 0 (ajoute ici les tables listées par l'étape 0 si tu veux les voir une par une)</span>
+<span class="k">SELECT</span> (<span class="k">SELECT</span> count(*) <span class="k">FROM</span> retail.cash_request) AS demandes;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 2 — compteur de référence (optionnel)</b><br><span class="path">purge-03-sequence.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Étape 2 (optionnel) — Repartir à -01 dans les références (20261005-1422-11 → 20261005-1422-01).</span>
+<span class="c">-- Liste les séquences du schéma : celle du compteur de référence s'y trouve si la numérotation est une séquence PG.</span>
+<span class="k">SELECT</span> sequence_schema || <span class="s">'.'</span> || sequence_name AS sequence, last_value
+<span class="k">FROM</span> information_schema.sequences s
+JOIN pg_sequences p ON p.schemaname = s.sequence_schema AND p.sequencename = s.sequence_name
+<span class="k">WHERE</span> sequence_schema = <span class="s">'retail'</span>;
+<span class="c">
+-- Puis, pour la séquence trouvée (remplace &lt;nom&gt;) :</span>
+<span class="c">-- ALTER SEQUENCE retail.&lt;nom&gt; RESTART WITH 1;</span>
+<span class="c">-- Si la numérotation est calculée par max(ref)+1 par agence et par jour (pas de séquence), rien à faire : la purge suffit.</span></code></pre></div>
+<h2 id="s2">2. Camunda</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 3 — via engine-rest (back démarré)</b><br><span class="path">purge-04-camunda.http</span></div><p class="note">Port et <code>processDefinitionKey</code> à vérifier : le port est celui de fund-management, la clé est l'<code>id</code> du <code>&lt;bpmn:process&gt;</code> dans <code>gestion-des-fonds_v4.1.bpmn</code>. Le 3c doit renvoyer <code>{"count": 0}</code>.</p><pre><button class="copy">Copier</button><code>### Étape 3 — Instances Camunda (runtime + historique) du processus gestion-des-fonds, back DÉMARRÉ.
+### Sans ça, les process orphelins gardent des tâches actives (Task_SoumettreDemande, Task_TraiterDemande…) qui n'ont plus de demande.
+### processDefinitionKey = l'attribut id du &lt;bpmn:process&gt; de gestion-des-fonds_v4.1.bpmn (Ctrl+F <span class="s">"bpmn:process id="</span>).
+### Port = celui de fund-management (engine-rest exposé par camunda-bpm-spring-boot-starter-rest). Fichier utilisable tel quel dans IntelliJ (HTTP Client).
+
+### 3a — Instances actives
+POST http:<span class="c">//localhost:9091/engine-rest/process-instance/delete</span>
+Content-Type: application/json
+
+{
+  <span class="s">"processInstanceQuery"</span>: { <span class="s">"processDefinitionKey"</span>: <span class="s">"gestion-des-fonds"</span> },
+  <span class="s">"deleteReason"</span>: <span class="s">"purge tests"</span>,
+  <span class="s">"skipCustomListeners"</span>: <span class="k">true</span>,
+  <span class="s">"skipSubprocesses"</span>: <span class="k">false</span>
+}
+
+### 3b — Historique
+POST http:<span class="c">//localhost:9091/engine-rest/history/process-instance/delete</span>
+Content-Type: application/json
+
+{
+  <span class="s">"historicProcessInstanceQuery"</span>: { <span class="s">"processDefinitionKey"</span>: <span class="s">"gestion-des-fonds"</span> },
+  <span class="s">"deleteReason"</span>: <span class="s">"purge tests"</span>
+}
+
+### 3c — Contrôle : doit renvoyer 0
+GET http:<span class="c">//localhost:9091/engine-rest/process-instance/count?processDefinitionKey=gestion-des-fonds</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 3 bis — en SQL si engine-rest est fermé (back arrêté)</b><br><span class="path">purge-05-camunda-sql.sql</span></div><p class="note">Si une table n'existe pas chez vous (selon la version Camunda), supprime la ligne et relance : l'ordre des autres reste valable.</p><pre><button class="copy">Copier</button><code><span class="c">-- Étape 3 bis — Si engine-rest n'est pas exposé : purge Camunda directement en SQL (runtime + historique), back ARRÊTÉ.</span>
+<span class="c">-- Ordre imposé par les FK des tables ACT_*. Ne touche ni aux définitions déployées (ACT_RE_*) ni aux utilisateurs.</span>
+BEGIN;
+DELETE <span class="k">FROM</span> act_ru_identitylink;
+DELETE <span class="k">FROM</span> act_ru_variable;
+DELETE <span class="k">FROM</span> act_ru_task;
+DELETE <span class="k">FROM</span> act_ru_job;
+DELETE <span class="k">FROM</span> act_ru_jobdef;
+DELETE <span class="k">FROM</span> act_ru_incident;
+DELETE <span class="k">FROM</span> act_ru_event_subscr;
+DELETE <span class="k">FROM</span> act_ru_ext_task;
+DELETE <span class="k">FROM</span> act_ru_execution;
+DELETE <span class="k">FROM</span> act_hi_identitylink;
+DELETE <span class="k">FROM</span> act_hi_detail;
+DELETE <span class="k">FROM</span> act_hi_varinst;
+DELETE <span class="k">FROM</span> act_hi_comment;
+DELETE <span class="k">FROM</span> act_hi_attachment;
+DELETE <span class="k">FROM</span> act_hi_incident;
+DELETE <span class="k">FROM</span> act_hi_job_log;
+DELETE <span class="k">FROM</span> act_hi_ext_task_log;
+DELETE <span class="k">FROM</span> act_hi_taskinst;
+DELETE <span class="k">FROM</span> act_hi_actinst;
+DELETE <span class="k">FROM</span> act_hi_procinst;
+DELETE <span class="k">FROM</span> act_ge_bytearray <span class="k">WHERE</span> deployment_id_ IS NULL;   -- variables sérialisées ; garde les déploiements BPMN
+COMMIT;
+
+<span class="k">SELECT</span> (<span class="k">SELECT</span> count(*) <span class="k">FROM</span> act_ru_execution) AS executions_actives,
+       (<span class="k">SELECT</span> count(*) <span class="k">FROM</span> act_hi_procinst)  AS historique;</code></pre></div>
+<h2 id="s3">3. Vérification</h2>
+<div class="card"><ol>
+<li>pgAdmin : <code>select count(*) from retail.cash_request</code> → 0.</li>
+<li>Camunda : 3c → 0 (ou <code>act_ru_execution</code> vide).</li>
+<li>Relance le back : Flyway ne rejoue rien (les migrations restent appliquées), le BPMN reste déployé.</li>
+<li>Listing agence et CC vides, KPI à 0 ; « Nouvelle demande » crée une instance et une demande <code>…-01</code>.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
