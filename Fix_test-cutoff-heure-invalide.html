@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix test CutoffConfigUseCaseImplTest.modifier_heureInvalide_422</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Fix — CutoffConfigUseCaseImplTest.modifier_heureInvalide_422 (merge develop)</h1><p>fund-management-microservice · 06/10/2026</p></header>
+<nav><a href="#s0">Cause</a><a href="#s1">Fix</a><a href="#s2">Vérification</a></nav><main><h2 id="s0">Cause</h2>
+<div class="card"><p>Le cas <code>"24:00"</code> passe la regex <code>\d{2}:\d{2}</code>, puis <code>LocalTime.parse("24:00", FORMAT)</code> <b>réussit</b> : <code>DateTimeFormatter.ofPattern</code> est en mode SMART, qui accepte 24:00 comme minuit du lendemain. Aucune exception → le test paramétré échoue sur cette instance. Les 7 autres cas sont déjà rejetés.</p></div>
+<h2 id="s1">Fix — 1 ligne + 1 import</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CutoffConfigUseCaseImpl.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application-service\…\service\domain\retail\CutoffConfigUseCaseImpl.java  (ligne 29, Ctrl+F : ofPattern)</span></div><p class="note">STRICT ne change rien au formatage en sortie (<code>FORMAT.format(…)</code> dans <code>consulter</code>) ; il ne rend strict que le parsing : 24:00 est rejeté, 00:00 à 23:59 acceptés. <code>valider</code> ne change pas.</p><pre><button class="copy">Copier</button><code><span class="c">// CutoffConfigUseCaseImpl — ligne 29. REMPLACE la ligne :</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> DateTimeFormatter FORMAT = DateTimeFormatter.ofPattern(<span class="s">"HH:mm"</span>);
+<span class="c">// PAR :</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> DateTimeFormatter FORMAT = DateTimeFormatter.ofPattern(<span class="s">"HH:mm"</span>).withResolverStyle(ResolverStyle.STRICT);
+<span class="c">// + import à ajouter en haut du fichier :</span>
+<span class="k">import</span> java.time.format.ResolverStyle;</code></pre></div>
+<h2 id="s2">Vérification</h2>
+<div class="card"><ol><li>Relance <code>CutoffConfigUseCaseImplTest</code> : 8/8 instances de <code>modifier_heureInvalide_422</code> vertes.</li><li><code>mvn clean install</code> : 109 tests, 0 échec.</li></ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
