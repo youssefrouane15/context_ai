@@ -1,0 +1,814 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix — reprise d'une modification en cours (verrou EN_MODIFICATION)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Fix — « Mode Modification » refusé sur une demande déjà en modification (verrou non libéré)</h1><p>fund-management-front · 07/10/2026 · fichier complet</p></header>
+<nav><a href="#s1">Cause</a><a href="#s2">Fichier</a><a href="#s3">Vérification</a></nav><main><h2 id="s1">1. Ce qui se passe</h2>
+<div class="card"><p>Le bouton-badge « Mode Modification » appelle toujours <code>PATCH /modification/start</code>, qui pose le verrou (statut <code>EN_MODIFICATION</code>, <code>lockedBy</code> = toi). Si tu quittes l'écran sans passer par « Retour au listing » de la barre (menu latéral, bouton précédent, F5) — ou si ce retour a échoué silencieusement — le verrou reste posé. Au retour, le badge est actif (le verrou est à toi) mais le back refuse de reposer un verrou sur une demande déjà en modification.</p>
+<p>Correctif, uniquement dans <code>fund-management.component.ts</code> :</p>
+<ul>
+<li><code>modifier()</code> : si la demande est <code>EN_MODIFICATION</code> et que le verrou est le tien → ouverture directe du mode modification (reprise), sans rappeler <code>/modification/start</code>.</li>
+<li><code>abandonnerModification()</code> : si la libération échoue, message d'erreur et on reste sur l'écran (avant : navigation quand même, verrou gardé).</li>
+<li><code>ngOnDestroy</code> : sortie du mode modification par un autre chemin → <code>terminerModification(id, false)</code> pour libérer le verrou (sinon la demande reste invisible de la Caisse Centrale jusqu'au timer du workflow).</li>
+</ul></div>
+<h2 id="s2">2. Fichier</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>fund-management.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.ts</span></div><p class="note">Nouveau : champ <code>verrouLibere</code>, méthode privée <code>verrouDetenuParMoi()</code>, et les trois points ci-dessus. Tout le reste est identique à la version du doc Recette (ramassage / Annuler / 2 DH).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> {
+  ChangeDetectionStrategy, ChangeDetectorRef, Component, HostBinding, OnDestroy, OnInit, computed, effect, inject
+} <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> {
+  AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators
+} <span class="k">from</span> <span class="s">'@angular/forms'</span>;
+<span class="k">import</span> { MatSnackBar, MatSnackBarModule } <span class="k">from</span> <span class="s">'@angular/material/snack-bar'</span>;
+<span class="k">import</span> { ActivatedRoute, Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+
+<span class="k">import</span> { FunManagementFacade } <span class="k">from</span> <span class="s">'../../../adapters/localState/fundMangement.facade'</span>;
+<span class="k">import</span> { DemandeActionsFacade } <span class="k">from</span> <span class="s">'../../../adapters/localState/demande-actions.facade'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { DemandeFondsPayload, Denomination, Devise, OperationPayload } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/operation.model'</span>;
+<span class="k">import</span> { DemandeFondsDetail, OperationDetail } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-detail.model'</span>;
+<span class="k">import</span> { classeStatut, libelleStatut } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/statut-demande'</span>;
+<span class="k">import</span> {
+  CapacitesDemande, FaitsDemande, calculerCapacites, capacitesCreation, capacitesLectureSeule
+} <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-capacites'</span>;
+<span class="k">import</span> { COUPURES_GAB } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-dossier.model'</span>;
+<span class="k">import</span> { DemandeEnteteComponent } <span class="k">from</span> <span class="s">'../../components/demande-entete/demande-entete.component'</span>;
+<span class="k">import</span> { DemandeBarreActionsComponent } <span class="k">from</span> <span class="s">'../../components/demande-barre-actions/demande-barre-actions.component'</span>;
+<span class="k">import</span> { DemandeDecisionModaleComponent } <span class="k">from</span> <span class="s">'../../components/demande-decision-modale/demande-decision-modale.component'</span>;
+<span class="k">import</span> { BanniereLecture } <span class="k">from</span> <span class="s">'../../components/demande-entete/demande-entete.regles'</span>;
+<span class="k">import</span> { SaisieQuantiteDirective } <span class="k">from</span> <span class="s">'../../../../../shared/presenter/directives/saisie-quantite/saisie-quantite.directive'</span>;
+
+<span class="c">/** À partir de 20 DH c'est un billet, en dessous une pièce (grille caisse). */</span>
+<span class="k">const</span> SEUIL_BILLET = 20;
+
+<span class="k">const</span> PARAMETRES_AGENCE = { establishment: <span class="s">'001'</span>, cashDeskNumber: <span class="s">'002'</span> } as <span class="k">const</span>;
+
+<span class="k">const</span> DEVISE_LOCALE = <span class="s">'MAD'</span>;
+
+<span class="c">/** Mode du formulaire, fixé par la route (`data: { mode }`). */</span>
+<span class="k">type</span> ModeFormulaire = <span class="s">'creation'</span> | <span class="s">'consultation'</span> | <span class="s">'modification'</span>;
+
+<span class="c">/**
+ * Écran agence — création (lot 5), consultation et modification (AER_LM-267 / 287) d'une demande de fonds.
+ *
+ * Un seul template pour les trois modes :
+ *  - création      : en-tête « Gestion des fonds – Vue Agence » + case urgente, barre Annuler / Soumettre ;
+ * Structure, classes et icônes (Material Symbols) = maquettes Agence_Modification-Demande (édition / consultation modifiable)
+ * et Agence_Modification-Bloquée (lecture seule, thème « recap ») ; le thème est posé sur le :host (voir themeRecap).
+ *  - consultation  : &lt;app-demande-entete&gt; (pastille, réf., bouton-badge « Mode Modification », bannière lecture seule),
+ *                    formulaire désactivé, &lt;app-demande-barre-actions&gt; (Retour / Annuler la demande / Soumettre un brouillon) ;
+ *  - modification  : même en-tête (badge « Mode Modification actif », case urgente), formulaire actif,
+ *                    barre Retour au listing / Annuler la demande / Soumettre les Modifications.
+ *
+ * Les règles métier (qui peut faire quoi) sont dans calculerCapacites() ; ici il n'y a que de l'orchestration.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-application-hub'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [
+    CommonModule, ReactiveFormsModule,
+    MatSnackBarModule,
+    DemandeEnteteComponent, DemandeBarreActionsComponent, DemandeDecisionModaleComponent, SaisieQuantiteDirective
+  ],
+  templateUrl: <span class="s">'./fund-management.component.html'</span>,
+  styleUrl: <span class="s">'./fund-management.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> FundManagementComponent <span class="k">implements</span> OnInit, OnDestroy {
+
+  devisesDisponibles: Devise[] = [];
+  submitting = <span class="k">false</span>;
+  <span class="c">/** Verrou de modification libéré par cet écran (fin de modification confirmée ou abandonnée) : ngOnDestroy n'a plus rien à faire. */</span>
+  <span class="k">private</span> verrouLibere = <span class="k">false</span>;
+
+  <span class="k">readonly</span> actions = inject(DemandeActionsFacade);
+  <span class="k">readonly</span> contexteUtilisateur = inject(ContexteUtilisateurService);
+
+  <span class="c">/** Annulation depuis la consultation / modification : saisie du motif (≥ 10 caractères) dans la modale. */</span>
+  annulationOuverte = <span class="k">false</span>;
+  <span class="k">readonly</span> motifAnnulation = <span class="k">new</span> FormControl(<span class="s">''</span>, { nonNullable: <span class="k">true</span>, validators: [Validators.required, Validators.minLength(10)] });
+
+  indexesBillets: number[] = [];
+  indexesPieces: number[] = [];
+
+  <span class="c">// ---- Mode ----</span>
+  <span class="k">readonly</span> mode: ModeFormulaire;
+  <span class="k">readonly</span> estCreation: boolean;
+  <span class="k">readonly</span> estConsultation: boolean;
+  <span class="k">readonly</span> estModification: boolean;
+  <span class="c">/** Consultation ou modification : une demande existante est chargée. */</span>
+  <span class="k">readonly</span> avecDetail: boolean;
+  idDemande: string | <span class="k">null</span>;
+
+  <span class="c">// ---- Consultation ----</span>
+  <span class="k">readonly</span> demande = <span class="k">this</span>.facade.demandeDetail;
+  <span class="k">readonly</span> libelleStatut = libelleStatut;
+  <span class="k">readonly</span> classeStatut = classeStatut;
+
+  <span class="c">/**
+   * Ce que l'utilisateur a le droit de faire sur cette demande.
+   * Aucune règle métier ici : tout est délégué à calculerCapacites().
+   */</span>
+  <span class="k">readonly</span> capacites = computed&lt;CapacitesDemande&gt;(() =&gt; {
+    <span class="k">if</span> (<span class="k">this</span>.estCreation) { <span class="k">return</span> capacitesCreation(); }
+    <span class="k">const</span> d = <span class="k">this</span>.demande();
+    <span class="k">if</span> (!d) { <span class="k">return</span> capacitesLectureSeule(<span class="s">'Chargement de la demande…'</span>); }
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">if</span> (!ctx) { <span class="k">return</span> capacitesLectureSeule(<span class="s">"Chargement de l'utilisateur…"</span>); }
+    <span class="k">const</span> faits: FaitsDemande = {
+      statut: d.statut,
+      journeeCloturee: d.journeeCloturee ?? <span class="k">false</span>,
+      cutoffUrgenceDepasse: d.cutoffUrgenceDepasse ?? <span class="k">false</span>,
+      verrouDetenuParUtilisateurCourant: !!d.lockedBy &amp;&amp; d.lockedBy === ctx.uid,
+      verrouDetenuPar: d.lockedBy ?? <span class="k">null</span>,
+      demandeDeMonAgence: !!ctx.agenceCode &amp;&amp; ctx.agenceCode === d.branchCode,
+      habilitations: ctx.habilitations
+    };
+    <span class="k">return</span> calculerCapacites(faits);
+  });
+
+  <span class="c">/** Demande verrouillée en consultation : jetons de la maquette Bloquée (QlickFLOW v3) ; sinon jetons de la maquette Modification-Demande. */</span>
+  <span class="a">@HostBinding</span>(<span class="s">'class.theme-recap'</span>) <span class="k">get</span> themeRecap(): boolean {
+    <span class="k">return</span> <span class="k">this</span>.estConsultation &amp;&amp; !<span class="k">this</span>.capacites().peutModifier &amp;&amp; !!<span class="k">this</span>.capacites().motifVerrouillage;
+  }
+
+  <span class="c">/** Bannière « Consultation seule » de l'en-tête, dérivée du motif de verrouillage calculé par capacites(). */</span>
+  <span class="k">readonly</span> banniere = computed&lt;BanniereLecture | <span class="k">null</span>&gt;(() =&gt; {
+    <span class="k">const</span> motif = <span class="k">this</span>.estConsultation ? <span class="k">this</span>.capacites().motifVerrouillage : <span class="k">null</span>;
+    <span class="k">return</span> motif
+      ? { ton: <span class="s">'alerte'</span>, titre: <span class="s">'Consultation seule — Demande verrouillée et non modifiable'</span>, texte: motif }
+      : <span class="k">null</span>;
+  });
+
+  form: FormGroup = <span class="k">this</span>.fb.group(
+    {
+      urgent: [<span class="k">false</span>],
+
+      gab: <span class="k">this</span>.fb.group({
+        coupures: <span class="k">this</span>.fb.array([])
+      }),
+
+      caisse: <span class="k">this</span>.fb.group({
+        coupures: <span class="k">this</span>.fb.array([])
+      }),
+
+      ramassage: <span class="k">this</span>.fb.group({
+        deviseCode: [DEVISE_LOCALE],
+        montant: [<span class="k">null</span> as number | <span class="k">null</span>, [Validators.min(0)]],
+        lignes: <span class="k">this</span>.fb.array([])
+      }),
+
+      commandeDevises: <span class="k">this</span>.fb.group({
+        deviseCode: [<span class="s">''</span>],
+        montant: [<span class="k">null</span> as number | <span class="k">null</span>, [Validators.min(0)]],
+        lignes: <span class="k">this</span>.fb.array([])
+      }),
+
+      comment: [<span class="s">''</span>]
+    },
+    { validators: auMoinsUneSectionRenseigneeValidator() }
+  );
+
+  constructor(
+    <span class="k">private</span> fb: FormBuilder,
+    <span class="k">public</span> facade: FunManagementFacade,
+    <span class="k">private</span> snackBar: MatSnackBar,
+    <span class="k">private</span> cdr: ChangeDetectorRef,
+    <span class="k">private</span> router: Router,
+    <span class="k">private</span> route: ActivatedRoute
+  ) {
+    <span class="k">this</span>.mode = <span class="k">this</span>.route.snapshot.data[<span class="s">'mode'</span>] ?? <span class="s">'creation'</span>;
+    <span class="k">this</span>.estCreation = <span class="k">this</span>.mode === <span class="s">'creation'</span>;
+    <span class="k">this</span>.estConsultation = <span class="k">this</span>.mode === <span class="s">'consultation'</span>;
+    <span class="k">this</span>.estModification = <span class="k">this</span>.mode === <span class="s">'modification'</span>;
+    <span class="k">this</span>.avecDetail = <span class="k">this</span>.estConsultation || <span class="k">this</span>.estModification;
+    <span class="k">this</span>.idDemande = <span class="k">this</span>.route.snapshot.paramMap.<span class="k">get</span>(<span class="s">'id'</span>);
+
+    <span class="c">/*
+     * Effet (1) — reconstruction des FormArrays de coupures, puis application du détail en consultation / modification.
+     *
+     * Les deux sont dans le MÊME effect, volontairement : les référentiels de coupures et le détail arrivent par deux
+     * appels HTTP indépendants. Si le patch vivait dans un effect séparé, une arrivée tardive des coupures viderait
+     * les FormArrays APRÈS le patch, et les quantités affichées seraient toutes à zéro. Ici, chaque réexécution
+     * reconstruit puis repatche : le résultat est le même quel que soit l'ordre d'arrivée.
+     */</span>
+    effect(() =&gt; {
+      <span class="k">const</span> coupuresCaisse = <span class="k">this</span>.facade.coupuresCaisse();
+      <span class="c">// Maquette 287 : l'alimentation GAB ne porte que les billets de 200 et 100 DH (« strictement 2 lignes, sans notion de cassette »).</span>
+      <span class="k">const</span> coupuresGab = <span class="k">this</span>.facade.coupuresGab().filter(c =&gt; COUPURES_GAB.includes(Number(c.faceValue)));
+      <span class="k">const</span> detail = <span class="k">this</span>.avecDetail ? <span class="k">this</span>.facade.demandeDetail() : <span class="k">null</span>;
+
+      <span class="k">this</span>.devisesDisponibles = <span class="k">this</span>.facade.devises();
+
+      <span class="k">this</span>.gabCoupures.clear();
+      <span class="k">this</span>.caisseCoupures.clear();
+
+      coupuresGab.forEach(c =&gt; <span class="k">this</span>.gabCoupures.push(<span class="k">this</span>.creerLigneCoupure(c)));
+      coupuresCaisse.forEach(c =&gt; <span class="k">this</span>.caisseCoupures.push(<span class="k">this</span>.creerLigneCoupure(c)));
+
+      <span class="k">this</span>.repartirCoupuresCaisse();
+
+      <span class="c">// Commande de devises : première devise étrangère par défaut (jamais le MAD — remarque PO).</span>
+      <span class="k">if</span> (!<span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value &amp;&amp; <span class="k">this</span>.devisesDisponibles.length) {
+        <span class="k">const</span> parDefaut = <span class="k">this</span>.devisesDisponibles.find(d =&gt; d.isoCode !== DEVISE_LOCALE)
+          ?? <span class="k">this</span>.devisesDisponibles[0];
+        <span class="k">this</span>.commandeDevisesGroup.patchValue(
+          { deviseCode: parDefaut.isoCode },
+          { emitEvent: <span class="k">false</span> }
+        );
+      }
+
+      <span class="k">if</span> (detail) {
+        <span class="k">this</span>.appliquerDetail(detail);
+      }
+
+      <span class="c">// Les contrôles recréés ci-dessus naissent actifs : on redésactive à chaque passage,</span>
+      <span class="c">// sinon une arrivée tardive des référentiels rouvrirait la saisie en consultation.</span>
+      <span class="k">if</span> (<span class="k">this</span>.estConsultation) {
+        <span class="k">this</span>.form.disable({ emitEvent: <span class="k">false</span> });
+      }
+
+      <span class="c">// En modification, seule la case urgente peut être restreinte (cut-off, en standby aujourd'hui : toujours éditable).</span>
+      <span class="k">if</span> (<span class="k">this</span>.estModification) {
+        <span class="k">const</span> urgent = <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'urgent'</span>)!;
+        <span class="k">this</span>.capacites().peutModifierUrgence
+          ? urgent.enable({ emitEvent: <span class="k">false</span> })
+          : urgent.disable({ emitEvent: <span class="k">false</span> });
+      }
+
+      <span class="k">this</span>.cdr.markForCheck();
+    });
+
+    <span class="c">// Effet (2) — garde : une demande verrouillée ne s'ouvre pas en modification, même en tapant l'URL à la main.</span>
+    <span class="c">// Le backend doit de toute façon rejeter le PUT.</span>
+    effect(() =&gt; {
+      <span class="k">if</span> (!<span class="k">this</span>.estModification || !<span class="k">this</span>.facade.demandeDetail()) { <span class="k">return</span>; }
+      <span class="k">const</span> capacites = <span class="k">this</span>.capacites();
+      <span class="k">if</span> (!capacites.peutModifier) {
+        <span class="k">this</span>.snackBar.open(
+          capacites.motifVerrouillage ?? <span class="s">"Cette demande n'est plus modifiable."</span>,
+          <span class="s">'Fermer'</span>,
+          { duration: 5000 }
+        );
+        <span class="k">this</span>.router.navigate([<span class="s">'consultation'</span>, <span class="k">this</span>.idDemande]);
+      }
+    });
+
+    <span class="c">// Effet (3) — retour PUT en mode modification : libère le verrou (Task_ModifierDemande complétée) puis retourne en consultation.</span>
+    effect(<span class="k">async</span> () =&gt; {
+      <span class="k">const</span> ok = <span class="k">this</span>.facade.demandeModifiee();              <span class="c">// signal de succès du store</span>
+      <span class="k">const</span> erreur = <span class="k">this</span>.facade.erreurModification();      <span class="c">// signal d'erreur du store (ErreurApi | null)</span>
+      <span class="k">if</span> (!ok &amp;&amp; !erreur) { <span class="k">return</span>; }
+      <span class="k">if</span> (erreur) {
+        <span class="k">this</span>.snackBar.open(erreur.message, <span class="s">'Fermer'</span>, { duration: 6000 });
+        <span class="k">this</span>.facade.acquitterModification();
+        <span class="k">return</span>;
+      }
+      <span class="k">this</span>.facade.acquitterModification();
+      <span class="k">if</span> (!<span class="k">this</span>.idDemande) { <span class="k">return</span>; }
+      <span class="k">if</span> (<span class="k">this</span>.demande()?.statut === <span class="s">'EN_MODIFICATION'</span>) {
+        <span class="k">const</span> fin = <span class="k">await</span> <span class="k">this</span>.actions.terminerModification(<span class="k">this</span>.idDemande, <span class="k">true</span>);
+        <span class="k">this</span>.verrouLibere = fin;
+        <span class="k">this</span>.snackBar.open(fin ? <span class="s">'Modification enregistrée.'</span> : (<span class="k">this</span>.actions.erreur() ?? <span class="s">'Erreur lors de la fin de modification.'</span>),
+          <span class="s">'Fermer'</span>, { duration: 4000 });
+      } <span class="k">else</span> {
+        <span class="k">this</span>.snackBar.open(<span class="s">'Modification enregistrée.'</span>, <span class="s">'Fermer'</span>, { duration: 4000 });
+      }
+      <span class="k">this</span>.router.navigate([<span class="s">'consultation'</span>, <span class="k">this</span>.idDemande], { relativeTo: <span class="k">this</span>.route.parent });
+    }, { allowSignalWrites: <span class="k">true</span> });
+
+    <span class="c">// Effet (4) — retour de la création (store).</span>
+    effect(() =&gt; {
+      <span class="k">const</span> creee = <span class="k">this</span>.facade.demandeCreee();
+      <span class="k">const</span> erreur = <span class="k">this</span>.facade.erreurCreation();
+
+      <span class="k">if</span> (creee) {
+        <span class="k">this</span>.submitting = <span class="k">false</span>;
+        <span class="k">this</span>.snackBar.open(<span class="s">`Demande ${creee.id} envoyée avec succès.`</span>, <span class="s">'Fermer'</span>, { duration: 4000 });
+        <span class="k">this</span>.annuler();
+        <span class="k">this</span>.facade.acquitterCreation();
+        <span class="k">this</span>.router.navigate([<span class="s">'list'</span>]);
+      }
+
+      <span class="k">if</span> (erreur) {
+        <span class="k">this</span>.submitting = <span class="k">false</span>;
+        <span class="k">this</span>.snackBar.open(erreur.message, <span class="s">'Fermer'</span>, { duration: 6000 });
+        <span class="k">this</span>.facade.acquitterCreation();
+        <span class="k">if</span> (erreur.erreursChamps) {
+          console.warn(<span class="s">'Erreurs par champ renvoyées par le serveur :'</span>, erreur.erreursChamps);
+        }
+      }
+
+      <span class="k">this</span>.cdr.markForCheck();
+    }, { allowSignalWrites: <span class="k">true</span> });
+  }
+
+  <span class="k">async</span> ngOnInit(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">this</span>.facade.loadCoupures();
+    <span class="k">this</span>.facade.loadDevises();
+    <span class="k">const</span> ctx = <span class="k">await</span> <span class="k">this</span>.contexteUtilisateur.charger();
+    <span class="k">if</span> (<span class="k">this</span>.avecDetail &amp;&amp; <span class="k">this</span>.idDemande) {
+      <span class="k">this</span>.facade.loadDetail(<span class="k">this</span>.idDemande);
+      <span class="k">return</span>;
+    }
+    <span class="k">if</span> (<span class="k">this</span>.estCreation &amp;&amp; ctx) {
+      <span class="c">// Clic « Nouvelle demande » = démarrage du workflow (Task_InitierDemande complétée, Task_SoumettreDemande active)</span>
+      <span class="k">const</span> brouillon = <span class="k">await</span> <span class="k">this</span>.actions.initier({
+        user: ctx.uid,
+        branchCode: ctx.agenceCode ?? <span class="s">''</span>,
+        establishment: PARAMETRES_AGENCE.establishment
+      });
+      <span class="k">if</span> (brouillon) {
+        <span class="k">this</span>.idDemande = brouillon.id;
+      } <span class="k">else</span> {
+        <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">"Impossible d'initialiser la demande."</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+      }
+    }
+  }
+
+  ngOnDestroy(): <span class="k">void</span> {
+    <span class="c">// Sortie du mode modification par un autre chemin que la barre (menu latéral, bouton précédent du navigateur) :</span>
+    <span class="c">// on libère le verrou, sinon la demande reste « En modification » (invisible de la Caisse Centrale) jusqu'au timer du workflow.</span>
+    <span class="k">if</span> (<span class="k">this</span>.estModification &amp;&amp; <span class="k">this</span>.idDemande &amp;&amp; !<span class="k">this</span>.verrouLibere &amp;&amp; <span class="k">this</span>.verrouDetenuParMoi()) {
+      <span class="k">this</span>.actions.terminerModification(<span class="k">this</span>.idDemande, <span class="k">false</span>);
+    }
+    <span class="k">this</span>.facade.reinitialiserDetail();
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Accès aux groupes / tableaux</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="k">get</span> gabGroup(): FormGroup { <span class="k">return</span> <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'gab'</span>) as FormGroup; }
+  <span class="k">get</span> caisseGroup(): FormGroup { <span class="k">return</span> <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'caisse'</span>) as FormGroup; }
+  <span class="k">get</span> ramassageGroup(): FormGroup { <span class="k">return</span> <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'ramassage'</span>) as FormGroup; }
+  <span class="k">get</span> commandeDevisesGroup(): FormGroup { <span class="k">return</span> <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'commandeDevises'</span>) as FormGroup; }
+
+  <span class="k">get</span> gabCoupures(): FormArray { <span class="k">return</span> <span class="k">this</span>.gabGroup.<span class="k">get</span>(<span class="s">'coupures'</span>) as FormArray; }
+  <span class="k">get</span> caisseCoupures(): FormArray { <span class="k">return</span> <span class="k">this</span>.caisseGroup.<span class="k">get</span>(<span class="s">'coupures'</span>) as FormArray; }
+  <span class="k">get</span> ramassageLignes(): FormArray { <span class="k">return</span> <span class="k">this</span>.ramassageGroup.<span class="k">get</span>(<span class="s">'lignes'</span>) as FormArray; }
+  <span class="k">get</span> commandeDeviseLignes(): FormArray { <span class="k">return</span> <span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'lignes'</span>) as FormArray; }
+
+  <span class="c">/** Remarque PO — commande de devises : seules les devises étrangères sont proposées. */</span>
+  <span class="k">get</span> devisesCommandables(): Devise[] {
+    <span class="k">return</span> <span class="k">this</span>.devisesDisponibles.filter(d =&gt; d.isoCode !== DEVISE_LOCALE);
+  }
+
+  <span class="c">/**
+   * Ramassage : le MAD (espèces) est toujours proposé en premier, qu'il figure ou non dans le référentiel des devises,
+   * suivi des devises étrangères. Le contrôle vaut 'MAD' par défaut : l'option doit exister, sinon le select affiche
+   * une autre valeur que celle réellement envoyée.
+   */</span>
+  <span class="k">get</span> devisesRamassage(): Devise[] {
+    <span class="k">const</span> mad = <span class="k">this</span>.devisesDisponibles.find(d =&gt; d.isoCode === DEVISE_LOCALE)
+      ?? ({ isoCode: DEVISE_LOCALE, currencyName: <span class="s">'Dirham marocain'</span> } as Devise);
+    <span class="k">return</span> [mad, ...<span class="k">this</span>.devisesCommandables];
+  }
+
+  <span class="c">/**
+   * Identifie une ligne caisse par son contrôle, pas par son index.
+   * Sans ça, après une reconstruction du FormArray, Angular réutilise les
+   * lignes existantes et les champs restent liés aux anciens contrôles.
+   */</span>
+  <span class="k">readonly</span> suivreCoupureCaisse = (_: number, i: number) =&gt; <span class="k">this</span>.caisseCoupures.at(i);
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Totaux</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  coupureMontant(row: AbstractControl): number {
+    <span class="k">const</span> valeur = Number(row.<span class="k">get</span>(<span class="s">'valeur'</span>)?.value ?? 0);
+    <span class="k">const</span> quantite = Number(row.<span class="k">get</span>(<span class="s">'quantite'</span>)?.value ?? 0);
+    <span class="k">return</span> valeur * quantite;
+  }
+
+  totalCoupures(coupures: FormArray): number {
+    <span class="k">return</span> coupures.controls.reduce((total: number, row: AbstractControl) =&gt; total + <span class="k">this</span>.coupureMontant(row), 0);
+  }
+
+  totalGab(): number { <span class="k">return</span> <span class="k">this</span>.totalCoupures(<span class="k">this</span>.gabCoupures); }
+  totalCaisse(): number { <span class="k">return</span> <span class="k">this</span>.totalCoupures(<span class="k">this</span>.caisseCoupures); }
+
+  <span class="c">/** Pied de carte caisse : « Détail : Billets … • Pièces … ». */</span>
+  totalBillets(): number {
+    <span class="k">return</span> <span class="k">this</span>.indexesBillets.reduce((t: number, i: number) =&gt; t + <span class="k">this</span>.coupureMontant(<span class="k">this</span>.caisseCoupures.at(i)), 0);
+  }
+
+  totalPieces(): number {
+    <span class="k">return</span> <span class="k">this</span>.indexesPieces.reduce((t: number, i: number) =&gt; t + <span class="k">this</span>.coupureMontant(<span class="k">this</span>.caisseCoupures.at(i)), 0);
+  }
+
+  <span class="c">/** Seules les collectes en MAD entrent dans le total général. */</span>
+  totalRamassageMad(): number {
+    <span class="k">return</span> <span class="k">this</span>.ramassageLignes.controls
+      .filter(l =&gt; l.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value === DEVISE_LOCALE)
+      .reduce((total: number, l: AbstractControl) =&gt; total + Number(l.<span class="k">get</span>(<span class="s">'montant'</span>)?.value ?? 0), 0);
+  }
+
+  montantTotalMad(): number {
+    <span class="k">return</span> <span class="k">this</span>.totalGab() + <span class="k">this</span>.totalCaisse() + <span class="k">this</span>.totalRamassageMad();
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Ramassage</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="k">get</span> peutAjouterRamassage(): boolean {
+    <span class="k">return</span> !!<span class="k">this</span>.ramassageGroup.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value
+      &amp;&amp; Number(<span class="k">this</span>.ramassageGroup.<span class="k">get</span>(<span class="s">'montant'</span>)?.value) &gt; 0;
+  }
+
+  ajouterLigneRamassage(): <span class="k">void</span> {
+    <span class="k">if</span> (!<span class="k">this</span>.peutAjouterRamassage) { <span class="k">return</span>; }
+
+    <span class="k">this</span>.ramassageLignes.push(<span class="k">this</span>.creerLigneDevise(
+      <span class="k">this</span>.ramassageGroup.<span class="k">get</span>(<span class="s">'deviseCode'</span>)!.value,
+      Number(<span class="k">this</span>.ramassageGroup.<span class="k">get</span>(<span class="s">'montant'</span>)!.value)
+    ));
+
+    <span class="k">this</span>.ramassageGroup.patchValue({ montant: <span class="k">null</span> });
+    <span class="k">this</span>.form.updateValueAndValidity();
+  }
+
+  supprimerLigneRamassage(index: number): <span class="k">void</span> {
+    <span class="k">this</span>.ramassageLignes.removeAt(index);
+    <span class="k">this</span>.form.updateValueAndValidity();
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Commande devises</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="k">get</span> peutAjouterCommandeDevise(): boolean {
+    <span class="k">return</span> !!<span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value
+      &amp;&amp; Number(<span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'montant'</span>)?.value) &gt; 0;
+  }
+
+  ajouterCommandeDevise(): <span class="k">void</span> {
+    <span class="k">if</span> (!<span class="k">this</span>.peutAjouterCommandeDevise) { <span class="k">return</span>; }
+
+    <span class="k">this</span>.commandeDeviseLignes.push(<span class="k">this</span>.creerLigneDevise(
+      <span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'deviseCode'</span>)!.value,
+      Number(<span class="k">this</span>.commandeDevisesGroup.<span class="k">get</span>(<span class="s">'montant'</span>)!.value)
+    ));
+
+    <span class="k">this</span>.commandeDevisesGroup.patchValue({ montant: <span class="k">null</span> });
+    <span class="k">this</span>.form.updateValueAndValidity();
+  }
+
+  supprimerCommandeDevise(index: number): <span class="k">void</span> {
+    <span class="k">this</span>.commandeDeviseLignes.removeAt(index);
+    <span class="k">this</span>.form.updateValueAndValidity();
+  }
+
+  libelleDevise(code: string): string {
+    <span class="k">return</span> <span class="k">this</span>.devisesDisponibles.find(d =&gt; d.isoCode === code)?.currencyName ?? code;
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Navigation</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  retourListing(): <span class="k">void</span> {
+    <span class="k">this</span>.router.navigate([<span class="s">'list'</span>], { relativeTo: <span class="k">this</span>.route.parent });
+  }
+
+  <span class="c">/** « Annuler » de la création : on quitte l'écran sans rien envoyer ; le brouillon initié reste visible dans le listing (statut Brouillon). */</span>
+  annulerCreation(): <span class="k">void</span> {
+    <span class="k">this</span>.retourListing();
+  }
+
+  <span class="c">/**
+   * Bouton-badge « Mode Modification » de l'en-tête : pose le verrou (la Caisse Centrale perd la main) puis ouvre le mode modification.
+   * Brouillon : pas de verrou. Modification déjà commencée par l'utilisateur courant (verrou encore posé après un retour au listing,
+   * un clic menu ou un F5) : on reprend directement, sans redemander le verrou — le back refuserait (« demande déjà en modification »).
+   */</span>
+  <span class="k">async</span> modifier(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (!<span class="k">this</span>.idDemande) { <span class="k">return</span>; }
+    <span class="k">const</span> d = <span class="k">this</span>.demande();
+    <span class="k">if</span> (d?.statut === <span class="s">'INITIEE'</span> || <span class="k">this</span>.verrouDetenuParMoi()) {
+      <span class="k">this</span>.router.navigate([<span class="s">'modification'</span>, <span class="k">this</span>.idDemande], { relativeTo: <span class="k">this</span>.route.parent });
+      <span class="k">return</span>;
+    }
+    <span class="k">const</span> verrouillee = <span class="k">await</span> <span class="k">this</span>.actions.demarrerModification(<span class="k">this</span>.idDemande);
+    <span class="k">if</span> (verrouillee) {
+      <span class="k">this</span>.router.navigate([<span class="s">'modification'</span>, <span class="k">this</span>.idDemande], { relativeTo: <span class="k">this</span>.route.parent });
+    } <span class="k">else</span> {
+      <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Impossible de passer en modification.'</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+    }
+  }
+
+  <span class="c">/** « Retour au listing » du mode modification : libère le verrou sans enregistrer (la demande redevient « En attente »). */</span>
+  <span class="k">async</span> abandonnerModification(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (!<span class="k">this</span>.idDemande) { <span class="k">return</span>; }
+    <span class="k">if</span> (<span class="k">this</span>.verrouDetenuParMoi()) {
+      <span class="k">const</span> libere = <span class="k">await</span> <span class="k">this</span>.actions.terminerModification(<span class="k">this</span>.idDemande, <span class="k">false</span>);
+      <span class="k">if</span> (!libere) {
+        <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Le verrou de modification n\'</span>a pas pu être libéré.<span class="s">', '</span>Fermer', { duration: 6000 });
+        <span class="k">return</span>;                                                 <span class="c">// on reste sur l'écran : le verrou est encore posé</span>
+      }
+      <span class="k">this</span>.verrouLibere = <span class="k">true</span>;
+    }
+    <span class="k">this</span>.router.navigate([<span class="s">'consultation'</span>, <span class="k">this</span>.idDemande], { relativeTo: <span class="k">this</span>.route.parent });
+  }
+
+  <span class="c">/** Verrou de modification détenu par l'utilisateur courant (statut EN_MODIFICATION et lockedBy = uid). */</span>
+  <span class="k">private</span> verrouDetenuParMoi(): boolean {
+    <span class="k">const</span> d = <span class="k">this</span>.demande();
+    <span class="k">const</span> uid = <span class="k">this</span>.contexteUtilisateur.contexte()?.uid;
+    <span class="k">return</span> d?.statut === <span class="s">'EN_MODIFICATION'</span> &amp;&amp; !!uid &amp;&amp; d.lockedBy === uid;
+  }
+
+  <span class="c">/** Bouton « Soumettre » en consultation d'un brouillon : soumet le contenu déjà enregistré. */</span>
+  <span class="k">async</span> soumettreDepuisConsultation(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (!<span class="k">this</span>.idDemande) { <span class="k">return</span>; }
+    <span class="k">const</span> soumise = <span class="k">await</span> <span class="k">this</span>.actions.soumettre(<span class="k">this</span>.idDemande, <span class="k">null</span>);
+    <span class="k">if</span> (soumise) {
+      <span class="k">this</span>.snackBar.open(<span class="s">`Demande ${soumise.uniqueRequestRef} soumise.`</span>, <span class="s">'Fermer'</span>, { duration: 4000 });
+      <span class="k">this</span>.facade.loadDetail(<span class="k">this</span>.idDemande);
+    } <span class="k">else</span> {
+      <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Erreur lors de la soumission.'</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+    }
+  }
+
+  ouvrirAnnulation(): <span class="k">void</span> { <span class="k">this</span>.annulationOuverte = <span class="k">true</span>; <span class="k">this</span>.motifAnnulation.reset(<span class="s">''</span>); }
+  fermerAnnulation(): <span class="k">void</span> { <span class="k">this</span>.annulationOuverte = <span class="k">false</span>; }
+
+  <span class="c">/** Bouton « Annuler la demande » : motif ≥ 10 caractères, msgAnnulerDemande côté back, statut écrit par le worker. */</span>
+  <span class="k">async</span> annulerDemande(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (!<span class="k">this</span>.idDemande || <span class="k">this</span>.motifAnnulation.invalid) {
+      <span class="k">this</span>.motifAnnulation.markAsTouched();
+      <span class="k">return</span>;
+    }
+    <span class="k">const</span> resultat = <span class="k">await</span> <span class="k">this</span>.actions.annuler(<span class="k">this</span>.idDemande, <span class="k">this</span>.motifAnnulation.value.trim());
+    <span class="k">if</span> (resultat) {
+      <span class="k">this</span>.annulationOuverte = <span class="k">false</span>;
+      <span class="k">this</span>.snackBar.open(<span class="s">"Annulation transmise : le statut sera mis à jour dans quelques secondes."</span>, <span class="s">'Fermer'</span>, { duration: 5000 });
+      setTimeout(() =&gt; <span class="k">this</span>.idDemande &amp;&amp; <span class="k">this</span>.facade.loadDetail(<span class="k">this</span>.idDemande), 1500);
+    } <span class="k">else</span> {
+      <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">"Erreur lors de l'annulation."</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+    }
+    <span class="k">this</span>.cdr.markForCheck();
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Soumission</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">/** Remise à zéro du formulaire (après une création réussie). */</span>
+  annuler(): <span class="k">void</span> {
+    <span class="k">this</span>.form.reset({ urgent: <span class="k">false</span>, comment: <span class="s">''</span> });
+
+    [<span class="k">this</span>.gabCoupures, <span class="k">this</span>.caisseCoupures].forEach(arr =&gt;
+      arr.controls.forEach(row =&gt; row.patchValue({ quantite: 0 }))
+    );
+
+    <span class="k">this</span>.ramassageLignes.clear();
+    <span class="k">this</span>.commandeDeviseLignes.clear();
+    <span class="k">this</span>.ramassageGroup.patchValue({ deviseCode: DEVISE_LOCALE, montant: <span class="k">null</span> });
+  }
+
+  <span class="k">async</span> submit(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (<span class="k">this</span>.form.invalid) {
+      <span class="k">const</span> message = <span class="k">this</span>.form.hasError(<span class="s">'formulaireVide'</span>)
+        ? <span class="s">'Renseignez au moins une section (caisse, GAB, ramassage ou commande de devises).'</span>
+        : <span class="s">'Veuillez corriger les champs en erreur.'</span>;
+      <span class="k">this</span>.snackBar.open(message, <span class="s">'Fermer'</span>, { duration: 5000 });
+      <span class="k">return</span>;
+    }
+    <span class="k">const</span> payload = <span class="k">this</span>.construirePayload();
+
+    <span class="k">if</span> (<span class="k">this</span>.estModification &amp;&amp; <span class="k">this</span>.idDemande) {
+      <span class="k">this</span>.facade.modifierDemande(<span class="k">this</span>.idDemande, payload);      <span class="c">// PUT → l'effet (3) termine la modification</span>
+      <span class="k">return</span>;
+    }
+
+    <span class="k">if</span> (<span class="k">this</span>.estCreation) {
+      <span class="k">if</span> (!<span class="k">this</span>.idDemande) {
+        <span class="k">this</span>.snackBar.open(<span class="s">"La demande n'a pas pu être initialisée : rechargez la page."</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+        <span class="k">return</span>;
+      }
+      <span class="k">this</span>.submitting = <span class="k">true</span>;
+      <span class="k">const</span> soumise = <span class="k">await</span> <span class="k">this</span>.actions.soumettre(<span class="k">this</span>.idDemande, payload);   <span class="c">// contenu + Task_SoumettreDemande</span>
+      <span class="k">this</span>.submitting = <span class="k">false</span>;
+      <span class="k">this</span>.cdr.markForCheck();
+      <span class="k">if</span> (soumise) {
+        <span class="k">this</span>.snackBar.open(<span class="s">`Demande ${soumise.uniqueRequestRef} soumise.`</span>, <span class="s">'Fermer'</span>, { duration: 4000 });
+        <span class="k">this</span>.router.navigate([<span class="s">'consultation'</span>, soumise.id], { relativeTo: <span class="k">this</span>.route.parent });
+      } <span class="k">else</span> {
+        <span class="k">this</span>.snackBar.open(<span class="k">this</span>.actions.erreur() ?? <span class="s">'Erreur lors de la soumission.'</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+      }
+    }
+  }
+
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="c">// Helpers privés</span>
+  <span class="c">// ---------------------------------------------------------------------------</span>
+  <span class="k">private</span> creerLigneCoupure(d: Denomination): FormGroup {
+    <span class="k">return</span> <span class="k">this</span>.fb.group({
+      denominationId: [d.id],
+      code:           [d.denominationCode],
+      valeur:         [d.faceValue],
+      libelle:        [d.denominationLabel],
+      quantite:       [0, [Validators.min(0)]]
+    });
+  }
+
+  <span class="k">private</span> creerLigneDevise(deviseCode: string, montant: number): FormGroup {
+    <span class="k">return</span> <span class="k">this</span>.fb.group({
+      deviseCode: [deviseCode, Validators.required],
+      montant: [montant, [Validators.required, Validators.min(0)]]
+    });
+  }
+
+  <span class="k">private</span> repartirCoupuresCaisse(): <span class="k">void</span> {
+    <span class="k">this</span>.indexesBillets = [];
+    <span class="k">this</span>.indexesPieces = [];
+
+    <span class="k">this</span>.caisseCoupures.controls.forEach((row: AbstractControl, index: number) =&gt; {
+      <span class="k">const</span> valeur = Number(row.<span class="k">get</span>(<span class="s">'valeur'</span>)?.value ?? 0);
+      (valeur &gt;= SEUIL_BILLET ? <span class="k">this</span>.indexesBillets : <span class="k">this</span>.indexesPieces).push(index);
+    });
+  }
+
+  <span class="c">/**
+   * Applique le détail d'une demande existante au formulaire.
+   * Inverse de construirePayload() : mêmes couples operationType / operationSens.
+   */</span>
+  <span class="k">private</span> appliquerDetail(d: DemandeFondsDetail): <span class="k">void</span> {
+    <span class="k">const</span> operations = d.operations ?? [];
+    <span class="k">const</span> filtrer = (<span class="k">type</span>: string, sens: string) =&gt;
+      operations.filter(o =&gt; o.operationType === <span class="k">type</span> &amp;&amp; o.operationSens === sens);
+
+    <span class="k">this</span>.form.patchValue(
+      {
+        urgent: operations.some(o =&gt; o.isUrgent),
+        comment: d.comment ?? <span class="s">''</span>
+      },
+      { emitEvent: <span class="k">false</span> }
+    );
+
+    <span class="k">this</span>.appliquerQuantites(<span class="k">this</span>.gabCoupures, filtrer(<span class="s">'ATM'</span>, <span class="s">'SUPPLY'</span>));
+    <span class="k">this</span>.appliquerQuantites(<span class="k">this</span>.caisseCoupures, filtrer(<span class="s">'CASH_DESK'</span>, <span class="s">'SUPPLY'</span>));
+
+    <span class="k">this</span>.commandeDeviseLignes.clear({ emitEvent: <span class="k">false</span> });
+    filtrer(<span class="s">'CURRENCY'</span>, <span class="s">'SUPPLY'</span>).forEach(o =&gt;
+      (o.currencyDetails ?? []).forEach(cd =&gt;
+        <span class="k">this</span>.commandeDeviseLignes.push(
+          <span class="k">this</span>.creerLigneDevise(cd.currency.isoCode, cd.totalAmountByCurrency),
+          { emitEvent: <span class="k">false</span> }
+        )
+      )
+    );
+
+    <span class="k">this</span>.ramassageLignes.clear({ emitEvent: <span class="k">false</span> });
+    filtrer(<span class="s">'CURRENCY'</span>, <span class="s">'COLLECTION'</span>).forEach(o =&gt;
+      (o.currencyDetails ?? []).forEach(cd =&gt;
+        <span class="k">this</span>.ramassageLignes.push(
+          <span class="k">this</span>.creerLigneDevise(cd.currency.isoCode, cd.totalAmountByCurrency),
+          { emitEvent: <span class="k">false</span> }
+        )
+      )
+    );
+  }
+
+  <span class="c">/** Reporte les quantités par denominationCode, l'identifiant canonique des coupures. */</span>
+  <span class="k">private</span> appliquerQuantites(coupures: FormArray, operations: OperationDetail[]): <span class="k">void</span> {
+    <span class="k">const</span> quantites = <span class="k">new</span> Map&lt;string, number&gt;();
+    operations.forEach(o =&gt;
+      (o.currencyDetails ?? []).forEach(cd =&gt;
+        (cd.operationDenominations ?? []).forEach(od =&gt;
+          quantites.set(od.denomination.denominationCode, od.quantity)
+        )
+      )
+    );
+
+    coupures.controls.forEach(row =&gt; {
+      <span class="k">const</span> code = row.<span class="k">get</span>(<span class="s">'code'</span>)?.value as string;
+      row.patchValue({ quantite: quantites.<span class="k">get</span>(code) ?? 0 }, { emitEvent: <span class="k">false</span> });
+    });
+  }
+
+  <span class="k">private</span> construirePayload(): DemandeFondsPayload {
+    <span class="k">const</span> urgent: boolean = <span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'urgent'</span>)?.value ?? <span class="k">false</span>;
+    <span class="k">const</span> operations: OperationPayload[] = [];
+
+    <span class="c">// GAB — SUPPLY ATM, ventilation MAD</span>
+    <span class="k">if</span> (<span class="k">this</span>.totalGab() &gt; 0) {
+      operations.push({
+        operationType: <span class="s">'ATM'</span>,
+        operationSens: <span class="s">'SUPPLY'</span>,
+        isUrgent: urgent,
+        cashDeskNumber: PARAMETRES_AGENCE.cashDeskNumber,
+        currencyDetails: [<span class="k">this</span>.detailMad(<span class="k">this</span>.gabCoupures, <span class="k">this</span>.totalGab())]
+      });
+    }
+
+    <span class="k">if</span> (<span class="k">this</span>.totalCaisse() &gt; 0) {
+      operations.push({
+        operationType: <span class="s">'CASH_DESK'</span>,
+        operationSens: <span class="s">'SUPPLY'</span>,
+        isUrgent: urgent,
+        cashDeskNumber: PARAMETRES_AGENCE.cashDeskNumber,
+        currencyDetails: [<span class="k">this</span>.detailMad(<span class="k">this</span>.caisseCoupures, <span class="k">this</span>.totalCaisse())]
+      });
+    }
+
+    <span class="k">this</span>.commandeDeviseLignes.controls
+      .filter(l =&gt; Number(l.<span class="k">get</span>(<span class="s">'montant'</span>)?.value ?? 0) &gt; 0 &amp;&amp; !!l.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value)
+      .forEach(l =&gt; operations.push({
+        operationType: <span class="s">'CURRENCY'</span>,
+        operationSens: <span class="s">'SUPPLY'</span>,
+        isUrgent: urgent,
+        cashDeskNumber: PARAMETRES_AGENCE.cashDeskNumber,
+        currencyDetails: [{
+          currency: { isoCode: l.<span class="k">get</span>(<span class="s">'deviseCode'</span>)!.value },
+          totalAmountByCurrency: Number(l.<span class="k">get</span>(<span class="s">'montant'</span>)!.value),
+          operationDenominations: []
+        }]
+      }));
+
+    <span class="k">const</span> ramassageParDevise = <span class="k">new</span> Map&lt;string, number&gt;();
+    <span class="k">this</span>.ramassageLignes.controls.forEach(l =&gt; {
+      <span class="k">const</span> isoCode: string | <span class="k">null</span> = l.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value;
+      <span class="k">const</span> montant = Number(l.<span class="k">get</span>(<span class="s">'montant'</span>)?.value ?? 0);
+      <span class="k">if</span> (!isoCode || montant &lt;= 0) { <span class="k">return</span>; }
+      ramassageParDevise.set(isoCode, (ramassageParDevise.<span class="k">get</span>(isoCode) ?? 0) + montant);
+    });
+    <span class="k">if</span> (ramassageParDevise.size &gt; 0) {
+      operations.push({
+        operationType: <span class="s">'CURRENCY'</span>,
+        operationSens: <span class="s">'COLLECTION'</span>,
+        isUrgent: urgent,
+        cashDeskNumber: PARAMETRES_AGENCE.cashDeskNumber,
+        currencyDetails: Array.<span class="k">from</span>(ramassageParDevise, ([isoCode, total]) =&gt; ({
+          currency: { isoCode },
+          totalAmountByCurrency: total,
+          operationDenominations: []
+        }))
+      });
+    }
+
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">return</span> {
+      branchCode: ctx?.agenceCode ?? <span class="s">''</span>,
+      user: ctx?.uid ?? <span class="s">''</span>,
+      establishment: PARAMETRES_AGENCE.establishment,
+      operations,
+      comment: (<span class="k">this</span>.form.<span class="k">get</span>(<span class="s">'comment'</span>)?.value as string | <span class="k">null</span>) ?? <span class="k">null</span>
+    };
+  }
+
+  <span class="k">private</span> detailMad(coupures: FormArray, total: number) {
+    <span class="k">return</span> {
+      currency: { isoCode: DEVISE_LOCALE },
+      totalAmountByCurrency: total,
+      operationDenominations: coupures.controls
+        .filter(row =&gt; Number(row.<span class="k">get</span>(<span class="s">'quantite'</span>)?.value ?? 0) &gt; 0)
+        .map(row =&gt; ({
+          denomination: { denominationCode: row.<span class="k">get</span>(<span class="s">'code'</span>)?.value as string },
+          quantity: Number(row.<span class="k">get</span>(<span class="s">'quantite'</span>)?.value)
+        }))
+    };
+  }
+}
+
+<span class="k">export</span> <span class="k">function</span> auMoinsUneSectionRenseigneeValidator(): ValidatorFn {
+  <span class="k">return</span> (form: AbstractControl): ValidationErrors | <span class="k">null</span> =&gt; {
+    <span class="k">const</span> quantiteRenseignee = (chemin: string) =&gt;
+      ((form.<span class="k">get</span>(chemin) as FormArray | <span class="k">null</span>)?.controls ?? [])
+        .some(row =&gt; Number(row.<span class="k">get</span>(<span class="s">'quantite'</span>)?.value ?? 0) &gt; 0);
+
+    <span class="k">const</span> listeNonVide = (chemin: string) =&gt;
+      ((form.<span class="k">get</span>(chemin) as FormArray | <span class="k">null</span>)?.length ?? 0) &gt; 0;
+
+    <span class="k">const</span> rempli =
+      quantiteRenseignee(<span class="s">'gab.coupures'</span>) ||
+      quantiteRenseignee(<span class="s">'caisse.coupures'</span>) ||
+      listeNonVide(<span class="s">'ramassage.lignes'</span>) ||
+      listeNonVide(<span class="s">'commandeDevises.lignes'</span>);
+
+    <span class="k">return</span> rempli ? <span class="k">null</span> : { formulaireVide: <span class="k">true</span> };
+  };
+}</code></pre></div>
+<h2 id="s3">3. Vérification</h2>
+<div class="card"><ol>
+<li>La demande actuellement bloquée : l'ouvrir → « Mode Modification » ouvre l'écran directement (plus d'erreur) → « Retour au listing » → elle repasse « En attente ».</li>
+<li>Demande en attente → Mode Modification → clic sur le menu latéral (sans Retour) → rouvrir : le badge rouvre le mode modification, la demande est redevenue « En attente » (verrou libéré au ngOnDestroy) ou, si l'appel n'a pas abouti, reprise directe.</li>
+<li>Modifier → Soumettre les Modifications → consultation : inchangé.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
