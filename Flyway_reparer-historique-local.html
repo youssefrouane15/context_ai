@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réparer flyway_schema_history local après renumérotation (V10 → V14)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Réparer flyway_schema_history (local) — V10__photo_decision renommé V14 par le tech lead</h1><p>fund-management-microservice · 07/10/2026 · base locale uniquement, aucune migration rejouée</p></header>
+<nav><a href="#s0">Situation</a><a href="#s1">Réparation</a></nav><main><h2 id="s0">0. Situation</h2>
+<div class="card"><p>Ta base locale a appliqué <b>V10 = photo_decision</b> puis V11 → V14 du collègue ; les fichiers portent désormais les noms du tech lead (V10 → V13 collègue, <b>V14 = photo_decision</b>). Les 5 objets existent déjà en base (colonnes décision, outbox, shedlock, date_effet, cutoff_config) : seule la correspondance version ↔ fichier de <code>flyway_schema_history</code> est fausse. On réécrit ces 5 lignes, on vide leurs checksums, et on démarre une fois sans validation. Rien n'est rejoué, aucune donnée touchée.</p>
+<p><b>Préalable</b> : fichiers déjà renommés chez toi exactement comme sur develop. Si un nom diffère de ceux supposés ci-dessous (<code>V10__create_outbox_event.sql</code>, <code>V11__create_shedlock.sql</code>, <code>V12__add_date_effet_cash_request.sql</code>, <code>V13__create_cutoff_config.sql</code>, <code>V14__photo_decision.sql</code>), adapte <code>description</code> et <code>script</code> dans l'étape 2 : Flyway compare la description au caractère près.</p></div>
+<h2 id="s1">1. Réparation</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 1 — état actuel</b><br><span class="path">flyway-01-etat.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- pgAdmin, base fund-management, back ARRÊTÉ, LOCAL uniquement.</span>
+<span class="c">-- Si la table n'est pas dans retail, remplace retail. par public. partout.</span>
+select installed_rank, version, description, script, checksum, success
+<span class="k">from</span> retail.flyway_schema_history
+where version::int &gt;= 10
+order by installed_rank;
+<span class="c">-- Attendu avant réparation : 10 photo decision · 11 create outbox event · 12 create shedlock · 13 add date effet cash request · 14 create cutoff config</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 2 — réaligner les 5 lignes</b><br><span class="path">flyway-02-realigner.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Réaligne les 5 lignes sur les noms de fichiers du tech lead.</span>
+<span class="c">-- Règle Flyway : description = le nom du fichier après V&lt;n&gt;__, sans .sql, les _ remplacés par des espaces. Les 5 objets existent déjà en base : rien n'est rejoué.</span>
+BEGIN;
+
+update retail.flyway_schema_history set description = <span class="s">'create outbox event'</span>,          script = <span class="s">'V10__create_outbox_event.sql'</span>,          checksum = <span class="k">null</span> where version = <span class="s">'10'</span>;
+update retail.flyway_schema_history set description = <span class="s">'create shedlock'</span>,              script = <span class="s">'V11__create_shedlock.sql'</span>,              checksum = <span class="k">null</span> where version = <span class="s">'11'</span>;
+update retail.flyway_schema_history set description = <span class="s">'add date effet cash request'</span>,  script = <span class="s">'V12__add_date_effet_cash_request.sql'</span>,  checksum = <span class="k">null</span> where version = <span class="s">'12'</span>;
+update retail.flyway_schema_history set description = <span class="s">'create cutoff config'</span>,         script = <span class="s">'V13__create_cutoff_config.sql'</span>,         checksum = <span class="k">null</span> where version = <span class="s">'13'</span>;
+update retail.flyway_schema_history set description = <span class="s">'photo decision'</span>,               script = <span class="s">'V14__photo_decision.sql'</span>,               checksum = <span class="k">null</span> where version = <span class="s">'14'</span>;
+
+COMMIT;
+<span class="c">
+-- Contrôle : les 5 descriptions / scripts doivent être identiques, au caractère près, aux noms de tes fichiers renommés.</span>
+select version, description, script, checksum <span class="k">from</span> retail.flyway_schema_history where version::int &gt;= 10 order by installed_rank;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Étape 3 — un démarrage sans validation</b><br><span class="path">fund-management-container\src\main\resources\application-local.yml</span></div><p class="note">Garde cette ligne en local : les checksums restent à null et Flyway ne les recalcule pas tout seul (il faudrait le plugin Maven <code>flyway:repair</code>, non configuré dans le projet). Aucun impact sur les autres environnements, qui n'ont jamais vu ton V10.</p><pre><button class="copy">Copier</button><code># application-local.yml (le profil que tu lances) — à ajouter. Les checksums sont à <span class="k">null</span> : sans cette ligne, le démarrage lève
+# « Migration checksum mismatch ». Flyway voit 14 versions appliquées et ne rejoue rien. Local uniquement : develop / recette ne sont pas concernés.
+spring:
+  flyway:
+    validate-on-migrate: <span class="k">false</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 4 — contrôle</b><br><span class="path">flyway-04-controle.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Après un démarrage réussi du back</span>
+select installed_rank, version, description, script, success
+<span class="k">from</span> retail.flyway_schema_history
+order by installed_rank;
+<span class="c">-- Attendu : 14 lignes, success = true, V10 → V14 dans l'ordre des fichiers du tech lead, aucune ligne 15+.</span></code></pre></div>
+<div class="card"><p>Si le démarrage échoue encore avec « Migration description mismatch » : la description en base ne correspond pas au nom de fichier — relance l'étape 1 et compare caractère par caractère avec tes fichiers.</p></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
