@@ -1,0 +1,311 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-296 + date d'effet + export — implémentation</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-296 (recherche multicritères) · date d'effet (KPI, filtres, tableau) · export sur les filtres seuls</h1><p>fund-management-microservice + fund-management-front · 07/10/2026 · s'applique après le merge du dev « date d'effet » du collègue</p></header>
+<nav><a href="#s0">Périmètre</a><a href="#s1">Back</a><a href="#s2">Front</a><a href="#s3">Vérification</a></nav><main><h2 id="s0">0. Périmètre</h2>
+<div class="card"><table>
+<tr><th>Sujet</th><th>Règle</th><th>Où</th></tr>
+<tr><td>Date d'effet — KPI</td><td>En attente / urgentes = demandes <b>SOUMISES</b> dont <code>date_effet ≤ aujourd'hui</code> (les antérieures restent dans le stock). Traitées : inchangé (décision du jour).</td><td>§1.2, §1.3</td></tr>
+<tr><td>Date d'effet — filtres</td><td>Date début / Date fin de l'écran bornent la <b>date d'effet</b>, plus la date de création.</td><td>§1.1</td></tr>
+<tr><td>Date d'effet — tableau</td><td>La colonne « Date &amp; heure » affiche la date d'effet (même colonne, valeur remplacée ; plus d'heure puisque c'est un jour).</td><td>§2.1, §2.2, §2.6</td></tr>
+<tr><td>Clic KPI</td><td>La liste montre exactement ce que la carte compte, <b>sans remplir les filtres visibles</b> ; tout changement de filtre ou « Actualiser » en sort.</td><td>§2.3, §2.4</td></tr>
+<tr><td>Export Excel</td><td>Filtres de l'écran <b>uniquement</b> : ni carte KPI, ni recherche libre (le back ignore <code>recherche</code> sur <code>/export</code>).</td><td>§1.4, §2.5</td></tr>
+<tr><td>AER_LM-296</td><td>Recherche libre : réf / code agence / libellé agence / libellé zone, insensible à la casse — <b>déjà en place</b> dans <code>DemandeSpecifications</code>. Reste : relance 1 s après la dernière frappe et sur Entrée.</td><td>§2.4, §2.6</td></tr>
+</table>
+<p>Précondition : le merge du collègue est dans ta branche (<code>CashRequestEntity.dateEffet</code> → <code>date_effet</code>, <code>LocalDate</code> ; déjà dans <code>CashRequest</code> et <code>CashRequestDTO</code> d'après tes captures). Si <code>dateEffet</code> n'est pas dans le mapper web (<code>toDto</code>), MapStruct le mappe tout seul : rien à faire.</p></div>
+<h2 id="s1">1. Back</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>1.1 — DemandeSpecifications : bornes de dates sur la date d&#x27;effet</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-common\…\dataaccess\spec\DemandeSpecifications.java  (Ctrl+F : c.dateDebut()  — remplace les deux blocs if dateDebut / dateFin)</span></div><p class="note">Les demandes sans date d'effet (créées avant le champ) sont exclues dès qu'une borne est posée : voir §1.5.</p><pre><button class="copy">Copier</button><code>            <span class="c">// ===== Date d'effet — les bornes de l'écran (Date début / Date fin) portent sur la date d'effet, plus sur la création.</span>
+            <span class="c">// Les critères arrivent en LocalDateTime (T00:00:00 / T23:59:59 posés par le front) : on ne garde que le jour.</span>
+            <span class="k">if</span> (c.dateDebut() != <span class="k">null</span>) {
+                predicates.add(cb.greaterThanOrEqualTo(root.<span class="k">get</span>(<span class="s">"dateEffet"</span>), c.dateDebut().toLocalDate()));
+            }
+            <span class="k">if</span> (c.dateFin() != <span class="k">null</span>) {
+                predicates.add(cb.lessThanOrEqualTo(root.<span class="k">get</span>(<span class="s">"dateEffet"</span>), c.dateFin().toLocalDate()));
+            }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>1.2 — CashDemandJpaRepository : bloc KPI</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\…\repository\CashDemandJpaRepository.java  (Ctrl+F : AER_LM-278  — remplace depuis ce commentaire jusqu'à compterTraiteesParPrestataire inclus)</span></div><p class="note">Ta capture montre encore les versions <code>>= :depuis</code> (develop) : ce bloc les remplace toutes. <code>findIdsByStatutEtDateEffet</code> du collègue reste tel quel. Import <code>java.time.LocalDate</code> si absent.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-278 — KPI Caisse Centrale (règle PO 05/10 : date d'effet) =====</span>
+    <span class="c">// En attente / urgentes : demandes SOUMISES dont la date d'effet est ≤ au jour demandé (les dates d'effet antérieures restent</span>
+    <span class="c">// dans le stock tant que la Caisse Centrale ne les a pas traitées). IN_MODIFICATION = entre les mains de l'agence, pas à traiter.</span>
+    <span class="c">// Traitées : statut Traitée et décision Caisse Centrale (sinon dernière mise à jour) dans la journée demandée — inchangé.</span>
+
+    <span class="a">@Query</span>(<span class="s">"select count(c) from CashRequestEntity c where c.requestStatus = 'SUBMITTED' and c.dateEffet &lt;= :jour"</span>)
+    long compterEnAttente(<span class="a">@Param</span>(<span class="s">"jour"</span>) LocalDate jour);
+
+    <span class="a">@Query</span>(<span class="s">"select count(c) from CashRequestEntity c where c.urgent = true and c.requestStatus = 'SUBMITTED' and c.dateEffet &lt;= :jour"</span>)
+    long compterUrgentes(<span class="a">@Param</span>(<span class="s">"jour"</span>) LocalDate jour);
+
+    <span class="a">@Query</span>(<span class="s">"select count(c) from CashRequestEntity c where c.requestStatus = 'VALIDATED' "</span>
+         + <span class="s">"and coalesce(c.decisionAt, c.modificationDate) &gt;= :debut and coalesce(c.decisionAt, c.modificationDate) &lt; :fin"</span>)
+    long compterTraitees(<span class="a">@Param</span>(<span class="s">"debut"</span>) LocalDateTime debut, <span class="a">@Param</span>(<span class="s">"fin"</span>) LocalDateTime fin);
+
+    <span class="c">/** [prestataire, prestataireNom, nombre] par transporteur, sur les demandes traitées dans la journée. */</span>
+    <span class="a">@Query</span>(<span class="s">""</span>"
+            select c.prestataire, c.prestataireNom, count(c)
+            <span class="k">from</span> CashRequestEntity c
+            where c.requestStatus = <span class="s">'VALIDATED'</span>
+              and coalesce(c.decisionAt, c.modificationDate) &gt;= :debut
+              and coalesce(c.decisionAt, c.modificationDate) &lt; :fin
+            group by c.prestataire, c.prestataireNom
+            order by c.prestataire
+            <span class="s">""</span>")
+    List&lt;Object[]&gt; compterTraiteesParPrestataire(<span class="a">@Param</span>(<span class="s">"debut"</span>) LocalDateTime debut, <span class="a">@Param</span>(<span class="s">"fin"</span>) LocalDateTime fin);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>1.3 — CashDemandRepositoryImpl.kpi</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\…\repository\CashDemandRepositoryImpl.java  (Ctrl+F : public KpiDemandes kpi(  — remplace la méthode)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-278 (règle PO 05/10 : date d'effet) =====</span>
+    <span class="a">@Override</span>
+    <span class="a">@Transactional</span>(readOnly = <span class="k">true</span>)
+    <span class="k">public</span> KpiDemandes kpi(LocalDate jour) {
+        LocalDateTime debut = jour.atStartOfDay();
+        LocalDateTime fin = jour.plusDays(1).atStartOfDay();    <span class="c">// borne exclusive pour les décisions du jour</span>
+        List&lt;KpiDemandes.RepartitionPrestataire&gt; repartition = cashDemandJpaRepository.compterTraiteesParPrestataire(debut, fin).stream()
+                .map(ligne -&gt; <span class="k">new</span> KpiDemandes.RepartitionPrestataire(
+                        (String) ligne[0], (String) ligne[1], ((Number) ligne[2]).longValue()))
+                .toList();
+        <span class="k">return</span> <span class="k">new</span> KpiDemandes(
+                cashDemandJpaRepository.compterEnAttente(jour),
+                cashDemandJpaRepository.compterUrgentes(jour),
+                cashDemandJpaRepository.compterTraitees(debut, fin),
+                repartition);
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>1.4 — RetailDemandController : /export ignore la recherche libre</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\…\rest\retail\RetailDemandController.java  (Ctrl+F : SIZE_MAX  — c'est l'endpoint /export)</span></div><pre><button class="copy">Copier</button><code><span class="c">// RetailDemandController — endpoint /export. Deux changements :</span>
+<span class="c">// (1) supprime le paramètre  @RequestParam(required = false) String recherche,  de la signature de exporter(…)</span>
+<span class="c">// (2) dans la construction des critères, la position de `recherche` reçoit null :</span>
+        DemandeSearchCriteria criteria = <span class="k">new</span> DemandeSearchCriteria(
+                statut, agence, operationType, operationSens, <span class="k">null</span> <span class="c">/* AER_LM-296 : la recherche libre n'influence jamais l'extraction */</span>,
+                dateDebut, dateFin, zone, prestataire, urgent,
+                0, DemandeSearchCriteria.SIZE_MAX);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>1.4 bis — test contrôleur</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\test\…\RetailDemandControllerTest.java</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// RetailDemandControllerTest — à ajouter à côté des tests de /export existants</span>
+    <span class="a">@Test</span>
+    <span class="k">void</span> exporter_ignoreLaRechercheLibre() throws Exception {
+        Mockito.when(cashDemandUseCase.exporterCaisseCentrale(Mockito.any(), Mockito.any())).thenReturn(exportVide());
+        Mockito.when(exportExcelDemandes.generer(Mockito.any())).thenReturn(<span class="k">new</span> byte[0]);
+
+        mockMvc.perform(<span class="k">get</span>(<span class="s">"/api/v1/retail/cash/export"</span>).param(<span class="s">"recherche"</span>, <span class="s">"1422"</span>).param(<span class="s">"statut"</span>, <span class="s">"SUBMITTED"</span>))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor&lt;DemandeSearchCriteria&gt; criteria = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="k">class</span>);
+        Mockito.verify(cashDemandUseCase).exporterCaisseCentrale(criteria.capture(), Mockito.any());
+        assertNull(criteria.getValue().recherche());
+        assertEquals(<span class="s">"SUBMITTED"</span>, criteria.getValue().statut());
+    }
+    <span class="c">// exportVide() : le helper déjà utilisé par les tests /export (ExportDemandesDTO sans ligne) ; adapte le chemin de l'URL au @RequestMapping du contrôleur.</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>1.5 — données locales : date d&#x27;effet des anciennes demandes</b><br><span class="path">pgAdmin, base fund-management (local uniquement)</span></div><p class="note">Sans ça, tes demandes de test créées avant le champ disparaissent des KPI et des filtres de dates. En recette / prod, c'est la migration du collègue qui doit s'en charger : vérifie avec lui qu'elle existe.</p><pre><button class="copy">Copier</button><code><span class="c">-- LOCAL uniquement : les demandes créées avant le champ du collègue ont date_effet NULL → invisibles des KPI et des filtres de dates.</span>
+UPDATE retail.cash_request SET date_effet = creation_date::date <span class="k">WHERE</span> date_effet IS NULL;</code></pre></div>
+<h2 id="s2">2. Front</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>2.1 — operation.model.ts : DemandeFonds</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\operation.model.ts  (Ctrl+F : createdAt?: string;  dans DemandeFonds)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">// operation.model.ts — interface DemandeFonds, juste après  createdAt?: string;</span>
+  dateEffet?: string | <span class="k">null</span>;   <span class="c">// yyyy-MM-dd (date d'effet : jour de traitement attendu, cut-off et fériés compris)</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>2.2 — demandes-list.regles.ts : versLigne</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.ts  (Ctrl+F : date: d.createdAt  — remplace la ligne)</span></div><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.regles.ts — versLigne : la colonne « Date &amp; heure » affiche la date d'effet (repli : création, puis soumission)</span>
+    date: d.dateEffet ?? d.createdAt ?? brut.submittedAt ?? <span class="k">null</span>,</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>2.2 bis — demandes-list.regles.ts : appliquerKpi et criteresExport</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.ts  (après construireCriteres)</span></div><p class="note">Règles pures, testées en §2.7. <code>aujourdHui()</code> est déjà dans ce fichier.</p><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.regles.ts — À AJOUTER après construireCriteres(…)</span>
+
+<span class="c">/** Carte KPI cliquée. null = aucune : la liste suit les filtres de l'écran. */</span>
+<span class="k">export</span> <span class="k">type</span> KpiActif = <span class="s">'EN_ATTENTE'</span> | <span class="s">'URGENTES'</span> | <span class="s">'TRAITEES'</span> | <span class="k">null</span>;
+
+<span class="c">/**
+ * Règle PO (07/10) : un clic sur une carte montre exactement ce que la carte compte, sans toucher aux filtres visibles.
+ * Les cartes ne connaissent aucun filtre d'écran : on repart donc des seuls page / size / agence et on pose le périmètre de la carte.
+ *   en attente : SOUMISES, date d'effet ≤ aujourd'hui   ·   urgentes : idem + urgent   ·   traitées : TRAITÉES (toutes dates)
+ * Tout changement de filtre, « Actualiser » et l'export ignorent ce périmètre.
+ */</span>
+<span class="k">export</span> <span class="k">function</span> appliquerKpi(c: DemandeCriteria, kpi: KpiActif): DemandeCriteria {
+  <span class="k">if</span> (!kpi) { <span class="k">return</span> c; }
+  <span class="k">const</span> base: DemandeCriteria = { page: c.page, size: c.size, ...(c.agence ? { agence: c.agence } : {}) };
+  <span class="k">switch</span> (kpi) {
+    <span class="k">case</span> <span class="s">'EN_ATTENTE'</span>: <span class="k">return</span> { ...base, statut: <span class="s">'SUBMITTED'</span>, dateFin: <span class="s">`${aujourdHui()}T23:59:59`</span> };
+    <span class="k">case</span> <span class="s">'URGENTES'</span>:   <span class="k">return</span> { ...base, statut: <span class="s">'SUBMITTED'</span>, urgent: <span class="k">true</span>, dateFin: <span class="s">`${aujourdHui()}T23:59:59`</span> };
+    <span class="k">case</span> <span class="s">'TRAITEES'</span>:   <span class="k">return</span> { ...base, statut: <span class="s">'VALIDATED'</span> };
+  }
+}
+
+<span class="c">/** Critères de l'extraction Excel : les filtres de l'écran seulement — ni la recherche libre, ni la carte KPI, ni la pagination. */</span>
+<span class="k">export</span> <span class="k">function</span> criteresExport(f: FiltresListing): DemandeCriteria {
+  <span class="k">return</span> construireCriteres({ ...f, recherche: <span class="s">''</span> }, 0, 0);
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>2.3 — demandes-list.component.ts : membres</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (à côté de criteresCourants)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">// ===== demandes-list.component.ts — À AJOUTER parmi les membres (à côté de criteresCourants) =====</span>
+
+  <span class="c">/** Carte KPI cliquée ; remise à null par tout changement de filtre, par « Actualiser » et jamais lue par l'export. */</span>
+  <span class="k">readonly</span> kpiActif$ = <span class="k">new</span> BehaviorSubject&lt;KpiActif&gt;(<span class="k">null</span>);
+  <span class="c">/** Entrée clavier dans la recherche libre : relance immédiate, sans attendre la seconde de debounce (AER_LM-296). */</span>
+  <span class="k">readonly</span> rechercheEntree$ = <span class="k">new</span> Subject&lt;<span class="k">void</span>&gt;();
+  <span class="c">/** Filtres de l'écran tels qu'ils sont (hors carte KPI) : c'est la source de l'extraction Excel. */</span>
+  filtresCourants: FiltresListing = { statut: TOUS, urgent: <span class="k">false</span>, transporteur: TOUS, zone: TOUTES, <span class="k">type</span>: TOUS, recherche: <span class="s">''</span>, dateDebut: <span class="s">''</span>, dateFin: <span class="s">''</span> };</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>2.3 bis — imports</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (en tête)</span></div><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.component.ts — imports à compléter (Ctrl+F sur chaque ligne, ajoute ce qui manque)</span>
+<span class="k">import</span> { BehaviorSubject, Subject, combineLatest, debounce, distinctUntilChanged, map, merge, startWith, timer } <span class="k">from</span> <span class="s">'rxjs'</span>;
+<span class="k">import</span> { FiltresListing, KpiActif, TOUS, TOUTES, appliquerKpi, criteresExport, construireCriteres, nombreDePages, versLigne,
+         telechargerBlob, nomFichierExtraction, aujourdHui, chipsContenu } <span class="k">from</span> <span class="s">'./demandes-list.regles'</span>;
+<span class="c">// (garde les autres imports déjà présents — STATUTS_AGENCE, STATUTS_CAISSE_CENTRALE, … — l'ordre n'a pas d'importance ;</span>
+<span class="c">//  si TOUTES n'est pas exporté par regles.ts, c'est la constante déjà utilisée par zoneControl dans ce composant : réutilise-la.)</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>2.4 — ngOnInit : flux filtres / KPI / recherche</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : const filtres$ = combineLatest([  — remplace jusqu'à la fin du subscribe qui appelle loadDemandes)</span></div><p class="note">Une seule chaîne : filtres (dont recherche avec debounce 1 s + Entrée) × page × carte KPI → <code>appliquerKpi(construireCriteres(…))</code> → <code>loadDemandes</code>. Les filtres visibles ne sont jamais écrits par un clic KPI.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== demandes-list.component.ts — ngOnInit : REMPLACE le bloc qui va de  const filtres$ = combineLatest([  jusqu'à la fin de</span>
+    <span class="c">//       .subscribe(criteres =&gt; { … this.facade.loadDemandes(criteres); });   par celui-ci =====</span>
+
+    <span class="c">// AER_LM-296 : recherche libre relancée 1 s après la dernière frappe, immédiatement sur Entrée, immédiatement quand le champ est vidé</span>
+    <span class="k">const</span> recherche$ = merge(
+      <span class="k">this</span>.rechercheControl.valueChanges.pipe(debounce(v =&gt; timer(v.trim() ? 1000 : 0))),
+      <span class="k">this</span>.rechercheEntree$.pipe(map(() =&gt; <span class="k">this</span>.rechercheControl.value))
+    ).pipe(
+      startWith(<span class="k">this</span>.rechercheControl.value),
+      map(v =&gt; v.trim()),
+      distinctUntilChanged()
+    );
+
+    <span class="k">const</span> filtres$ = combineLatest([
+      <span class="k">this</span>.statutControl.valueChanges.pipe(startWith(<span class="k">this</span>.statutControl.value)),
+      <span class="k">this</span>.urgentControl.valueChanges.pipe(startWith(<span class="k">this</span>.urgentControl.value)),
+      <span class="k">this</span>.transporteurControl.valueChanges.pipe(startWith(<span class="k">this</span>.transporteurControl.value)),
+      <span class="k">this</span>.zoneControl.valueChanges.pipe(startWith(<span class="k">this</span>.zoneControl.value)),
+      <span class="k">this</span>.typeControl.valueChanges.pipe(startWith(<span class="k">this</span>.typeControl.value)),
+      <span class="k">this</span>.dateDebutControl.valueChanges.pipe(startWith(<span class="k">this</span>.dateDebutControl.value)),
+      <span class="k">this</span>.dateFinControl.valueChanges.pipe(startWith(<span class="k">this</span>.dateFinControl.value)),
+      recherche$
+    ]).pipe(
+      map(([statut, urgent, transporteur, zone, <span class="k">type</span>, dateDebut, dateFin, recherche]): FiltresListing =&gt;
+        ({ statut, urgent, transporteur, zone, <span class="k">type</span>, dateDebut, dateFin, recherche }))
+    );
+
+    <span class="c">// tout changement de filtre → retour page 0 et sortie du périmètre d'une carte KPI</span>
+    filtres$.pipe(takeUntilDestroyed(<span class="k">this</span>.destroyRef)).subscribe(filtres =&gt; {
+      <span class="k">this</span>.filtresCourants = filtres;
+      <span class="k">if</span> (<span class="k">this</span>.page$.value !== 0) { <span class="k">this</span>.page$.next(0); }
+      <span class="k">if</span> (<span class="k">this</span>.kpiActif$.value !== <span class="k">null</span>) { <span class="k">this</span>.kpiActif$.next(<span class="k">null</span>); }
+    });
+
+    combineLatest([filtres$, <span class="k">this</span>.page$, <span class="k">this</span>.kpiActif$])
+      .pipe(
+        map(([filtres, page, kpi]) =&gt; appliquerKpi(construireCriteres(filtres, page, <span class="k">this</span>.taille), kpi)),
+        takeUntilDestroyed(<span class="k">this</span>.destroyRef)
+      )
+      .subscribe(criteres =&gt; {
+        <span class="k">this</span>.criteresCourants = criteres;
+        <span class="k">this</span>.facade.loadDemandes(criteres);
+      });</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>2.4 bis — clics KPI</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : filtrerEnAttente(): void  — remplace les trois méthodes)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">// ===== demandes-list.component.ts — REMPLACE les trois méthodes filtrerEnAttente / filtrerUrgentes / filtrerTraitees (et leurs commentaires) =====</span>
+
+  <span class="c">// Règle PO (07/10) — un clic sur une carte montre ce que la carte compte, sans remplir les filtres visibles (voir appliquerKpi).</span>
+  filtrerEnAttente(): <span class="k">void</span> { <span class="k">this</span>.activerKpi(<span class="s">'EN_ATTENTE'</span>); }
+  filtrerUrgentes(): <span class="k">void</span>  { <span class="k">this</span>.activerKpi(<span class="s">'URGENTES'</span>); }
+  filtrerTraitees(): <span class="k">void</span>  { <span class="k">this</span>.activerKpi(<span class="s">'TRAITEES'</span>); }
+
+  <span class="k">private</span> activerKpi(kpi: KpiActif): <span class="k">void</span> {
+    <span class="k">if</span> (<span class="k">this</span>.page$.value !== 0) { <span class="k">this</span>.page$.next(0); }
+    <span class="k">this</span>.kpiActif$.next(kpi);
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>2.4 ter — Actualiser</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : actualiser(): void  — remplace la méthode)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">// ===== demandes-list.component.ts — REMPLACE actualiser() =====</span>
+
+  <span class="c">/** « Actualiser » : efface la recherche libre, sort du périmètre d'une carte KPI, recharge sur les seuls filtres de l'écran. */</span>
+  actualiser(): <span class="k">void</span> {
+    <span class="k">if</span> (<span class="k">this</span>.rechercheControl.value.trim()) {
+      <span class="k">this</span>.rechercheControl.setValue(<span class="s">''</span>);        <span class="c">// → filtres$ recharge la liste et remet la carte KPI à null</span>
+    } <span class="k">else</span> <span class="k">if</span> (<span class="k">this</span>.kpiActif$.value !== <span class="k">null</span>) {
+      <span class="k">this</span>.kpiActif$.next(<span class="k">null</span>);                 <span class="c">// → le flux recharge la liste sur les filtres de l'écran</span>
+    } <span class="k">else</span> {
+      <span class="k">this</span>.recharger();                          <span class="c">// rien à effacer : rechargement simple (liste + KPI)</span>
+      <span class="k">return</span>;
+    }
+    <span class="k">if</span> (<span class="k">this</span>.estCaisseCentrale) { <span class="k">this</span>.kpi.charger(); }
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>2.5 — exporter()</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts  (Ctrl+F : async exporter()  — remplace la méthode)</span></div><p class="note"><code>criteresCourants</code> (liste) et <code>filtresCourants</code> (export) sont désormais deux sources distinctes : c'était la cause du bug « l'export suit le clic KPI ».</p><pre><button class="copy">Copier</button><code>  <span class="c">// ===== demandes-list.component.ts — REMPLACE exporter() =====</span>
+
+  <span class="c">/** Extraction Excel : filtres de l'écran uniquement — jamais la carte KPI cliquée ni la recherche libre (AER_LM-296). */</span>
+  <span class="k">async</span> exporter(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (<span class="k">this</span>.exportEnCours()) { <span class="k">return</span>; }
+    <span class="k">this</span>.exportEnCours.set(<span class="k">true</span>);
+    try {
+      <span class="k">const</span> fichier = <span class="k">await</span> <span class="k">this</span>.service.exporterDemandes(criteresExport(<span class="k">this</span>.filtresCourants));
+      telechargerBlob(fichier, nomFichierExtraction());
+    } catch (e) {
+      <span class="k">this</span>.snackBar.open(e instanceof ErreurApi ? e.message : <span class="s">"L'extraction Excel a échoué."</span>, <span class="s">'Fermer'</span>, { duration: 6000 });
+    } finally {
+      <span class="k">this</span>.exportEnCours.set(<span class="k">false</span>);
+    }
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>2.6 — template</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html</span></div><p class="note">Trois retouches : Entrée sur la recherche, cellule date sans la ligne HH:mm, classe active sur la carte cliquée (facultatif mais utile pour que l'utilisateur voie quel périmètre est affiché puisque les filtres ne bougent plus).</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- demandes-list.component.html — l'input de la recherche libre : ajoute (keydown.enter) --&gt;</span>
+        &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> <span class="k">type</span>=<span class="s">"search"</span> [formControl]=<span class="s">"rechercheControl"</span>
+               placeholder=<span class="s">"Rechercher par référence, agence, zone…"</span>
+               (keydown.enter)=<span class="s">"$event.preventDefault(); rechercheEntree$.next()"</span>&gt;
+
+<span class="c">&lt;!-- demandes-list.component.html — cellule « Date &amp; heure » : la date d'effet est un jour sans heure → la ligne HH:mm disparaît --&gt;</span>
+            &lt;td <span class="k">class</span>=<span class="s">"cell-date"</span>&gt;
+              &lt;div&gt;{{ (l.date | date: <span class="s">'dd/MM/yyyy'</span>) || <span class="s">'—'</span> }}&lt;/div&gt;
+            &lt;/td&gt;
+
+<span class="c">&lt;!-- demandes-list.component.html — cartes KPI : la carte cliquée est marquée active (classe) ; (click) inchangés --&gt;</span>
+<span class="c">&lt;!-- Ctrl+F : (click)="filtrerEnAttente()"  → ajoute sur le même élément :  [class.kpi--active]="(kpiActif$ | async) === 'EN_ATTENTE'" --&gt;</span>
+<span class="c">&lt;!-- Ctrl+F : (click)="filtrerUrgentes()"   → ajoute :                      [class.kpi--active]="(kpiActif$ | async) === 'URGENTES'" --&gt;</span>
+<span class="c">&lt;!-- Ctrl+F : (click)="filtrerTraitees()"   → ajoute :                      [class.kpi--active]="(kpiActif$ | async) === 'TRAITEES'" --&gt;</span>
+<span class="c">&lt;!-- AsyncPipe : CommonModule est déjà importé par le composant. --&gt;</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>2.6 bis — style de la carte active</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.scss  (à la fin)</span></div><pre><button class="copy">Copier</button><code><span class="c">/* demandes-list.component.scss — à la fin : état « carte active » */</span>
+.kpi--active { outline: 2px solid $primary; outline-offset: -2px; }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>2.7 — tests des règles</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.regles.spec.ts — À AJOUTER (imports : appliquerKpi, criteresExport, construireCriteres, aujourdHui, FiltresListing, DemandeCriteria)</span>
+
+<span class="k">describe</span>(<span class="s">'appliquerKpi'</span>, () =&gt; {
+  <span class="k">const</span> criteres: DemandeCriteria = { page: 2, size: 20, statut: <span class="s">'VALIDATED'</span>, urgent: <span class="k">true</span>, zone: <span class="s">'Z1'</span>, prestataire: <span class="s">'G4S'</span>, recherche: <span class="s">'1422'</span>, dateDebut: <span class="s">'2026-10-01T00:00:00'</span> };
+
+  <span class="k">it</span>(<span class="s">'sans carte, rend les critères inchangés'</span>, () =&gt; {
+    <span class="k">expect</span>(appliquerKpi(criteres, <span class="k">null</span>)).toBe(criteres);
+  });
+
+  <span class="k">it</span>(<span class="s">'en attente : SOUMISES jusqu\'</span>à aujourd\<span class="s">'hui, filtres d\'</span>écran ignorés, page conservée', () =&gt; {
+    <span class="k">expect</span>(appliquerKpi(criteres, <span class="s">'EN_ATTENTE'</span>)).toEqual({ page: 2, size: 20, statut: <span class="s">'SUBMITTED'</span>, dateFin: <span class="s">`${aujourdHui()}T23:59:59`</span> });
+  });
+
+  <span class="k">it</span>(<span class="s">'urgentes : SOUMISES urgentes jusqu\'</span>à aujourd\<span class="s">'hui'</span>, () =&gt; {
+    <span class="k">expect</span>(appliquerKpi(criteres, <span class="s">'URGENTES'</span>)).toEqual({ page: 2, size: 20, statut: <span class="s">'SUBMITTED'</span>, urgent: <span class="k">true</span>, dateFin: <span class="s">`${aujourdHui()}T23:59:59`</span> });
+  });
+
+  <span class="k">it</span>(<span class="s">'traitées : TRAITÉES sans borne de date'</span>, () =&gt; {
+    <span class="k">expect</span>(appliquerKpi(criteres, <span class="s">'TRAITEES'</span>)).toEqual({ page: 2, size: 20, statut: <span class="s">'VALIDATED'</span> });
+  });
+
+  <span class="k">it</span>(<span class="s">'conserve le périmètre agence quand il est posé'</span>, () =&gt; {
+    <span class="k">expect</span>(appliquerKpi({ ...criteres, agence: <span class="s">'1422'</span> }, <span class="s">'TRAITEES'</span>).agence).toBe(<span class="s">'1422'</span>);
+  });
+});
+
+<span class="k">describe</span>(<span class="s">'criteresExport'</span>, () =&gt; {
+  <span class="k">const</span> filtres: FiltresListing = { statut: <span class="s">'SUBMITTED'</span>, urgent: <span class="k">true</span>, transporteur: <span class="s">'G4S'</span>, zone: <span class="s">'Z1'</span>, <span class="k">type</span>: <span class="s">'GAB'</span>, recherche: <span class="s">'nations'</span>, dateDebut: <span class="s">'2026-10-01'</span>, dateFin: <span class="s">'2026-10-07'</span> };
+
+  <span class="k">it</span>(<span class="s">'reprend les filtres de l\'</span>écran sans la recherche libre ni la pagination', () =&gt; {
+    <span class="k">const</span> c = criteresExport(filtres);
+    <span class="k">expect</span>(c.recherche).toBeUndefined();
+    <span class="k">expect</span>(c.page).toBe(0);
+    <span class="k">expect</span>(c.size).toBe(0);
+    <span class="k">expect</span>(c.statut).toBe(<span class="s">'SUBMITTED'</span>);
+    <span class="k">expect</span>(c.urgent).toBeTrue();
+    <span class="k">expect</span>(c.prestataire).toBe(<span class="s">'G4S'</span>);
+    <span class="k">expect</span>(c.zone).toBe(<span class="s">'Z1'</span>);
+    <span class="k">expect</span>(c.operationType).toBe(<span class="s">'ATM'</span>);
+    <span class="k">expect</span>(c.dateDebut).toBe(<span class="s">'2026-10-01T00:00:00'</span>);
+    <span class="k">expect</span>(c.dateFin).toBe(<span class="s">'2026-10-07T23:59:59'</span>);
+  });
+});</code></pre></div>
+<h2 id="s3">3. Vérification</h2>
+<div class="card"><ol>
+<li><code>mvn clean install</code> et <code>ng test</code> verts (dont les nouveaux specs §1.4 bis et §2.7).</li>
+<li>§1.5 exécuté en local, back relancé.</li>
+<li><b>Tableau</b> : colonne « Date &amp; heure » = date d'effet (une demande soumise après le cut-off affiche le lendemain).</li>
+<li><b>Filtres de dates</b> : Date début = Date fin = demain → seules les demandes à effet demain ; les cartes KPI ne bougent pas.</li>
+<li><b>Carte « en attente »</b> : les filtres visibles restent tels quels, la carte se surligne, la liste = SOUMISES à effet ≤ aujourd'hui (même nombre que la carte). Changer n'importe quel filtre → la carte se désactive et la liste suit les filtres.</li>
+<li><b>Carte « urgentes »</b> : idem + urgent ; le total = carte.</li>
+<li><b>Export</b> : carte « en attente » active + statut visible « Tous » + recherche « 1422 » → l'Excel contient toutes les demandes (tous statuts, toutes agences) : ni la carte ni la recherche ne s'appliquent ; avec Date début / Date fin posées, l'Excel les respecte (sur la date d'effet).</li>
+<li><b>Recherche</b> : taper « nations » → liste après 1 s ; taper puis Entrée → immédiat ; « Actualiser » vide la recherche, désactive la carte, recharge.</li>
+</ol>
+<p><b>À faire trancher par le PO</b> : la colonne « Date demande » de l'Excel affiche toujours la date de création (avec l'heure). Si elle doit suivre le tableau, c'est une ligne dans <code>ExtractionDemande.dateDemande()</code> (<code>d.getDateEffet()</code>) et le format <code>DATE_DEMANDE</code> sans heure.</p></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
