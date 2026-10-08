@@ -1,0 +1,299 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Démo — AppComponent : titre par profil/écran, initiales, uid, Déconnexion</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Démo — barre du haut (AppComponent) : titre par profil / écran, initiales et uid de /me, Déconnexion → portail</h1><p>fund-management-front · 08/10/2026 · 4 fichiers complets</p></header>
+<nav><a href="#s0">Changements</a><a href="#s1">Logo</a><a href="#s2">AppComponent</a><a href="#s3">Vérification</a></nav><main><h2 id="s0">0. Ce qui change</h2>
+<div class="card"><p>La barre du haut est dans <code>app.component</code>, pas dans <code>header.component</code>. Correctif dans <code>AppComponent</code> uniquement, en gardant ta structure (<code>mat-menu</code>, classes <code>.app-topbar</code> / <code>.avatar</code>) :</p>
+<table>
+<tr><th>Avant</th><th>Après</th></tr>
+<tr><td><code>&lt;h1&gt;Gestion des fonds - Vue Agence&lt;/h1&gt;</code></td><td><code>titre()</code> : « Vue Caisse Centrale » si le profil est toutes agences sans agence de rattachement (Caisse Centrale, Support, Super Admin) <b>ou</b> si l'URL contient <code>/caisse-centrale</code> ; « Vue Agence » sinon</td></tr>
+<tr><td><code>utilisateurInitiales = 'YR'</code></td><td><code>initialesDe(nomComplet, uid)</code> depuis <code>/me</code> (« … » tant que le contexte n'est pas chargé)</td></tr>
+<tr><td><code>utilisateurUid = 'j43709'</code></td><td><code>contexte().uid</code>, avec le nom complet au-dessus dans le menu</td></tr>
+<tr><td>Pas de logo</td><td>Logo QlickFlow du portail à gauche du titre, clic → dashboard du portail (<code>allerAuPortail()</code>) ; masqué si le fichier manque</td></tr>
+<tr><td>« Déconnexion » sans action</td><td><code>seDeconnecter()</code> → <code>allerALaConnexion()</code> (<code>portail.ts</code>, déjà en place) → <code>http://localhost:4200/login</code></td></tr>
+</table>
+<p><b>Le <code>header.component</code> livré dans le doc précédent n'est pas utilisé</b> (il ne l'était pas avant non plus) : <code>git checkout -- src/app/shared/presenter/components/header</code> pour le remettre comme avant, ou garde-le, il ne gêne pas. <code>portail.ts</code> et le <code>sidebar</code> du doc précédent restent valables.</p></div>
+<h2 id="s1">1. Logo QlickFlow (1 fichier à copier)</h2>
+<div class="card"><p>Copier <code>C:\dev\portail-ci\src\assets\icons\Group 315.svg</code> → <code>C:\dev\fund-management-front\src\assets\logo-qlickflow.svg</code> (créer le dossier <code>assets</code> s'il n'existe pas ; il est déjà déclaré dans l'<code>angular.json</code> généré par le CLI). Le SVG a un fond <code>#F8F9FA</code> quasi blanc, invisible sur la barre blanche.</p></div>
+<h2 id="s2">2. AppComponent</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>app.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\app.component.ts</span></div><p class="note"><code>title</code> (chaîne du générateur) supprimé — il n'était lu que par l'ancien spec. <code>toSignal(…, { requireSync: true })</code> : <code>startWith(router.url)</code> donne la valeur initiale de façon synchrone.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { Component, OnInit, computed, inject, signal } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { toSignal } <span class="k">from</span> <span class="s">'@angular/core/rxjs-interop'</span>;
+<span class="k">import</span> { NavigationEnd, Router, RouterOutlet } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { MatMenuModule } <span class="k">from</span> <span class="s">'@angular/material/menu'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { filter, map, startWith } <span class="k">from</span> <span class="s">'rxjs'</span>;
+<span class="k">import</span> { SidebarComponent } <span class="k">from</span> <span class="s">'./shared/presenter/components/sidebar/sidebar.component'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'./features/fund-management/adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { allerALaConnexion, allerAuPortail, initialesDe } <span class="k">from</span> <span class="s">'./shared/presenter/portail'</span>;
+
+<span class="k">const</span> PREFIXE_CAISSE_CENTRALE = <span class="s">'/caisse-centrale'</span>;
+
+<span class="c">/**
+ * Shell de l'application : menu latéral + barre du haut + router-outlet.
+ * La barre du haut n'a plus rien en dur : logo QlickFlow (retour portail), titre selon le profil / l'écran,
+ * initiales et uid de /me, Déconnexion vers le portail.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-root'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [RouterOutlet, MatMenuModule, MatIconModule, SidebarComponent],
+  templateUrl: <span class="s">'./app.component.html'</span>,
+  styleUrl: <span class="s">'./app.component.css'</span>
+})
+<span class="k">export</span> <span class="k">class</span> AppComponent <span class="k">implements</span> OnInit {
+
+  <span class="k">readonly</span> contexteUtilisateur = inject(ContexteUtilisateurService);
+  <span class="k">private</span> <span class="k">readonly</span> router = inject(Router);
+
+  <span class="c">/** URL courante sous forme de signal (valeur initiale synchrone grâce à startWith). */</span>
+  <span class="k">private</span> <span class="k">readonly</span> url = toSignal(
+    <span class="k">this</span>.router.events.pipe(
+      filter((e): e is NavigationEnd =&gt; e instanceof NavigationEnd),
+      map(e =&gt; e.urlAfterRedirects),
+      startWith(<span class="k">this</span>.router.url)
+    ),
+    { requireSync: <span class="k">true</span> }
+  );
+
+  <span class="c">/**
+   * « Vue Caisse Centrale » pour un profil toutes agences sans agence de rattachement (Caisse Centrale, Support, Super Admin)
+   * ou dès que l'on est sur l'écran /caisse-centrale ; « Vue Agence » sinon.
+   */</span>
+  <span class="k">readonly</span> titre = computed(() =&gt; {
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">const</span> profilCentral = !!ctx &amp;&amp; !ctx.agenceCode &amp;&amp; ctx.habilitations.toutesAgences;
+    <span class="k">const</span> ecranCentral = <span class="k">this</span>.url().includes(PREFIXE_CAISSE_CENTRALE);
+    <span class="k">return</span> profilCentral || ecranCentral ? <span class="s">'Gestion des fonds - Vue Caisse Centrale'</span> : <span class="s">'Gestion des fonds - Vue Agence'</span>;
+  });
+
+  <span class="c">/** « Youssef Rouane » → YR ; sans prénom/nom → 2 premiers caractères de l'uid ; « … » tant que /me n'a pas répondu. */</span>
+  <span class="k">readonly</span> utilisateurInitiales = computed(() =&gt; {
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">return</span> ctx ? initialesDe(ctx.nomComplet, ctx.uid) : <span class="s">'…'</span>;
+  });
+
+  <span class="k">readonly</span> utilisateurUid = computed(() =&gt; <span class="k">this</span>.contexteUtilisateur.contexte()?.uid ?? <span class="s">'…'</span>);
+  <span class="k">readonly</span> utilisateurNom = computed(() =&gt; <span class="k">this</span>.contexteUtilisateur.contexte()?.nomComplet ?? <span class="s">''</span>);
+
+  <span class="c">/** assets/logo-qlickflow.svg introuvable → on n'affiche pas d'image cassée. */</span>
+  <span class="k">readonly</span> logoAbsent = signal(<span class="k">false</span>);
+
+  ngOnInit(): <span class="k">void</span> {
+    <span class="k">this</span>.contexteUtilisateur.charger();   <span class="c">// idempotent : partagé avec le menu latéral et les gardes de route</span>
+  }
+
+  <span class="c">/** Clic sur le logo QlickFlow : retour au portail (dashboard). */</span>
+  allerAuPortail(): <span class="k">void</span> {
+    allerAuPortail();
+  }
+
+  seDeconnecter(): <span class="k">void</span> {
+    allerALaConnexion();
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>app.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\app.component.html</span></div><p class="note">Même <code>mat-menu</code> ; la première entrée (disabled) affiche nom complet + « Connecté : uid » sur deux lignes.</p><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">"app-shell"</span>&gt;
+
+  &lt;app-sidebar&gt;&lt;/app-sidebar&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"app-main"</span>&gt;
+
+    &lt;header <span class="k">class</span>=<span class="s">"app-topbar"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"app-topbar__gauche"</span>&gt;
+        <span class="a">@if</span> (!logoAbsent()) {
+          &lt;img src=<span class="s">"assets/logo-qlickflow.svg"</span> alt=<span class="s">"QlickFlow"</span> <span class="k">class</span>=<span class="s">"app-logo"</span>
+               title=<span class="s">"Retour au portail QlickFlow"</span> (click)=<span class="s">"allerAuPortail()"</span> (error)=<span class="s">"logoAbsent.set(true)"</span>&gt;
+        }
+        &lt;h1&gt;{{ titre() }}&lt;/h1&gt;
+      &lt;/div&gt;
+
+      &lt;button <span class="k">class</span>=<span class="s">"avatar"</span> [matMenuTriggerFor]=<span class="s">"menuUser"</span> [title]=<span class="s">"utilisateurNom()"</span> aria-label=<span class="s">"Menu utilisateur"</span>&gt;
+        {{ utilisateurInitiales() }}
+      &lt;/button&gt;
+
+      &lt;mat-menu #menuUser=<span class="s">"matMenu"</span>&gt;
+        &lt;button mat-menu-item disabled&gt;
+          &lt;mat-icon&gt;person&lt;/mat-icon&gt;
+          &lt;span <span class="k">class</span>=<span class="s">"menu-identite"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"menu-identite__nom"</span>&gt;{{ utilisateurNom() }}&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"menu-identite__uid"</span>&gt;Connecté : {{ utilisateurUid() }}&lt;/span&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;button mat-menu-item (click)=<span class="s">"seDeconnecter()"</span>&gt;
+          &lt;mat-icon&gt;logout&lt;/mat-icon&gt; Déconnexion
+        &lt;/button&gt;
+      &lt;/mat-menu&gt;
+    &lt;/header&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"app-content"</span>&gt;
+      &lt;router-outlet&gt;&lt;/router-outlet&gt;
+    &lt;/div&gt;
+
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>app.component.css</b><br><span class="path">C:\dev\fund-management-front\src\app\app.component.css</span></div><p class="note">Ajout des deux classes <code>.menu-identite*</code> ; le reste est identique.</p><pre><button class="copy">Copier</button><code>.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f6f8f7;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #e8ecea;
+  padding: 14px 28px;
+}
+
+.app-topbar__gauche {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+<span class="c">/* Logo QlickFlow du portail (assets/logo-qlickflow.svg = Group 315.svg, 226×59) */</span>
+.app-logo {
+  height: 40px;
+  width: auto;
+  display: block;
+  cursor: pointer;
+}
+
+.app-topbar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0e7d5a;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #0e7d5a;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: .02em;
+  cursor: pointer;
+}
+
+<span class="c">/* Première entrée du menu : nom complet + uid sur deux lignes (le bouton est disabled : on garde le texte lisible) */</span>
+.menu-identite {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.menu-identite__nom { font-weight: 600; color: #1e293b; }
+.menu-identite__uid { font-size: 0.8rem; color: #5c6b63; }
+
+.app-content {
+  padding: 24px 28px;
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>app.component.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\app.component.spec.ts</span></div><p class="note">L'ancien spec cassait (<code>app.title</code>, « Hello, QlickFlow… »). Doublure de <code>ContexteUtilisateurService</code> avec les deux signaux lus par le shell et le menu latéral ; <code>provideRouter([])</code> pour <code>router-outlet</code> / <code>routerLink</code>.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { TestBed } <span class="k">from</span> <span class="s">'@angular/core/testing'</span>;
+<span class="k">import</span> { signal } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { provideRouter } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { AppComponent } <span class="k">from</span> <span class="s">'./app.component'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'./features/fund-management/adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { ContexteGdf } <span class="k">from</span> <span class="s">'./features/fund-management/domain/domain-core/entities/contexte-utilisateur.model'</span>;
+
+<span class="k">const</span> HABILITATIONS_AGENCE = { consulter: <span class="k">true</span>, creer: <span class="k">true</span>, modifier: <span class="k">true</span>, annuler: <span class="k">true</span>, traiter: <span class="k">false</span>, toutesAgences: <span class="k">false</span>, exporter: <span class="k">false</span> };
+<span class="k">const</span> HABILITATIONS_CC = { consulter: <span class="k">true</span>, creer: <span class="k">false</span>, modifier: <span class="k">false</span>, annuler: <span class="k">true</span>, traiter: <span class="k">true</span>, toutesAgences: <span class="k">true</span>, exporter: <span class="k">true</span> };
+
+<span class="k">const</span> DA: ContexteGdf = {
+  uid: <span class="s">'j43709'</span>, nomComplet: <span class="s">'Youssef Rouane'</span>, profileCode: <span class="s">'DA'</span>, profileName: <span class="s">'Directeur d\'</span>agence',
+  agenceCode: <span class="s">'1422'</span>, agenceNom: <span class="s">'DAR BOUAAZA'</span>, permissions: [], habilitations: HABILITATIONS_AGENCE
+};
+<span class="k">const</span> CAISSE_CENTRALE: ContexteGdf = {
+  uid: <span class="s">'c00001'</span>, nomComplet: <span class="s">'c00001'</span>, profileCode: <span class="s">'CAISSE_CENTRALE'</span>, profileName: <span class="s">'Caisse Centrale'</span>,
+  agenceCode: <span class="k">null</span>, agenceNom: <span class="k">null</span>, permissions: [], habilitations: HABILITATIONS_CC
+};
+
+<span class="c">/** Doublure minimale : les deux signaux lus par le shell et le menu latéral, plus charger() sans réseau. */</span>
+<span class="k">class</span> ContexteUtilisateurStub {
+  <span class="k">readonly</span> contexte = signal&lt;ContexteGdf | <span class="k">null</span>&gt;(<span class="k">null</span>);
+  <span class="k">readonly</span> habilitations = signal(HABILITATIONS_AGENCE);
+  charger(): Promise&lt;ContexteGdf | <span class="k">null</span>&gt; { <span class="k">return</span> Promise.resolve(<span class="k">this</span>.contexte()); }
+}
+
+<span class="k">describe</span>(<span class="s">'AppComponent'</span>, () =&gt; {
+  <span class="k">let</span> stub: ContexteUtilisateurStub;
+
+  <span class="k">beforeEach</span>(<span class="k">async</span> () =&gt; {
+    stub = <span class="k">new</span> ContexteUtilisateurStub();
+    <span class="k">await</span> TestBed.configureTestingModule({
+      imports: [AppComponent],
+      providers: [provideRouter([]), { provide: ContexteUtilisateurService, useValue: stub }]
+    }).compileComponents();
+  });
+
+  <span class="k">it</span>(<span class="s">'should create the app'</span>, () =&gt; {
+    <span class="k">const</span> fixture = TestBed.createComponent(AppComponent);
+    <span class="k">expect</span>(fixture.componentInstance).toBeTruthy();
+  });
+
+  <span class="k">it</span>(<span class="s">'affiche « Vue Agence », les initiales et l\'</span>uid pour un profil agence', () =&gt; {
+    stub.contexte.set(DA);
+    <span class="k">const</span> fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    <span class="k">const</span> html = fixture.nativeElement as HTMLElement;
+    <span class="k">expect</span>(html.querySelector(<span class="s">'h1'</span>)?.textContent).toContain(<span class="s">'Gestion des fonds - Vue Agence'</span>);
+    <span class="k">expect</span>(html.querySelector(<span class="s">'.avatar'</span>)?.textContent?.trim()).toBe(<span class="s">'YR'</span>);
+    <span class="k">expect</span>(fixture.componentInstance.utilisateurUid()).toBe(<span class="s">'j43709'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'affiche « Vue Caisse Centrale » pour un profil toutes agences sans agence'</span>, () =&gt; {
+    stub.contexte.set(CAISSE_CENTRALE);
+    stub.habilitations.set(HABILITATIONS_CC);
+    <span class="k">const</span> fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    <span class="k">expect</span>((fixture.nativeElement as HTMLElement).querySelector(<span class="s">'h1'</span>)?.textContent).toContain(<span class="s">'Vue Caisse Centrale'</span>);
+    <span class="k">expect</span>(fixture.componentInstance.utilisateurInitiales()).toBe(<span class="s">'C0'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'affiche « … » tant que /me n\'</span>a pas répondu', () =&gt; {
+    <span class="k">const</span> fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    <span class="k">expect</span>((fixture.nativeElement as HTMLElement).querySelector(<span class="s">'.avatar'</span>)?.textContent?.trim()).toBe(<span class="s">'…'</span>);
+  });
+});</code></pre></div>
+<h2 id="s3">3. Vérification</h2>
+<div class="card"><ol>
+<li><code>j43709</code> (DA, agence 1422) : h1 « Gestion des fonds - Vue Agence », avatar aux initiales de prénom/nom renvoyés par <code>/me</code> (« J4 » si <code>/me</code> ne renvoie pas de nom), menu « {nom} / Connecté : j43709 ».</li>
+<li>Profil Caisse Centrale (uid sans agence, profil 10) : h1 « Gestion des fonds - Vue Caisse Centrale » dès l'arrivée, quel que soit l'écran.</li>
+<li>Profil agence qui ouvre <code>/caisse-centrale</code> (ex. Super Admin rattaché à une agence) : le titre bascule sur « Vue Caisse Centrale » à la navigation et revient sur « Vue Agence » en quittant l'écran.</li>
+<li>Logo QlickFlow à gauche du titre ; clic → <code>http://localhost:4200</code>.</li>
+<li>« Déconnexion » (menu avatar ou barre latérale) → <code>http://localhost:4200/login</code>.</li>
+<li><code>ng test --include src/app/app.component.spec.ts</code> : 4 specs vertes.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
