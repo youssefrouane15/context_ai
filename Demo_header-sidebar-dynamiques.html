@@ -1,0 +1,521 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Démo — barre du haut et menu latéral dynamiques (titre, initiales, déconnexion, logo BMCI)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Démo — barre du haut et menu latéral dynamiques : titre par écran, initiales, « Connecté : uid », Déconnexion → portail, logo BMCI</h1><p>fund-management-front · 08/10/2026 · fichiers complets</p></header>
+<nav><a href="#s0">Changements</a><a href="#s1">Assets</a><a href="#s2">portail.ts</a><a href="#s3">Header</a><a href="#s4">Sidebar</a><a href="#s5">Branchement</a><a href="#s6">Vérification</a></nav><main><h2 id="s0">0. Ce qui change</h2>
+<div class="card"><table>
+<tr><th>Avant (en dur)</th><th>Après</th><th>Où</th></tr>
+<tr><td>« Gestion des fonds - Vue Agence » partout</td><td>« … - Vue Caisse Centrale » dès que l'URL contient <code>/caisse-centrale</code>, « … - Vue Agence » sinon (signal sur les <code>NavigationEnd</code> du Router)</td><td><code>HeaderComponent.titre</code></td></tr>
+<tr><td>Avatar « YR »</td><td>Initiales calculées depuis <code>nomComplet</code> de <code>/me</code> (« Youssef Rouane » → YR ; sans prénom/nom → 2 premiers caractères de l'uid)</td><td><code>initialesDe()</code> dans <code>portail.ts</code></td></tr>
+<tr><td>« Connecté : j43709 »</td><td>Nom complet + « Connecté : {uid} » depuis le contexte</td><td>menu de <code>HeaderComponent</code></td></tr>
+<tr><td>« Déconnexion » (<code>href="#"</code> et menu)</td><td><code>window.location.href = environment.portailUrl + '/login'</code> → <code>http://localhost:4200/login</code></td><td><code>allerALaConnexion()</code>, appelée par la barre du haut et le menu latéral</td></tr>
+<tr><td>Carré vert vide à côté de « Caisse Centrale »</td><td>Logo BMCI (<code>assets/logo-bmci.png</code>) ; si le fichier manque, carré vert « BMCI » — jamais d'image cassée</td><td><code>SidebarComponent</code></td></tr>
+<tr><td>Logo <code>src="data:"</code> cassé dans le header</td><td>Logo QlickFlow du portail (<code>assets/logo-qlickflow.svg</code>), masqué s'il manque</td><td><code>HeaderComponent</code></td></tr>
+</table>
+<p>Fichiers livrés en entier : <code>portail.ts</code> (nouveau), <code>header.component.ts/.html/.css</code>, <code>sidebar.component.ts/.html/.scss</code>. <code>environment.ts</code> ne change pas (<code>portailUrl</code> existe déjà). Le <code>@Input() title</code> du header, jamais rendu dans son template, est supprimé : le titre est calculé.</p></div>
+<h2 id="s1">1. Assets (2 fichiers à déposer)</h2>
+<div class="card"><ol>
+<li><b>Logo QlickFlow</b> : copier <code>C:\dev\portail-ci\src\assets\icons\Group 315.svg</code> → <code>C:\dev\fund-management-front\src\assets\logo-qlickflow.svg</code>.</li>
+<li><b>Logo BMCI</b> : déposer le logo (PNG ou SVG, fond transparent de préférence) sous <code>C:\dev\fund-management-front\src\assets\logo-bmci.png</code>. Je n'en vois pas dans <code>portail-ci/src/assets/icons</code> : à récupérer sur l'intranet ou dans un support BMCI existant. Si tu as un SVG, garde l'extension <code>.svg</code> et adapte le <code>src</code> dans <code>sidebar.component.html</code>.</li>
+</ol>
+<p>Les deux images ont un repli : sans <code>logo-bmci.png</code> le carré vert affiche « BMCI », sans <code>logo-qlickflow.svg</code> le header affiche seulement le titre. <code>src/assets</code> est déjà servi par l'<code>angular.json</code> (dossier standard) ; avec le <code>base href="./"</code>, les chemins relatifs <code>assets/…</code> fonctionnent en local comme derrière <code>/qlickflow/fund_management/</code>.</p></div>
+<h2 id="s2">2. Sorties vers le portail (nouveau)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>portail.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\portail.ts</span></div><p class="note">Un seul endroit pour « Accueil », « Déconnexion » et le calcul des initiales. Chemin d'import de <code>environment</code> : 3 niveaux (<code>shared/presenter</code> → <code>src</code>).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { environment } <span class="k">from</span> <span class="s">'../../../environments/environment'</span>;
+
+<span class="c">/**
+ * Sorties vers le portail QlickFlow (shell). Un seul endroit pour les deux liens de sortie
+ * (barre du haut et menu latéral), en attendant que le shell micro-frontend prenne la main.
+ */</span>
+
+<span class="c">/** « Accueil » : dashboard du portail. */</span>
+<span class="k">export</span> <span class="k">function</span> allerAuPortail(): <span class="k">void</span> {
+  window.location.href = environment.portailUrl;
+}
+
+<span class="c">/** « Déconnexion » : page de connexion du portail. */</span>
+<span class="k">export</span> <span class="k">function</span> allerALaConnexion(): <span class="k">void</span> {
+  window.location.href = <span class="s">`${environment.portailUrl}/login`</span>;
+}
+
+<span class="c">/** Initiales affichées dans l'avatar : « Youssef Rouane » → YR ; sans prénom/nom, les 2 premiers caractères de l'uid. */</span>
+<span class="k">export</span> <span class="k">function</span> initialesDe(nomComplet: string | <span class="k">null</span> | undefined, uid: string): string {
+  <span class="k">const</span> nom = (nomComplet ?? <span class="s">''</span>).trim();
+  <span class="k">if</span> (nom &amp;&amp; nom !== uid) {
+    <span class="k">const</span> mots = nom.split(/\s+/).filter(Boolean);
+    <span class="k">return</span> mots.length &gt;= 2
+      ? (mots[0][0] + mots[mots.length - 1][0]).toUpperCase()
+      : mots[0].slice(0, 2).toUpperCase();
+  }
+  <span class="k">return</span> uid.slice(0, 2).toUpperCase();
+}</code></pre></div>
+<h2 id="s3">3. Barre du haut</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>header.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\header\header.component.ts</span></div><p class="note"><code>toSignal(router.events…, { requireSync: true })</code> : <code>startWith(router.url)</code> donne la valeur initiale de façon synchrone. Le menu se ferme sur un clic ailleurs (<code>@HostListener('document:click')</code>) ; le clic sur l'avatar fait <code>stopPropagation()</code>.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { NgIf } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { ChangeDetectionStrategy, Component, HostListener, OnInit, computed, inject, signal } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { toSignal } <span class="k">from</span> <span class="s">'@angular/core/rxjs-interop'</span>;
+<span class="k">import</span> { NavigationEnd, Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { filter, map, startWith } <span class="k">from</span> <span class="s">'rxjs'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'../../../../features/fund-management/adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { allerALaConnexion, allerAuPortail, initialesDe } <span class="k">from</span> <span class="s">'../../portail'</span>;
+
+<span class="k">const</span> PREFIXE_CAISSE_CENTRALE = <span class="s">'/caisse-centrale'</span>;
+
+<span class="c">/**
+ * Barre du haut : titre selon l'écran (Vue Agence / Vue Caisse Centrale), « Accueil » vers le portail,
+ * avatar aux initiales de l'utilisateur connecté (/me) avec menu « Connecté : uid » / « Déconnexion ».
+ * Rien n'est en dur : tout vient de ContexteUtilisateurService et de l'URL courante.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-header'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [NgIf],
+  templateUrl: <span class="s">'./header.component.html'</span>,
+  styleUrl: <span class="s">'./header.component.css'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> HeaderComponent <span class="k">implements</span> OnInit {
+
+  <span class="k">readonly</span> contexteUtilisateur = inject(ContexteUtilisateurService);
+  <span class="k">private</span> <span class="k">readonly</span> router = inject(Router);
+
+  <span class="c">/** URL courante sous forme de signal : le titre bascule quand on entre / sort de l'écran Caisse Centrale. */</span>
+  <span class="k">private</span> <span class="k">readonly</span> url = toSignal(
+    <span class="k">this</span>.router.events.pipe(
+      filter((e): e is NavigationEnd =&gt; e instanceof NavigationEnd),
+      map(e =&gt; e.urlAfterRedirects),
+      startWith(<span class="k">this</span>.router.url)
+    ),
+    { requireSync: <span class="k">true</span> }
+  );
+
+  <span class="k">readonly</span> titre = computed(() =&gt;
+    <span class="k">this</span>.url().includes(PREFIXE_CAISSE_CENTRALE) ? <span class="s">'Gestion des fonds - Vue Caisse Centrale'</span> : <span class="s">'Gestion des fonds - Vue Agence'</span>);
+
+  <span class="k">readonly</span> initiales = computed(() =&gt; {
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">return</span> ctx ? initialesDe(ctx.nomComplet, ctx.uid) : <span class="s">'…'</span>;
+  });
+
+  <span class="k">readonly</span> menuOuvert = signal(<span class="k">false</span>);
+  <span class="k">readonly</span> logoAbsent = signal(<span class="k">false</span>);        <span class="c">// assets/logo-qlickflow.svg manquant → pas d'image cassée</span>
+
+  ngOnInit(): <span class="k">void</span> {
+    <span class="k">this</span>.contexteUtilisateur.charger();        <span class="c">// idempotent</span>
+  }
+
+  basculerMenu(evenement: Event): <span class="k">void</span> {
+    evenement.stopPropagation();
+    <span class="k">this</span>.menuOuvert.update(ouvert =&gt; !ouvert);
+  }
+
+  <span class="c">/** Un clic n'importe où ailleurs referme le menu. */</span>
+  <span class="a">@HostListener</span>(<span class="s">'document:click'</span>)
+  fermerMenu(): <span class="k">void</span> {
+    <span class="k">this</span>.menuOuvert.set(<span class="k">false</span>);
+  }
+
+  navigateToHome(): <span class="k">void</span> {
+    allerAuPortail();
+  }
+
+  seDeconnecter(): <span class="k">void</span> {
+    allerALaConnexion();
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>header.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\header\header.component.html</span></div><pre><button class="copy">Copier</button><code>&lt;header <span class="k">class</span>=<span class="s">"container"</span>&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"leftSection"</span>&gt;
+    &lt;a <span class="k">class</span>=<span class="s">"brand"</span> (click)=<span class="s">"navigateToHome()"</span> title=<span class="s">"Retour au portail QlickFlow"</span>&gt;
+      &lt;img *ngIf=<span class="s">"!logoAbsent()"</span> src=<span class="s">"assets/logo-qlickflow.svg"</span> alt=<span class="s">"QlickFlow"</span> <span class="k">class</span>=<span class="s">"logoImage"</span> (error)=<span class="s">"logoAbsent.set(true)"</span>&gt;
+    &lt;/a&gt;
+    &lt;h1 <span class="k">class</span>=<span class="s">"titre"</span>&gt;{{ titre() }}&lt;/h1&gt;
+  &lt;/div&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"right-section"</span>&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"home-icon"</span> (click)=<span class="s">"navigateToHome()"</span>&gt;
+      &lt;svg width=<span class="s">"20"</span> height=<span class="s">"20"</span> viewBox=<span class="s">"0 0 24 24"</span> fill=<span class="s">"none"</span> xmlns=<span class="s">"http://www.w3.org/2000/svg"</span>&gt;
+        &lt;path d=<span class="s">"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"</span> fill=<span class="s">"currentColor"</span>/&gt;
+      &lt;/svg&gt;
+      &lt;span&gt;Accueil&lt;/span&gt;
+    &lt;/button&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"user"</span>&gt;
+      &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"user-avatar"</span> (click)=<span class="s">"basculerMenu($event)"</span>
+              [attr.aria-expanded]=<span class="s">"menuOuvert()"</span> aria-haspopup=<span class="s">"menu"</span> title=<span class="s">"{{ contexteUtilisateur.contexte()?.nomComplet }}"</span>&gt;
+        {{ initiales() }}
+      &lt;/button&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"user-menu"</span> role=<span class="s">"menu"</span> *ngIf=<span class="s">"menuOuvert()"</span> (click)=<span class="s">"$event.stopPropagation()"</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"user-menu__item user-menu__identite"</span>&gt;
+          &lt;svg xmlns=<span class="s">"http://www.w3.org/2000/svg"</span> width=<span class="s">"18"</span> height=<span class="s">"18"</span> viewBox=<span class="s">"0 0 24 24"</span> fill=<span class="s">"none"</span>
+               stroke=<span class="s">"currentColor"</span> stroke-width=<span class="s">"2"</span> stroke-linecap=<span class="s">"round"</span> stroke-linejoin=<span class="s">"round"</span>&gt;
+            &lt;path d=<span class="s">"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"</span>&gt;&lt;/path&gt;
+            &lt;circle cx=<span class="s">"12"</span> cy=<span class="s">"7"</span> r=<span class="s">"4"</span>&gt;&lt;/circle&gt;
+          &lt;/svg&gt;
+          &lt;span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"user-name"</span>&gt;{{ contexteUtilisateur.contexte()?.nomComplet }}&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"user-role"</span>&gt;Connecté : {{ contexteUtilisateur.contexte()?.uid }}&lt;/span&gt;
+          &lt;/span&gt;
+        &lt;/div&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"user-menu__item user-menu__action"</span> role=<span class="s">"menuitem"</span> (click)=<span class="s">"seDeconnecter()"</span>&gt;
+          &lt;svg xmlns=<span class="s">"http://www.w3.org/2000/svg"</span> width=<span class="s">"18"</span> height=<span class="s">"18"</span> viewBox=<span class="s">"0 0 24 24"</span> fill=<span class="s">"none"</span>
+               stroke=<span class="s">"currentColor"</span> stroke-width=<span class="s">"2"</span> stroke-linecap=<span class="s">"round"</span> stroke-linejoin=<span class="s">"round"</span>&gt;
+            &lt;path d=<span class="s">"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"</span>&gt;&lt;/path&gt;
+            &lt;polyline points=<span class="s">"16 17 21 12 16 7"</span>&gt;&lt;/polyline&gt;
+            &lt;line x1=<span class="s">"21"</span> y1=<span class="s">"12"</span> x2=<span class="s">"9"</span> y2=<span class="s">"12"</span>&gt;&lt;/line&gt;
+          &lt;/svg&gt;
+          &lt;span&gt;Déconnexion&lt;/span&gt;
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+&lt;/header&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>header.component.css</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\header\header.component.css</span></div><p class="note">Variables globales conservées avec repli (<code>--bnp-green</code>, <code>--spacing-md/lg</code>, <code>--font-size-sm/xs</code>, <code>--slate-dark</code>). Avatar vert aux initiales, menu déroulant blanc ombré comme sur ta capture.</p><pre><button class="copy">Copier</button><code>.container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: var(--spacing-md, 12px) var(--spacing-lg, 24px);
+    max-width: 100%;
+    background: #fff;
+    border-bottom: 1px solid #e8ecea;
+}
+
+.leftSection {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-width: 0;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.logoImage {
+    height: 40px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.titre {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--bnp-green, #0e7d5a);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.right-section {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+<span class="c">/* « Accueil » : retour au portail */</span>
+.home-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--slate-dark, #1e293b);
+    font: inherit;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.home-icon:hover { background: #eef4f1; }
+
+<span class="c">/* Avatar aux initiales + menu */</span>
+.user {
+    position: relative;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--bnp-green, #0e7d5a);
+    color: #fff;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    cursor: pointer;
+}
+.user-avatar:hover, .user-avatar[aria-expanded=<span class="s">"true"</span>] { background: #0b6448; }
+
+.user-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 240px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid #e8ecea;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+    z-index: 50;
+}
+
+.user-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--slate-dark, #1e293b);
+    font: inherit;
+    text-align: left;
+}
+
+.user-menu__identite { border-bottom: 1px solid #eef4f1; border-radius: 8px 8px 0 0; cursor: default; }
+.user-menu__identite &gt; span { display: flex; flex-direction: column; min-width: 0; }
+
+.user-menu__action { cursor: pointer; }
+.user-menu__action:hover { background: #eef4f1; }
+
+.user-name {
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-role {
+    font-size: var(--font-size-xs, 0.75rem);
+    opacity: .85;
+}</code></pre></div>
+<h2 id="s4">4. Menu latéral</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>sidebar.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.ts</span></div><p class="note">Nouveau : <code>logoAbsent</code> (signal) et <code>seDeconnecter()</code>. <code>titre</code> / <code>sousTitre</code> inchangés.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { NgIf } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { RouterLink, RouterLinkActive } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'../../../../features/fund-management/adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { allerALaConnexion } <span class="k">from</span> <span class="s">'../../portail'</span>;
+
+<span class="c">/**
+ * AER_LM-266 : le menu se cadre par habilitation (Nouvelle Demande = creer, Historique = consulter,
+ * Caisse Centrale = toutesAgences) et l'en-tête affiche l'agence réelle de /me (plus de « 1001 - Nations Unies » en dur).
+ * Logo BMCI dans l'en-tête (assets/logo-bmci.png, repli texte si absent) ; « Déconnexion » renvoie à la page de connexion du portail.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-sidebar'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [NgIf, RouterLink, RouterLinkActive, MatIconModule],
+  templateUrl: <span class="s">'./sidebar.component.html'</span>,
+  styleUrl: <span class="s">'./sidebar.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> SidebarComponent <span class="k">implements</span> OnInit {
+
+  <span class="k">readonly</span> contexteUtilisateur = inject(ContexteUtilisateurService);
+  <span class="k">readonly</span> habilitations = <span class="k">this</span>.contexteUtilisateur.habilitations;
+
+  <span class="c">/** « Réseau Agence » pour un profil rattaché à une agence, « Caisse Centrale » sinon (Caisse Centrale, Support, Super Admin). */</span>
+  <span class="k">readonly</span> titre = computed(() =&gt; <span class="k">this</span>.contexteUtilisateur.contexte()?.agenceCode ? <span class="s">'Réseau Agence'</span> : <span class="s">'Caisse Centrale'</span>);
+
+  <span class="c">/** « 1001 - Nations Unies » pour une agence, le libellé du profil sinon. */</span>
+  <span class="k">readonly</span> sousTitre = computed(() =&gt; {
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">if</span> (!ctx) { <span class="k">return</span> <span class="s">'…'</span>; }
+    <span class="k">if</span> (ctx.agenceCode) { <span class="k">return</span> ctx.agenceNom ? <span class="s">`${ctx.agenceCode} - ${ctx.agenceNom}`</span> : ctx.agenceCode; }
+    <span class="k">return</span> ctx.profileName ?? ctx.profileCode ?? <span class="s">'Siège'</span>;
+  });
+
+  <span class="c">/** assets/logo-bmci.png introuvable → carré vert « BMCI » à la place d'une image cassée. */</span>
+  <span class="k">readonly</span> logoAbsent = signal(<span class="k">false</span>);
+
+  ngOnInit(): <span class="k">void</span> {
+    <span class="k">this</span>.contexteUtilisateur.charger();   <span class="c">// idempotent : partagé avec les gardes de route</span>
+  }
+
+  seDeconnecter(): <span class="k">void</span> {
+    allerALaConnexion();
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>sidebar.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.html</span></div><p class="note">« Déconnexion » devient un <code>&lt;button&gt;</code> (plus de <code>href="#"</code> qui rechargeait la route) ; « Aide » garde son lien mais ne navigue plus.</p><pre><button class="copy">Copier</button><code>&lt;aside <span class="k">class</span>=<span class="s">"sidebar"</span>&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"sidebar-brand"</span>&gt;
+    &lt;img *ngIf=<span class="s">"!logoAbsent()"</span> src=<span class="s">"assets/logo-bmci.png"</span> alt=<span class="s">"BMCI"</span> <span class="k">class</span>=<span class="s">"brand-logo"</span> (error)=<span class="s">"logoAbsent.set(true)"</span>&gt;
+    &lt;div *ngIf=<span class="s">"logoAbsent()"</span> <span class="k">class</span>=<span class="s">"brand-logo brand-logo--texte"</span> aria-label=<span class="s">"BMCI"</span>&gt;BMCI&lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"brand-txt"</span>&gt;
+      &lt;span <span class="k">class</span>=<span class="s">"brand-titre"</span>&gt;{{ titre() }}&lt;/span&gt;
+      &lt;span <span class="k">class</span>=<span class="s">"brand-agence"</span>&gt;{{ sousTitre() }}&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;nav <span class="k">class</span>=<span class="s">"sidebar-nav"</span>&gt;
+    &lt;a routerLink=<span class="s">"/"</span> [routerLinkActiveOptions]=<span class="s">"{ exact: true }"</span>
+       routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().creer"</span>&gt;
+      &lt;mat-icon&gt;add_circle_outline&lt;/mat-icon&gt;
+      &lt;span&gt;Nouvelle Demande&lt;/span&gt;
+    &lt;/a&gt;
+
+    &lt;a routerLink=<span class="s">"/list"</span> routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().consulter"</span>&gt;
+      &lt;mat-icon&gt;history&lt;/mat-icon&gt;
+      &lt;span&gt;Historique Demandes&lt;/span&gt;
+    &lt;/a&gt;
+
+    &lt;a routerLink=<span class="s">"/caisse-centrale"</span> routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().toutesAgences"</span>&gt;
+      &lt;mat-icon&gt;account_balance&lt;/mat-icon&gt;
+      &lt;span&gt;Caisse Centrale&lt;/span&gt;
+    &lt;/a&gt;
+  &lt;/nav&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"sidebar-footer"</span>&gt;
+    &lt;a <span class="k">class</span>=<span class="s">"nav-item"</span> href=<span class="s">"#"</span> (click)=<span class="s">"$event.preventDefault()"</span>&gt;
+      &lt;mat-icon&gt;help_outline&lt;/mat-icon&gt;&lt;span&gt;Aide&lt;/span&gt;
+    &lt;/a&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"nav-item"</span> (click)=<span class="s">"seDeconnecter()"</span>&gt;
+      &lt;mat-icon&gt;logout&lt;/mat-icon&gt;&lt;span&gt;Déconnexion&lt;/span&gt;
+    &lt;/button&gt;
+  &lt;/div&gt;
+
+&lt;/aside&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>sidebar.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.scss</span></div><p class="note"><code>.nav-item</code> reçoit les remises à zéro d'un bouton (border 0, background transparent, font-family inherit, width 100%) pour que le bouton Déconnexion soit identique aux liens. Logo : 40×40, <code>object-fit: contain</code>, bordure fine ; repli <code>.brand-logo--texte</code>.</p><pre><button class="copy">Copier</button><code>.sidebar {
+  width: 260px;
+  min-width: 260px;
+  height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e8ecea;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px 22px;
+
+  .brand-logo {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    object-fit: contain;
+    background: #fff;
+    border: 1px solid #e8ecea;
+    padding: 3px;
+    box-sizing: border-box;
+  }
+
+  <span class="c">/* Repli si assets/logo-bmci.png est absent */</span>
+  .brand-logo--texte {
+    display: flex; align-items: center; justify-content: center;
+    background: #0e7d5a; border-color: #0e7d5a;
+    color: #fff; font-weight: 800; font-size: 0.7rem; letter-spacing: .04em;
+  }
+}
+
+.brand-txt { display: flex; flex-direction: column; }
+.brand-titre { font-weight: 700; color: #0e7d5a; font-size: 1.02rem; }
+.brand-agence { font-size: 0.82rem; color: #5c6b63; }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 6px; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  color: #33413a;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  <span class="c">/* « Déconnexion » est un &lt;button&gt; : même rendu qu'un lien */</span>
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+  &amp;:hover { background: #eef4f1; }
+
+  &amp;.actif {
+    background: #0e7d5a;
+    color: #fff;
+  }
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  margin-bottom: 8vh;
+  border-top: 1px solid #e8ecea;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+:host {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  align-self: flex-start;
+}</code></pre></div>
+<h2 id="s5">5. Brancher la barre du haut</h2>
+<div class="card"><p>Le <code>header.component.html</code> que tu m'as montré n'affiche ni titre ni avatar : la barre « Gestion des fonds - Vue Agence » + « YR » visible à l'écran est donc rendue <b>ailleurs</b> (layout / <code>app.component.html</code>), en dur. Pour la trouver : <b>Ctrl+Maj+F</b> sur <code>Connecté :</code>. Dans ce fichier :</p>
+<ol>
+<li>Remplace tout le bloc de la barre du haut (le titre, l'avatar « YR » et son menu) par <code>&lt;app-header&gt;&lt;/app-header&gt;</code>.</li>
+<li>Dans le <code>.ts</code> du même composant, ajoute <code>HeaderComponent</code> à <code>imports: [...]</code> (<code>import { HeaderComponent } from './shared/presenter/components/header/header.component';</code> — chemin à adapter selon l'emplacement du fichier).</li>
+<li>Si la barre du haut avait un style propre dans le SCSS de ce composant (hauteur, bordure), supprime-le : <code>.container</code> du header porte maintenant fond blanc + bordure basse.</li>
+<li>Si le fichier contient déjà <code>&lt;app-header [title]="…"&gt;</code>, retire le <code>[title]</code> (sans effet désormais).</li>
+</ol>
+<p>Si ce bloc ne se laisse pas remplacer proprement (template imbriqué, mat-toolbar…), envoie-moi le <code>.html</code> + <code>.ts</code> de ce composant et je te rends le fichier complet.</p></div>
+<h2 id="s6">6. Vérification (démo)</h2>
+<div class="card"><ol>
+<li>Connexion <code>j43709</code> (DA) : avatar aux initiales du prénom/nom renvoyés par <code>/me</code> (sinon « J4 »), titre « Gestion des fonds - Vue Agence », menu latéral « Réseau Agence / 1001 - … » avec le logo BMCI.</li>
+<li>Profil Caisse Centrale : clic « Caisse Centrale » → titre « Gestion des fonds - Vue Caisse Centrale » ; retour sur « Historique Demandes » → « Vue Agence ». Le changement est immédiat (signal sur la navigation).</li>
+<li>Clic avatar → menu « {nom complet} / Connecté : j43709 » + « Déconnexion » ; clic ailleurs → le menu se ferme.</li>
+<li>« Déconnexion » (menu ou barre latérale) → <code>http://localhost:4200/login</code>. Note démo : le cookie <code>QF_MOCK_SESSION</code> de la gateway n'est pas supprimé ; si tu te reconnectes avec un autre uid, passe par <code>/mock-auth/login?uid=…</code> comme d'habitude — la vraie déconnexion (invalidation de session) sera portée par le shell micro-frontend.</li>
+<li>Renomme temporairement <code>logo-bmci.png</code> : le carré vert « BMCI » apparaît, aucune image cassée.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
