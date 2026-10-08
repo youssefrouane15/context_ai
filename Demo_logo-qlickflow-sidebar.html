@@ -1,0 +1,362 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Démo — logo QlickFlow dans le menu latéral</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Démo — logo QlickFlow dans l'en-tête du menu latéral, barre du haut sans logo</h1><p>fund-management-front · 08/10/2026 · 6 fichiers complets</p></header>
+<nav><a href="#s0">Changements</a><a href="#s1">Sidebar</a><a href="#s2">AppComponent</a></nav><main><h2 id="s0">0. Ce qui change</h2>
+<div class="card"><p>Le logo QlickFlow du portail prend la place du logo BMCI dans l'en-tête du menu latéral (au-dessus de « Réseau Agence / 1422 - … », clic → portail) ; la barre du haut revient au titre seul. Fichier à copier : <code>C:\dev\portail-ci\src\assets\icons\Group 315.svg</code> → <code>C:\dev\fund-management-front\src\assets\logo-qlickflow.svg</code>. <code>logo-bmci.png</code> ne sert plus (à supprimer).</p></div>
+<h2 id="s1">1. Menu latéral</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>sidebar.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { NgIf } <span class="k">from</span> <span class="s">'@angular/common'</span>;
+<span class="k">import</span> { RouterLink, RouterLinkActive } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'../../../../features/fund-management/adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { allerALaConnexion, allerAuPortail } <span class="k">from</span> <span class="s">'../../portail'</span>;
+
+<span class="c">/**
+ * AER_LM-266 : le menu se cadre par habilitation (Nouvelle Demande = creer, Historique = consulter,
+ * Caisse Centrale = toutesAgences) et l'en-tête affiche l'agence réelle de /me (plus de « 1001 - Nations Unies » en dur).
+ * Logo QlickFlow dans l'en-tête (assets/logo-qlickflow.svg = Group 315.svg du portail, repli texte si absent, clic → portail) ;
+ * « Déconnexion » renvoie à la page de connexion du portail.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-sidebar'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [NgIf, RouterLink, RouterLinkActive, MatIconModule],
+  templateUrl: <span class="s">'./sidebar.component.html'</span>,
+  styleUrl: <span class="s">'./sidebar.component.scss'</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> SidebarComponent <span class="k">implements</span> OnInit {
+
+  <span class="k">readonly</span> contexteUtilisateur = inject(ContexteUtilisateurService);
+  <span class="k">readonly</span> habilitations = <span class="k">this</span>.contexteUtilisateur.habilitations;
+
+  <span class="c">/** « Réseau Agence » pour un profil rattaché à une agence, « Caisse Centrale » sinon (Caisse Centrale, Support, Super Admin). */</span>
+  <span class="k">readonly</span> titre = computed(() =&gt; <span class="k">this</span>.contexteUtilisateur.contexte()?.agenceCode ? <span class="s">'Réseau Agence'</span> : <span class="s">'Caisse Centrale'</span>);
+
+  <span class="c">/** « 1001 - Nations Unies » pour une agence, le libellé du profil sinon. */</span>
+  <span class="k">readonly</span> sousTitre = computed(() =&gt; {
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">if</span> (!ctx) { <span class="k">return</span> <span class="s">'…'</span>; }
+    <span class="k">if</span> (ctx.agenceCode) { <span class="k">return</span> ctx.agenceNom ? <span class="s">`${ctx.agenceCode} - ${ctx.agenceNom}`</span> : ctx.agenceCode; }
+    <span class="k">return</span> ctx.profileName ?? ctx.profileCode ?? <span class="s">'Siège'</span>;
+  });
+
+  <span class="c">/** assets/logo-qlickflow.svg introuvable → « QlickFlow » en texte à la place d'une image cassée. */</span>
+  <span class="k">readonly</span> logoAbsent = signal(<span class="k">false</span>);
+
+  ngOnInit(): <span class="k">void</span> {
+    <span class="k">this</span>.contexteUtilisateur.charger();   <span class="c">// idempotent : partagé avec les gardes de route</span>
+  }
+
+  allerAuPortail(): <span class="k">void</span> {
+    allerAuPortail();
+  }
+
+  seDeconnecter(): <span class="k">void</span> {
+    allerALaConnexion();
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>sidebar.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.html</span></div><pre><button class="copy">Copier</button><code>&lt;aside <span class="k">class</span>=<span class="s">"sidebar"</span>&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"sidebar-brand"</span>&gt;
+    &lt;img *ngIf=<span class="s">"!logoAbsent()"</span> src=<span class="s">"assets/logo-qlickflow.svg"</span> alt=<span class="s">"QlickFlow"</span> <span class="k">class</span>=<span class="s">"brand-logo"</span>
+         title=<span class="s">"Retour au portail QlickFlow"</span> (click)=<span class="s">"allerAuPortail()"</span> (error)=<span class="s">"logoAbsent.set(true)"</span>&gt;
+    &lt;div *ngIf=<span class="s">"logoAbsent()"</span> <span class="k">class</span>=<span class="s">"brand-logo brand-logo--texte"</span> aria-label=<span class="s">"QlickFlow"</span>&gt;QlickFlow&lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"brand-txt"</span>&gt;
+      &lt;span <span class="k">class</span>=<span class="s">"brand-titre"</span>&gt;{{ titre() }}&lt;/span&gt;
+      &lt;span <span class="k">class</span>=<span class="s">"brand-agence"</span>&gt;{{ sousTitre() }}&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;nav <span class="k">class</span>=<span class="s">"sidebar-nav"</span>&gt;
+    &lt;a routerLink=<span class="s">"/"</span> [routerLinkActiveOptions]=<span class="s">"{ exact: true }"</span>
+       routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().creer"</span>&gt;
+      &lt;mat-icon&gt;add_circle_outline&lt;/mat-icon&gt;
+      &lt;span&gt;Nouvelle Demande&lt;/span&gt;
+    &lt;/a&gt;
+
+    &lt;a routerLink=<span class="s">"/list"</span> routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().consulter"</span>&gt;
+      &lt;mat-icon&gt;history&lt;/mat-icon&gt;
+      &lt;span&gt;Historique Demandes&lt;/span&gt;
+    &lt;/a&gt;
+
+    &lt;a routerLink=<span class="s">"/caisse-centrale"</span> routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().toutesAgences"</span>&gt;
+      &lt;mat-icon&gt;account_balance&lt;/mat-icon&gt;
+      &lt;span&gt;Caisse Centrale&lt;/span&gt;
+    &lt;/a&gt;
+  &lt;/nav&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"sidebar-footer"</span>&gt;
+    &lt;a <span class="k">class</span>=<span class="s">"nav-item"</span> href=<span class="s">"#"</span> (click)=<span class="s">"$event.preventDefault()"</span>&gt;
+      &lt;mat-icon&gt;help_outline&lt;/mat-icon&gt;&lt;span&gt;Aide&lt;/span&gt;
+    &lt;/a&gt;
+    &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"nav-item"</span> (click)=<span class="s">"seDeconnecter()"</span>&gt;
+      &lt;mat-icon&gt;logout&lt;/mat-icon&gt;&lt;span&gt;Déconnexion&lt;/span&gt;
+    &lt;/button&gt;
+  &lt;/div&gt;
+
+&lt;/aside&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>sidebar.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.scss</span></div><p class="note">Le logo fait 226×59 : trop large pour tenir à côté du texte dans 232 px utiles, il passe au-dessus (hauteur 44 px). Repli texte « QlickFlow » vert si le SVG manque.</p><pre><button class="copy">Copier</button><code>.sidebar {
+  width: 260px;
+  min-width: 260px;
+  height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e8ecea;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+}
+
+.sidebar-brand {
+  display: flex;
+  flex-direction: column;      <span class="c">/* logo QlickFlow (226×59) au-dessus du titre : trop large pour tenir à côté */</span>
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 10px 22px;
+
+  .brand-logo {
+    height: 44px;
+    width: auto;
+    max-width: 100%;
+    display: block;
+    object-fit: contain;
+    cursor: pointer;
+  }
+
+  <span class="c">/* Repli si assets/logo-qlickflow.svg est absent */</span>
+  .brand-logo--texte {
+    display: flex; align-items: center;
+    color: #0e7d5a; font-weight: 800; font-size: 1.3rem; letter-spacing: -.02em;
+  }
+}
+
+.brand-txt { display: flex; flex-direction: column; }
+.brand-titre { font-weight: 700; color: #0e7d5a; font-size: 1.02rem; }
+.brand-agence { font-size: 0.82rem; color: #5c6b63; }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 6px; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  color: #33413a;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  <span class="c">/* « Déconnexion » est un &lt;button&gt; : même rendu qu'un lien */</span>
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+  &amp;:hover { background: #eef4f1; }
+
+  &amp;.actif {
+    background: #0e7d5a;
+    color: #fff;
+  }
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  margin-bottom: 8vh;
+  border-top: 1px solid #e8ecea;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+:host {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  align-self: flex-start;
+}</code></pre></div>
+<h2 id="s2">2. Barre du haut (sans logo)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>app.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\app.component.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { Component, OnInit, computed, inject } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { toSignal } <span class="k">from</span> <span class="s">'@angular/core/rxjs-interop'</span>;
+<span class="k">import</span> { NavigationEnd, Router, RouterOutlet } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { MatMenuModule } <span class="k">from</span> <span class="s">'@angular/material/menu'</span>;
+<span class="k">import</span> { MatIconModule } <span class="k">from</span> <span class="s">'@angular/material/icon'</span>;
+<span class="k">import</span> { filter, map, startWith } <span class="k">from</span> <span class="s">'rxjs'</span>;
+<span class="k">import</span> { SidebarComponent } <span class="k">from</span> <span class="s">'./shared/presenter/components/sidebar/sidebar.component'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'./features/fund-management/adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { allerALaConnexion, initialesDe } <span class="k">from</span> <span class="s">'./shared/presenter/portail'</span>;
+
+<span class="k">const</span> PREFIXE_CAISSE_CENTRALE = <span class="s">'/caisse-centrale'</span>;
+
+<span class="c">/**
+ * Shell de l'application : menu latéral + barre du haut + router-outlet.
+ * La barre du haut n'a plus rien en dur : titre selon le profil / l'écran, initiales et uid de /me, Déconnexion vers le portail.
+ */</span>
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-root'</span>,
+  standalone: <span class="k">true</span>,
+  imports: [RouterOutlet, MatMenuModule, MatIconModule, SidebarComponent],
+  templateUrl: <span class="s">'./app.component.html'</span>,
+  styleUrl: <span class="s">'./app.component.css'</span>
+})
+<span class="k">export</span> <span class="k">class</span> AppComponent <span class="k">implements</span> OnInit {
+
+  <span class="k">readonly</span> contexteUtilisateur = inject(ContexteUtilisateurService);
+  <span class="k">private</span> <span class="k">readonly</span> router = inject(Router);
+
+  <span class="c">/** URL courante sous forme de signal (valeur initiale synchrone grâce à startWith). */</span>
+  <span class="k">private</span> <span class="k">readonly</span> url = toSignal(
+    <span class="k">this</span>.router.events.pipe(
+      filter((e): e is NavigationEnd =&gt; e instanceof NavigationEnd),
+      map(e =&gt; e.urlAfterRedirects),
+      startWith(<span class="k">this</span>.router.url)
+    ),
+    { requireSync: <span class="k">true</span> }
+  );
+
+  <span class="c">/**
+   * « Vue Caisse Centrale » pour un profil toutes agences sans agence de rattachement (Caisse Centrale, Support, Super Admin)
+   * ou dès que l'on est sur l'écran /caisse-centrale ; « Vue Agence » sinon.
+   */</span>
+  <span class="k">readonly</span> titre = computed(() =&gt; {
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">const</span> profilCentral = !!ctx &amp;&amp; !ctx.agenceCode &amp;&amp; ctx.habilitations.toutesAgences;
+    <span class="k">const</span> ecranCentral = <span class="k">this</span>.url().includes(PREFIXE_CAISSE_CENTRALE);
+    <span class="k">return</span> profilCentral || ecranCentral ? <span class="s">'Gestion des fonds - Vue Caisse Centrale'</span> : <span class="s">'Gestion des fonds - Vue Agence'</span>;
+  });
+
+  <span class="c">/** « Youssef Rouane » → YR ; sans prénom/nom → 2 premiers caractères de l'uid ; « … » tant que /me n'a pas répondu. */</span>
+  <span class="k">readonly</span> utilisateurInitiales = computed(() =&gt; {
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">return</span> ctx ? initialesDe(ctx.nomComplet, ctx.uid) : <span class="s">'…'</span>;
+  });
+
+  <span class="k">readonly</span> utilisateurUid = computed(() =&gt; <span class="k">this</span>.contexteUtilisateur.contexte()?.uid ?? <span class="s">'…'</span>);
+  <span class="k">readonly</span> utilisateurNom = computed(() =&gt; <span class="k">this</span>.contexteUtilisateur.contexte()?.nomComplet ?? <span class="s">''</span>);
+
+  ngOnInit(): <span class="k">void</span> {
+    <span class="k">this</span>.contexteUtilisateur.charger();   <span class="c">// idempotent : partagé avec le menu latéral et les gardes de route</span>
+  }
+
+  seDeconnecter(): <span class="k">void</span> {
+    allerALaConnexion();
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>app.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\app.component.html</span></div><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">"app-shell"</span>&gt;
+
+  &lt;app-sidebar&gt;&lt;/app-sidebar&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"app-main"</span>&gt;
+
+    &lt;header <span class="k">class</span>=<span class="s">"app-topbar"</span>&gt;
+      &lt;h1&gt;{{ titre() }}&lt;/h1&gt;
+
+      &lt;button <span class="k">class</span>=<span class="s">"avatar"</span> [matMenuTriggerFor]=<span class="s">"menuUser"</span> [title]=<span class="s">"utilisateurNom()"</span> aria-label=<span class="s">"Menu utilisateur"</span>&gt;
+        {{ utilisateurInitiales() }}
+      &lt;/button&gt;
+
+      &lt;mat-menu #menuUser=<span class="s">"matMenu"</span>&gt;
+        &lt;button mat-menu-item disabled&gt;
+          &lt;mat-icon&gt;person&lt;/mat-icon&gt;
+          &lt;span <span class="k">class</span>=<span class="s">"menu-identite"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"menu-identite__nom"</span>&gt;{{ utilisateurNom() }}&lt;/span&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"menu-identite__uid"</span>&gt;Connecté : {{ utilisateurUid() }}&lt;/span&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;button mat-menu-item (click)=<span class="s">"seDeconnecter()"</span>&gt;
+          &lt;mat-icon&gt;logout&lt;/mat-icon&gt; Déconnexion
+        &lt;/button&gt;
+      &lt;/mat-menu&gt;
+    &lt;/header&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"app-content"</span>&gt;
+      &lt;router-outlet&gt;&lt;/router-outlet&gt;
+    &lt;/div&gt;
+
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>app.component.css</b><br><span class="path">C:\dev\fund-management-front\src\app\app.component.css</span></div><p class="note"><code>app.component.spec.ts</code> du doc précédent inchangé.</p><pre><button class="copy">Copier</button><code>.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f6f8f7;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #e8ecea;
+  padding: 14px 28px;
+}
+
+.app-topbar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0e7d5a;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #0e7d5a;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: .02em;
+  cursor: pointer;
+}
+
+<span class="c">/* Première entrée du menu : nom complet + uid sur deux lignes (le bouton est disabled : on garde le texte lisible) */</span>
+.menu-identite {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.menu-identite__nom { font-weight: 600; color: #1e293b; }
+.menu-identite__uid { font-size: 0.8rem; color: #5c6b63; }
+
+.app-content {
+  padding: 24px 28px;
+}</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
