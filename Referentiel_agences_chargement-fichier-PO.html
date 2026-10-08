@@ -1,0 +1,289 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Référentiel agences — chargement du fichier PO (zones, prestataires, coûts)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Référentiel agences — mise à jour depuis le fichier du PO (zone de distribution, prestataire, coût de déplacement)</h1><p>utilisateurs-ci · schéma qf_admin · 08/10/2026 · staging + V18 générée</p></header>
+<nav><a href="#s0">Principe</a><a href="#s1">Schéma</a><a href="#s2">CSV</a><a href="#s3">Import</a><a href="#s4">Contrôles</a><a href="#s5">Écarts</a><a href="#s6">Zones</a><a href="#s7">V18</a><a href="#s8">Local</a><a href="#s9">Vérif</a><a href="#s10">Nettoyage</a><a href="#s11">Livraison</a></nav><main><h2 id="s0">0. Principe</h2>
+<div class="card"><p>Le fichier du PO est la source de vérité ; on ne le retape pas en SQL à la main. Il est <b>chargé tel quel</b> dans une table de staging, contrôlé, puis transformé en une migration Flyway <code>V18</code> générée automatiquement — c'est cette V18 qui met la base à jour, en local comme en prod (même convention que V12/V13, qui étaient déjà des corrections de données).</p>
+<table>
+<tr><th>Colonne Excel</th><th>Cible (schéma <code>qf_admin</code>)</th><th>Règle</th></tr>
+<tr><td>CODE AGENCE</td><td><code>orga_unit.code</code> (type <code>AGENCE</code>)</td><td>clé de jointure — jamais modifiée</td></tr>
+<tr><td>Agence</td><td><code>orga_unit.name</code></td><td>contrôle d'écart seulement, pas d'écrasement</td></tr>
+<tr><td>REGION/ZONE</td><td><code>zone_distribution</code> → <code>orga_unit.zone_distribution_id</code></td><td>zone créée si absente (code = libellé du fichier en majuscules)</td></tr>
+<tr><td>PRESTATAIRE</td><td><code>orga_unit.prestataire</code></td><td>CHECK <code>BRINKS</code> / <code>G4S</code> — valeurs du fichier déjà conformes</td></tr>
+<tr><td>PU</td><td><code>orga_unit.cout_deplacement</code> <code>numeric(12,2)</code></td><td><code>171,73</code> → <code>171.73</code></td></tr>
+</table>
+<p><b>Ordre</b> : 1 contrôle du schéma → 2 Excel → CSV → 3 staging + import → 4 nettoyage et contrôles → 5 écarts (à remettre au PO) → 6 zones provisoires → 7 génération de V18 → 8 démarrage d'utilisateurs-ci → 9 vérification → 10 nettoyage → 11 livraison. Tout le SQL s'exécute dans pgAdmin → base utilisateurs-ci → Query Tool (F5 pour exécuter).</p>
+<p>Deux points à dire au PO : les UPDATE SQL ne passent pas par l'API, donc pas de ligne d'audit Envers dans <code>orga_unit_aud</code> ; et les demandes déjà créées gardent leur photo agence/zone/prestataire figée (<code>retail.cash_request</code>) — seules les nouvelles demandes prennent les valeurs du fichier.</p></div>
+<h2 id="s1">1. Contrôle du schéma</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>00-controle-schema.sql</b><br><span class="path">pgAdmin → Query Tool</span></div><p class="note">Attendus : requête 1 → les 3 colonnes <code>zone_distribution_id</code>, <code>prestataire</code>, <code>cout_deplacement</code> ; requête 2 → <code>id, code, nom, actif, created_at, updated_at</code> (si <code>nom</code> s'appelle autrement, remplace-le dans §6 et §7) ; requête 3 → la CHECK liste BRINKS et G4S ; requête 4 → codes sans zéro devant (sinon, voir la note du §4).</p><pre><button class="copy">Copier</button><code><span class="c">-- pgAdmin → base utilisateurs-ci → Query Tool. Tout se passe dans le schéma qf_admin.</span>
+set search_path to qf_admin;
+<span class="c">
+-- 1. Colonnes cibles sur orga_unit (attendu : zone_distribution_id, prestataire, cout_deplacement — ajoutées par V15)</span>
+select column_name, data_type, is_nullable
+<span class="k">from</span> information_schema.columns
+where table_schema = <span class="s">'qf_admin'</span> and table_name = <span class="s">'orga_unit'</span>
+order by ordinal_position;
+<span class="c">
+-- 2. Colonnes de zone_distribution (le script V18 suppose : id, code, nom, actif, created_at, updated_at — à adapter si différent)</span>
+select column_name, data_type, is_nullable, column_default
+<span class="k">from</span> information_schema.columns
+where table_schema = <span class="s">'qf_admin'</span> and table_name = <span class="s">'zone_distribution'</span>
+order by ordinal_position;
+<span class="c">
+-- 3. Contrainte CHECK sur prestataire (attendu : BRINKS / G4S — le fichier Excel utilise exactement ces valeurs)</span>
+select conname, pg_get_constraintdef(oid)
+<span class="k">from</span> pg_constraint
+where conrelid = <span class="s">'qf_admin.orga_unit'</span>::regclass and contype = <span class="s">'c'</span>;
+<span class="c">
+-- 4. Format des codes agence en base (attendu : '1230', '1422'… sans zéro devant, comme dans l'Excel)</span>
+select code, name, zone_distribution_id, prestataire, cout_deplacement
+<span class="k">from</span> orga_unit where <span class="k">type</span> = <span class="s">'AGENCE'</span> order by code limit 20;
+<span class="c">
+-- 5. Zones de distribution déjà présentes</span>
+select * <span class="k">from</span> zone_distribution order by id;</code></pre></div>
+<h2 id="s2">2. Excel → CSV</h2>
+<div class="card"><ol>
+<li>Dans SharePoint (fichier ouvert dans Excel en ligne) : <b>Fichier → Enregistrer sous → Télécharger une copie</b>. Ouvre la copie dans Excel bureau.</li>
+<li>Vérifie que <b>Feuil1</b> contient uniquement le tableau : ligne 1 = en-têtes, puis une agence par ligne, 5 colonnes A→E, aucune ligne de total ni de commentaire en dessous. Supprime les colonnes F et suivantes si elles contiennent quelque chose.</li>
+<li><b>Fichier → Enregistrer sous</b> → type <b>« CSV UTF-8 (délimité par des virgules) (*.csv) »</b> → nom <code>referentiel_agences.csv</code> → dossier <code>C:\dev\referentiel\</code> (à créer). Excel prévient que seule la feuille active est conservée : OK.</li>
+<li>Ouvre le CSV avec Notepad++ (pas Excel) et regarde la 2ᵉ ligne. Deux cas :<br>
+<code>AGADIR AL MENZEH;1230;AGADIR;BRINKS;171,73</code> → séparateur <b>;</b> (Windows en français : c'est le cas normal)<br>
+<code>AGADIR AL MENZEH,1230,AGADIR,BRINKS,"171,73"</code> → séparateur <b>,</b><br>
+Note le séparateur, il sert au §3. Ferme sans modifier.</li>
+</ol></div>
+<h2 id="s3">3. Table de staging et import</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>01-staging.sql</b><br><span class="path">pgAdmin → Query Tool</span></div><pre><button class="copy">Copier</button><code>set search_path to qf_admin;
+<span class="c">
+-- Table de staging = copie brute du fichier Excel, tout en texte (aucune conversion à l'import).</span>
+drop table <span class="k">if</span> exists stg_referentiel_agence;
+create table stg_referentiel_agence (
+    agence       text,   -- colonne A : Agence
+    code_agence  text,   -- colonne B : CODE AGENCE
+    zone         text,   -- colonne C : REGION/ZONE
+    prestataire  text,   -- colonne D : PRESTATAIRE
+    pu           text    -- colonne E : PU (coût de déplacement, virgule décimale)
+);</code></pre></div>
+<div class="card"><p><b>Import dans pgAdmin</b> : arbre de gauche → base → Schemas → <b>qf_admin</b> → Tables → clic droit sur <code>stg_referentiel_agence</code> (F5 sur « Tables » si elle n'apparaît pas) → <b>Import/Export Data…</b></p>
+<ul>
+<li>Onglet <b>General</b> : Import/Export = <b>Import</b> ; Filename = <code>C:\dev\referentiel\referentiel_agences.csv</code> ; Format = <b>csv</b> ; Encoding = <b>UTF8</b>.</li>
+<li>Onglet <b>Options</b> : <b>Header = ON</b> ; Delimiter = <b>;</b> (ou <b>,</b> selon le §2.4) ; Quote = <code>"</code> ; Escape = <code>"</code> ; NULL Strings vide.</li>
+<li>Onglet <b>Columns</b> : laisser les 5 colonnes dans l'ordre <code>agence, code_agence, zone, prestataire, pu</code> (= ordre des colonnes Excel A→E).</li>
+<li><b>OK</b> → notification « Import — Successfully completed ».</li>
+</ul>
+<p>Erreur « extra data after last expected column » = mauvais séparateur, refais avec l'autre. Erreur « invalid byte sequence for encoding UTF8 » = le CSV n'est pas en UTF-8 : refais le §2.3 en choisissant bien « CSV UTF-8 ».</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Alternative sans pgAdmin (psql)</b><br><span class="path">Invite de commandes</span></div><pre><button class="copy">Copier</button><code>:: Invite de commandes Windows — alternative à l'<span class="k">import</span> pgAdmin (même résultat). Adapter utilisateur / base.
+<span class="s">"C:\Program Files\PostgreSQL\12\bin\psql.exe"</span> -h localhost -p 5432 -U postgres -d qlickflow -c <span class="s">"\copy qf_admin.stg_referentiel_agence from 'C:/dev/referentiel/referentiel_agences.csv' with (format csv, header true, delimiter ';', encoding 'UTF8')"</span></code></pre></div>
+<h2 id="s4">4. Nettoyage et contrôles de la staging</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>02-nettoyage-controles.sql</b><br><span class="path">pgAdmin → Query Tool (exécuter tout, lire les résultats onglet par onglet)</span></div><p class="note">C = nombre de lignes de l'Excel ; D, E, F doivent être vides (sinon corriger dans la staging : <code>update stg_referentiel_agence set prestataire = 'BRINKS' where code_agence = '…'</code>). Si les codes en base ont des zéros devant (§1 requête 4), ajoute <code>, code_agence = lpad(code_agence, 5, '0')</code> dans l'UPDATE A.</p><pre><button class="copy">Copier</button><code>set search_path to qf_admin;
+<span class="c">
+-- A. Nettoyage (espaces, casse) — idempotent</span>
+update stg_referentiel_agence set
+    agence      = trim(agence),
+    code_agence = trim(code_agence),
+    zone        = upper(trim(zone)),
+    prestataire = upper(replace(replace(trim(prestataire), <span class="s">''</span><span class="s">''</span>, <span class="s">''</span>), <span class="s">' '</span>, <span class="s">''</span>)),   -- <span class="s">"Brink's"</span> → BRINKS
+    pu          = replace(trim(pu), <span class="s">' '</span>, <span class="s">''</span>);
+<span class="c">
+-- B. Lignes vides éventuelles (fin de feuille)</span>
+delete <span class="k">from</span> stg_referentiel_agence where coalesce(code_agence, <span class="s">''</span>) = <span class="s">''</span>;
+<span class="c">
+-- C. Volume : doit être égal au nombre de lignes de l'Excel (hors en-tête)</span>
+select count(*) as lignes <span class="k">from</span> stg_referentiel_agence;
+<span class="c">
+-- D. Codes en double dans le fichier → attendu : 0 ligne</span>
+select code_agence, count(*) <span class="k">from</span> stg_referentiel_agence group by code_agence having count(*) &gt; 1;
+<span class="c">
+-- E. Prestataire hors BRINKS / G4S → attendu : 0 ligne (sinon la CHECK de orga_unit refusera l'update)</span>
+select * <span class="k">from</span> stg_referentiel_agence where prestataire not in (<span class="s">'BRINKS'</span>, <span class="s">'G4S'</span>);
+<span class="c">
+-- F. PU non numérique → attendu : 0 ligne</span>
+select * <span class="k">from</span> stg_referentiel_agence where pu !~ <span class="s">'^[0-9]+([,.][0-9]+)?$'</span>;
+<span class="c">
+-- G. Zones distinctes du fichier (c'est la liste qui sera créée dans zone_distribution si absente)</span>
+select zone, count(*) as agences <span class="k">from</span> stg_referentiel_agence group by zone order by zone;</code></pre></div>
+<h2 id="s5">5. Écarts fichier ↔ base (à remettre au PO)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>03-ecarts.sql</b><br><span class="path">pgAdmin → Query Tool</span></div><p class="note">A = agences du fichier inconnues en base : le script ne les crée pas (il leur faut un groupe parent dans <code>orga_unit</code>) → liste à renvoyer au PO. B = agences en base hors fichier : resteront sans zone / prestataire / coût. Les résultats se copient directement dans un mail (clic droit sur la grille → Copy).</p><pre><button class="copy">Copier</button><code>set search_path to qf_admin;
+<span class="c">
+-- A. Agences du fichier ABSENTES de la base → à montrer au PO (non créées par le script : il leur faut un groupe parent)</span>
+select s.code_agence, s.agence, s.zone, s.prestataire, s.pu
+<span class="k">from</span> stg_referentiel_agence s
+left join orga_unit o on o.<span class="k">type</span> = <span class="s">'AGENCE'</span> and o.code = s.code_agence
+where o.id is <span class="k">null</span>
+order by s.code_agence;
+<span class="c">
+-- B. Agences en base ABSENTES du fichier → resteront sans zone / prestataire / coût</span>
+select o.code, o.name, o.actif
+<span class="k">from</span> orga_unit o
+left join stg_referentiel_agence s on s.code_agence = o.code
+where o.<span class="k">type</span> = <span class="s">'AGENCE'</span> and s.code_agence is <span class="k">null</span>
+order by o.code;
+<span class="c">
+-- C. Libellés qui diffèrent (information : le script ne touche pas au nom)</span>
+select o.code, o.name as nom_base, s.agence as nom_fichier
+<span class="k">from</span> orga_unit o
+join stg_referentiel_agence s on s.code_agence = o.code
+where o.<span class="k">type</span> = <span class="s">'AGENCE'</span> and upper(trim(o.name)) &lt;&gt; s.agence
+order by o.code;
+<span class="c">
+-- D. Synthèse</span>
+select
+  (select count(*) <span class="k">from</span> stg_referentiel_agence) as lignes_fichier,
+  (select count(*) <span class="k">from</span> stg_referentiel_agence s join orga_unit o on o.<span class="k">type</span>=<span class="s">'AGENCE'</span> and o.code = s.code_agence) as agences_mises_a_jour,
+  (select count(*) <span class="k">from</span> stg_referentiel_agence s left join orga_unit o on o.<span class="k">type</span>=<span class="s">'AGENCE'</span> and o.code = s.code_agence where o.id is <span class="k">null</span>) as agences_inconnues,
+  (select count(distinct s.zone) <span class="k">from</span> stg_referentiel_agence s left join zone_distribution z on z.code = s.zone where z.id is <span class="k">null</span>) as zones_a_creer;</code></pre></div>
+<h2 id="s6">6. Zones provisoires de V14</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>02bis-zones-provisoires.sql</b><br><span class="path">pgAdmin → Query Tool</span></div><p class="note">Les zones CASA / RABAT seedées en V14 venaient de la maquette, pas d'un référentiel. Si la requête montre CASA avec des agences rattachées, l'UPDATE la renomme en CASABLANCA (le code du fichier) pour éviter deux zones Casablanca ; l'id ne bouge pas, les agences suivent. Cette ligne est reprise en tête de V18 (§7) pour que prod fasse pareil.</p><pre><button class="copy">Copier</button><code>set search_path to qf_admin;
+<span class="c">
+-- Les zones seedées en V14 (CASA « Zone Casablanca », RABAT « Zone Rabat-Salé ») étaient provisoires (valeurs de la maquette 268).</span>
+<span class="c">-- Le fichier du PO est maintenant la référence : ses libellés de zone (CASABLANCA, RABAT, AGADIR…) deviennent les codes.</span>
+<span class="c">-- Sans cette étape, V18 créerait CASABLANCA à côté de CASA → doublon fonctionnel. À exécuter AVANT de générer V18, puis à recopier en tête de V18 (§6).</span>
+<span class="c">
+-- Quelles zones existantes ne sont pas dans le fichier, et combien d'agences les utilisent déjà ?</span>
+select z.id, z.code, z.nom, count(o.id) as agences_rattachees
+<span class="k">from</span> zone_distribution z
+left join orga_unit o on o.zone_distribution_id = z.id
+left join stg_referentiel_agence s on s.zone = z.code
+where s.zone is <span class="k">null</span>
+group by z.id, z.code, z.nom order by z.code;
+<span class="c">
+-- Décision proposée : renommer le code de la zone provisoire vers le libellé du fichier (les agences déjà rattachées suivent, l'id ne change pas).</span>
+<span class="c">-- (Adapter la paire CASA → CASABLANCA selon le résultat ci-dessus ; RABAT existe déjà sous le même code.)</span>
+update zone_distribution set code = <span class="s">'CASABLANCA'</span>, updated_at = now()
+where code = <span class="s">'CASA'</span> and not exists (select 1 <span class="k">from</span> zone_distribution where code = <span class="s">'CASABLANCA'</span>);</code></pre></div>
+<h2 id="s7">7. Génération de V18</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>04-generer-v18.sql</b><br><span class="path">pgAdmin → Query Tool</span></div><p class="note">Le résultat est une seule cellule contenant tout le script. Clique sur la cellule → <b>Ctrl+C</b> → IntelliJ : clic droit sur <code>db/migration</code> → New → File → <code>V18__referentiel_agences_zones_prestataires.sql</code> → Ctrl+V → vérifie que le fichier commence par <code>-- V18</code> et finit par le <code>;</code> de l'UPDATE (pas d'en-tête « v18 » ni de guillemets ajoutés). <b>Avant</b> : <code>git fetch</code> puis regarde <code>db/migration</code> sur <code>develop-omega</code> — si un collègue a déjà pris V18, utilise le numéro suivant (le contenu ne change pas).</p><pre><button class="copy">Copier</button><code>set search_path to qf_admin;
+<span class="c">
+-- Génère le texte complet de V18 à partir de la staging.</span>
+<span class="c">-- Résultat = UNE cellule de texte : clic sur la cellule → Ctrl+C → coller tel quel dans le fichier V18 (sans l'en-tête de colonne « v18 »).</span>
+select
+'-- V18 — Référentiel agences (fichier PO Zones_Agences_Transporteurs_PU) : zone de distribution, prestataire, coût de déplacement.
+<span class="c">-- Généré depuis la table de staging le ' || to_char(now(), 'DD/MM/YYYY') || ' — ' || count(*) || ' agences. Idempotent : rejouable sans effet de bord.</span>
+<span class="c">
+-- 0. Zone provisoire de V14 alignée sur le code du fichier (voir 02bis — supprimer cette ligne si non appliquée en local)</span>
+update zone_distribution set code = <span class="s">''</span>CASABLANCA<span class="s">''</span>, updated_at = now()
+where code = <span class="s">''</span>CASA<span class="s">''</span> and not exists (select 1 <span class="k">from</span> zone_distribution where code = <span class="s">''</span>CASABLANCA<span class="s">''</span>);
+
+create temp table tmp_ref_agence (code_agence text, agence text, zone text, prestataire text, pu numeric(12,2)) on commit drop;
+
+insert into tmp_ref_agence (code_agence, agence, zone, prestataire, pu) values
+<span class="s">' || string_agg(format('</span>(%L, %L, %L, %L, %s)<span class="s">', code_agence, agence, zone, prestataire, replace(pu, '</span>,<span class="s">', '</span>.<span class="s">')), E'</span>,\n<span class="s">' order by code_agence) || '</span>;
+<span class="c">
+-- 1. Zones de distribution manquantes</span>
+insert into zone_distribution (code, nom, actif, created_at, updated_at)
+select distinct t.zone, initcap(t.zone), <span class="k">true</span>, now(), now()
+<span class="k">from</span> tmp_ref_agence t
+left join zone_distribution z on z.code = t.zone
+where z.id is <span class="k">null</span>;
+<span class="c">
+-- 2. Agences : zone, prestataire, coût (jointure sur le code agence ; les codes inconnus en base sont ignorés — liste remise au PO)</span>
+update orga_unit o
+set zone_distribution_id = z.id,
+    prestataire          = t.prestataire,
+    cout_deplacement     = t.pu,
+    updated_at           = now()
+<span class="k">from</span> tmp_ref_agence t
+join zone_distribution z on z.code = t.zone
+where o.<span class="k">type</span> = <span class="s">''</span>AGENCE<span class="s">''</span> and o.code = t.code_agence;
+' as v18
+<span class="k">from</span> stg_referentiel_agence;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Exemple du fichier obtenu (4 agences de test)</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\resources\db\migration\V18__referentiel_agences_zones_prestataires.sql</span></div><p class="note">Le vrai fichier aura ~300 lignes de VALUES. Encodage UTF-8 (IntelliJ par défaut). Idempotent : rejouable sans doublon. Testé sur PostgreSQL : la table temporaire est détruite au commit de la migration.</p><pre><button class="copy">Copier</button><code><span class="c">-- V18 — Référentiel agences (fichier PO Zones_Agences_Transporteurs_PU) : zone de distribution, prestataire, coût de déplacement.</span>
+<span class="c">-- Généré depuis la table de staging le 08/10/2026 — 4 agences. Idempotent : rejouable sans effet de bord.</span>
+<span class="c">
+-- 0. Zone provisoire de V14 alignée sur le code du fichier (voir 02bis — supprimer cette ligne si non appliquée en local)</span>
+update zone_distribution set code = <span class="s">'CASABLANCA'</span>, updated_at = now()
+where code = <span class="s">'CASA'</span> and not exists (select 1 <span class="k">from</span> zone_distribution where code = <span class="s">'CASABLANCA'</span>);
+
+create temp table tmp_ref_agence (code_agence text, agence text, zone text, prestataire text, pu numeric(12,2)) on commit drop;
+
+insert into tmp_ref_agence (code_agence, agence, zone, prestataire, pu) values
+(<span class="s">'1108'</span>, <span class="s">'CASA 2 MARS'</span>, <span class="s">'CASABLANCA'</span>, <span class="s">'BRINKS'</span>, 130.1),
+(<span class="s">'1128'</span>, <span class="s">'AL HOCEIMA'</span>, <span class="s">'NADOR'</span>, <span class="s">'G4S'</span>, 372),
+(<span class="s">'1230'</span>, <span class="s">'AGADIR AL MENZEH'</span>, <span class="s">'AGADIR'</span>, <span class="s">'BRINKS'</span>, 171.73),
+(<span class="s">'1253'</span>, <span class="s">'AGADIR ANNAHDA'</span>, <span class="s">'AGADIR'</span>, <span class="s">'BRINKS'</span>, 171.73);
+<span class="c">
+-- 1. Zones de distribution manquantes</span>
+insert into zone_distribution (code, nom, actif, created_at, updated_at)
+select distinct t.zone, initcap(t.zone), <span class="k">true</span>, now(), now()
+<span class="k">from</span> tmp_ref_agence t
+left join zone_distribution z on z.code = t.zone
+where z.id is <span class="k">null</span>;
+<span class="c">
+-- 2. Agences : zone, prestataire, coût (jointure sur le code agence ; les codes inconnus en base sont ignorés — liste remise au PO)</span>
+update orga_unit o
+set zone_distribution_id = z.id,
+    prestataire          = t.prestataire,
+    cout_deplacement     = t.pu,
+    updated_at           = now()
+<span class="k">from</span> tmp_ref_agence t
+join zone_distribution z on z.code = t.zone
+where o.<span class="k">type</span> = <span class="s">'AGENCE'</span> and o.code = t.code_agence;</code></pre></div>
+<h2 id="s8">8. Application locale</h2>
+<div class="card"><ol>
+<li>Démarre <code>utilisateurs-ci</code> (profil local). Flyway applique V18 au démarrage : log <code>Migrating schema "qf_admin" to version "18 - referentiel agences zones prestataires"</code> puis <code>Successfully applied 1 migration</code>.</li>
+<li>Si le démarrage échoue sur V18 : lis l'erreur SQL dans le log, corrige le fichier, puis dans pgAdmin <code>delete from qf_admin.flyway_schema_history where version = '18' and success = false;</code> et redémarre (même mécanique que la V15 pièce 2 DH côté fund-management).</li>
+<li><code>ddl-auto: validate</code> n'est pas concerné : V18 ne touche pas au schéma, seulement aux données.</li>
+</ol></div>
+<h2 id="s9">9. Vérification</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>05-verification.sql</b><br><span class="path">pgAdmin → Query Tool</span></div><p class="note">Attendus : V18 <code>success = true</code> ; <code>agences_sans_zone</code> = nombre de lignes de 03-B (agences hors fichier) ; contrôle croisé = 0 ligne. Côté console (portail-ci, onglet Agences) : colonnes Zone Transporteur / Prestataire / Coût remplies, ex. AGADIR AL MENZEH → Agadir / BRINKS / 171,73 MAD.</p><pre><button class="copy">Copier</button><code>set search_path to qf_admin;
+<span class="c">
+-- Après démarrage d'utilisateurs-ci (V18 appliquée)</span>
+select version, description, success, installed_on <span class="k">from</span> flyway_schema_history order by installed_rank desc limit 3;
+<span class="c">
+-- Agences : tout le fichier doit être reporté</span>
+select o.code, o.name, z.code as zone, o.prestataire, o.cout_deplacement
+<span class="k">from</span> orga_unit o
+left join zone_distribution z on z.id = o.zone_distribution_id
+where o.<span class="k">type</span> = <span class="s">'AGENCE'</span>
+order by o.code;
+<span class="c">
+-- Compteurs : agences_sans_zone = agences absentes du fichier (liste 03-B), rien d'autre</span>
+select
+  count(*) filter (where zone_distribution_id is <span class="k">null</span>) as agences_sans_zone,
+  count(*) filter (where prestataire is <span class="k">null</span>)          as agences_sans_prestataire,
+  count(*) filter (where cout_deplacement is <span class="k">null</span>)     as agences_sans_cout,
+  count(*)                                             as total
+<span class="k">from</span> orga_unit where <span class="k">type</span> = <span class="s">'AGENCE'</span>;
+<span class="c">
+-- Contrôle croisé fichier ↔ base : attendu 0 ligne</span>
+select s.code_agence, s.zone, z.code as zone_base, s.prestataire, o.prestataire as prestataire_base, s.pu, o.cout_deplacement
+<span class="k">from</span> stg_referentiel_agence s
+join orga_unit o on o.<span class="k">type</span> = <span class="s">'AGENCE'</span> and o.code = s.code_agence
+left join zone_distribution z on z.id = o.zone_distribution_id
+where z.code is distinct <span class="k">from</span> s.zone
+   or o.prestataire is distinct <span class="k">from</span> s.prestataire
+   or o.cout_deplacement is distinct <span class="k">from</span> replace(s.pu, <span class="s">','</span>, <span class="s">'.'</span>)::numeric;
+<span class="c">
+-- Zones créées</span>
+select * <span class="k">from</span> zone_distribution order by code;</code></pre></div>
+<h2 id="s10">10. Nettoyage</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>06-nettoyage.sql</b><br><span class="path">pgAdmin → Query Tool</span></div><pre><button class="copy">Copier</button><code>set search_path to qf_admin;
+<span class="c">-- Une fois V18 vérifiée : la staging n'a plus de raison d'exister (elle n'est pas dans le modèle, ddl-auto=validate l'ignore mais inutile de la laisser)</span>
+drop table <span class="k">if</span> exists stg_referentiel_agence;</code></pre></div>
+<h2 id="s11">11. Livraison</h2>
+<div class="card"><ol>
+<li>Branche <code>feature/AER_LM-xxx-referentiel-agences</code> depuis <code>develop-omega</code>, un seul fichier : <code>V18__referentiel_agences_zones_prestataires.sql</code>. Commit : <code>feat(referentiel): chargement zones / prestataires / coûts agences depuis le fichier PO (V18)</code>.</li>
+<li>MR vers <code>develop-omega</code> ; en description : source = fichier <code>Zones_Agences_Transporteurs_PU</code> du PO, nombre d'agences mises à jour, liste 03-A (agences inconnues) et 03-B (agences hors fichier).</li>
+<li>Garde le CSV et le fichier Excel d'origine avec la MR (pièce jointe Jira) : si le PO renvoie une version corrigée, on rejoue §3 → §7 et on livre une V19 (jamais de modification de V18 une fois mergée).</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
