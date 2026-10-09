@@ -1,0 +1,313 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix — devise par défaut du ramassage (AED affiché, MAD envoyé)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Fix — ramassage : le select affiche AED alors que MAD est envoyé</h1><p>fund-management-front · 09/10/2026 · 1 fichier complet</p></header>
+<nav><a href="#s0">Cause</a><a href="#s1">Fichier</a><a href="#s2">Vérification</a></nav><main><h2 id="s0">0. Cause</h2>
+<div class="card"><p>Mon erreur dans le doc Recette du 07/10 : le getter <code>devisesRamassage</code> (MAD garanti en tête) a bien été ajouté au <code>.ts</code>, mais le <code>&lt;select&gt;</code> du ramassage dans le <code>.html</code> itérait encore sur <code>devisesDisponibles</code> avec <code>[value]</code>. Le contrôle vaut <code>'MAD'</code> dès l'init ; quand la liste arrive (triée, MAD absent ou plus loin), le navigateur affiche la première option — AED — alors que la valeur réellement envoyée reste MAD. D'où « AED » à l'écran et « MAD Espèces » dans la ligne ajoutée.</p></div>
+<h2 id="s1">1. Fichier</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>fund-management.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html</span></div><p class="note">Deux lignes changent, dans le select du Ramassage (Ctrl+F <code>saisie-ramassage__devise</code>) : <code>*ngFor="let d of devisesRamassage"</code> et <code>[ngValue]</code>. Le <code>.ts</code> ne change pas (<code>devisesRamassage</code> y est déjà).</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- Scrollable Canvas (maquette : div.flex-1 overflow-y-auto p-8 max-w-[1360px] pb-32) --&gt;</span>
+&lt;form [formGroup]=<span class="s">"form"</span> <span class="k">class</span>=<span class="s">"canevas"</span> [<span class="k">class</span>.mode-consultation]=<span class="s">"estConsultation"</span> (ngSubmit)=<span class="s">"submit()"</span> novalidate&gt;
+
+  <span class="c">&lt;!-- ======================= En-tête de CRÉATION (lot 5, hors maquettes 287) ======================= --&gt;</span>
+  &lt;div <span class="k">class</span>=<span class="s">"carte entete-creation"</span> *ngIf=<span class="s">"estCreation"</span>&gt;
+    &lt;h2 <span class="k">class</span>=<span class="s">"entete-creation__titre"</span>&gt;Gestion des fonds - Vue Agence&lt;/h2&gt;
+    &lt;label <span class="k">class</span>=<span class="s">"urgent urgent--saisie"</span>&gt;
+      &lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined urgent__icone"</span>&gt;warning&lt;/span&gt;
+      &lt;span <span class="k">class</span>=<span class="s">"urgent__texte"</span>&gt;Demande Urgente&lt;/span&gt;
+      &lt;input <span class="k">type</span>=<span class="s">"checkbox"</span> <span class="k">class</span>=<span class="s">"urgent__case"</span> formControlName=<span class="s">"urgent"</span>&gt;
+    &lt;/label&gt;
+  &lt;/div&gt;
+
+  <span class="c">&lt;!-- ======================= Back Link + Status &amp; Information Card (287) ======================= --&gt;</span>
+  &lt;app-demande-entete *ngIf=<span class="s">"avecDetail &amp;&amp; demande() as d"</span>
+    [theme]=<span class="s">"themeRecap ? 'recap' : 'edition'"</span>
+    [reference]=<span class="s">"d.uniqueRequestRef ?? '—'"</span>
+    [statut]=<span class="s">"d.statut"</span>
+    [urgent]=<span class="s">"!!form.get('urgent')?.value"</span>
+    [urgentModifiable]=<span class="s">"estModification &amp;&amp; capacites().peutModifierUrgence"</span>
+    (urgentChange)=<span class="s">"form.get('urgent')?.setValue($event)"</span>
+    [modeModification]=<span class="s">"estModification"</span>
+    [modificationActivable]=<span class="s">"estConsultation &amp;&amp; capacites().peutModifier"</span>
+    (activerModification)=<span class="s">"modifier()"</span>
+    [soumiseLe]=<span class="s">"d.submittedAt ?? d.createdAt ?? null"</span>
+    [soumisePar]=<span class="s">"d.agentNom || d.user || null"</span>
+    [soumiseParDetail]=<span class="s">"d.agentProfil ?? null"</span>
+    [decisionLe]=<span class="s">"d.decisionAt ?? null"</span>
+    [decisionPar]=<span class="s">"d.decisionPar ?? null"</span>
+    [decisionParDetail]=<span class="s">"d.decisionProfil ?? null"</span>
+    [motifAnnulation]=<span class="s">"d.cancellationReason ?? null"</span>
+    [banniere]=<span class="s">"banniere()"</span>
+    lienRetour=<span class="s">"Retour à l'Historique des Demandes"</span>
+    (retour)=<span class="s">"estModification ? abandonnerModification() : retourListing()"</span>&gt;
+  &lt;/app-demande-entete&gt;
+
+  <span class="c">&lt;!-- ======================= Bento Grid Form Sections (grid grid-cols-1 xl:grid-cols-12 gap-6 items-start) ======================= --&gt;</span>
+  &lt;div <span class="k">class</span>=<span class="s">"grille"</span>&gt;
+
+    <span class="c">&lt;!-- LEFT COLUMN: Alimentation MAD &amp; Commande Devises (8 cols) --&gt;</span>
+    &lt;div <span class="k">class</span>=<span class="s">"grille__gauche"</span>&gt;
+
+      <span class="c">&lt;!-- 1. Alimentation Caisse (MAD) --&gt;</span>
+      &lt;section <span class="k">class</span>=<span class="s">"carte"</span> formGroupName=<span class="s">"caisse"</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"carte__entete carte__entete--caisse"</span>&gt;
+          &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined carte__icone"</span>&gt;account_balance_wallet&lt;/span&gt; Alimentation Caisse (MAD)&lt;/h3&gt;
+        &lt;/div&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"coupures"</span> formArrayName=<span class="s">"coupures"</span>&gt;
+          <span class="c">&lt;!-- Billets --&gt;</span>
+          &lt;div&gt;
+            &lt;h4 <span class="k">class</span>=<span class="s">"coupures__entete"</span>&gt;&lt;span&gt;Billets&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"coupures__qte"</span>&gt;Quantité&lt;/span&gt;&lt;/h4&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"coupures__liste coupures__liste--billets"</span>&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"coupure coupure--billet"</span> *ngFor=<span class="s">"let i of indexesBillets; trackBy: suivreCoupureCaisse"</span> [formGroupName]=<span class="s">"i"</span>&gt;
+                &lt;div <span class="k">class</span>=<span class="s">"coupure__valeur"</span>&gt;{{ caisseCoupures.at(i).<span class="k">get</span>(<span class="s">'valeur'</span>)?.value }}&lt;/div&gt;
+                &lt;div <span class="k">class</span>=<span class="s">"coupure__x"</span>&gt;x&lt;/div&gt;
+                &lt;div <span class="k">class</span>=<span class="s">"coupure__champ-bloc"</span>&gt;
+                  &lt;input <span class="k">class</span>=<span class="s">"champ coupure__champ"</span> <span class="k">type</span>=<span class="s">"number"</span> appSaisieQuantite min=<span class="s">"0"</span> step=<span class="s">"1"</span> formControlName=<span class="s">"quantite"</span>&gt;
+                &lt;/div&gt;
+              &lt;/div&gt;
+              &lt;p <span class="k">class</span>=<span class="s">"vide"</span> *ngIf=<span class="s">"!indexesBillets.length"</span>&gt;Aucun billet dans le référentiel&lt;/p&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+          <span class="c">&lt;!-- Pièces --&gt;</span>
+          &lt;div&gt;
+            &lt;h4 <span class="k">class</span>=<span class="s">"coupures__entete"</span>&gt;&lt;span&gt;Pièces&lt;/span&gt;&lt;span <span class="k">class</span>=<span class="s">"coupures__qte"</span>&gt;Quantité&lt;/span&gt;&lt;/h4&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"coupures__liste coupures__liste--pieces"</span>&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"coupure coupure--piece"</span> *ngFor=<span class="s">"let i of indexesPieces; trackBy: suivreCoupureCaisse"</span> [formGroupName]=<span class="s">"i"</span>&gt;
+                &lt;div <span class="k">class</span>=<span class="s">"coupure__valeur"</span>&gt;{{ caisseCoupures.at(i).<span class="k">get</span>(<span class="s">'valeur'</span>)?.value }}&lt;/div&gt;
+                &lt;div <span class="k">class</span>=<span class="s">"coupure__x"</span>&gt;x&lt;/div&gt;
+                &lt;div <span class="k">class</span>=<span class="s">"coupure__champ-bloc"</span>&gt;
+                  &lt;input <span class="k">class</span>=<span class="s">"champ coupure__champ"</span> <span class="k">type</span>=<span class="s">"number"</span> appSaisieQuantite min=<span class="s">"0"</span> step=<span class="s">"1"</span> formControlName=<span class="s">"quantite"</span>&gt;
+                &lt;/div&gt;
+              &lt;/div&gt;
+              &lt;p <span class="k">class</span>=<span class="s">"vide"</span> *ngIf=<span class="s">"!indexesPieces.length"</span>&gt;Aucune pièce dans le référentiel&lt;/p&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        <span class="c">&lt;!-- Totals Area --&gt;</span>
+        &lt;div <span class="k">class</span>=<span class="s">"totaux"</span>&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"totaux__detail"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"puce puce--detail"</span>&gt;&lt;/span&gt;
+            Détail : Billets {{ totalBillets() | number:<span class="s">'1.2-2'</span> }} MAD • Pièces {{ totalPieces() | number:<span class="s">'1.2-2'</span> }} MAD
+          &lt;/div&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"totaux__bloc"</span>&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"totaux__libelle"</span>&gt;Total Saisi&lt;/div&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"totaux__valeur"</span>&gt;{{ totalCaisse() | number:<span class="s">'1.2-2'</span> }} MAD&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      <span class="c">&lt;!-- 2. Commande Devises --&gt;</span>
+      &lt;section <span class="k">class</span>=<span class="s">"carte"</span> formGroupName=<span class="s">"commandeDevises"</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"carte__entete"</span>&gt;
+          &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined carte__icone"</span>&gt;currency_exchange&lt;/span&gt; Commande Devises&lt;/h3&gt;
+        &lt;/div&gt;
+
+        <span class="c">&lt;!-- Saisie nouvelle devise (action-edit-only) --&gt;</span>
+        &lt;div <span class="k">class</span>=<span class="s">"saisie-devise"</span> *ngIf=<span class="s">"!estConsultation"</span>&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"saisie-devise__champ"</span>&gt;
+            &lt;label <span class="k">class</span>=<span class="s">"etiquette"</span> for=<span class="s">"cd-devise"</span>&gt;Devise&lt;/label&gt;
+            &lt;select id=<span class="s">"cd-devise"</span> <span class="k">class</span>=<span class="s">"champ champ--select"</span> formControlName=<span class="s">"deviseCode"</span>&gt;
+              <span class="c">&lt;!-- Remarque PO : jamais le MAD dans une commande de devises --&gt;</span>
+              &lt;option *ngFor=<span class="s">"let d of devisesCommandables"</span> [ngValue]=<span class="s">"d.isoCode"</span>&gt;{{ d.isoCode }} - {{ d.currencyName }}&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/div&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"saisie-devise__champ"</span>&gt;
+            &lt;label <span class="k">class</span>=<span class="s">"etiquette"</span> for=<span class="s">"cd-montant"</span>&gt;Montant Saisi&lt;/label&gt;
+            &lt;input id=<span class="s">"cd-montant"</span> <span class="k">class</span>=<span class="s">"champ champ--montant"</span> <span class="k">type</span>=<span class="s">"number"</span> appSaisieQuantite min=<span class="s">"0"</span> placeholder=<span class="s">"0.00"</span> formControlName=<span class="s">"montant"</span>&gt;
+          &lt;/div&gt;
+          &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"btn-ajouter"</span> [disabled]=<span class="s">"!peutAjouterCommandeDevise"</span> (click)=<span class="s">"ajouterCommandeDevise()"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined btn-ajouter__icone"</span>&gt;add&lt;/span&gt; Ajouter
+          &lt;/button&gt;
+        &lt;/div&gt;
+
+        <span class="c">&lt;!-- Currencies Table --&gt;</span>
+        &lt;div <span class="k">class</span>=<span class="s">"table-cadre"</span>&gt;
+          &lt;table <span class="k">class</span>=<span class="s">"table"</span> formArrayName=<span class="s">"lignes"</span>&gt;
+            &lt;thead&gt;
+              &lt;tr&gt;
+                &lt;th&gt;Devise&lt;/th&gt;
+                &lt;th <span class="k">class</span>=<span class="s">"table__droite"</span>&gt;Montant Saisi&lt;/th&gt;
+                &lt;th <span class="k">class</span>=<span class="s">"table__action"</span>&gt;Action&lt;/th&gt;
+              &lt;/tr&gt;
+            &lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr *ngFor=<span class="s">"let ligne of commandeDeviseLignes.controls; let i = index"</span> [formGroupName]=<span class="s">"i"</span>&gt;
+                &lt;td <span class="k">class</span>=<span class="s">"table__devise"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value }} - {{ libelleDevise(ligne.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value) }}&lt;/td&gt;
+                &lt;td <span class="k">class</span>=<span class="s">"table__droite table__montant"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'montant'</span>)?.value | number:<span class="s">'1.2-2'</span> }} {{ ligne.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value }}&lt;/td&gt;
+                &lt;td <span class="k">class</span>=<span class="s">"table__action"</span>&gt;
+                  &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"btn-supprimer"</span> *ngIf=<span class="s">"!estConsultation"</span> (click)=<span class="s">"supprimerCommandeDevise(i)"</span> aria-label=<span class="s">"Supprimer la ligne"</span> title=<span class="s">"Supprimer"</span>&gt;
+                    &lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined btn-supprimer__icone"</span>&gt;delete&lt;/span&gt;
+                  &lt;/button&gt;
+                  &lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined verrou"</span> *ngIf=<span class="s">"estConsultation"</span> title=<span class="s">"Lecture seule"</span>&gt;lock&lt;/span&gt;
+                &lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr *ngIf=<span class="s">"!commandeDeviseLignes.length"</span>&gt;
+                &lt;td colspan=<span class="s">"3"</span> <span class="k">class</span>=<span class="s">"table__vide"</span>&gt;Aucune devise commandée pour le moment.&lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      <span class="c">&lt;!-- 5. Commentaire Bloc --&gt;</span>
+      &lt;section <span class="k">class</span>=<span class="s">"carte"</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"carte__entete carte__entete--commentaire"</span>&gt;
+          &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined carte__icone carte__icone--lg"</span>&gt;notes&lt;/span&gt; Commentaire&lt;/h3&gt;
+          &lt;span <span class="k">class</span>=<span class="s">"facultatif"</span> *ngIf=<span class="s">"!themeRecap"</span>&gt;Facultatif&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"commentaire"</span>&gt;
+          &lt;label <span class="k">class</span>=<span class="s">"etiquette"</span> for=<span class="s">"comment-global"</span>&gt;{{ themeRecap ? <span class="s">'Instructions spécifiques ou observations'</span> : <span class="s">'Instructions spécifiques ou motif de la demande'</span> }}&lt;/label&gt;
+          &lt;textarea id=<span class="s">"comment-global"</span> <span class="k">class</span>=<span class="s">"champ commentaire__champ"</span> rows=<span class="s">"3"</span> formControlName=<span class="s">"comment"</span>
+                    placeholder=<span class="s">"Ex. : disponibilité de coupures spécifiques, contexte d'une urgence…"</span>&gt;&lt;/textarea&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+    &lt;/div&gt;
+
+    <span class="c">&lt;!-- RIGHT COLUMN: Alimentation GAB &amp; Ramassage (4 cols) --&gt;</span>
+    &lt;div <span class="k">class</span>=<span class="s">"grille__droite"</span>&gt;
+
+      <span class="c">&lt;!-- 3. Alimentation GAB (Strictement 2 lignes : 200 DH &amp; 100 DH, sans notion de cassette) --&gt;</span>
+      &lt;section <span class="k">class</span>=<span class="s">"carte"</span> formGroupName=<span class="s">"gab"</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"carte__entete"</span>&gt;
+          &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined carte__icone carte__icone--lg"</span>&gt;{{ themeRecap ? <span class="s">'local_atm'</span> : <span class="s">'payments'</span> }}&lt;/span&gt; Alimentation GAB&lt;/h3&gt;
+        &lt;/div&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"gab"</span> [<span class="k">class</span>.gab--lecture]=<span class="s">"themeRecap"</span> formArrayName=<span class="s">"coupures"</span>&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"gab__ligne"</span> *ngFor=<span class="s">"let ligne of gabCoupures.controls; let i = index"</span> [formGroupName]=<span class="s">"i"</span>&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"gab__libelle"</span>&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"puce puce--petite"</span>&gt;&lt;/span&gt;
+              &lt;ng-container *ngIf=<span class="s">"!themeRecap; else libelleLecture"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"gab__valeur"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'valeur'</span>)?.value }} DH&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"gab__x"</span>&gt;x&lt;/span&gt;
+              &lt;/ng-container&gt;
+              &lt;ng-template #libelleLecture&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"gab__valeur-lecture"</span>&gt;Billets de {{ ligne.<span class="k">get</span>(<span class="s">'valeur'</span>)?.value }} DH&lt;/span&gt;
+              &lt;/ng-template&gt;
+            &lt;/div&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"gab__saisie"</span>&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"gab__qte"</span> *ngIf=<span class="s">"themeRecap"</span>&gt;Qté :&lt;/span&gt;
+              &lt;input <span class="k">class</span>=<span class="s">"champ gab__champ"</span> <span class="k">type</span>=<span class="s">"number"</span> appSaisieQuantite min=<span class="s">"0"</span> step=<span class="s">"1"</span> formControlName=<span class="s">"quantite"</span>&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"gab__unite"</span> *ngIf=<span class="s">"!themeRecap"</span>&gt;billets&lt;/span&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+          &lt;p <span class="k">class</span>=<span class="s">"vide"</span> *ngIf=<span class="s">"!gabCoupures.length"</span>&gt;Aucune coupure GAB dans le référentiel&lt;/p&gt;
+        &lt;/div&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"total-gab"</span>&gt;
+          &lt;span <span class="k">class</span>=<span class="s">"total-gab__libelle"</span>&gt;Total GAB&lt;/span&gt;
+          &lt;span <span class="k">class</span>=<span class="s">"total-gab__valeur"</span>&gt;{{ totalGab() | number:<span class="s">'1.2-2'</span> }} MAD&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      <span class="c">&lt;!-- 4. Ramassage de Fonds (CIT) --&gt;</span>
+      &lt;section <span class="k">class</span>=<span class="s">"carte"</span> formGroupName=<span class="s">"ramassage"</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"carte__entete"</span>&gt;
+          &lt;h3 <span class="k">class</span>=<span class="s">"carte__titre"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined carte__icone carte__icone--lg"</span>&gt;local_shipping&lt;/span&gt; {{ themeRecap ? <span class="s">'Ramassage'</span> : <span class="s">'Ramassage de Fonds (CIT)'</span> }}&lt;/h3&gt;
+        &lt;/div&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"ramassage"</span>&gt;
+          <span class="c">&lt;!-- Saisie (action-edit-only) --&gt;</span>
+          &lt;div <span class="k">class</span>=<span class="s">"saisie-ramassage"</span> *ngIf=<span class="s">"!estConsultation"</span>&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"saisie-ramassage__ligne"</span>&gt;
+              &lt;select <span class="k">class</span>=<span class="s">"champ champ--select saisie-ramassage__devise"</span> formControlName=<span class="s">"deviseCode"</span> aria-label=<span class="s">"Devise"</span>&gt;
+                <span class="c">&lt;!-- Ramassage : MAD (espèces) toujours en tête et sélectionné par défaut, puis les devises étrangères --&gt;</span>
+                &lt;option *ngFor=<span class="s">"let d of devisesRamassage"</span> [ngValue]=<span class="s">"d.isoCode"</span>&gt;{{ d.isoCode }}&lt;/option&gt;
+              &lt;/select&gt;
+              &lt;input <span class="k">class</span>=<span class="s">"champ champ--montant saisie-ramassage__montant"</span> <span class="k">type</span>=<span class="s">"number"</span> appSaisieQuantite min=<span class="s">"0"</span>
+                     placeholder=<span class="s">"Montant à ramasser"</span> formControlName=<span class="s">"montant"</span> aria-label=<span class="s">"Montant à ramasser"</span>&gt;
+            &lt;/div&gt;
+            &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"btn-ajouter-ramassage"</span> [disabled]=<span class="s">"!peutAjouterRamassage"</span> (click)=<span class="s">"ajouterLigneRamassage()"</span>&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined btn-ajouter-ramassage__icone"</span>&gt;add&lt;/span&gt; Ajouter Ramassage
+            &lt;/button&gt;
+          &lt;/div&gt;
+
+          <span class="c">&lt;!-- Lignes --&gt;</span>
+          &lt;div <span class="k">class</span>=<span class="s">"ramassage__lignes"</span> formArrayName=<span class="s">"lignes"</span>&gt;
+            &lt;div <span class="k">class</span>=<span class="s">"ramassage__ligne"</span> *ngFor=<span class="s">"let ligne of ramassageLignes.controls; let i = index"</span> [formGroupName]=<span class="s">"i"</span>&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"ramassage__devise"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"puce"</span> [<span class="k">class</span>.puce--bleue]=<span class="s">"ligne.get('deviseCode')?.value !== 'MAD'"</span>&gt;&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"ramassage__code"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value }}&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"ramassage__nature"</span> *ngIf=<span class="s">"!themeRecap"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'deviseCode'</span>)?.value === <span class="s">'MAD'</span> ? <span class="s">'Espèces'</span> : <span class="s">'Devises'</span> }}&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"ramassage__montant-bloc"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"ramassage__montant"</span>&gt;{{ ligne.<span class="k">get</span>(<span class="s">'montant'</span>)?.value | number:<span class="s">'1.2-2'</span> }}&lt;/span&gt;
+                &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"btn-supprimer"</span> *ngIf=<span class="s">"!estConsultation"</span> (click)=<span class="s">"supprimerLigneRamassage(i)"</span> aria-label=<span class="s">"Supprimer le ramassage"</span> title=<span class="s">"Supprimer"</span>&gt;
+                  &lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined btn-supprimer__icone btn-supprimer__icone--sm"</span>&gt;delete&lt;/span&gt;
+                &lt;/button&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"material-symbols-outlined verrou verrou--sm"</span> *ngIf=<span class="s">"estConsultation"</span> title=<span class="s">"Lecture seule"</span>&gt;lock&lt;/span&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;p <span class="k">class</span>=<span class="s">"vide"</span> *ngIf=<span class="s">"!ramassageLignes.length"</span>&gt;{{ themeRecap ? <span class="s">'Aucun ramassage.'</span> : <span class="s">'Aucun ramassage ajouté.'</span> }}&lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  <span class="c">&lt;!-- ======================= Bottom Action Bar — CRÉATION (maquette Saisie Agence : Annuler rouge | Soumettre vert, collée en bas) ======================= --&gt;</span>
+  &lt;app-demande-barre-actions *ngIf=<span class="s">"estCreation"</span>
+    [avecRetour]=<span class="s">"false"</span>
+    [peutAnnuler]=<span class="s">"true"</span> libelleAnnuler=<span class="s">"Annuler"</span>
+    [peutSoumettre]=<span class="s">"true"</span> libelleSoumettre=<span class="s">"Soumettre"</span> [soumettreDesactive]=<span class="s">"submitting"</span>
+    [enCours]=<span class="s">"submitting"</span>
+    (annuler)=<span class="s">"annulerCreation()"</span>
+    (soumettre)=<span class="s">"submit()"</span>&gt;
+  &lt;/app-demande-barre-actions&gt;
+
+  <span class="c">&lt;!-- ======================= Bottom Action Bar — CONSULTATION / MODIFICATION (287) ======================= --&gt;</span>
+  &lt;ng-container *ngIf=<span class="s">"(estConsultation || estModification) &amp;&amp; demande() as d"</span>&gt;
+    &lt;app-demande-barre-actions
+      [libelleRetour]=<span class="s">"estModification ? 'Retour au listing' : 'Retour à l\'Historique des Demandes'"</span>
+      [verrouille]=<span class="s">"estConsultation &amp;&amp; !capacites().peutModifier &amp;&amp; !!capacites().motifVerrouillage"</span>
+      [peutAnnuler]=<span class="s">"capacites().peutAnnuler"</span>
+      [peutSoumettre]=<span class="s">"estModification ? capacites().peutModifier : capacites().peutSoumettre"</span>
+      [libelleSoumettre]=<span class="s">"estModification ? 'Soumettre les Modifications' : 'Soumettre la demande'"</span>
+      [soumettreDesactive]=<span class="s">"estModification &amp;&amp; (submitting || form.invalid)"</span>
+      [enCours]=<span class="s">"actions.enCours() || submitting"</span>
+      (retour)=<span class="s">"estModification ? abandonnerModification() : retourListing()"</span>
+      (annuler)=<span class="s">"ouvrirAnnulation()"</span>
+      (soumettre)=<span class="s">"estModification ? submit() : soumettreDepuisConsultation()"</span>&gt;
+    &lt;/app-demande-barre-actions&gt;
+
+    <span class="c">&lt;!-- Modale d'annulation : même FormControl motifAnnulation, même annulerDemande() --&gt;</span>
+    &lt;app-demande-decision-modale *ngIf=<span class="s">"annulationOuverte"</span>
+      <span class="k">type</span>=<span class="s">"ANNULEE"</span> acteur=<span class="s">"agence"</span>
+      [reference]=<span class="s">"d.uniqueRequestRef ?? ''"</span>
+      [enCours]=<span class="s">"actions.enCours()"</span>
+      [erreur]=<span class="s">"actions.erreur()"</span>
+      (confirmer)=<span class="s">"motifAnnulation.setValue($event ?? ''); annulerDemande()"</span>
+      (fermer)=<span class="s">"fermerAnnulation()"</span>&gt;
+    &lt;/app-demande-decision-modale&gt;
+  &lt;/ng-container&gt;
+
+&lt;/form&gt;</code></pre></div>
+<h2 id="s2">2. Vérification</h2>
+<div class="card"><ol>
+<li>Nouvelle demande → Ramassage : le select affiche <b>MAD</b> d'emblée, puis AED, CAD, CHF… (devises étrangères du référentiel).</li>
+<li>Montant 1 000 + Ajouter → « MAD Espèces 1 000,00 ».</li>
+<li>Choisir EUR, 500, Ajouter → « EUR Devises 500,00 » ; le select reste sur EUR (seul le montant est vidé).</li>
+<li>Consultation d'une demande existante avec ramassage EUR : la ligne s'affiche en EUR.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
