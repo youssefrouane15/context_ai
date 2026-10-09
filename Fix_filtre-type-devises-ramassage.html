@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix — filtre Commande devises ramène les ramassages</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Fix — le filtre « Commande devises » ramène aussi les ramassages (operationSens manquant)</h1><p>fund-management-front · 09/10/2026 · 2 éditions</p></header>
+<nav><a href="#s0">Cause</a><a href="#s1">Fichiers</a><a href="#s2">Vérification</a></nav><main><h2 id="s0">0. Cause</h2>
+<div class="card"><p>Commande de devises et ramassage sont <b>la même famille d'opération</b> côté back : <code>operationType = CURRENCY</code>, seul <code>operationSens</code> les distingue (<code>SUPPLY</code> = commande, <code>COLLECTION</code> = ramassage). Dans <code>construireCriteres()</code>, le filtre « Commande devises » n'envoyait que <code>operationType=CURRENCY</code> → le back renvoyait les deux. « Ramassage » n'envoyait que le sens, ce qui marche aujourd'hui mais par accident (aucune autre opération en COLLECTION).</p>
+<p>Correction côté front uniquement : les deux cas envoient <code>operationType</code> <b>et</b> <code>operationSens</code>. Le back accepte déjà les deux critères.</p></div>
+<h2 id="s1">1. Fichiers</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.regles.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.ts</span></div><p class="note">Remplacer le <code>switch (f.type)</code> existant par celui-ci (les deux dernières lignes changent).</p><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.regles.ts — construireCriteres(…) : ÉDITION du switch (Ctrl+F : case 'CAISSE')</span>
+  <span class="k">switch</span> (f.<span class="k">type</span>) {
+    <span class="k">case</span> <span class="s">'CAISSE'</span>:    c.operationType = <span class="s">'CASH_DESK'</span>; break;
+    <span class="k">case</span> <span class="s">'GAB'</span>:       c.operationType = <span class="s">'ATM'</span>; break;
+    <span class="c">// Commande de devises et ramassage sont tous deux des opérations CURRENCY : seul le sens les distingue</span>
+    <span class="c">// (SUPPLY = commande, COLLECTION = ramassage). Sans le sens, « Commande devises » ramenait aussi les ramassages.</span>
+    <span class="k">case</span> <span class="s">'DEVISES'</span>:   c.operationType = <span class="s">'CURRENCY'</span>; c.operationSens = <span class="s">'SUPPLY'</span>; break;
+    <span class="k">case</span> <span class="s">'RAMASSAGE'</span>: c.operationType = <span class="s">'CURRENCY'</span>; c.operationSens = <span class="s">'COLLECTION'</span>; break;
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.regles.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.spec.ts</span></div><p class="note">Le test existant affirmait <code>ramassage.operationType</code> indéfini : il devient faux, d'où le remplacement.</p><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.regles.spec.ts — REMPLACER le it('agence : le type de demande devient operationType, sauf ramassage = operationSens', …)</span>
+  <span class="k">it</span>(<span class="s">'agence : le type de demande devient operationType, et operationSens pour les devises'</span>, () =&gt; {
+    <span class="k">expect</span>(construireCriteres({ ...filtresNeutres, <span class="k">type</span>: <span class="s">'CAISSE'</span> }, 0, 20).operationType).toBe(<span class="s">'CASH_DESK'</span>);
+    <span class="k">expect</span>(construireCriteres({ ...filtresNeutres, <span class="k">type</span>: <span class="s">'GAB'</span> }, 0, 20).operationType).toBe(<span class="s">'ATM'</span>);
+
+    <span class="k">const</span> devises = construireCriteres({ ...filtresNeutres, <span class="k">type</span>: <span class="s">'DEVISES'</span> }, 0, 20);
+    <span class="k">expect</span>(devises.operationType).toBe(<span class="s">'CURRENCY'</span>);
+    <span class="k">expect</span>(devises.operationSens).toBe(<span class="s">'SUPPLY'</span>);          <span class="c">// sans le sens, les ramassages (CURRENCY / COLLECTION) remontaient aussi</span>
+
+    <span class="k">const</span> ramassage = construireCriteres({ ...filtresNeutres, <span class="k">type</span>: <span class="s">'RAMASSAGE'</span> }, 0, 20);
+    <span class="k">expect</span>(ramassage.operationType).toBe(<span class="s">'CURRENCY'</span>);
+    <span class="k">expect</span>(ramassage.operationSens).toBe(<span class="s">'COLLECTION'</span>);
+
+    <span class="k">const</span> caisse = construireCriteres({ ...filtresNeutres, <span class="k">type</span>: <span class="s">'CAISSE'</span> }, 0, 20);
+    <span class="k">expect</span>(caisse.operationSens).toBeUndefined();
+  });</code></pre></div>
+<h2 id="s2">2. Vérification</h2>
+<div class="card"><ol>
+<li>Historique → Type « Commande devises » : seule <code>20261008-1422-14</code> (DEVISES) ; onglet Réseau : <code>operationType=CURRENCY&amp;operationSens=SUPPLY</code>.</li>
+<li>Type « Ramassage » : seule <code>20261009-1422-07</code> ; <code>operationType=CURRENCY&amp;operationSens=COLLECTION</code>.</li>
+<li>« Tous les types » : les deux. Caisse Centrale, même filtre : même comportement (même <code>construireCriteres</code>).</li>
+<li><code>ng test --include '**/demandes-list.regles.spec.ts'</code>.</li>
+</ol>
+<p><b>Point à vérifier côté back</b> (je n'ai pas <code>DemandeSpecifications</code> sous les yeux) : les deux prédicats <code>operationType</code> et <code>operationSens</code> doivent porter sur la <b>même</b> jointure <code>operations</code>. S'ils font chacun leur propre <code>join</code>, une demande qui contient une alimentation caisse (CASH_DESK/SUPPLY) <i>et</i> un ramassage (CURRENCY/COLLECTION) remonterait sous « Commande devises » (CURRENCY satisfait par le ramassage, SUPPLY par la caisse). Test rapide : crée une demande caisse + ramassage, filtre « Commande devises » → elle ne doit pas apparaître. Si elle apparaît, envoie-moi la méthode <code>of()</code> de <code>DemandeSpecifications</code> (partie operationType / operationSens) et je corrige la jointure.</p></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contrôle en base</b><br><span class="path">pgAdmin</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Contrôle : une demande ne doit remonter sous « Commande devises » que si elle a une opération CURRENCY + SUPPLY.</span>
+select r.unique_request_ref, o.operation_type, o.operation_sens
+<span class="k">from</span> retail.cash_request r join retail.cash_operation o on o.cash_request_id = r.id
+where o.operation_type = <span class="s">'CURRENCY'</span>
+order by r.unique_request_ref, o.operation_sens;</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
