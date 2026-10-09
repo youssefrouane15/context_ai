@@ -1,0 +1,156 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix — taille de police des champs (mixin champ)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Fix — taille de police des champs de saisie : `font: inherit` écrasait le 14 px de la maquette</h1><p>fund-management-front · 09/10/2026 · 1 fichier</p></header>
+<nav><a href="#s0">Cause</a><a href="#s1">Fichier</a><a href="#s2">Vérification</a></nav><main><h2 id="s0">0. Cause</h2>
+<div class="card"><p>Dans <code>_palette.scss</code>, le mixin <code>champ</code> commence par <code>font: inherit</code>. Ce raccourci remet <b>toutes</b> les propriétés de police à la valeur héritée — y compris <code>font-size</code> — et il est écrit <i>après</i> le <code>font-size: 0.875rem</code> de <code>.champ</code> (le <code>@include</code> vient en fin de règle). Résultat : tous les champs (<code>select</code>, montants, commentaire…) sortaient à 16 px au lieu des 14 px de la maquette (<code>text-sm</code>). Correction : <code>font-family: inherit</code> seul.</p>
+<p>Effet : tous les champs de l'écran agence et de la page Caisse Centrale passent à 14 px, conformément aux maquettes ; le select devise affiche désormais le libellé complet. La règle <code>option</code> du doc précédent reste utile (la liste native ne dépend pas du select).</p></div>
+<h2 id="s1">1. Fichier</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>_palette.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\styles\_palette.scss</span></div><p class="note">Une seule ligne change, dans <code>@mixin champ</code>.</p><pre><button class="copy">Copier</button><code><span class="c">/* ============================================================================
+   Palette partagée (shared/presenter/styles) — chargée par angular.json &gt; stylePreprocessorOptions.includePaths,
+   donc  @use 'palette' as *;  en LIGNE 1 de n'importe quel SCSS.
+
+   Deux jeux de jetons, relevés dans les sources des maquettes (05/10/2026) :
+     (1) « Édition »  = Agence_Modification-Demande.html  (tailwind.config : primary #00915A, on-background #1b1c1c, …)
+         → écran agence en création / consultation modifiable / modification.
+     (2) « Recap »    = Agence_Modification-Bloquée.html et Caisse-Centrale_Traiter-Demande-En-Attente.html
+         (design system QlickFLOW v3 : --qf-success-400 #007F4F, --qf-grey-*, .qf-card 16px / 32px, .qf-btn, .qf-badge)
+         → écran agence verrouillé (lecture seule) et écran de traitement Caisse Centrale.
+   Les composants partagés (en-tête, barre) lisent des variables CSS ; la page pose le thème sur son :host
+   avec les mixins theme-edition / theme-recap. Le jeu (3) est l'ancienne palette ardoise du listing 281 (inchangée).
+   ========================================================================== */</span>
+
+<span class="c">/* ===== (1) Édition — Agence_Modification-Demande ===== */</span>
+$ed-primary: #00915A;            $ed-primary-dark: #007A4B;      $ed-primary-container: #008653;
+$ed-texte: #1b1c1c;              $ed-texte-2: #5d5f5f;           $ed-outline: #6e7a70;           $ed-outline-variant: #bdcabe;
+$ed-bordure: #e4e2e2;            $ed-surface: #fbf9f8;           $ed-surface-basse: #f5f3f3;     $ed-page: #F8F9FA;
+$ed-erreur: #ba1a1a;             $ed-erreur-container: #ffdad6;
+$ed-attente-fond: #FFF8E1;       $ed-attente-texte: #E65100;     $ed-attente-bordure: #FFE082;   <span class="c">/* chip EN ATTENTE, icône pending */</span>
+$ed-actif-fond: #E1FFF3;         $ed-actif-texte: #006D44;                                       <span class="c">/* badge « Mode Modification actif » */</span>
+$ed-lecture-fond: #f1f5f9;       $ed-lecture-bordure: #e2e8f0;   $ed-lecture-texte: #475569;     <span class="c">/* .mode-consultation .field-input */</span>
+
+<span class="c">/* ===== (2) Recap — QlickFLOW v3 (Bloquée / Caisse Centrale) ===== */</span>
+$qf-brand: #00915A;              $qf-success-25: #E1FFF3;        $qf-success-400: #007F4F;       $qf-success-500: #006D44;
+$qf-grey-50: #F7F8F7;            $qf-grey-100: #EEF0EF;          $qf-grey-200: #E6E9E8;          $qf-grey-800: #606F69;          $qf-grey-900: #404A46;
+$qf-warning-25: #FDF3F0;         $qf-warning-700: #B13E19;       $qf-warning-bordure: #F4DED7;
+$qf-error-25: #FCEBEA;           $qf-error-500: #C8281E;
+$qf-shadow-card: 0 0 20px 0 rgba(132, 132, 132, .20);
+$qf-shadow-popup: 0 0 10px 0 rgba(132, 132, 132, .15);
+$qf-shadow-focus-green: 0 0 10px 0 rgba(0, 127, 79, .15);
+
+<span class="c">/* ===== Communs ===== */</span>
+$rayon: 4px;                                           <span class="c">/* rounded-[4px] partout (boutons, champs, badges) */</span>
+$sans: Inter, <span class="s">"Segoe UI"</span>, Roboto, sans-serif;
+$mono: <span class="s">"JetBrains Mono"</span>, Consolas, monospace;
+$bleu-600: #2563eb;                                    <span class="c">/* puce des devises étrangères (bg-blue-600) */</span>
+
+<span class="c">/* Alias conservés pour les SCSS déjà en place (modale, listing) */</span>
+$primary: $ed-primary; $texte: $ed-texte; $texte-2: $ed-texte-2; $outline-variant: $ed-outline-variant; $bordure: $ed-bordure;
+$surface: $ed-surface; $surface-basse: $ed-surface-basse; $fond-page: $ed-page; $erreur: $ed-erreur; $erreur-container: $ed-erreur-container;
+$attente-fond: $ed-attente-fond; $attente-texte: $ed-attente-texte; $attente-bordure: $ed-attente-bordure;
+$actif-fond: $ed-actif-fond; $actif-texte: $ed-actif-texte; $lecture-fond: $ed-lecture-fond; $lecture-bordure: $ed-lecture-bordure; $lecture-texte: $ed-lecture-texte;
+$rayon-carte: 0.75rem;
+
+<span class="c">/* ===== (3) Palette ardoise du listing 281 ===== */</span>
+$vert-50:  #f0fdf6; $vert-100: #dbf9e9; $vert-500: #10b981; $vert-600: #00915a; $vert-700: #007548;
+$ardoise-50: #f8fafc; $ardoise-100: #f1f5f9; $ardoise-200: #e2e8f0; $ardoise-300: #cbd5e1;
+$ardoise-400: #94a3b8; $ardoise-500: #64748b; $ardoise-600: #475569; $ardoise-700: #334155; $ardoise-800: #1e293b; $ardoise-900: #0f172a;
+$rose-50: #fff1f2; $rose-200: #fecdd3; $rose-600: #e11d48; $rose-700: #be123c;
+$ambre-50: #fffbeb; $ambre-200: #fde68a; $ambre-600: #d97706; $ambre-800: #92400e;
+$bleu-50: #eff6ff; $bleu-100: #dbeafe; $bleu-800: #1e40af;
+
+<span class="c">/* ============================================================================
+   Thèmes : variables CSS posées sur le :host de la page, lues par la page et ses composants enfants.
+   ========================================================================== */</span>
+<span class="a">@mixin</span> theme-edition {
+<span class="c">  --primaire: #{$ed-primary};          --primaire-fonce: #{$ed-primary-dark};</span>
+<span class="c">  --texte: #{$ed-texte};               --texte-2: #{$ed-texte-2};</span>
+<span class="c">  --bordure: #{$ed-bordure};           --champ-bordure: #{$ed-outline-variant};</span>
+<span class="c">  --surface: #{$ed-surface};           --surface-basse: #{$ed-surface-basse};        --page: #{$ed-page};</span>
+<span class="c">  --erreur: #{$ed-erreur};             --erreur-fond: #{rgba($ed-erreur-container, .4)};   --erreur-fond-survol: #{rgba($ed-erreur-container, .7)};</span>
+<span class="c">  --attente-fond: #{$ed-attente-fond}; --attente-texte: #{$ed-attente-texte};        --attente-bordure: #{$ed-attente-bordure};</span>
+<span class="c">  --actif-fond: #{$ed-actif-fond};     --actif-texte: #{$ed-actif-texte};            --actif-bordure: #{rgba($ed-primary, .3)};</span>
+<span class="c">  --lecture-fond: #{$ed-lecture-fond}; --lecture-bordure: #{$ed-lecture-bordure};    --lecture-texte: #{$ed-lecture-texte};</span>
+<span class="c">  --carte-rayon: 0.75rem;              --carte-padding: 1.5rem;                       --carte-ombre: 0 1px 2px 0 rgba(0, 0, 0, .05);   /* rounded-xl p-6 shadow-sm */</span>
+<span class="c">  --champ-bordure-epaisseur: 1px;</span>
+<span class="c">  --pied-hauteur: 4rem;                --pied-py: 0.75rem;                            /* footer h-16 py-3 */</span>
+}
+
+<span class="a">@mixin</span> theme-recap {
+<span class="c">  --primaire: #{$qf-success-400};      --primaire-fonce: #{$qf-success-500};</span>
+<span class="c">  --texte: #{$qf-grey-900};            --texte-2: #{$qf-grey-800};</span>
+<span class="c">  --bordure: #{$qf-grey-200};          --champ-bordure: #{$qf-grey-800};</span>
+<span class="c">  --surface: #{$qf-grey-50};           --surface-basse: #{$qf-grey-50};              --page: #{$qf-grey-50};</span>
+<span class="c">  --erreur: #{$qf-error-500};          --erreur-fond: #{$qf-error-25};               --erreur-fond-survol: #{$qf-error-25};</span>
+<span class="c">  --attente-fond: #{$qf-warning-25};   --attente-texte: #{$qf-warning-700};          --attente-bordure: #{rgba($qf-warning-700, .3)};</span>
+<span class="c">  --actif-fond: #{$qf-success-25};     --actif-texte: #{$qf-success-500};            --actif-bordure: #{rgba($qf-success-400, .3)};</span>
+<span class="c">  --lecture-fond: #{$qf-grey-100};     --lecture-bordure: #{$qf-grey-200};           --lecture-texte: #{$qf-grey-900};</span>
+<span class="c">  --carte-rayon: 16px;                 --carte-padding: 32px;                         --carte-ombre: #{$qf-shadow-card};               /* .qf-card */</span>
+<span class="c">  --champ-bordure-epaisseur: 0.5px;</span>
+<span class="c">  --pied-hauteur: 5rem;                --pied-py: 0.875rem;                           /* footer h-20 py-3.5 */</span>
+}
+
+<span class="c">/* ===== Blocs réutilisés tels quels par les pages ===== */</span>
+
+<span class="c">/* Carte (maquette édition : bg-white border rounded-xl p-6 shadow-sm ; recap : .qf-card) */</span>
+<span class="a">@mixin</span> carte {
+  background: #fff; border: 1px solid var(--bordure); border-radius: var(--carte-rayon); padding: var(--carte-padding); box-shadow: var(--carte-ombre);
+}
+
+<span class="c">/* Titre de carte : h3.text-base font-bold text-primary flex items-center gap-2 + span.material-symbols-outlined */</span>
+<span class="a">@mixin</span> titre-carte {
+  display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: var(--primaire);
+}
+
+<span class="c">/* Icône Material Symbols (la classe .material-symbols-outlined vient de la feuille Google : font-size 24px, line-height 1) */</span>
+<span class="a">@mixin</span> symbole($taille: 1.5rem) { font-size: $taille; line-height: 1; width: $taille; height: $taille; display: inline-block; vertical-align: middle; }
+
+<span class="c">/* Champ de saisie édition : bg-white border border-[#bdcabe] rounded-[4px] font-mono text-right ; lecture : .mode-consultation .field-input */</span>
+<span class="a">@mixin</span> champ {
+  <span class="c">/* font-family seul, pas le raccourci `font: inherit` : il remettait le font-size hérité (16px) par-dessus celui de .champ (14px) */</span>
+  box-sizing: border-box; font-family: inherit; color: var(--texte); background: #fff; border: var(--champ-bordure-epaisseur) solid var(--champ-bordure); border-radius: $rayon;
+  transition: border-color .15s;
+  &amp;:focus { outline: 2px solid var(--primaire); outline-offset: -1px; border-color: var(--primaire); }
+  &amp;:disabled { background: var(--lecture-fond) !important; border-color: var(--lecture-bordure) !important; color: var(--lecture-texte) !important; cursor: not-allowed; user-select: none; }
+}
+
+<span class="a">@mixin</span> sans-spinner {
+  -moz-appearance: textfield;
+  &amp;::-webkit-outer-spin-button, &amp;::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+}
+
+<span class="c">/* Boutons génériques (modale de décision) : text-xs, rounded 4px */</span>
+<span class="a">@mixin</span> bouton {
+  display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 0.75rem; font-weight: 600;
+  padding: 8px 20px; border-radius: $rayon; cursor: pointer; border: 1px solid transparent; transition: all .15s; white-space: nowrap;
+  &amp;:disabled { opacity: .55; cursor: not-allowed; }
+  &amp;--primaire  { background: $ed-primary; color: #fff; font-weight: 700; padding: 8px 24px; &amp;:hover:not(:disabled) { background: $ed-primary-dark; } }
+  &amp;--secondaire { background: #fff; color: $ed-texte-2; border-color: $ed-bordure; &amp;:hover:not(:disabled) { background: $ed-surface-basse; color: $ed-primary; } }
+  &amp;--danger    { background: #fff; color: $ed-erreur; border-color: $ed-erreur; &amp;:hover:not(:disabled) { background: rgba($ed-erreur-container, .4); } }
+}</code></pre></div>
+<h2 id="s2">2. Vérification</h2>
+<div class="card"><ol><li>Commande Devises : la valeur affichée dans le select et le champ Montant sont à 14 px ; « AED - Dirham des Émirats arabes unis » tient dans le champ.</li>
+<li>Alimentation caisse / GAB : quantités à 14 px ; commentaire idem.</li>
+<li>Caisse Centrale : selects des filtres et champ recherche à 14 px.</li></ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
