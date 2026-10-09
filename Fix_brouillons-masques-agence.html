@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brouillons masqués dans l'historique agence</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Historique agence — les brouillons (INITIATED) ne sont plus listés</h1><p>fund-management-microservice + fund-management-front · 09/10/2026 · 4 éditions + 1 script</p></header>
+<nav><a href="#s0">Principe</a><a href="#s1">Back</a><a href="#s2">Front</a><a href="#s3">Purge</a><a href="#s4">Vérification</a></nav><main><h2 id="s0">0. Principe</h2>
+<div class="card"><p>Chaque clic « Nouvelle demande » crée un brouillon (<code>POST /init</code>, statut <code>INITIATED</code>) et « Annuler » le laisse en base : l'historique agence se remplit de lignes « Brouillon » vides. Règle retenue : <b>les brouillons ne sont jamais listés, pour personne</b> — la Caisse Centrale les masquait déjà (<code>masquerBrouillons</code>), on étend la règle à l'agence côté serveur, et on retire l'option « Brouillon » du filtre Statut. Rien ne change dans le workflow ni dans la création : le brouillon existe toujours le temps de la saisie, il n'est simplement plus visible dans la liste.</p>
+<p>Un brouillon abandonné n'est donc plus reprenable depuis l'historique — c'était déjà sans intérêt (formulaire vide). La vraie suppression du brouillon sur « Annuler » (endpoint DELETE + fin de l'instance Camunda) reste un sujet à part, à cadrer avec le PO ; pas nécessaire pour la démo.</p></div>
+<h2 id="s1">1. Back — exclusion serveur pour tous</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.search</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java</span></div><p class="note">Une seule ligne de logique change : <code>enMasquantLesBrouillons()</code> s'applique au critère effectif dans les deux branches. Le filtre <code>statut=INITIATED</code> envoyé par un ancien client renvoie simplement une page vide.</p><pre><button class="copy">Copier</button><code><span class="c">// CashDemandUseCaseImpl — REMPLACER la méthode search(…) (Ctrl+F : public PageResult&lt;CashRequestDTO&gt; search)</span>
+    <span class="a">@Override</span>
+    <span class="k">public</span> PageResult&lt;CashRequestDTO&gt; search(DemandeSearchCriteria criteria, ContexteAppelant contexte) {
+        <span class="c">// Brouillons (INITIATED) jamais listés, pour personne : un clic « Nouvelle demande » en crée un, un « Annuler »</span>
+        <span class="c">// le laisse en base — il ne doit pas encombrer l'historique. Agence : périmètre forcé à son code.</span>
+        DemandeSearchCriteria effectifs = contexte.toutesAgences()
+                ? criteria
+                : <span class="k">new</span> DemandeSearchCriteria(criteria.statut(), contexte.branchCode(), criteria.operationType(),
+                        criteria.operationSens(), criteria.recherche(), criteria.dateDebut(), criteria.dateFin(),
+                        criteria.zone(), criteria.prestataire(), criteria.urgent(), criteria.page(), criteria.size());
+        <span class="k">return</span> cashDemandRepository.search(effectifs.enMasquantLesBrouillons()).map(<span class="k">this</span>::enrichir);
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImplTest</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java</span></div><p class="note"><code>search_toutesAgences_masqueLesBrouillons</code> reste tel quel. Les KPI agence ne comptent que SUBMITTED / VALIDATED : rien à toucher.</p><pre><button class="copy">Copier</button><code><span class="c">// CashDemandUseCaseImplTest — REMPLACER le test search_agence_voitSesBrouillons()</span>
+    <span class="a">@Test</span>
+    <span class="k">void</span> search_agence_masqueAussiLesBrouillons() {
+        DemandeSearchCriteria criteria = <span class="k">new</span> DemandeSearchCriteria(
+                <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, 0, 20);
+        Mockito.when(cashDemandRepository.search(Mockito.any())).thenReturn(<span class="k">new</span> PageResult&lt;&gt;(List.of(), 0, 20, 0, 0));
+
+        useCase.search(criteria, DA);
+
+        ArgumentCaptor&lt;DemandeSearchCriteria&gt; effectifs = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="k">class</span>);
+        Mockito.verify(cashDemandRepository).search(effectifs.capture());
+        assertTrue(effectifs.getValue().masquerBrouillons());
+        assertEquals(AGENCE, effectifs.getValue().agence());
+    }</code></pre></div>
+<h2 id="s2">2. Front — plus d'option « Brouillon »</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.regles.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.regles.ts — REMPLACER STATUTS_AGENCE et STATUTS_CAISSE_CENTRALE (Ctrl+F : STATUTS_AGENCE)</span>
+<span class="c">/** Statuts proposés au filtre. Pas de « Brouillon » : les INITIATED ne sont jamais listés (exclusion côté serveur). */</span>
+<span class="k">export</span> <span class="k">const</span> STATUTS_AGENCE: <span class="k">readonly</span> OptionFiltre[] = [
+  { code: TOUS,              libelle: <span class="s">'Tous les statuts'</span> },
+  { code: <span class="s">'SUBMITTED'</span>,       libelle: <span class="s">'En attente'</span> },
+  { code: <span class="s">'IN_MODIFICATION'</span>, libelle: <span class="s">'En modification'</span> },
+  { code: <span class="s">'VALIDATED'</span>,       libelle: <span class="s">'Traitée'</span> },
+  { code: <span class="s">'CANCELLED'</span>,       libelle: <span class="s">'Annulée'</span> }
+];
+
+<span class="c">/** Caisse Centrale : même liste (l'écran CC retire lui-même « En modification » s'il le fait déjà). */</span>
+<span class="k">export</span> <span class="k">const</span> STATUTS_CAISSE_CENTRALE: <span class="k">readonly</span> OptionFiltre[] = STATUTS_AGENCE;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.regles.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.regles.spec.ts — REMPLACER le it('la Caisse Centrale n'a pas de filtre Brouillon, l'agence si', …)</span>
+  <span class="k">it</span>(<span class="s">'aucun écran ne propose le filtre Brouillon'</span>, () =&gt; {
+    <span class="k">expect</span>(STATUTS_AGENCE.some(s =&gt; s.code === <span class="s">'INITIATED'</span>)).toBeFalse();
+    <span class="k">expect</span>(STATUTS_CAISSE_CENTRALE.some(s =&gt; s.code === <span class="s">'INITIATED'</span>)).toBeFalse();
+  });</code></pre></div>
+<h2 id="s3">3. Base locale — purge des brouillons existants</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Purge</b><br><span class="path">pgAdmin</span></div><p class="note">Facultatif : une fois le back redémarré, ils n'apparaissent plus de toute façon. Utile pour garder une base de démo propre.</p><pre><button class="copy">Copier</button><code><span class="c">-- Local uniquement : supprimer les brouillons déjà accumulés (demandes jamais soumises) + leurs opérations.</span>
+<span class="c">-- Les instances Camunda associées restent sur Task_SoumettreDemande ; sans incidence fonctionnelle, à purger via Cockpit si besoin.</span>
+delete <span class="k">from</span> retail.cash_operation where cash_request_id in (select id <span class="k">from</span> retail.cash_request where request_status = <span class="s">'INITIATED'</span>);
+delete <span class="k">from</span> retail.cash_request where request_status = <span class="s">'INITIATED'</span>;</code></pre></div>
+<h2 id="s4">4. Vérification</h2>
+<div class="card"><ol>
+<li>Agence → Historique : plus aucune ligne « Brouillon » ; select Statut sans l'option.</li>
+<li>« Nouvelle demande » → Annuler → Historique : rien de nouveau. Nouvelle demande → saisie → Soumettre → la demande apparaît « En attente ».</li>
+<li>Consultation directe par URL d'un brouillon (<code>/consultation/&lt;id&gt;</code>) : fonctionne encore (GET par id non filtré) — comportement accepté.</li>
+<li><code>mvn test -Dtest=CashDemandUseCaseImplTest</code> ; <code>ng test --include '**/demandes-list.regles.spec.ts'</code>.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
