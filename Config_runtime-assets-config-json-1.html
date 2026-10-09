@@ -1,0 +1,180 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration runtime — environment.ts → assets/config.json</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Configuration runtime — les URL d'environment.ts sortent dans assets/config.json (lu au démarrage, remplaçable sans rebuild)</h1><p>fund-management-front · 09/10/2026 · 5 fichiers complets + 1 ajout</p></header>
+<nav><a href="#s0">Principe</a><a href="#s1">Fichiers</a><a href="#s2">Vérification</a></nav><main><h2 id="s0">0. Principe</h2>
+<div class="card"><p>Les URL ne sont plus figées au build : un fichier <code>assets/app.config.json</code> est lu au démarrage (<code>APP_INITIALIZER</code>) et fusionné dans l'objet <code>environment</code> existant. <b>Aucun fichier qui importe <code>environment</code> ne change</b> (services HTTP, intercepteur, <code>portail.ts</code>, gardes) : ils lisent les mêmes clés, remplies avant que le premier composant soit créé. En recette / prod, l'exploitation remplace <code>assets/app.config.json</code> dans le dossier déployé — pas de rebuild.</p>
+<table>
+<tr><th>Fichier</th><th>Rôle</th></tr>
+<tr><td><code>environments/environment.ts</code></td><td>interface <code>Environnement</code> + valeurs par défaut du poste de dev (l'app démarre même sans config.json)</td></tr>
+<tr><td><code>environments/environment.prod.ts</code></td><td><code>production: true</code>, URL vides : config.json obligatoire (erreur bloquante sinon)</td></tr>
+<tr><td><code>assets/app.config.json</code></td><td>les 4 clés surchargeables ; version locale livrée, les versions recette / prod sont à fournir au tech lead</td></tr>
+<tr><td><code>shared/config/configuration.ts</code></td><td><code>chargerConfiguration()</code> (fetch, pas HttpClient : rien ne passe par les intercepteurs) + provider <code>CONFIGURATION_INITIALISEUR</code></td></tr>
+<tr><td><code>app.config.ts</code></td><td>une ligne à ajouter aux providers</td></tr>
+</table></div>
+<h2 id="s1">1. Fichiers</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>environment.ts</b><br><span class="path">C:\dev\fund-management-front\src\environments\environment.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">/**
+ * Valeurs par défaut (poste de dev). Au démarrage, assets/config.json est lu et fusionné dedans
+ * (voir shared/config/configuration.ts) : en recette / prod, c'est ce fichier JSON, déposé par l'exploitation
+ * dans le dossier assets déployé, qui fait foi — sans rebuild. Le code continue d'importer `environment`.
+ */</span>
+<span class="k">export</span> <span class="k">interface</span> Environnement {
+  production: boolean;
+  <span class="c">/** Gateway QlickFlow (mode mock local : cookie QF_MOCK_SESSION posé par /mock-auth/login). */</span>
+  gatewayUrl: string;
+  <span class="c">/** Route gateway qf-fund-management (AER_LM-261) — RewritePath vers / côté microservice. */</span>
+  fundManagementApi: string;
+  <span class="c">/** Route gateway qf-admin (utilisateurs-ci). */</span>
+  usersApi: string;
+  <span class="c">/** Portail QlickFlow (shell) : Accueil et page de connexion. */</span>
+  portailUrl: string;
+}
+
+<span class="k">export</span> <span class="k">const</span> environment: Environnement = {
+  production: <span class="k">false</span>,
+  gatewayUrl: <span class="s">'http://localhost:9090'</span>,
+  fundManagementApi: <span class="s">'/api/v1/public/fund-management'</span>,
+  usersApi: <span class="s">'/api/v1/public/users'</span>,
+  portailUrl: <span class="s">'http://localhost:4200'</span>
+};</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>environment.prod.ts</b><br><span class="path">C:\dev\fund-management-front\src\environments\environment.prod.ts</span></div><p class="note">Le <code>fileReplacements</code> de l'<code>angular.json</code> reste tel quel : il ne sert plus qu'à poser <code>production: true</code>.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { Environnement } <span class="k">from</span> <span class="s">'./environment'</span>;
+
+<span class="c">/**
+ * Build de prod : aucune URL en dur. Tout vient de assets/config.json au démarrage
+ * (chargerConfiguration, obligatoire en production — erreur bloquante si le fichier manque).
+ */</span>
+<span class="k">export</span> <span class="k">const</span> environment: Environnement = {
+  production: <span class="k">true</span>,
+  gatewayUrl: <span class="s">''</span>,
+  fundManagementApi: <span class="s">'/api/v1/public/fund-management'</span>,
+  usersApi: <span class="s">'/api/v1/public/users'</span>,
+  portailUrl: <span class="s">''</span>
+};</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>app.config.json</b><br><span class="path">C:\dev\fund-management-front\src\assets\app.config.json</span></div><p class="note">Version poste de dev. Pour recette / prod : mêmes 4 clés avec les URL de l'environnement (<code>gatewayUrl</code> = URL publique de la gateway, <code>portailUrl</code> = URL du portail) ; les deux routes <code>/api/v1/public/…</code> ne changent a priori pas.</p><pre><button class="copy">Copier</button><code>{
+  <span class="s">"gatewayUrl"</span>: <span class="s">"http://localhost:9090"</span>,
+  <span class="s">"fundManagementApi"</span>: <span class="s">"/api/v1/public/fund-management"</span>,
+  <span class="s">"usersApi"</span>: <span class="s">"/api/v1/public/users"</span>,
+  <span class="s">"portailUrl"</span>: <span class="s">"http://localhost:4200"</span>
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>configuration.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\config\configuration.ts</span></div><p class="note"><code>cache: 'no-store'</code> : le navigateur ne garde pas une ancienne config après un changement côté serveur. Le chemin est relatif au <code>&lt;base href&gt;</code>, donc valable en local (<code>./</code>) comme derrière <code>/qlickflow/fund_management/</code>.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { APP_INITIALIZER, Provider } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { Environnement, environment } <span class="k">from</span> <span class="s">'../../../environments/environment'</span>;
+
+<span class="c">/** Fichier lu au démarrage, relatif au &lt;base href&gt; (fonctionne en local « ./ » comme sous /qlickflow/fund_management/). */</span>
+<span class="k">const</span> FICHIER_CONFIGURATION = <span class="s">'assets/app.config.json'</span>;
+
+<span class="c">/** Clés que config.json a le droit de surcharger (`production` reste décidé par le build). */</span>
+<span class="k">type</span> ConfigurationExterne = Partial&lt;Omit&lt;Environnement, <span class="s">'production'</span>&gt;&gt;;
+
+<span class="c">/**
+ * Charge assets/config.json et fusionne ses valeurs dans `environment` AVANT le bootstrap des composants.
+ * fetch() plutôt que HttpClient : rien ne doit passer par les intercepteurs (qui lisent eux-mêmes `environment`).
+ * - fichier absent en dev : on garde les valeurs d'environment.ts (avertissement console) ;
+ * - fichier absent en prod : erreur bloquante, l'application ne doit pas démarrer avec des URL vides.
+ */</span>
+<span class="k">export</span> <span class="k">async</span> <span class="k">function</span> chargerConfiguration(): Promise&lt;<span class="k">void</span>&gt; {
+  <span class="k">let</span> reponse: Response;
+  try {
+    reponse = <span class="k">await</span> fetch(FICHIER_CONFIGURATION, { cache: <span class="s">'no-store'</span> });
+  } catch (erreur) {
+    <span class="k">return</span> signalerAbsence(<span class="s">`${FICHIER_CONFIGURATION} injoignable (${erreur})`</span>);
+  }
+  <span class="k">if</span> (!reponse.ok) {
+    <span class="k">return</span> signalerAbsence(<span class="s">`${FICHIER_CONFIGURATION} : HTTP ${reponse.status}`</span>);
+  }
+  <span class="k">const</span> externe = (<span class="k">await</span> reponse.json()) as ConfigurationExterne;
+  <span class="k">const</span> { production: _ignore, ...valeurs } = externe as Record&lt;string, unknown&gt;;   <span class="c">// production jamais surchargée</span>
+  Object.assign(environment, valeurs);
+}
+
+<span class="k">function</span> signalerAbsence(detail: string): <span class="k">void</span> {
+  <span class="k">if</span> (environment.production) {
+    <span class="k">throw</span> <span class="k">new</span> Error(<span class="s">`Configuration manquante : ${detail}`</span>);
+  }
+  console.warn(<span class="s">`[config] ${detail} — valeurs par défaut d'environment.ts conservées.`</span>);
+}
+
+<span class="c">/** À ajouter aux providers de app.config.ts. */</span>
+<span class="k">export</span> <span class="k">const</span> CONFIGURATION_INITIALISEUR: Provider = {
+  provide: APP_INITIALIZER,
+  useFactory: () =&gt; chargerConfiguration,
+  multi: <span class="k">true</span>
+};</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>app.config.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\app.config.ts</span></div><p class="note">Une import + une entrée dans <code>providers</code>. Si tu as encore <code>provideHttpClient</code> et consorts, ils restent ; l'ordre n'a pas d'importance fonctionnelle mais garde l'initialiseur en tête pour la lisibilité.</p><pre><button class="copy">Copier</button><code><span class="c">// app.config.ts — À AJOUTER</span>
+<span class="k">import</span> { CONFIGURATION_INITIALISEUR } <span class="k">from</span> <span class="s">'./shared/config/configuration'</span>;
+
+<span class="k">export</span> <span class="k">const</span> appConfig: ApplicationConfig = {
+  providers: [
+    CONFIGURATION_INITIALISEUR,      <span class="c">// en premier : environment est rempli avant tout le reste</span>
+    <span class="c">// … providers existants inchangés (provideRouter, provideHttpClient(withInterceptors([...])), provideAnimations, …)</span>
+  ]
+};</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>configuration.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\config\configuration.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { chargerConfiguration } <span class="k">from</span> <span class="s">'./configuration'</span>;
+<span class="k">import</span> { environment } <span class="k">from</span> <span class="s">'../../../environments/environment'</span>;
+
+<span class="k">describe</span>(<span class="s">'chargerConfiguration'</span>, () =&gt; {
+  <span class="k">const</span> initial = { ...environment };
+  <span class="k">afterEach</span>(() =&gt; { Object.assign(environment, initial); });
+
+  <span class="k">function</span> simulerFetch(reponse: Partial&lt;Response&gt;): jasmine.Spy {
+    <span class="k">return</span> spyOn(window, <span class="s">'fetch'</span>).and.resolveTo(reponse as Response);
+  }
+
+  <span class="k">it</span>(<span class="s">'fusionne les valeurs de assets/config.json dans environment'</span>, <span class="k">async</span> () =&gt; {
+    simulerFetch({ ok: <span class="k">true</span>, status: 200, json: () =&gt; Promise.resolve({ gatewayUrl: <span class="s">'https://gw.recette'</span>, portailUrl: <span class="s">'https://portail.recette'</span> }) });
+    <span class="k">await</span> chargerConfiguration();
+    <span class="k">expect</span>(environment.gatewayUrl).toBe(<span class="s">'https://gw.recette'</span>);
+    <span class="k">expect</span>(environment.portailUrl).toBe(<span class="s">'https://portail.recette'</span>);
+    <span class="k">expect</span>(environment.usersApi).toBe(initial.usersApi);          <span class="c">// clé absente du JSON : valeur par défaut conservée</span>
+  });
+
+  <span class="k">it</span>(<span class="s">'ignore la clé production du JSON'</span>, <span class="k">async</span> () =&gt; {
+    simulerFetch({ ok: <span class="k">true</span>, status: 200, json: () =&gt; Promise.resolve({ production: <span class="k">true</span> }) });
+    <span class="k">await</span> chargerConfiguration();
+    <span class="k">expect</span>(environment.production).toBe(initial.production);
+  });
+
+  <span class="k">it</span>(<span class="s">'hors prod, garde les valeurs par défaut si le fichier manque'</span>, <span class="k">async</span> () =&gt; {
+    simulerFetch({ ok: <span class="k">false</span>, status: 404 });
+    spyOn(console, <span class="s">'warn'</span>);
+    <span class="k">await</span> chargerConfiguration();
+    <span class="k">expect</span>(environment.gatewayUrl).toBe(initial.gatewayUrl);
+    <span class="k">expect</span>(console.warn).toHaveBeenCalled();
+  });
+
+  <span class="k">it</span>(<span class="s">'en prod, échoue si le fichier manque'</span>, <span class="k">async</span> () =&gt; {
+    environment.production = <span class="k">true</span>;
+    simulerFetch({ ok: <span class="k">false</span>, status: 404 });
+    <span class="k">await</span> expectAsync(chargerConfiguration()).toBeRejectedWithError(/Configuration manquante/);
+  });
+});</code></pre></div>
+<h2 id="s2">2. Vérification</h2>
+<div class="card"><ol>
+<li><code>ng serve</code> : onglet Réseau → <code>assets/app.config.json</code> 200 avant tout appel <code>/me</code> ; l'app se comporte comme avant.</li>
+<li>Change <code>portailUrl</code> dans <code>assets/app.config.json</code> (ex. <code>http://localhost:4200/x</code>), F5 sans rebuild : « Déconnexion » part sur la nouvelle URL.</li>
+<li>Renomme <code>app.config.json</code> : console « [config] … HTTP 404 — valeurs par défaut conservées », l'app démarre quand même (dev).</li>
+<li><code>ng build --configuration production</code> puis sers <code>dist/</code> sans config.json : erreur « Configuration manquante » en console, app non démarrée — c'est voulu.</li>
+<li><code>ng test --include src/app/shared/config/configuration.spec.ts</code> : 4 specs.</li>
+</ol>
+<p>À transmettre au tech lead : le chemin <code>assets/app.config.json</code> dans le build déployé, et le fait que seule cette ressource est à remplacer par environnement (volume Docker / étape de déploiement).</p></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
