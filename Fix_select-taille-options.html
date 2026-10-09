@@ -1,0 +1,165 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix — taille de police des listes déroulantes</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Fix — taille de police des listes déroulantes (select natif)</h1><p>fund-management-front · 09/10/2026 · 1 fichier</p></header>
+<nav><a href="#s0">Cause</a><a href="#s1">Fichier</a><a href="#s2">Vérification</a></nav><main><h2 id="s0">0. Cause</h2>
+<div class="card"><p>Le <code>&lt;select&gt;</code> a bien <code>font-size: 0.875rem</code> (classe <code>.champ</code>), mais la liste déroulante d'un select natif est dessinée par le navigateur : sous Windows, Chrome et Edge rendent les <code>&lt;option&gt;</code> à la taille système (16 px) tant qu'on ne pose pas la taille <b>sur les options elles-mêmes</b>. Une règle <code>option { … }</code> dans le bloc <code>.champ--select</code> suffit ; elle s'applique à tous les selects de l'application qui utilisent cette classe (commande devises, ramassage, filtres Caisse Centrale).</p>
+<p>Limite : aucun navigateur ne laisse styler la hauteur, l'ombre ou les bordures de ce popup natif — pour aller plus loin il faudrait un <code>mat-select</code>, pas justifié pour une démo. Pour encore plus petit : <code>0.8125rem</code> (13 px) → <code>0.75rem</code> (12 px).</p></div>
+<h2 id="s1">1. Fichier</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>_dossier.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\styles\_dossier.scss</span></div><p class="note">Seule la ligne <code>option { … }</code> du bloc <code>&amp;--select</code> est ajoutée (§ Champs, ligne 39). Tout le reste est identique.</p><pre><button class="copy">Copier</button><code><span class="a">@use</span> <span class="s">'palette'</span> as *;
+
+<span class="c">/* ============================================================================
+   Styles communs des écrans « dossier de demande » (agence et Caisse Centrale) : cartes, grilles de coupures,
+   totaux, table devises, commentaire, GAB, ramassage — classes Tailwind des maquettes transcrites 1:1.
+   À utiliser avec  @use 'dossier';  après  @use 'palette' as *;  dans le SCSS du composant (le :host de la page pose le thème).
+   ========================================================================== */</span>
+
+<span class="c">/* ===== Bento Grid : grid-cols-1 xl:grid-cols-12 gap-6 items-start ; gauche col-span-8, droite col-span-4 ===== */</span>
+.grille { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; align-items: start;
+  <span class="a">@media</span> (min-width: 1280px) { grid-template-columns: repeat(12, minmax(0, 1fr)); } }
+.grille__gauche, .grille__droite { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
+<span class="a">@media</span> (min-width: 1280px) { .grille__gauche { grid-column: span 8; } .grille__droite { grid-column: span 4; } }
+
+<span class="c">/* ===== Cartes ===== */</span>
+.carte { <span class="a">@include</span> carte; min-width: 0; }
+<span class="c">/* En-tête de carte : flex justify-between items-center mb-4 border-b pb-3 (caisse : mb-6 ; commentaire : mb-3 pb-2) */</span>
+.carte__entete { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--bordure);
+  &amp;--caisse { margin-bottom: 1.5rem; }
+  &amp;--commentaire { margin-bottom: 0.75rem; padding-bottom: 0.5rem; } }
+.carte__titre { <span class="a">@include</span> titre-carte; }
+.carte__icone { <span class="a">@include</span> symbole(1.5rem); color: var(--primaire); &amp;--lg { <span class="a">@include</span> symbole(1.125rem); } }
+:host(.theme-recap) .carte__icone--lg { <span class="a">@include</span> symbole(1.5rem); }   <span class="c">/* Bloquée : icônes de titre en 24px partout */</span>
+.facultatif { font-size: 0.75rem; line-height: 1rem; color: var(--texte-2); }
+.vide { margin: 0; font-size: 0.75rem; font-style: italic; color: var(--texte-2); }
+.etiquette { display: block; font-size: 0.75rem; line-height: 1rem; font-weight: 600; color: var(--texte-2); margin-bottom: 0.25rem; }
+
+<span class="c">/* Puces : w-2 h-2 rounded-full bg-primary (petite : w-1.5 h-1.5 ; bleue : bg-blue-600) */</span>
+.puce { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: var(--primaire); flex-shrink: 0;
+  &amp;--petite { width: 0.375rem; height: 0.375rem; }
+  &amp;--bleue { background: $bleu-600; }
+  &amp;--detail { margin-right: 0.5rem; } }
+
+<span class="c">/* ===== Champs (édition : bg-white border #bdcabe rounded-[4px] ; consultation : .mode-consultation .field-input ; recap : .qf-field-disabled) ===== */</span>
+.champ { font-size: 0.875rem; line-height: 1.25rem; padding: 0.5rem 0.75rem; width: 100%; <span class="a">@include</span> champ;
+  &amp;--select { appearance: none; -webkit-appearance: none; padding-right: 2rem; cursor: pointer;
+    background-image: url(<span class="s">"data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235d5f5f' stroke-width='2'&gt;&lt;path d='M6 9l6 6 6-6'/&gt;&lt;/svg&gt;"</span>);
+    background-repeat: no-repeat; background-position: right 0.625rem center;
+    option { font-size: 0.8125rem; line-height: 1.25rem; padding: 0.25rem 0.5rem; }   <span class="c">/* liste déroulante native (Chrome/Edge Windows : 16px système sinon) */</span>
+  }
+  &amp;--montant { font-family: $mono; text-align: right; <span class="a">@include</span> sans-spinner; &amp;::placeholder { color: var(--texte-2); } } }
+.mode-consultation .champ { cursor: not-allowed; }
+
+<span class="c">/* ===== 1. Alimentation Caisse : grid grid-cols-1 md:grid-cols-2 gap-8 ===== */</span>
+.coupures { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem;
+  <span class="a">@media</span> (min-width: 768px) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+<span class="c">/* h4.text-xs font-bold text-secondary uppercase tracking-wider mb-3 border-b pb-1.5 flex justify-between items-center */</span>
+.coupures__entete { display: flex; justify-content: space-between; align-items: center; margin: 0 0 0.75rem; padding-bottom: 0.375rem; border-bottom: 1px solid var(--bordure);
+  font-size: 0.75rem; line-height: 1rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--texte-2); }
+.coupures__qte { font-size: 10px; font-weight: 400; color: var(--texte-2); }
+.coupures__liste { display: flex; flex-direction: column; &amp;--billets { gap: 0.625rem; } &amp;--pieces { gap: 0.5rem; } }   <span class="c">/* space-y-2.5 / space-y-2 */</span>
+<span class="c">/* Ligne : flex items-center gap-3 &gt; w-14 font-mono text-right text-primary | text-secondary text-xs x | flex-1 &gt; input */</span>
+.coupure { display: flex; align-items: center; gap: 0.75rem; }
+.coupure__valeur { width: 3.5rem; flex-shrink: 0; font-family: $mono; text-align: right; color: var(--primaire); }
+.coupure__x { flex-shrink: 0; font-size: 0.75rem; line-height: 1rem; color: var(--texte-2); }
+.coupure__champ-bloc { flex: 1; min-width: 0; }
+.coupure__champ { font-family: $mono; text-align: right; <span class="a">@include</span> sans-spinner; }
+.coupure--billet { .coupure__valeur { font-size: 0.875rem; line-height: 1.25rem; font-weight: 600; } .coupure__champ { padding: 0.375rem 0.75rem; font-size: 0.875rem; line-height: 1.25rem; } }   <span class="c">/* text-sm font-semibold ; px-3 py-1.5 (recap py-2) */</span>
+.coupure--piece  { .coupure__valeur { font-size: 0.75rem; line-height: 1rem; font-weight: 500; }    .coupure__champ { padding: 0.25rem 0.75rem; font-size: 0.75rem; line-height: 1rem; } }       <span class="c">/* text-xs font-medium ; px-3 py-1 */</span>
+:host(.theme-recap) .coupure--billet .coupure__champ { padding: 0.5rem 0.75rem; }
+
+<span class="c">/* Totals Area : mt-6 pt-4 border-t bg-surface-low/50 p-4 rounded-[4px] flex flex-col md:flex-row justify-between items-center gap-4 */</span>
+.totaux { display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1.5rem; padding: 1rem; border-top: 1px solid var(--bordure);
+  background: color-mix(in srgb, var(--surface-basse) 50%, transparent); border-radius: $rayon;
+  <span class="a">@media</span> (min-width: 768px) { flex-direction: row; } }
+.totaux__detail { display: flex; align-items: center; font-size: 0.75rem; line-height: 1rem; color: var(--texte-2); }
+<span class="c">/* bg-white p-3.5 rounded-[4px] border min-w-[220px] (recap 240px) border-l-4 border-l-primary text-right shadow-sm */</span>
+.totaux__bloc { background: #fff; padding: 0.875rem; border-radius: $rayon; border: 1px solid var(--bordure); border-left: 4px solid var(--primaire); min-width: 220px; text-align: right; box-shadow: 0 1px 2px 0 rgba(0,0,0,.05); }
+:host(.theme-recap) .totaux__bloc { min-width: 240px; }
+.totaux__libelle { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--texte-2); margin-bottom: 0.125rem; }
+.totaux__valeur { font-family: $mono; font-size: 1.25rem; line-height: 1.75rem; font-weight: 700; color: var(--primaire); }
+
+<span class="c">/* ===== 2. Commande Devises ===== */</span>
+<span class="c">/* Table : border rounded-[4px] overflow-hidden shadow-sm ; thead bg-surface-low text-xs font-semibold text-secondary ; th py-2.5 px-4 (recap py-3) ; tbody font-mono text-xs divide-y */</span>
+.table-cadre { border: 1px solid var(--bordure); border-radius: $rayon; overflow: hidden; box-shadow: 0 1px 2px 0 rgba(0,0,0,.05); }
+.table { width: 100%; text-align: left; border-collapse: collapse; table-layout: fixed;
+  thead { background: var(--surface-basse); font-size: 0.75rem; line-height: 1rem; font-weight: 600; color: var(--texte-2); }
+  th { padding: 0.625rem 1rem; border-bottom: 1px solid var(--bordure); font-weight: 600; }
+  tbody { font-family: $mono; font-size: 0.75rem; line-height: 1rem; background: #fff; }
+  tbody tr { transition: background .15s; &amp;:hover { background: var(--surface); } }
+  tbody tr + tr td { border-top: 1px solid var(--bordure); }
+  td { padding: 0.75rem 1rem; vertical-align: middle; } }
+:host(.theme-recap) .table { th { padding: 0.75rem 1rem; } td { padding: 0.875rem 1rem; } }
+.table__droite { text-align: right; }
+.table__action { width: 3.5rem; text-align: center; }
+:host(.theme-recap) .table__action { width: 4rem; }
+.table__devise { font-family: $sans; font-weight: 500; color: var(--texte); }
+.table__montant { font-weight: 700; color: var(--texte); }
+.table__vide { font-family: $sans; font-style: italic; color: var(--texte-2); }
+<span class="c">/* Corbeille : button text-error hover:bg-error-container/40 p-1 rounded + delete text-base */</span>
+.btn-supprimer { display: inline-flex; align-items: center; justify-content: center; padding: 0.25rem; border-radius: 0.25rem; border: 0; background: transparent; color: var(--erreur); cursor: pointer; transition: background .15s;
+  &amp;:hover { background: var(--erreur-fond); } }
+.btn-supprimer__icone { <span class="a">@include</span> symbole(1rem); &amp;--sm { <span class="a">@include</span> symbole(0.875rem); } }
+.verrou { <span class="a">@include</span> symbole(1rem); color: var(--texte-2); &amp;--sm { <span class="a">@include</span> symbole(0.875rem); } }
+
+<span class="c">/* ===== 5. Commentaire : space-y-1.5 ; textarea bg-surface-low/30 border #bdcabe rounded-[4px] p-3 text-xs ; recap .qf-field-disabled p-3 min-h-[90px] ===== */</span>
+.commentaire { display: flex; flex-direction: column; gap: 0.375rem; }
+.commentaire__champ { padding: 0.75rem; min-height: 90px; font-size: 0.75rem; line-height: 1.625; resize: vertical; background: color-mix(in srgb, var(--surface-basse) 30%, #fff);
+  &amp;::placeholder { color: var(--texte-2); } }
+
+<span class="c">/* ===== 3. Alimentation GAB ===== */</span>
+<span class="c">/* édition : space-y-3 ; chaque ligne flex items-center justify-between p-3 rounded-[4px] border bg-surface */</span>
+.gab { display: flex; flex-direction: column; gap: 0.75rem; }
+.gab__ligne { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem; border-radius: $rayon; border: 1px solid var(--bordure); background: var(--surface); }
+.gab__libelle, .gab__saisie { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.gab__valeur { width: 4rem; text-align: right; font-family: $mono; font-size: 0.75rem; line-height: 1rem; font-weight: 700; color: var(--primaire); }
+.gab__x { font-size: 0.75rem; line-height: 1rem; color: var(--texte-2); }
+.gab__champ { width: 6rem; padding: 0.375rem 0.625rem; font-family: $mono; font-size: 0.75rem; line-height: 1rem; text-align: right; <span class="a">@include</span> sans-spinner; }
+.gab__unite { font-size: 0.75rem; line-height: 1rem; color: var(--texte-2); }
+<span class="c">/* recap (Bloquée) : conteneur space-y-3 bg-grey-50 p-4 rounded-[4px] border ; lignes sans bordure ; « Billets de 200 DH » / « Qté : » + input w-24 px-2.5 py-1.5 */</span>
+.gab--lecture { padding: 1rem; border-radius: $rayon; border: 1px solid var(--bordure); background: var(--surface-basse);
+  .gab__ligne { padding: 0; border: 0; background: transparent; } }
+.gab__valeur-lecture { font-size: 0.75rem; line-height: 1rem; font-weight: 600; color: var(--texte); }
+.gab__qte { font-size: 11px; font-weight: 500; color: var(--texte-2); }
+<span class="c">/* Total GAB : mt-4 pt-3 border-t flex justify-between items-center ; libellé text-xs font-semibold text-secondary ; valeur font-mono text-primary font-bold text-base */</span>
+.total-gab { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--bordure); }
+.total-gab__libelle { font-size: 0.75rem; line-height: 1rem; font-weight: 600; color: var(--texte-2); }
+.total-gab__valeur { font-family: $mono; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: var(--primaire); }
+
+<span class="c">/* ===== 4. Ramassage ===== */</span>
+.ramassage { display: flex; flex-direction: column; gap: 0.75rem; }
+<span class="c">/* Lignes : space-y-2 mt-3 ; flex justify-between items-center p-2.5 bg-white rounded-[4px] border (recap : p-3 bg-grey-50) */</span>
+.ramassage__lignes { display: flex; flex-direction: column; gap: 0.5rem; }
+.ramassage__ligne { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.625rem; border-radius: $rayon; border: 1px solid var(--bordure); background: #fff; }
+:host(.theme-recap) .ramassage__ligne { padding: 0.75rem; background: var(--surface-basse); }
+.ramassage__devise { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.ramassage__code { font-size: 0.75rem; line-height: 1rem; font-weight: 700; color: var(--primaire); }
+:host(.theme-recap) .ramassage__code { color: var(--texte); }
+.ramassage__nature { font-size: 11px; color: var(--texte-2); }
+.ramassage__montant-bloc { display: flex; align-items: center; gap: 0.75rem; }
+.ramassage__montant { font-family: $mono; font-size: 0.75rem; line-height: 1rem; font-weight: 700; color: var(--texte); }</code></pre></div>
+<h2 id="s2">2. Vérification</h2>
+<div class="card"><ol><li>Nouvelle demande → Commande Devises → ouvrir la liste : options à 13 px, même taille que la valeur affichée dans le champ.</li>
+<li>Ramassage → select devise : idem.</li>
+<li>Caisse Centrale → selects Zones / Transporteur / Statut : idem s'ils portent <code>champ--select</code>.</li></ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
