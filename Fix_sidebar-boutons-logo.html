@@ -1,0 +1,121 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix sidebar — débordement des boutons et fond du logo</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Fix menu latéral — boutons Aide / Déconnexion qui débordent, fond gris du logo QlickFlow</h1><p>fund-management-front · 09/10/2026</p></header>
+<nav><a href="#s0">Retours</a><a href="#s1">Sidebar</a><a href="#s2">Logo</a></nav><main><h2 id="s0">0. Les deux retours</h2>
+<div class="card"><table>
+<tr><th>Retour</th><th>Cause</th><th>Correction</th></tr>
+<tr><td>« Aide » / « Déconnexion » débordent à droite</td><td><code>width: 100%</code> ajouté sur <code>.nav-item</code> (pour le bouton Déconnexion) + padding en <code>content-box</code> = 28 px de trop</td><td><code>width</code> retiré, <code>box-sizing: border-box</code> + <code>align-self: stretch</code></td></tr>
+<tr><td>Logo sur fond gris</td><td>Le SVG du portail contient un rectangle de fond <code>#F8F9FA</code> en première forme — ce n'est pas du CSS</td><td>Supprimer cette ligne dans le SVG</td></tr>
+</table></div>
+<h2 id="s1">1. Menu latéral</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>sidebar.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.scss</span></div><p class="note">Seul le bloc <code>.nav-item</code> change par rapport à la version précédente.</p><pre><button class="copy">Copier</button><code>.sidebar {
+  width: 260px;
+  min-width: 260px;
+  height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e8ecea;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 22px;
+
+  .brand-logo {
+    height: 30px;            <span class="c">/* 226×59 → ~115 px de large, le texte tient à côté */</span>
+    width: auto;
+    flex: none;
+    display: block;
+    object-fit: contain;
+    cursor: pointer;
+  }
+
+  <span class="c">/* Repli si assets/logo-qlickflow.svg est absent */</span>
+  .brand-logo--texte {
+    display: flex; align-items: center;
+    color: #0e7d5a; font-weight: 800; font-size: 1rem; letter-spacing: -.02em;
+  }
+}
+
+.brand-txt { display: flex; flex-direction: column; min-width: 0; }
+.brand-titre { font-weight: 700; color: #0e7d5a; font-size: 0.9rem; white-space: nowrap; }
+.brand-agence { font-size: 0.74rem; color: #5c6b63; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 6px; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  color: #33413a;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  <span class="c">/* « Déconnexion » est un &lt;button&gt; : même rendu qu'un lien (pas de width:100% : padding + content-box débordait à droite) */</span>
+  box-sizing: border-box;
+  align-self: stretch;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+  &amp;:hover { background: #eef4f1; }
+
+  &amp;.actif {
+    background: #0e7d5a;
+    color: #fff;
+  }
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  margin-bottom: 8vh;
+  border-top: 1px solid #e8ecea;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+:host {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  align-self: flex-start;
+}</code></pre></div>
+<h2 id="s2">2. Logo</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>logo-qlickflow.svg</b><br><span class="path">C:\dev\fund-management-front\src\assets\logo-qlickflow.svg</span></div><p class="note">Ouvrir le SVG dans IntelliJ (il est sur une seule longue ligne par endroits : Ctrl+F <code>width="211"</code>), supprimer l'élément, sauvegarder, F5. Les autres formes <code>#F8F9FA</code> (petit rectangle, cercle) sont à l'intérieur des lettres : à laisser.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- src/assets/logo-qlickflow.svg — SUPPRIMER cette ligne (la 4e : rectangle de fond #F8F9FA qui couvre tout le logo) --&gt;</span>
+&lt;rect width=<span class="s">"211"</span> height=<span class="s">"59"</span> fill=<span class="s">"#F8F9FA"</span>/&gt;</code></pre></div>
+<div class="card"><p>Si après cela un bloc gris subsiste uniquement derrière la partie « Qlick » (la loupe), le fond est cuit dans l'image matricielle embarquée (<code>pattern0_…</code>). Dans ce cas : copier <code>C:\dev\portail-ci\src\assets\icons\Group 315.png</code> → <code>src\assets\logo-qlickflow.png</code> et, dans <code>sidebar.component.html</code>, remplacer <code>src="assets/logo-qlickflow.svg"</code> par <code>src="assets/logo-qlickflow.png"</code> (un PNG exporté de Figma est transparent).</p></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
