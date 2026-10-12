@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demandes – Manager & Help Desk</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --border:#262b36; --text:#e6e8ee; --muted:#9aa3b2;
+    --accent:#5b9dff; --ok:#3ecf8e; --ph:#f5c451; --ph-bg:rgba(245,196,81,.12);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:24px 16px}
+  .wrap{max-width:820px;margin:0 auto}
+  h1{font-size:1.4rem;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 24px;font-size:.9rem}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+  .head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .tag{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);font-weight:600}
+  h2{font-size:1.1rem;margin:2px 0 0}
+  .label{color:var(--muted);font-size:.8rem;margin:14px 0 4px}
+  .subject{font-weight:600;background:#11141a;border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+  .body{white-space:pre-wrap;background:#11141a;border:1px solid var(--border);border-radius:8px;padding:14px;margin:0}
+  .ph{color:var(--ph);background:var(--ph-bg);border-radius:4px;padding:0 3px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button{background:#222734;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font:inherit;font-size:.85rem;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.done{border-color:var(--ok);color:var(--ok)}
+  .toggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .toggle button{border:0;border-radius:0;background:transparent}
+  .toggle button.on{background:var(--accent);color:#0b0d12}
+  .note{color:var(--muted);font-size:.8rem;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Demandes – Manager &amp; Help Desk</h1>
+  <p class="sub">Les zones <span class="ph">surlignées</span> sont à compléter avant envoi.</p>
+
+  <!-- 1. Manager -->
+  <div class="card" id="m1">
+    <div class="head">
+      <div><div class="tag">1 · Manager</div><h2>Jours restants sur le bon de commande</h2></div>
+      <div class="toggle" role="group" aria-label="Ton">
+        <button data-tone="vous" class="on">Vouvoiement</button>
+        <button data-tone="tu">Tutoiement</button>
+      </div>
+    </div>
+    <div class="label">Objet</div>
+    <div class="subject">Jours restants sur mon bon de commande – planification des congés de fin d'année</div>
+    <div class="label">Message</div>
+    <pre class="body"></pre>
+    <div class="btns">
+      <button data-copy="subject">Copier l'objet</button>
+      <button data-copy="body">Copier le message</button>
+    </div>
+  </div>
+
+  <!-- 2. Micro -->
+  <div class="card" id="m2">
+    <div class="head"><div><div class="tag">2 · Help Desk</div><h2>Microphone du PC non fonctionnel</h2></div></div>
+    <div class="label">Objet</div>
+    <div class="subject">Microphone du PC portable non fonctionnel – impossible de participer correctement aux réunions</div>
+    <div class="label">Message</div>
+<pre class="body">Bonjour,
+
+Le microphone de mon PC portable ne fonctionne pas. En télétravail, cela m'empêche de participer correctement aux réunions : mes interlocuteurs ne m'entendent pas.
+
+Informations :
+- Utilisateur : Youssef Rouane
+- Poste (hostname / n° d'inventaire) : <span class="ph">[à compléter]</span>
+- Application concernée : <span class="ph">[Teams / autre]</span>
+- Contexte : télétravail
+
+Pourriez-vous effectuer un diagnostic (prise en main à distance si besoin) et, le cas échéant, prévoir une solution de remplacement (casque ou micro) ?
+
+Je reste disponible pour toute intervention.
+
+Cordialement,
+Youssef Rouane</pre>
+    <div class="btns">
+      <button data-copy="subject">Copier l'objet</button>
+      <button data-copy="body">Copier le message</button>
+    </div>
+  </div>
+
+  <!-- 3. LAN -->
+  <div class="card" id="m3">
+    <div class="head"><div><div class="tag">3 · Help Desk</div><h2>Prise réseau (LAN) défectueuse</h2></div></div>
+    <div class="label">Objet</div>
+    <div class="subject">Prise réseau (port LAN) défectueuse à mon poste de travail</div>
+    <div class="label">Message</div>
+<pre class="body">Bonjour,
+
+La prise réseau (port LAN) de mon poste de travail ne fonctionne pas : aucune connexion n'est établie lorsque j'y branche mon PC.
+
+En changeant de place et en utilisant un autre port, la connexion fonctionne normalement. Le problème semble donc lié à la prise elle-même (brassage ou configuration du port) et non à mon PC.
+
+Informations :
+- Utilisateur : Youssef Rouane
+- Localisation : <span class="ph">[bâtiment / étage / n° de bureau]</span>
+- Référence de la prise : <span class="ph">[n° indiqué sur la prise murale]</span>
+
+Pourriez-vous vérifier et réactiver ce port afin que je puisse travailler à mon poste habituel ?
+
+Merci d'avance.
+
+Cordialement,
+Youssef Rouane</pre>
+    <div class="btns">
+      <button data-copy="subject">Copier l'objet</button>
+      <button data-copy="body">Copier le message</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const manager = {
+    vous: `Bonjour <span class="ph">[Prénom]</span>,
+
+J'espère que vous allez bien.
+
+Afin de planifier mes congés d'ici la fin de l'année, pourriez-vous m'indiquer le nombre de jours restants sur mon bon de commande actuel ?
+
+Cela me permettrait également d'anticiper un éventuel bloc leave et de m'organiser en amont avec l'équipe pour assurer la continuité sur mes sujets.
+
+Merci d'avance pour votre retour.
+
+Bien cordialement,
+Youssef Rouane`,
+    tu: `Bonjour <span class="ph">[Prénom]</span>,
+
+J'espère que tu vas bien.
+
+Afin de planifier mes congés d'ici la fin de l'année, pourrais-tu m'indiquer le nombre de jours restants sur mon bon de commande actuel ?
+
+Cela me permettrait également d'anticiper un éventuel bloc leave et de m'organiser en amont avec l'équipe pour assurer la continuité sur mes sujets.
+
+Merci d'avance pour ton retour.
+
+Bien à toi,
+Youssef Rouane`
+  };
+  const mBody = document.querySelector('#m1 .body');
+  mBody.innerHTML = manager.vous;
+  document.querySelectorAll('#m1 .toggle button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#m1 .toggle button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      mBody.innerHTML = manager[b.dataset.tone];
+    });
+  });
+
+  function copyText(t){
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+    const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{document.execCommand('copy')}catch(e){}
+    ta.remove(); return Promise.resolve();
+  }
+  document.querySelectorAll('[data-copy]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const card=b.closest('.card');
+      const el=card.querySelector(b.dataset.copy==='subject'?'.subject':'.body');
+      const label=b.textContent;
+      copyText(el.innerText.trim()).then(()=>{
+        b.textContent='Copié ✓'; b.classList.add('done');
+        setTimeout(()=>{b.textContent=label;b.classList.remove('done')},1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>
