@@ -1,0 +1,424 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-277 — complément : Directeur d'agence déduit du profil et du code agence</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-277 — complément : le Directeur d'agence est déduit (profil DA + code agence), orgaUnit.manager n'est plus utilisé</h1><p>utilisateurs-ci + fund-management · 12/10/2026 · à appliquer par-dessus le doc principal</p></header>
+<nav><a href="#s0">Changements</a><a href="#s1">utilisateurs-ci</a><a href="#s2">fund-management</a><a href="#s3">Guide de test</a></nav><main><h2 id="s0">0. Ce qui change</h2>
+<div class="card"><p><code>orgaUnit.manager</code> n'est pas alimenté par l'application : le Directeur d'agence est donc <b>déduit</b> = utilisateur actif de profil <code>DA</code> rattaché à l'agence (<code>profile.code</code> + <code>orgaUnit.code</code>). Cette déduction est une requête sur la table <code>users</code>, qui vit dans utilisateurs-ci : fund-management ne peut pas la faire seul. D'où un endpoint interne minimal, sur le canal déjà utilisé (<code>/api/v1/internal</code>, non routé par la gateway, pas de sécurité à toucher).</p>
+<table>
+<tr><th>Côté</th><th>Fichier</th><th>Changement</th></tr>
+<tr><td rowspan="4">utilisateurs-ci</td><td><code>UserRepository</code></td><td>+ 1 requête dérivée</td></tr>
+<tr><td><code>DirecteurAgenceDTO</code></td><td>nouveau</td></tr>
+<tr><td><code>InternalDirecteurAgenceController</code></td><td>nouveau — <code>GET /api/v1/internal/users/agences/{code}/directeur</code></td></tr>
+<tr><td><code>InternalDirecteurAgenceControllerTest</code></td><td>nouveau</td></tr>
+<tr><td rowspan="6">fund-management</td><td><code>DirecteurAgencePort</code></td><td><code>directeurDe(uid)</code> → <code>directeurDe(branchCode)</code></td></tr>
+<tr><td><code>UtilisateursDirecteurAdapter</code></td><td>appelle le nouvel endpoint ; DTO de réponse <code>DirecteurAgenceReponseDTO</code> / <code>DirecteurAgenceDonneesDTO</code> (remplacent <code>UtilisateurInterneDTO</code>, <code>OrgaUnitInterneDTO</code>, <code>ManagerInterneDTO</code> — à supprimer)</td></tr>
+<tr><td><code>NotificationDemandeService</code></td><td><code>notifier(demande, evenement)</code> : le DA vient de <code>demande.getBranchCode()</code>, plus de paramètre uid</td></tr>
+<tr><td><code>CashDemandUseCaseImpl</code></td><td>les 3 appels perdent <code>contexte.uid()</code></td></tr>
+<tr><td><code>NotificationDemandeServiceTest</code></td><td>adapté</td></tr>
+<tr><td><code>CashDemandUseCaseImplTest</code></td><td>les <code>verify</code> perdent le 3e argument</td></tr>
+</table></div>
+<h2 id="s1">1. utilisateurs-ci</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>UserRepository.java</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\repository\UserRepository.java</span></div><p class="note">Imports : <code>java.util.Optional</code>, <code>OrganizationUnitType</code>. Champs <code>organizationUnit</code>, <code>profile</code>, <code>actif</code> de <code>UserEntity</code> ; <code>code</code> de <code>ProfileEntity</code> ; <code>code</code> / <code>type</code> d'<code>OrganizationUnitEntity</code>.</p><pre><button class="copy">Copier</button><code><span class="c">// UserRepository — À AJOUTER (requête dérivée Spring Data sur les champs réels de UserEntity : organizationUnit.code / organizationUnit.type / profile.code / actif)</span>
+    Optional&lt;UserEntity&gt; findFirstByOrganizationUnit_CodeIgnoreCaseAndOrganizationUnit_TypeAndProfile_CodeAndActifTrueOrderByIdAsc(
+            String code, OrganizationUnitType <span class="k">type</span>, String profileCode);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>DirecteurAgenceDTO.java</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\dto\internal\auth\DirecteurAgenceDTO.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bnpp.irb.qlickflow.admin.dto.internal.auth;
+
+<span class="c">/** AER_LM-277 — Directeur d'agence d'une agence (canal interne fund-management → utilisateurs-ci). */</span>
+<span class="k">public</span> <span class="k">record</span> DirecteurAgenceDTO(String uid, String email, String firstName, String lastName) {
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>InternalDirecteurAgenceController.java</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\controller\internal\InternalDirecteurAgenceController.java</span></div><p class="note">Getters <code>getUid/getEmail/getFirstName/getLastName</code> : mêmes noms que les champs d'<code>UserDTO</code> ; si <code>UserEntity</code> diffère, adapter <code>versDto</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bnpp.irb.qlickflow.admin.controller.internal;
+
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.common.ApiResponse;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.dto.internal.auth.DirecteurAgenceDTO;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.UserEntity;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.orga.OrganizationUnitType;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.repository.UserRepository;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> org.springframework.http.HttpStatus;
+<span class="k">import</span> org.springframework.http.ResponseEntity;
+<span class="k">import</span> org.springframework.web.bind.annotation.GetMapping;
+<span class="k">import</span> org.springframework.web.bind.annotation.PathVariable;
+<span class="k">import</span> org.springframework.web.bind.annotation.RequestMapping;
+<span class="k">import</span> org.springframework.web.bind.annotation.RestController;
+
+<span class="c">/**
+ * AER_LM-277 — Directeur d'agence d'une agence = utilisateur actif de profil DA rattaché à l'agence de ce code.
+ * Déduit de profile.code + orgaUnit.code (pas de orga_unit.manager_id, non géré par l'application).
+ * Canal interne (/api/v1/internal, non routé par la gateway), même convention qu'InternalUserController.
+ */</span>
+<span class="a">@RestController</span>
+<span class="a">@RequestMapping</span>(<span class="s">"/api/v1/internal/users/agences"</span>)
+<span class="a">@RequiredArgsConstructor</span>
+<span class="k">public</span> <span class="k">class</span> InternalDirecteurAgenceController {
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> String PROFIL_DA = <span class="s">"DA"</span>;
+
+    <span class="k">private</span> <span class="k">final</span> UserRepository userRepository;
+
+    <span class="a">@GetMapping</span>(<span class="s">"/{code}/directeur"</span>)
+    <span class="k">public</span> ResponseEntity&lt;ApiResponse&lt;DirecteurAgenceDTO&gt;&gt; directeur(<span class="a">@PathVariable</span> String code) {
+        <span class="k">return</span> userRepository
+                .findFirstByOrganizationUnit_CodeIgnoreCaseAndOrganizationUnit_TypeAndProfile_CodeAndActifTrueOrderByIdAsc(
+                        code, OrganizationUnitType.AGENCE, PROFIL_DA)
+                .map(<span class="k">this</span>::versDto)
+                .map(dto -&gt; ResponseEntity.ok(ApiResponse.success(dto)))
+                .orElseGet(() -&gt; ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error(<span class="s">"Aucun Directeur d'agence actif pour l'agence "</span> + code)));
+    }
+
+    <span class="k">private</span> DirecteurAgenceDTO versDto(UserEntity u) {
+        <span class="k">return</span> <span class="k">new</span> DirecteurAgenceDTO(u.getUid(), u.getEmail(), u.getFirstName(), u.getLastName());
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>InternalDirecteurAgenceControllerTest.java</b><br><span class="path">C:\dev\utilisateurs-ci\src\test\java\com\bnpp\irb\qlickflow\admin\controller\internal\InternalDirecteurAgenceControllerTest.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bnpp.irb.qlickflow.admin.controller.internal;
+
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.UserEntity;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.orga.OrganizationUnitType;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.repository.UserRepository;
+<span class="k">import</span> org.junit.jupiter.api.BeforeEach;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+<span class="k">import</span> org.springframework.test.web.servlet.MockMvc;
+<span class="k">import</span> org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+<span class="k">import</span> java.util.Optional;
+
+<span class="k">import</span> <span class="k">static</span> org.springframework.test.web.servlet.request.MockMvcRequestBuilders.<span class="k">get</span>;
+<span class="k">import</span> <span class="k">static</span> org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+<span class="k">import</span> <span class="k">static</span> org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+<span class="a">@ExtendWith</span>(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> InternalDirecteurAgenceControllerTest {
+
+    <span class="a">@Mock</span> UserRepository userRepository;
+    MockMvc mvc;
+
+    <span class="a">@BeforeEach</span>
+    <span class="k">void</span> setUp() {
+        mvc = MockMvcBuilders.standaloneSetup(<span class="k">new</span> InternalDirecteurAgenceController(userRepository)).build();
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> renvoieLeDaDeLAgence() throws Exception {
+        UserEntity da = <span class="k">new</span> UserEntity();
+        da.setUid(<span class="s">"j61104"</span>); da.setEmail(<span class="s">"j61104@bnpparibas.com"</span>); da.setFirstName(<span class="s">"Marouane"</span>); da.setLastName(<span class="s">"MASSOUNE"</span>);
+        Mockito.when(userRepository.findFirstByOrganizationUnit_CodeIgnoreCaseAndOrganizationUnit_TypeAndProfile_CodeAndActifTrueOrderByIdAsc(
+                <span class="s">"1104"</span>, OrganizationUnitType.AGENCE, <span class="s">"DA"</span>)).thenReturn(Optional.of(da));
+
+        mvc.perform(<span class="k">get</span>(<span class="s">"/api/v1/internal/users/agences/1104/directeur"</span>))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">true</span>))
+                .andExpect(jsonPath(<span class="s">"$.data.uid"</span>).value(<span class="s">"j61104"</span>))
+                .andExpect(jsonPath(<span class="s">"$.data.email"</span>).value(<span class="s">"j61104@bnpparibas.com"</span>));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> sansDa_404() throws Exception {
+        Mockito.when(userRepository.findFirstByOrganizationUnit_CodeIgnoreCaseAndOrganizationUnit_TypeAndProfile_CodeAndActifTrueOrderByIdAsc(
+                <span class="s">"9999"</span>, OrganizationUnitType.AGENCE, <span class="s">"DA"</span>)).thenReturn(Optional.empty());
+
+        mvc.perform(<span class="k">get</span>(<span class="s">"/api/v1/internal/users/agences/9999/directeur"</span>))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath(<span class="s">"$.success"</span>).value(<span class="k">false</span>));
+    }
+}</code></pre></div>
+<h2 id="s2">2. fund-management</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>DirecteurAgencePort.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\ports\output\referentiel\DirecteurAgencePort.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/** Port de sortie : Directeur d'agence d'une agence (utilisateur de profil DA rattaché à ce code agence, référentiel utilisateurs). */</span>
+<span class="k">public</span> <span class="k">interface</span> DirecteurAgencePort {
+    Optional&lt;DirecteurAgence&gt; directeurDe(String branchCode);
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>DirecteurAgenceReponseDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\DirecteurAgenceReponseDTO.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users.dto;
+
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+<span class="c">/** Enveloppe ApiResponse de GET /api/v1/internal/users/agences/{code}/directeur, réduite aux champs lus ici. */</span>
+<span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+<span class="k">public</span> <span class="k">record</span> DirecteurAgenceReponseDTO(boolean success, DirecteurAgenceDonneesDTO data) {
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>DirecteurAgenceDonneesDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\DirecteurAgenceDonneesDTO.java</span></div><p class="note">Supprimer <code>UtilisateurInterneDTO</code>, <code>OrgaUnitInterneDTO</code>, <code>ManagerInterneDTO</code> du même paquet.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users.dto;
+
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+<span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+<span class="k">public</span> <span class="k">record</span> DirecteurAgenceDonneesDTO(String uid, String email, String firstName, String lastName) {
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>UtilisateursDirecteurAdapter.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\UtilisateursDirecteurAdapter.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.DirecteurAgenceDonneesDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.DirecteurAgenceReponseDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.DirecteurAgencePort;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="k">import</span> org.springframework.stereotype.Component;
+<span class="k">import</span> org.springframework.web.client.RestClient;
+
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/**
+ * AER_LM-277 — Directeur d'agence par code agence : GET /api/v1/internal/users/agences/{code}/directeur (utilisateurs-ci).
+ * Même style qu'UtilisateursAgenceAdapter : RestClient.create (pas un bean), tolérant — 404 ou users injoignable → Optional.empty() + warn.
+ */</span>
+<span class="a">@Component</span>
+<span class="a">@Slf4j</span>
+<span class="k">public</span> <span class="k">class</span> UtilisateursDirecteurAdapter <span class="k">implements</span> DirecteurAgencePort {
+
+    <span class="k">private</span> <span class="k">final</span> RestClient client;
+
+    <span class="k">public</span> UtilisateursDirecteurAdapter(<span class="a">@Value</span>(<span class="s">"${qf.users.internal-base-url}"</span>) String baseUrl) {
+        <span class="k">this</span>.client = RestClient.create(baseUrl);
+    }
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> Optional&lt;DirecteurAgence&gt; directeurDe(String branchCode) {
+        <span class="k">if</span> (branchCode == <span class="k">null</span> || branchCode.isBlank()) { <span class="k">return</span> Optional.empty(); }
+        try {
+            DirecteurAgenceReponseDTO reponse = client.<span class="k">get</span>()
+                    .uri(<span class="s">"/api/v1/internal/users/agences/{code}/directeur"</span>, branchCode)
+                    .retrieve()
+                    .body(DirecteurAgenceReponseDTO.<span class="k">class</span>);
+            <span class="k">if</span> (reponse == <span class="k">null</span> || !reponse.success() || reponse.data() == <span class="k">null</span>) { <span class="k">return</span> Optional.empty(); }
+            DirecteurAgenceDonneesDTO d = reponse.data();
+            String nom = ((d.firstName() == <span class="k">null</span> ? <span class="s">""</span> : d.firstName()) + <span class="s">" "</span> + (d.lastName() == <span class="k">null</span> ? <span class="s">""</span> : d.lastName())).trim();
+            <span class="k">return</span> Optional.of(<span class="k">new</span> DirecteurAgence(d.uid(), d.email(), nom.isEmpty() ? d.uid() : nom));
+        } catch (RuntimeException e) {
+            log.warn(<span class="s">"[notification] Directeur d'agence de {} introuvable chez utilisateurs-ci : {}"</span>, branchCode, e.getMessage());
+            <span class="k">return</span> Optional.empty();
+        }
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>NotificationDemandeService.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeService.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.DirecteurAgencePort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.stereotype.Service;
+
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/**
+ * AER_LM-277 — notification email au Directeur d'agence après une soumission, une mise à jour ou une annulation par l'agence.
+ * Le DA est résolu par le code agence de la demande. Best effort : aucune exception ne remonte au use case appelant.
+ */</span>
+<span class="a">@Service</span>
+<span class="a">@RequiredArgsConstructor</span>
+<span class="a">@Slf4j</span>
+<span class="k">public</span> <span class="k">class</span> NotificationDemandeService {
+
+    <span class="k">private</span> <span class="k">final</span> DirecteurAgencePort directeurAgencePort;
+    <span class="k">private</span> <span class="k">final</span> NotificationPort notificationPort;
+    <span class="k">private</span> <span class="k">final</span> GabaritEmailDemande gabarit;
+
+    <span class="k">public</span> <span class="k">void</span> notifier(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">if</span> (demande == <span class="k">null</span>) { <span class="k">return</span>; }
+        try {
+            Optional&lt;DirecteurAgence&gt; directeur = directeurAgencePort.directeurDe(demande.getBranchCode());
+            <span class="k">if</span> (directeur.isEmpty() || directeur.<span class="k">get</span>().email() == <span class="k">null</span> || directeur.<span class="k">get</span>().email().isBlank()) {
+                log.warn(<span class="s">"[notification] {} {} : aucun Directeur d'agence avec email pour l'agence {} — email non envoyé"</span>,
+                        evenement, demande.getUniqueRequestRef(), demande.getBranchCode());
+                <span class="k">return</span>;
+            }
+            String sujet = <span class="s">"[QlickFlow] "</span> + evenement.getLibelle() + <span class="s">" "</span> + demande.getUniqueRequestRef()
+                    + <span class="s">" — Agence "</span> + demande.getBranchCode();
+            String corps = gabarit.construire(demande, evenement, directeur.<span class="k">get</span>().nomComplet());
+            notificationPort.envoyer(<span class="k">new</span> EmailNotification(directeur.<span class="k">get</span>().email(), sujet, corps));
+            log.info(<span class="s">"[notification] {} {} → {}"</span>, evenement, demande.getUniqueRequestRef(), directeur.<span class="k">get</span>().email());
+        } catch (RuntimeException e) {
+            log.error(<span class="s">"[notification] {} {} : échec de l'envoi, demande non impactée — {}"</span>,
+                    evenement, demande.getUniqueRequestRef(), e.getMessage());
+        }
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.java + Test</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java</span></div><pre><button class="copy">Copier</button><code><span class="c">// CashDemandUseCaseImpl — ÉDITION : le 3e argument contexte.uid() disparaît des trois appels</span>
+        notificationDemandeService.notifier(resultat, EvenementDemande.SOUMISSION);      <span class="c">// soumettre</span>
+        notificationDemandeService.notifier(resultat, EvenementDemande.MISE_A_JOUR);     <span class="c">// terminerModification (si confirmee)</span>
+        notificationDemandeService.notifier(resultat, EvenementDemande.ANNULATION);      <span class="c">// cancel (si !contexte.toutesAgences())</span>
+
+<span class="c">// CashDemandUseCaseImplTest — ÉDITION : les verify perdent aussi le 3e argument</span>
+        Mockito.verify(notificationDemandeService).notifier(Mockito.any(), Mockito.eq(EvenementDemande.SOUMISSION));</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>NotificationDemandeServiceTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeServiceTest.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.OperationType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.DirecteurAgencePort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashOperationDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CurrencyDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.OperationCurrencyDetailDTO;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.ArgumentCaptor;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertTrue;
+
+<span class="a">@ExtendWith</span>(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> NotificationDemandeServiceTest {
+
+    <span class="a">@Mock</span> DirecteurAgencePort directeurAgencePort;
+    <span class="a">@Mock</span> NotificationPort notificationPort;
+
+    <span class="k">private</span> NotificationDemandeService service() {
+        <span class="k">return</span> <span class="k">new</span> NotificationDemandeService(directeurAgencePort, notificationPort, <span class="k">new</span> GabaritEmailDemande());
+    }
+
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demande() {
+        CashRequestDTO d = <span class="k">new</span> CashRequestDTO();
+        d.setUniqueRequestRef(<span class="s">"20261009-1104-03"</span>);
+        d.setBranchCode(<span class="s">"1104"</span>);
+        d.setAgenceNom(<span class="s">"CASA MOHAMED V"</span>);
+        d.setZoneNom(<span class="s">"Zone Casablanca"</span>);
+        d.setPrestataireNom(<span class="s">"Brink's"</span>);
+        d.setAgentNom(<span class="s">"Youness BALADI"</span>);
+        d.setAgentProfil(<span class="s">"Chef de caisse"</span>);
+        d.setCreatedAt(LocalDateTime.of(2026, 10, 9, 10, 30));
+        d.setUrgent(<span class="k">true</span>);
+        d.setComment(<span class="s">"Besoin &lt;urgent&gt; de coupures de 200"</span>);
+
+        CashOperationDTO caisse = <span class="k">new</span> CashOperationDTO();
+        caisse.setOperationType(OperationType.CASH_DESK);
+        caisse.setOperationSens(RequestType.SUPPLY);
+        OperationCurrencyDetailDTO mad = <span class="k">new</span> OperationCurrencyDetailDTO();
+        CurrencyDTO devise = <span class="k">new</span> CurrencyDTO(); devise.setIsoCode(<span class="s">"MAD"</span>);
+        mad.setCurrency(devise);
+        mad.setTotalAmountByCurrency(<span class="k">new</span> BigDecimal(<span class="s">"150000"</span>));
+        caisse.setCurrencyDetails(List.of(mad));
+
+        CashOperationDTO ramassage = <span class="k">new</span> CashOperationDTO();
+        ramassage.setOperationType(OperationType.CURRENCY);
+        ramassage.setOperationSens(RequestType.COLLECTION);
+        OperationCurrencyDetailDTO eur = <span class="k">new</span> OperationCurrencyDetailDTO();
+        CurrencyDTO euro = <span class="k">new</span> CurrencyDTO(); euro.setIsoCode(<span class="s">"EUR"</span>);
+        eur.setCurrency(euro);
+        eur.setTotalAmountByCurrency(<span class="k">new</span> BigDecimal(<span class="s">"2500"</span>));
+        ramassage.setCurrencyDetails(List.of(eur));
+
+        d.setOperations(List.of(caisse, ramassage));
+        <span class="k">return</span> d;
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> soumission_envoieAuDaAvecRecap() {
+        Mockito.when(directeurAgencePort.directeurDe(<span class="s">"1104"</span>))
+                .thenReturn(Optional.of(<span class="k">new</span> DirecteurAgence(<span class="s">"j61104"</span>, <span class="s">"j61104@bnpparibas.com"</span>, <span class="s">"Marouane MASSOUNE"</span>)));
+
+        service().notifier(demande(), EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">"j61104@bnpparibas.com"</span>, email.getValue().destinataire());
+        assertEquals(<span class="s">"[QlickFlow] Création de demande 20261009-1104-03 — Agence 1104"</span>, email.getValue().sujet());
+        String html = email.getValue().corpsHtml();
+        assertTrue(html.contains(<span class="s">"Bonjour Marouane MASSOUNE"</span>));
+        assertTrue(html.contains(<span class="s">"1104 - CASA MOHAMED V"</span>));
+        assertTrue(html.contains(<span class="s">"Youness BALADI (Chef de caisse)"</span>));
+        assertTrue(html.contains(<span class="s">"09/10/2026 à 10:30"</span>));
+        assertTrue(html.contains(<span class="s">"150 000,00 MAD"</span>) || html.contains(<span class="s">"150 000,00 MAD"</span>));   <span class="c">// espace insécable selon le JDK</span>
+        assertTrue(html.contains(<span class="s">"&lt;td&gt;EUR&lt;/td&gt;"</span>));
+        assertTrue(html.contains(<span class="s">"&amp;lt;urgent&amp;gt;"</span>));                                          <span class="c">// échappement HTML du commentaire</span>
+        assertTrue(html.contains(<span class="s">"class=\"</span>bandeau urgent\<span class="s">""</span>));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> annulation_ajouteLeMotif() {
+        Mockito.when(directeurAgencePort.directeurDe(<span class="s">"1104"</span>))
+                .thenReturn(Optional.of(<span class="k">new</span> DirecteurAgence(<span class="s">"j61104"</span>, <span class="s">"j61104@bnpparibas.com"</span>, <span class="s">"Marouane MASSOUNE"</span>)));
+        CashRequestDTO d = demande();
+        d.setCancellationReason(<span class="s">"Erreur de saisie du montant"</span>);
+
+        service().notifier(d, EvenementDemande.ANNULATION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertTrue(email.getValue().sujet().startsWith(<span class="s">"[QlickFlow] Annulation de demande"</span>));
+        assertTrue(email.getValue().corpsHtml().contains(<span class="s">"Erreur de saisie du montant"</span>));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> sansDa_nEnvoieRien() {
+        Mockito.when(directeurAgencePort.directeurDe(<span class="s">"1104"</span>)).thenReturn(Optional.empty());
+
+        service().notifier(demande(), EvenementDemande.SOUMISSION);
+
+        Mockito.verifyNoInteractions(notificationPort);
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> echecEnvoi_neRemontePas() {
+        Mockito.when(directeurAgencePort.directeurDe(<span class="s">"1104"</span>))
+                .thenReturn(Optional.of(<span class="k">new</span> DirecteurAgence(<span class="s">"j61104"</span>, <span class="s">"j61104@bnpparibas.com"</span>, <span class="s">"Marouane MASSOUNE"</span>)));
+        Mockito.doThrow(<span class="k">new</span> IllegalStateException(<span class="s">"SMTP down"</span>)).when(notificationPort).envoyer(Mockito.any());
+
+        service().notifier(demande(), EvenementDemande.MISE_A_JOUR);     <span class="c">// ne doit pas lever</span>
+    }
+}</code></pre></div>
+<h2 id="s3">3. Guide de test</h2>
+<div class="card"><h3 style="margin:14px 0 6px;color:#07402F">A. utilisateurs-ci seul (Postman, collection jointe <code>AER_LM-277_directeur-agence</code>)</h3>
+<ol>
+<li><code>GET :8091/api/v1/internal/users/agences/1104/directeur</code> → 200, <code>data.uid = j61104</code>, <code>data.email</code> renseigné.</li>
+<li>Agence sans DA (<code>9999</code>) → 404, <code>success = false</code>.</li>
+<li>Deux DA actifs sur la même agence → le premier par id (comportement assumé, à signaler au PO si ça arrive en réel).</li>
+<li><code>mvn test -Dtest=InternalDirecteurAgenceControllerTest</code>.</li>
+</ol>
+<h3 style="margin:14px 0 6px;color:#07402F">B. fund-management — les 3 évènements (connexion <code>/mock-auth/login?uid=j62211</code>, chef de caisse 1104)</h3>
+<table>
+<tr><th>#</th><th>Action</th><th>Attendu</th></tr>
+<tr><td>1</td><td>Nouvelle demande → Soumettre</td><td>Log <code>[notification-mock] À : j61104@bnpparibas.com | Sujet : [QlickFlow] Création de demande &lt;ref&gt; — Agence 1104</code> ; fichier dans <code>fund-management-microservice/notifications-mock/</code> ; <code>GET :9090/api/v1/public/fund-management/notifications</code> liste 1 entrée ; <code>…/notifications/{id}</code> affiche l'email (agence, zone, transporteur, initiateur « Youness BALADI (Chef de caisse) », récap).</td></tr>
+<tr><td>2</td><td>Mode Modification → modifier un montant → Soumettre les Modifications</td><td>2e email « Mise à jour de demande ».</td></tr>
+<tr><td>3</td><td>Mode Modification → Retour au listing (sans soumettre)</td><td>Aucun email.</td></tr>
+<tr><td>4</td><td>Annuler la demande (motif ≥ 10 caractères)</td><td>3e email « Annulation de demande », ligne « Motif d'annulation » présente.</td></tr>
+<tr><td>5</td><td><code>c63005</code> (Caisse Centrale) → Traiter puis Annuler une autre demande</td><td>Aucun email (liste inchangée).</td></tr>
+<tr><td>6</td><td>Demande urgente</td><td>Bandeau rouge, « Demande urgente : OUI ».</td></tr>
+<tr><td>7</td><td>Soumettre avec utilisateurs-ci arrêté</td><td>Demande soumise normalement ; warn « aucun Directeur d'agence » ; aucun email.</td></tr>
+<tr><td>8</td><td>Agence sans DA (utilisateur rattaché à 1422)</td><td>Idem 7.</td></tr>
+</table>
+<h3 style="margin:14px 0 6px;color:#07402F">C. Tests unitaires</h3>
+<p><code>mvn test -Dtest=NotificationDemandeServiceTest,CashDemandUseCaseImplTest</code> (application-service). Mockito strict : dans <code>CashDemandUseCaseImplTest</code>, <code>verifyNoInteractions(notificationDemandeService)</code> sur l'abandon de modification et sur l'annulation Caisse Centrale.</p></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
