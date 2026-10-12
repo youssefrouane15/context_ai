@@ -1,0 +1,140 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-310 — Améliorations design et correction texte</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-310 — Améliorations design et correction texte</h1><p>portail-ci (carte Gestion des fonds) + fund-management-front (listing Agence / Caisse Centrale) · 12/10/2026</p></header>
+<nav><a href="#s0">Périmètre</a><a href="#s1">Carte portail</a><a href="#s2">Listing</a><a href="#s3">Vérification</a></nav><main><h2 id="s0">0. Périmètre</h2>
+<div class="card"><table>
+<tr><th>Projet</th><th>Fichier</th><th>Changement</th></tr>
+<tr><td rowspan="2">portail-ci</td><td><code>src/assets/icons/gestion-fonds.svg</code></td><td>nouveau — pictogramme du PO dans le même cadre que <code>Rectangle 5.svg</code> (carré blanc 30×30, rx 7.6, ombre)</td></tr>
+<tr><td><code>dashboard.component.html</code></td><td>carte <code>id="fund-management"</code> : <code>&lt;img&gt;</code> → nouvelle icône, <code>&lt;p&gt;</code> → nouveau texte</td></tr>
+<tr><td rowspan="2">fund-management-front</td><td><code>demandes-list.component.html</code></td><td>titres « Date Effet », « Zone &amp; Agence », « Détails » + cellules correspondantes (date d'effet seule, zone avant agence)</td></tr>
+<tr><td><code>demandes-list.regles.ts</code></td><td>la valeur de la colonne = <code>dateEffet</code> (déjà en place si la 296 est appliquée — vérifier la ligne)</td></tr>
+</table>
+<p><b>Couleur du pictogramme</b> : le vert de l'icône existante est dans un PNG encodé en base64 (<code>Rectangle 5.svg</code>), impossible à lire dans le code. Le SVG porte donc une seule valeur à vérifier : <code>stroke="#0b5d2e"</code> (celle du fichier du PO). Pour valider : ouvre <code>Rectangle 5.svg</code> dans le navigateur, zoome, pipette le vert du « % » (outil Capture d'écran Windows ou Paint) ; si le hex diffère, remplace-le sur la ligne <code>&lt;g fill="none" stroke="…"&gt;</code> — une seule occurrence.</p>
+<p>« Détails » est écrit avec l'accent (le reste de l'écran est accentué : Référence, Détail) ; la Jira l'écrit sans — à aligner avec le PO si besoin.</p></div>
+<h2 id="s1">1. portail-ci — carte « Gestion des fonds »</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gestion-fonds.svg</b><br><span class="path">C:\dev\portail-ci\src\assets\icons\gestion-fonds.svg</span></div><p class="note">Cadre 38×38 identique à <code>Rectangle 5.svg</code> (même <code>&lt;rect&gt;</code>, même filtre d'ombre). Le picto est un <code>&lt;svg&gt;</code> imbriqué qui reprend tels quels les tracés d'<code>icone-fond-blanc.svg</code> ; seul <code>stroke-width</code> passe de 10 à 22 pour rester lisible à 25 px. <code>Rectangle 5.svg</code> reste en place (non supprimé : vérifier qu'il n'est pas référencé ailleurs avant de l'enlever).</p><pre><button class="copy">Copier</button><code>&lt;svg width=<span class="s">"38"</span> height=<span class="s">"38"</span> viewBox=<span class="s">"0 0 38 38"</span> fill=<span class="s">"none"</span> xmlns=<span class="s">"http://www.w3.org/2000/svg"</span>&gt;
+  <span class="c">&lt;!-- AER_LM-310 — icône carte « Gestion des fonds » : même cadre que Rectangle 5.svg (carré blanc 30×30, rx 7.6, ombre portée) --&gt;</span>
+  &lt;g filter=<span class="s">"url(#ombre_gestion_fonds)"</span>&gt;
+    &lt;rect x=<span class="s">"4"</span> y=<span class="s">"2"</span> width=<span class="s">"30"</span> height=<span class="s">"30"</span> rx=<span class="s">"7.6"</span> fill=<span class="s">"#ffffff"</span>/&gt;
+  &lt;/g&gt;
+  <span class="c">&lt;!-- Pictogramme fourni par le PO (icone-fond-blanc.svg), inscrit dans le carré blanc ; VERT = couleur du picto existant --&gt;</span>
+  &lt;svg x=<span class="s">"6.5"</span> y=<span class="s">"4.5"</span> width=<span class="s">"25"</span> height=<span class="s">"25"</span> viewBox=<span class="s">"80 85 536 539"</span>&gt;
+    &lt;g fill=<span class="s">"none"</span> stroke=<span class="s">"#0b5d2e"</span> stroke-width=<span class="s">"22"</span> stroke-linecap=<span class="s">"round"</span> stroke-linejoin=<span class="s">"round"</span>&gt;
+      <span class="c">&lt;!-- Flèches circulaires --&gt;</span>
+      &lt;path d=<span class="s">"M113 447 A251.5 251.5 0 1 1 588 285"</span>/&gt;
+      &lt;path d=<span class="s">"M530 263 L588 285 L603 225"</span>/&gt;
+      &lt;path d=<span class="s">"M601 363 A252 252 0 0 1 146 508"</span>/&gt;
+      &lt;path d=<span class="s">"M207 514 L146 508 L148 566"</span>/&gt;
+      <span class="c">&lt;!-- Caisse du camion --&gt;</span>
+      &lt;rect x=<span class="s">"178"</span> y=<span class="s">"253"</span> width=<span class="s">"206"</span> height=<span class="s">"177"</span> rx=<span class="s">"6"</span>/&gt;
+      <span class="c">&lt;!-- Cabine --&gt;</span>
+      &lt;path d=<span class="s">"M384 277 H455 Q470 277 478 292 L505 338 Q512 350 528 355 Q549 360 549 385 V430"</span>/&gt;
+      <span class="c">&lt;!-- Vitre --&gt;</span>
+      &lt;path d=<span class="s">"M411 304 H456 L474 343 H411 Z"</span>/&gt;
+      <span class="c">&lt;!-- Poignée --&gt;</span>
+      &lt;path d=<span class="s">"M405 372 H428"</span>/&gt;
+      <span class="c">&lt;!-- Phare --&gt;</span>
+      &lt;rect x=<span class="s">"527"</span> y=<span class="s">"388"</span> width=<span class="s">"18"</span> height=<span class="s">"15"</span> rx=<span class="s">"4"</span>/&gt;
+      <span class="c">&lt;!-- Châssis --&gt;</span>
+      &lt;rect x=<span class="s">"169"</span> y=<span class="s">"430"</span> width=<span class="s">"391"</span> height=<span class="s">"27"</span> rx=<span class="s">"8"</span>/&gt;
+      <span class="c">&lt;!-- Roues --&gt;</span>
+      &lt;circle cx=<span class="s">"251"</span> cy=<span class="s">"457"</span> r=<span class="s">"35"</span> fill=<span class="s">"#ffffff"</span>/&gt;
+      &lt;circle cx=<span class="s">"251"</span> cy=<span class="s">"457"</span> r=<span class="s">"12"</span>/&gt;
+      &lt;circle cx=<span class="s">"478"</span> cy=<span class="s">"457"</span> r=<span class="s">"35"</span> fill=<span class="s">"#ffffff"</span>/&gt;
+      &lt;circle cx=<span class="s">"478"</span> cy=<span class="s">"457"</span> r=<span class="s">"12"</span>/&gt;
+      <span class="c">&lt;!-- Sac d'argent --&gt;</span>
+      &lt;path d=<span class="s">"M262 288 Q275 278 287 285 Q299 278 312 288 L306 305 Q341 330 341 365 Q341 401 287 402 Q233 401 233 365 Q233 330 268 305 Z"</span>/&gt;
+      &lt;path d=<span class="s">"M268 305 Q287 313 306 305"</span>/&gt;
+      <span class="c">&lt;!-- Symbole dollar --&gt;</span>
+      &lt;path d=<span class="s">"M287 322 V336 M287 387 V398"</span>/&gt;
+      &lt;path d=<span class="s">"M301 346 Q301 336 287 336 Q273 336 273 347 Q273 357 287 360 Q302 364 302 376 Q302 387 287 387 Q273 387 272 376"</span>/&gt;
+    &lt;/g&gt;
+  &lt;/svg&gt;
+  &lt;defs&gt;
+    &lt;filter id=<span class="s">"ombre_gestion_fonds"</span> x=<span class="s">"0.516666"</span> y=<span class="s">"0.733333"</span> width=<span class="s">"36.9667"</span> height=<span class="s">"36.9667"</span> filterUnits=<span class="s">"userSpaceOnUse"</span> color-interpolation-filters=<span class="s">"sRGB"</span>&gt;
+      &lt;feFlood flood-opacity=<span class="s">"0"</span> result=<span class="s">"BackgroundImageFix"</span>/&gt;
+      &lt;feColorMatrix in=<span class="s">"SourceAlpha"</span> <span class="k">type</span>=<span class="s">"matrix"</span> values=<span class="s">"0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"</span> result=<span class="s">"hardAlpha"</span>/&gt;
+      &lt;feOffset dy=<span class="s">"2.21667"</span>/&gt;
+      &lt;feGaussianBlur stdDeviation=<span class="s">"1.74167"</span>/&gt;
+      &lt;feColorMatrix <span class="k">type</span>=<span class="s">"matrix"</span> values=<span class="s">"0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0"</span>/&gt;
+      &lt;feBlend mode=<span class="s">"normal"</span> in2=<span class="s">"BackgroundImageFix"</span> result=<span class="s">"effect1_dropShadow"</span>/&gt;
+      &lt;feBlend mode=<span class="s">"normal"</span> in=<span class="s">"SourceGraphic"</span> in2=<span class="s">"effect1_dropShadow"</span> result=<span class="s">"shape"</span>/&gt;
+    &lt;/filter&gt;
+  &lt;/defs&gt;
+&lt;/svg&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>dashboard.component.html — carte fund-management</b><br><span class="path">C:\dev\portail-ci\src\app\features\dashboard\dashboard.component.html  (Ctrl+F : id="fund-management" — remplace le bloc &lt;div class="service-card"&gt; entier)</span></div><p class="note">Deux lignes changent : <code>src="assets/icons/Rectangle 5.svg" alt="Icon"</code> → <code>src="assets/icons/gestion-fonds.svg" alt="Gestion des fonds"</code>, et <code>&lt;p&gt;Gestion des fons (agences et corpo)&lt;/p&gt;</code> → le texte de la maquette. Le reste (arcs, <code>h3</code>, bouton) est inchangé.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- dashboard.component.html — carte id="fund-management" : seules les lignes &lt;img&gt; et &lt;p&gt; changent --&gt;</span>
+&lt;div <span class="k">class</span>=<span class="s">"service-card"</span>  id=<span class="s">"fund-management"</span> *ngIf=<span class="s">"canAccessFundManagement"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"arc-container"</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"arc arc-1"</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"arc arc-2"</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"arc arc-3"</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"arc arc-4"</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"arc arc-5"</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"arc arc-6"</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"arc arc-7"</span>&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"service-card-icon"</span>&gt;
+        &lt;img  src=<span class="s">"assets/icons/gestion-fonds.svg"</span> alt=<span class="s">"Gestion des fonds"</span>&gt;
+    &lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"service-card-content"</span>&gt;
+        &lt;h3&gt;Gestion des fonds&lt;/h3&gt;
+        &lt;p&gt;Gestion des appels et ramassage des fonds avec la Caisse Centrale&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;button <span class="k">class</span>=<span class="s">"service-card-button"</span> (click)=<span class="s">"navigateToExternal(fundManagementUrl)"</span>&gt;ACCÉDER&lt;/button&gt;
+&lt;/div&gt;</code></pre></div>
+<h2 id="s2">2. fund-management-front — listing Agence et Caisse Centrale</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html — en-têtes</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html  (Ctrl+F : &lt;thead&gt; — remplace le bloc &lt;thead&gt; entier)</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- demandes-list.component.html — &lt;thead&gt; : 3 titres changent (Date Effet, Zone &amp; Agence, Détails) --&gt;</span>
+        &lt;thead&gt;
+          &lt;tr&gt;
+            &lt;th&gt;Référence&lt;/th&gt;
+            &lt;th&gt;Urgence&lt;/th&gt;
+            &lt;th&gt;Date Effet&lt;/th&gt;
+            &lt;th *ngIf=<span class="s">"estCaisseCentrale"</span>&gt;Zone &amp;amp; Agence&lt;/th&gt;
+            &lt;th *ngIf=<span class="s">"estCaisseCentrale"</span>&gt;Transporteur&lt;/th&gt;
+            &lt;th&gt;Contenu de la demande&lt;/th&gt;
+            &lt;th *ngIf=<span class="s">"!estCaisseCentrale"</span>&gt;Agent&lt;/th&gt;
+            &lt;th&gt;Statut&lt;/th&gt;
+            &lt;th <span class="k">class</span>=<span class="s">"col-actions"</span>&gt;Détails&lt;/th&gt;
+          &lt;/tr&gt;
+        &lt;/thead&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html — cellule Date Effet</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html  (Ctrl+F : class="cell-date" — remplace le &lt;td&gt; entier)</span></div><p class="note">Si la 296 est appliquée, ce <code>&lt;td&gt;</code> est déjà identique (ligne <code>cell-date__heure</code> retirée).</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- demandes-list.component.html — cellule Date Effet : un seul jour, plus de ligne HH:mm (l.date = date d'effet, cf. regles ci-dessous) --&gt;</span>
+            &lt;td <span class="k">class</span>=<span class="s">"cell-date"</span>&gt;
+              &lt;div&gt;{{ (l.date | date: <span class="s">'dd/MM/yyyy'</span>) || <span class="s">'—'</span> }}&lt;/div&gt;
+            &lt;/td&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html — cellule Zone &amp; Agence</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html  (Ctrl+F : class="cell-agence" — remplace le &lt;td&gt; entier)</span></div><p class="note">Ordre inversé, classes conservées : la zone garde son style (<code>cell-agence__zone</code>), l'agence le sien.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- demandes-list.component.html — cellule Zone &amp; Agence : la zone passe en 1re ligne, l'agence en 2e (mêmes classes, ordre inversé) --&gt;</span>
+            &lt;td <span class="k">class</span>=<span class="s">"cell-agence"</span> *ngIf=<span class="s">"estCaisseCentrale"</span>&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"cell-agence__zone"</span>&gt;{{ l.zone || <span class="s">'—'</span> }}&lt;/div&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"cell-agence__nom"</span>&gt;{{ l.agenceCode }}&lt;ng-container *ngIf=<span class="s">"l.agenceNom"</span>&gt; - {{ l.agenceNom }}&lt;/ng-container&gt;&lt;/div&gt;
+            &lt;/td&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.regles.ts — versLigne</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.ts  (Ctrl+F : date: — dans versLigne)</span></div><p class="note">Cellule « Détails » : le <code>&lt;td class="col-actions"&gt;</code> (œil seul depuis la 285) ne change pas.</p><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.regles.ts — versLigne : la valeur de la colonne « Date Effet » est la date d'effet (repli : création, puis soumission)</span>
+    date: d.dateEffet ?? d.createdAt ?? brut.submittedAt ?? <span class="k">null</span>,</code></pre></div>
+<h2 id="s3">3. Vérification</h2>
+<div class="card"><ol>
+<li><b>Portail</b> (<code>http://localhost:4200/dashboard</code>) : carte verte → icône camion dans le carré blanc en haut à droite (même taille et même ombre que l'ancienne), texte « Gestion des appels et ramassage des fonds avec la Caisse Centrale », bouton ACCÉDER fonctionnel. Aperçu attendu : <code>AER_LM-310_apercu-carte.png</code>.</li>
+<li><b>Listing agence</b> (<code>j62211</code>) : titres <i>Référence · Urgence · Date Effet · Contenu de la demande · Agent · Statut · Détails</i> ; colonne Date Effet = un jour sans heure (une demande soumise après 16h00 affiche le lendemain).</li>
+<li><b>Listing Caisse Centrale</b> (<code>c63005</code>) : titres <i>… Date Effet · Zone &amp; Agence · Transporteur …· Détails</i> ; dans la cellule, la zone est sur la 1<sup>re</sup> ligne, « 1104 - CASA MOHAMED V » sur la 2<sup>e</sup>.</li>
+<li><code>npm test</code> (fund-management-front) : un spec existant qui asserte « Actions » ou « Date &amp; heure » doit être mis à jour avec les nouveaux libellés.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
