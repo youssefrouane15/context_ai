@@ -1,0 +1,120 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Utilisateurs de démo — utilisateurs-ci (V20) + fund-management (V17)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Utilisateurs de démo (liste du PO) — V20 utilisateurs-ci + V17 fund-management</h1><p>5 comptes : DA + 2 chefs de caisse (1104 CASA MOHAMED V), 2 Caisse Centrale · 09/10/2026</p></header>
+<nav><a href="#s0">Jeu de démo</a><a href="#s1">utilisateurs-ci</a><a href="#s2">fund-management</a><a href="#s3">Vérification</a></nav><main><h2 id="s0">0. Jeu de démo (liste du PO)</h2>
+<div class="card"><table>
+<tr><th>uid</th><th>Nom</th><th>Profil</th><th>Agence</th></tr>
+<tr><td><code>j61104</code></td><td>Marouane MASSOUNE</td><td>DA</td><td>1104 CASA MOHAMED V</td></tr>
+<tr><td><code>j62211</code></td><td>Youness BALADI</td><td>CHEF_CAISSE</td><td>1104 CASA MOHAMED V</td></tr>
+<tr><td><code>j62318</code></td><td>Mourad KORCHI</td><td>CHEF_CAISSE</td><td>1104 CASA MOHAMED V</td></tr>
+<tr><td><code>c63005</code></td><td>Yassine SMATOU</td><td>CAISSE_CENTRALE</td><td>—</td></tr>
+<tr><td><code>c63006</code></td><td>Chaimae RACHIDI</td><td>CAISSE_CENTRALE</td><td>—</td></tr>
+</table>
+<p>Deux bases, deux migrations : <b>utilisateurs-ci</b> (identité, profil, agence → <code>/me</code>) et <b>fund-management</b> (<code>retail.user_profile</code>, référencé par chaque demande). Les deux sont idempotentes. 1104 CASA MOHAMED V est dans le fichier du PO (Casablanca / Brink's / 130,10) : la photo agence des demandes sera complète. Connexion : <code>/mock-auth/login?uid=j61104</code>.</p></div>
+<h2 id="s1">1. utilisateurs-ci (schéma qf_admin)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contrôle avant / après</b><br><span class="path">pgAdmin → base utilisateurs-ci</span></div><p class="note">La 1re requête donne les colonnes réelles de <code>users</code> ; si un nom diffère de V20 ou si une colonne NOT NULL manque (ex. <code>username</code>), aligne la liste de colonnes sur <code>V10__create-super-admin.sql</code>.</p><pre><button class="copy">Copier</button><code>set search_path to qf_admin;
+<span class="c">
+-- Avant : colonnes réelles de users (aligner V20 si un nom diffère ou si une colonne NOT NULL manque)</span>
+select column_name, is_nullable <span class="k">from</span> information_schema.columns
+where table_schema = <span class="s">'qf_admin'</span> and table_name = <span class="s">'users'</span> order by ordinal_position;
+<span class="c">
+-- Avant : les 3 profils et l'agence 1104 existent</span>
+select id, code, name <span class="k">from</span> hab_profiles where code in (<span class="s">'DA'</span>, <span class="s">'CHEF_CAISSE'</span>, <span class="s">'CAISSE_CENTRALE'</span>);
+select id, code, name <span class="k">from</span> orga_unit where <span class="k">type</span> = <span class="s">'AGENCE'</span> and code = <span class="s">'1104'</span>;
+<span class="c">
+-- Après : 5 lignes, profil résolu, agence 1104 pour les 3 premiers</span>
+select u.uid, u.first_name, u.last_name, p.code as profil, o.code as agence, o.name as agence_nom
+<span class="k">from</span> users u join hab_profiles p on p.id = u.profile_id left join orga_unit o on o.id = u.organization_unit_id
+where u.uid in (<span class="s">'j61104'</span>,<span class="s">'j62211'</span>,<span class="s">'j62318'</span>,<span class="s">'c63005'</span>,<span class="s">'c63006'</span>) order by p.code, u.uid;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V20__users_demo_gdf.sql</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\resources\db\migration\V20__users_demo_gdf.sql</span></div><p class="note">V19 = référentiel agences. Numéro à adapter si <code>develop-omega</code> a avancé.</p><pre><button class="copy">Copier</button><code><span class="c">-- V20 — Utilisateurs de démo Gestion des Fonds (liste du PO, 09/10/2026) : 1 DA + 2 chefs de caisse sur 1104 CASA MOHAMED V, 2 Caisse Centrale.</span>
+<span class="c">-- Idempotent (NOT EXISTS sur uid). Profils par code (hab_profiles.code), agence par code (orga_unit.code, type AGENCE) : aucun id en dur.</span>
+<span class="c">-- Connexion mock : POST /mock-auth/login?uid=&lt;uid&gt; sur la gateway (9090).</span>
+<span class="c">-- Si la liste de colonnes diffère de V10__create-super-admin.sql (ex. username NOT NULL), l'aligner sur V10 avant de poser le fichier.</span>
+<span class="c">
+-- Directeur d'agence — CASA MOHAMED V</span>
+insert into users (uid, email, first_name, last_name, actif, created_at, updated_at, profile_id, organization_unit_id)
+select <span class="s">'j61104'</span>, <span class="s">'j61104@bnpparibas.com'</span>, <span class="s">'Marouane'</span>, <span class="s">'MASSOUNE'</span>, <span class="k">true</span>, now(), now(),
+       (select id <span class="k">from</span> hab_profiles where code = <span class="s">'DA'</span>), (select id <span class="k">from</span> orga_unit where <span class="k">type</span> = <span class="s">'AGENCE'</span> and code = <span class="s">'1104'</span>)
+where not exists (select 1 <span class="k">from</span> users where uid = <span class="s">'j61104'</span>);
+<span class="c">
+-- Chef de caisse — CASA MOHAMED V</span>
+insert into users (uid, email, first_name, last_name, actif, created_at, updated_at, profile_id, organization_unit_id)
+select <span class="s">'j62211'</span>, <span class="s">'j62211@bnpparibas.com'</span>, <span class="s">'Youness'</span>, <span class="s">'BALADI'</span>, <span class="k">true</span>, now(), now(),
+       (select id <span class="k">from</span> hab_profiles where code = <span class="s">'CHEF_CAISSE'</span>), (select id <span class="k">from</span> orga_unit where <span class="k">type</span> = <span class="s">'AGENCE'</span> and code = <span class="s">'1104'</span>)
+where not exists (select 1 <span class="k">from</span> users where uid = <span class="s">'j62211'</span>);
+<span class="c">
+-- Chef de caisse — CASA MOHAMED V</span>
+insert into users (uid, email, first_name, last_name, actif, created_at, updated_at, profile_id, organization_unit_id)
+select <span class="s">'j62318'</span>, <span class="s">'j62318@bnpparibas.com'</span>, <span class="s">'Mourad'</span>, <span class="s">'KORCHI'</span>, <span class="k">true</span>, now(), now(),
+       (select id <span class="k">from</span> hab_profiles where code = <span class="s">'CHEF_CAISSE'</span>), (select id <span class="k">from</span> orga_unit where <span class="k">type</span> = <span class="s">'AGENCE'</span> and code = <span class="s">'1104'</span>)
+where not exists (select 1 <span class="k">from</span> users where uid = <span class="s">'j62318'</span>);
+<span class="c">
+-- Caisse Centrale</span>
+insert into users (uid, email, first_name, last_name, actif, created_at, updated_at, profile_id, organization_unit_id)
+select <span class="s">'c63005'</span>, <span class="s">'c63005@bnpparibas.com'</span>, <span class="s">'Yassine'</span>, <span class="s">'SMATOU'</span>, <span class="k">true</span>, now(), now(),
+       (select id <span class="k">from</span> hab_profiles where code = <span class="s">'CAISSE_CENTRALE'</span>), <span class="k">null</span>
+where not exists (select 1 <span class="k">from</span> users where uid = <span class="s">'c63005'</span>);
+<span class="c">
+-- Caisse Centrale</span>
+insert into users (uid, email, first_name, last_name, actif, created_at, updated_at, profile_id, organization_unit_id)
+select <span class="s">'c63006'</span>, <span class="s">'c63006@bnpparibas.com'</span>, <span class="s">'Chaimae'</span>, <span class="s">'RACHIDI'</span>, <span class="k">true</span>, now(), now(),
+       (select id <span class="k">from</span> hab_profiles where code = <span class="s">'CAISSE_CENTRALE'</span>), <span class="k">null</span>
+where not exists (select 1 <span class="k">from</span> users where uid = <span class="s">'c63006'</span>);
+<span class="c">
+-- La séquence des users avance par 50 : la remettre au-delà du dernier id pour les créations par la console</span>
+select setval(<span class="s">'hab_users_seq'</span>, greatest((select max(id) <span class="k">from</span> users), (select last_value <span class="k">from</span> hab_users_seq)));</code></pre></div>
+<h2 id="s2">2. fund-management (schéma retail)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contrôle avant / après</b><br><span class="path">pgAdmin → base qlickflow</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Avant : convention du seed V5 (profile_code / profile_type de j43709 et j08221). Si profile_code n'est pas 'DA' / 'CHEF_CAISSE', aligner V17.</span>
+select uid, profile_code, profile_label, profile_type <span class="k">from</span> retail.user_profile order by uid;
+<span class="c">
+-- Après : 7 lignes (2 du seed + 5)</span>
+select uid, profile_code, profile_label, profile_type <span class="k">from</span> retail.user_profile order by profile_code, uid;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V17__user_profile_demo.sql</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\db\migration\V17__user_profile_demo.sql</span></div><p class="note">V15 = pièce 2 DH, V16 = devises. <code>profile_type</code> recopié du seed V5 (même profil) ; si le contrôle « avant » montre des codes différents de <code>DA</code> / <code>CHEF_CAISSE</code>, aligne-les.</p><pre><button class="copy">Copier</button><code><span class="c">-- V17 — retail.user_profile : miroir des 5 utilisateurs de démo créés dans utilisateurs-ci (V20).</span>
+<span class="c">-- Le seed V5 ne contient que j43709 et j08221 ; tout uid créateur de demande doit avoir sa ligne ici (FK cash_request → user_profile).</span>
+<span class="c">-- Idempotent (NOT EXISTS sur uid). profile_type recopié depuis la ligne existante du même profil (DA ← j43709, CHEF_CAISSE ← j08221) ;</span>
+<span class="c">-- pour CAISSE_CENTRALE, valeur de j43709 faute de modèle — à ajuster si le contrôle montre une autre convention.</span>
+<span class="c">-- PostgreSQL 12 : md5()::uuid à la place de gen_random_uuid().</span>
+insert into retail.user_profile (id, uid, profile_code, profile_label, profile_type, creation_date, modification_date)
+select md5(random()::text || clock_timestamp()::text || d.uid)::uuid,
+       d.uid, d.profile_code, d.profile_label,
+       coalesce((select p.profile_type <span class="k">from</span> retail.user_profile p where p.profile_code = d.profile_code limit 1),
+                (select p.profile_type <span class="k">from</span> retail.user_profile p where p.uid = <span class="s">'j43709'</span>)),
+       now(), now()
+<span class="k">from</span> (values
+    (<span class="s">'j61104'</span>, <span class="s">'DA'</span>, <span class="s">'Directeur d'</span><span class="s">'agence'</span>),
+    (<span class="s">'j62211'</span>, <span class="s">'CHEF_CAISSE'</span>, <span class="s">'Chef de caisse'</span>),
+    (<span class="s">'j62318'</span>, <span class="s">'CHEF_CAISSE'</span>, <span class="s">'Chef de caisse'</span>),
+    (<span class="s">'c63005'</span>, <span class="s">'CAISSE_CENTRALE'</span>, <span class="s">'Caisse Centrale'</span>),
+    (<span class="s">'c63006'</span>, <span class="s">'CAISSE_CENTRALE'</span>, <span class="s">'Caisse Centrale'</span>)
+) as d (uid, profile_code, profile_label)
+where not exists (select 1 <span class="k">from</span> retail.user_profile u where u.uid = d.uid);</code></pre></div>
+<h2 id="s3">3. Vérification</h2>
+<div class="card"><ol>
+<li>Démarrer utilisateurs-ci puis fund-management : V20 et V17 appliquées.</li>
+<li><code>j61104</code> : écran agence « Réseau Agence / 1104 - CASA MOHAMED V », avatar « MM » ; Nouvelle demande → Soumettre → colonne Agent « Marouane MASSOUNE / Directeur d'agence ».</li>
+<li><code>j62211</code> (fenêtre privée) : voit la demande du DA, « Mode Modification » disponible ; si le DA est en modification → verrouillée.</li>
+<li><code>c63005</code> : menu Caisse Centrale, titre « Vue Caisse Centrale », Traiter → « Traité par Yassine SMATOU ».</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
