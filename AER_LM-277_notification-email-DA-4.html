@@ -1,0 +1,820 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-277 — Email de notification au DA (mock testable + SMTP prêt)</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-277 — Email de notification au Directeur d'agence (soumission, mise à jour, annulation) — serveur mail mocké, SMTP branchable</h1><p>utilisateurs-ci + fund-management-microservice · 09/10/2026 · 21 fichiers nouveaux, 3 ajouts — fund-management uniquement</p></header>
+<nav><a href="#s0">Conception</a><a href="#s1">domain-core</a><a href="#s2">Ports</a><a href="#s3">Services</a><a href="#s4">Adapters</a><a href="#s5">REST</a><a href="#s6">Config & tests</a><a href="#s7">SMTP</a><a href="#s8">Vérification</a></nav><main><h2 id="s0">0. Conception</h2>
+<div class="card"><table>
+<tr><th>Exigence Jira</th><th>Réponse</th></tr>
+<tr><td>Identification de l'évènement</td><td>Enum domaine <code>EvenementDemande</code> : SOUMISSION (PATCH /submit), MISE_A_JOUR (PATCH /modification/end confirmée), ANNULATION (PATCH /cancel par l'agence). Traitement / annulation Caisse Centrale : rien.</td></tr>
+<tr><td>Identification du DA et de son email</td><td><code>GET /api/v1/internal/users/{uid}</code> (utilisateurs-ci, déjà consommé) → <code>orgaUnit.manager</code> = Directeur d'agence avec son email. Rien à développer côté utilisateurs-ci.</td></tr>
+<tr><td>Intégration email</td><td>Port de sortie <code>NotificationPort</code> ; deux adapters commutés par <code>gdf.notification.mode</code> : <b>mock</b> (défaut, livré) et <b>smtp</b> (annexe).</td></tr>
+<tr><td>Mock testable</td><td>L'adapter mock journalise, écrit un <code>.html</code> par email et implémente aussi <code>NotificationJournalPort</code> ; le use case <code>NotificationJournalUseCase</code> expose ce journal au contrôleur (<code>GET /notifications</code>, <code>GET /notifications/{id}</code>).</td></tr>
+<tr><td>Maquette</td><td>Gabarit <code>templates/notification-demande.html</code> : bandeau header / footer, agence - zone - transporteur - date - initiateur, évènement, récapitulatif, motif d'annulation.</td></tr>
+<tr><td>Robustesse</td><td><code>NotificationDemandeService</code> : best effort, aucune exception ne remonte au use case.</td></tr>
+</table>
+<p><img src="AER_LM-277_apercu-email.png" alt="Aperçu de l'email" style="max-width:100%;border:1px solid #dfe7e3;border-radius:8px"></p>
+<h3 style="margin:18px 0 6px;color:#07402F">Répartition hexagonale</h3>
+<table>
+<tr><th>Module</th><th>Package</th><th>Classes</th></tr>
+<tr><td rowspan="3">domain-core</td><td><code>com.bmci.q360.domain.retail.enums</code></td><td><code>EvenementDemande</code></td></tr>
+<tr><td><code>com.bmci.q360.domain.retail.valueobjects.notification</code></td><td><code>EmailNotification</code>, <code>NotificationEnregistree</code></td></tr>
+<tr><td><code>com.bmci.q360.domain.retail.valueobjects.referentiel</code></td><td><code>DirecteurAgence</code></td></tr>
+<tr><td rowspan="4">application-service</td><td><code>…service.domain.ports.output.notification</code></td><td><code>NotificationPort</code>, <code>NotificationJournalPort</code></td></tr>
+<tr><td><code>…service.domain.ports.output.referentiel</code></td><td><code>DirecteurAgencePort</code> (à côté de <code>ReferentielAgencePort</code>)</td></tr>
+<tr><td><code>…service.domain.ports.inputs.service</code></td><td><code>NotificationJournalUseCase</code> (à côté de <code>CashDemandUseCase</code>)</td></tr>
+<tr><td><code>…service.domain.retail.notification</code></td><td><code>NotificationDemandeService</code>, <code>GabaritEmailDemande</code>, <code>NotificationJournalUseCaseImpl</code></td></tr>
+<tr><td rowspan="3">external-services</td><td><code>…external.notification.mock</code></td><td><code>NotificationMockAdapter</code></td></tr>
+<tr><td><code>…external.notification.smtp</code></td><td><code>NotificationSmtpAdapter</code> (annexe)</td></tr>
+<tr><td><code>…external.users</code> / <code>…external.users.dto</code></td><td><code>UtilisateursDirecteurAdapter</code> / <code>UtilisateurInterneDTO</code>, <code>OrgaUnitInterneDTO</code>, <code>ManagerInterneDTO</code></td></tr>
+<tr><td rowspan="2">application</td><td><code>…application.rest.retail.notification</code></td><td><code>NotificationJournalController</code></td></tr>
+<tr><td><code>…application.rest.retail.notification.dto</code></td><td><code>NotificationResumeDTO</code></td></tr>
+<tr><td>container</td><td>—</td><td><code>application-local.yml</code> (propriétés <code>gdf.notification.*</code>)</td></tr>
+</table>
+<p>Sens des dépendances : application → application-service (ports d'entrée) ; external-services → application-service (ports de sortie) ; application-service → domain-core. Le contrôleur ne connaît aucun adapter.</p></div>
+<h2 id="s1">1. domain-core</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>EvenementDemande.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\enums\EvenementDemande.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.q360.domain.retail.enums;
+
+<span class="c">/** AER_LM-277 — évènements agence qui déclenchent une notification au Directeur d'agence. Rien côté Caisse Centrale. */</span>
+<span class="k">public</span> enum EvenementDemande {
+    SOUMISSION(<span class="s">"Création de demande"</span>, <span class="s">"a été soumise"</span>),
+    MISE_A_JOUR(<span class="s">"Mise à jour de demande"</span>, <span class="s">"a été mise à jour"</span>),
+    ANNULATION(<span class="s">"Annulation de demande"</span>, <span class="s">"a été annulée"</span>);
+
+    <span class="k">private</span> <span class="k">final</span> String libelle;
+    <span class="k">private</span> <span class="k">final</span> String verbe;
+
+    EvenementDemande(String libelle, String verbe) {
+        <span class="k">this</span>.libelle = libelle;
+        <span class="k">this</span>.verbe = verbe;
+    }
+
+    <span class="k">public</span> String getLibelle() { <span class="k">return</span> libelle; }
+    <span class="k">public</span> String getVerbe() { <span class="k">return</span> verbe; }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>EmailNotification.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\valueobjects\notification\EmailNotification.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.q360.domain.retail.valueobjects.notification;
+
+<span class="c">/** Email prêt à partir : destinataire, sujet, corps HTML. Value object du domaine, sans dépendance technique. */</span>
+<span class="k">public</span> <span class="k">record</span> EmailNotification(String destinataire, String sujet, String corpsHtml) {
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationEnregistree.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\valueobjects\notification\NotificationEnregistree.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.q360.domain.retail.valueobjects.notification;
+
+<span class="k">import</span> java.time.LocalDateTime;
+
+<span class="c">/** Email conservé par le journal des notifications (consultation en recette). */</span>
+<span class="k">public</span> <span class="k">record</span> NotificationEnregistree(String id, LocalDateTime date, String destinataire, String sujet, String corpsHtml) {
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>DirecteurAgence.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\valueobjects\referentiel\DirecteurAgence.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.q360.domain.retail.valueobjects.referentiel;
+
+<span class="c">/** Directeur d'agence tel que connu du référentiel utilisateurs : identifiant, email, nom complet. */</span>
+<span class="k">public</span> <span class="k">record</span> DirecteurAgence(String uid, String email, String nomComplet) {
+}</code></pre></div>
+<h2 id="s2">2. application-service — ports</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationPort.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\ports\output\notification\NotificationPort.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+
+<span class="c">/** Port de sortie : envoi d'un email. Implémentations : mock (fichier + journal) ou SMTP, selon gdf.notification.mode. */</span>
+<span class="k">public</span> <span class="k">interface</span> NotificationPort {
+    <span class="k">void</span> envoyer(EmailNotification email);
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationJournalPort.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\ports\output\notification\NotificationJournalPort.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.NotificationEnregistree;
+
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/** Port de sortie : journal des emails envoyés (mode mock uniquement — permet la consultation en recette). */</span>
+<span class="k">public</span> <span class="k">interface</span> NotificationJournalPort {
+    List&lt;NotificationEnregistree&gt; lister();
+    Optional&lt;NotificationEnregistree&gt; trouver(String id);
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>DirecteurAgencePort.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\ports\output\referentiel\DirecteurAgencePort.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/** Port de sortie : Directeur d'agence de l'utilisateur donné (manager de son agence dans le référentiel utilisateurs). */</span>
+<span class="k">public</span> <span class="k">interface</span> DirecteurAgencePort {
+    Optional&lt;DirecteurAgence&gt; directeurDe(String uid);
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationJournalUseCase.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\ports\inputs\service\NotificationJournalUseCase.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.ports.inputs.service;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.NotificationEnregistree;
+
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/** Port d'entrée : consultation du journal des notifications (recette, mode mock). */</span>
+<span class="k">public</span> <span class="k">interface</span> NotificationJournalUseCase {
+    List&lt;NotificationEnregistree&gt; lister();
+    Optional&lt;NotificationEnregistree&gt; trouver(String id);
+}</code></pre></div>
+<h2 id="s3">3. application-service — services</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationDemandeService.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeService.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.DirecteurAgencePort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.stereotype.Service;
+
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/**
+ * AER_LM-277 — notification email au Directeur d'agence après une soumission, une mise à jour ou une annulation par l'agence.
+ * Best effort : aucune exception ne remonte au use case appelant — la demande est déjà enregistrée, l'email ne doit jamais la faire échouer.
+ */</span>
+<span class="a">@Service</span>
+<span class="a">@RequiredArgsConstructor</span>
+<span class="a">@Slf4j</span>
+<span class="k">public</span> <span class="k">class</span> NotificationDemandeService {
+
+    <span class="k">private</span> <span class="k">final</span> DirecteurAgencePort directeurAgencePort;
+    <span class="k">private</span> <span class="k">final</span> NotificationPort notificationPort;
+    <span class="k">private</span> <span class="k">final</span> GabaritEmailDemande gabarit;
+
+    <span class="k">public</span> <span class="k">void</span> notifier(CashRequestDTO demande, EvenementDemande evenement, String uidAppelant) {
+        <span class="k">if</span> (demande == <span class="k">null</span>) { <span class="k">return</span>; }
+        try {
+            Optional&lt;DirecteurAgence&gt; directeur = directeurAgencePort.directeurDe(uidAppelant);
+            <span class="k">if</span> (directeur.isEmpty() || directeur.<span class="k">get</span>().email() == <span class="k">null</span> || directeur.<span class="k">get</span>().email().isBlank()) {
+                log.warn(<span class="s">"[notification] {} {} : aucun Directeur d'agence avec email pour l'agence de {} — email non envoyé"</span>,
+                        evenement, demande.getUniqueRequestRef(), uidAppelant);
+                <span class="k">return</span>;
+            }
+            String sujet = <span class="s">"[QlickFlow] "</span> + evenement.getLibelle() + <span class="s">" "</span> + demande.getUniqueRequestRef()
+                    + <span class="s">" — Agence "</span> + demande.getBranchCode();
+            String corps = gabarit.construire(demande, evenement, directeur.<span class="k">get</span>().nomComplet());
+            notificationPort.envoyer(<span class="k">new</span> EmailNotification(directeur.<span class="k">get</span>().email(), sujet, corps));
+            log.info(<span class="s">"[notification] {} {} → {}"</span>, evenement, demande.getUniqueRequestRef(), directeur.<span class="k">get</span>().email());
+        } catch (RuntimeException e) {
+            log.error(<span class="s">"[notification] {} {} : échec de l'envoi, demande non impactée — {}"</span>,
+                    evenement, demande.getUniqueRequestRef(), e.getMessage());
+        }
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>GabaritEmailDemande.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\GabaritEmailDemande.java</span></div><p class="note">Lit les DTO comme <code>ExtractionDemande</code> (export Excel) : <code>getOperations / getOperationType / getOperationSens / getCurrencyDetails / getTotalAmountByCurrency / getCurrency().getIsoCode()</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.OperationType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashOperationDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.OperationCurrencyDetailDTO;
+<span class="k">import</span> org.springframework.core.io.ClassPathResource;
+<span class="k">import</span> org.springframework.stereotype.Component;
+
+<span class="k">import</span> java.io.IOException;
+<span class="k">import</span> java.io.UncheckedIOException;
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.nio.charset.StandardCharsets;
+<span class="k">import</span> java.text.DecimalFormat;
+<span class="k">import</span> java.text.DecimalFormatSymbols;
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.time.format.DateTimeFormatter;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Locale;
+<span class="k">import</span> java.util.Map;
+
+<span class="c">/**
+ * Construit le corps HTML de l'email (maquette Jira : bandeau header / footer, rappel agence - date - initiateur,
+ * évènement, récap de la demande) à partir du gabarit templates/notification-demande.html et de ses ${cles}.
+ * Pas de moteur de template : un remplacement de clés avec échappement HTML suffit, et aucune dépendance de plus.
+ */</span>
+<span class="a">@Component</span>
+<span class="k">public</span> <span class="k">class</span> GabaritEmailDemande {
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> String GABARIT = <span class="s">"templates/notification-demande.html"</span>;
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> DateTimeFormatter DATE_HEURE = DateTimeFormatter.ofPattern(<span class="s">"dd/MM/yyyy 'à' HH:mm"</span>);
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> DecimalFormat MONTANT = <span class="k">new</span> DecimalFormat(<span class="s">"#,##0.00"</span>, DecimalFormatSymbols.getInstance(Locale.FRANCE));
+
+    <span class="k">private</span> <span class="k">final</span> String gabarit;
+
+    <span class="k">public</span> GabaritEmailDemande() {
+        try {
+            gabarit = <span class="k">new</span> ClassPathResource(GABARIT).getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            <span class="k">throw</span> <span class="k">new</span> UncheckedIOException(<span class="s">"Gabarit email introuvable : "</span> + GABARIT, e);
+        }
+    }
+
+    <span class="k">public</span> String construire(CashRequestDTO d, EvenementDemande evenement, String nomDirecteur) {
+        List&lt;CashOperationDTO&gt; ops = d.getOperations() == <span class="k">null</span> ? List.of() : d.getOperations();
+        boolean urgente = Boolean.TRUE.equals(d.getUrgent())
+                || ops.stream().anyMatch(op -&gt; Boolean.TRUE.equals(op.getIsUrgent()));
+        LocalDateTime date = d.getUpdatedAt() != <span class="k">null</span> ? d.getUpdatedAt() : d.getCreatedAt();
+
+        Map&lt;String, String&gt; valeurs = Map.ofEntries(
+                Map.entry(<span class="s">"evenement"</span>, evenement.getLibelle()),
+                Map.entry(<span class="s">"verbe"</span>, evenement.getVerbe()),
+                Map.entry(<span class="s">"directeur"</span>, vide(nomDirecteur)),
+                Map.entry(<span class="s">"reference"</span>, vide(d.getUniqueRequestRef())),
+                Map.entry(<span class="s">"agence"</span>, vide(d.getBranchCode()) + (d.getAgenceNom() != <span class="k">null</span> ? <span class="s">" - "</span> + d.getAgenceNom() : <span class="s">""</span>)),
+                Map.entry(<span class="s">"zone"</span>, d.getZoneNom() != <span class="k">null</span> ? d.getZoneNom() : vide(d.getZoneCode())),
+                Map.entry(<span class="s">"transporteur"</span>, d.getPrestataireNom() != <span class="k">null</span> ? d.getPrestataireNom() : vide(d.getPrestataire())),
+                Map.entry(<span class="s">"date"</span>, date != <span class="k">null</span> ? DATE_HEURE.format(date) : <span class="s">"—"</span>),
+                Map.entry(<span class="s">"initiateur"</span>, d.getAgentNom() != <span class="k">null</span> ? d.getAgentNom() + (d.getAgentProfil() != <span class="k">null</span> ? <span class="s">" ("</span> + d.getAgentProfil() + <span class="s">")"</span> : <span class="s">""</span>) : <span class="s">"—"</span>),
+                Map.entry(<span class="s">"urgence"</span>, urgente ? <span class="s">"OUI"</span> : <span class="s">"Non"</span>),
+                Map.entry(<span class="s">"classeUrgence"</span>, urgente ? <span class="s">"urgent"</span> : <span class="s">"normal"</span>),
+                Map.entry(<span class="s">"totalCaisse"</span>, montant(total(ops, OperationType.CASH_DESK, RequestType.SUPPLY))),
+                Map.entry(<span class="s">"totalGab"</span>, montant(total(ops, OperationType.ATM, RequestType.SUPPLY))),
+                Map.entry(<span class="s">"lignesDevises"</span>, lignes(ops, RequestType.SUPPLY)),
+                Map.entry(<span class="s">"lignesRamassage"</span>, lignes(ops, RequestType.COLLECTION)),
+                Map.entry(<span class="s">"commentaire"</span>, d.getComment() != <span class="k">null</span> &amp;&amp; !d.getComment().isBlank() ? d.getComment() : <span class="s">"—"</span>),
+                Map.entry(<span class="s">"blocAnnulation"</span>, evenement == EvenementDemande.ANNULATION
+                        ? <span class="s">"&lt;tr&gt;&lt;th&gt;Motif d'annulation&lt;/th&gt;&lt;td&gt;"</span> + echapper(vide(d.getCancellationReason())) + <span class="s">"&lt;/td&gt;&lt;/tr&gt;"</span> : <span class="s">""</span>)
+        );
+
+        String html = gabarit;
+        for (Map.Entry&lt;String, String&gt; e : valeurs.entrySet()) {
+            <span class="c">// Les blocs HTML construits ici (lignes*, blocAnnulation) sont déjà échappés champ par champ</span>
+            boolean brut = e.getKey().startsWith(<span class="s">"lignes"</span>) || e.getKey().equals(<span class="s">"blocAnnulation"</span>) || e.getKey().equals(<span class="s">"classeUrgence"</span>);
+            html = html.replace(<span class="s">"${"</span> + e.getKey() + <span class="s">"}"</span>, brut ? e.getValue() : echapper(e.getValue()));
+        }
+        <span class="k">return</span> html;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> BigDecimal total(List&lt;CashOperationDTO&gt; ops, OperationType <span class="k">type</span>, RequestType sens) {
+        BigDecimal somme = BigDecimal.ZERO;
+        for (CashOperationDTO op : ops) {
+            <span class="k">if</span> (op.getOperationType() != <span class="k">type</span> || op.getOperationSens() != sens) continue;
+            for (OperationCurrencyDetailDTO detail : details(op)) {
+                <span class="k">if</span> (detail.getTotalAmountByCurrency() != <span class="k">null</span>) somme = somme.add(detail.getTotalAmountByCurrency());
+            }
+        }
+        <span class="k">return</span> somme;
+    }
+
+    <span class="c">/** Une ligne &amp;lt;tr&amp;gt; par devise pour CURRENCY / sens donné (SUPPLY = commande, COLLECTION = ramassage). */</span>
+    <span class="k">private</span> <span class="k">static</span> String lignes(List&lt;CashOperationDTO&gt; ops, RequestType sens) {
+        StringBuilder sb = <span class="k">new</span> StringBuilder();
+        for (CashOperationDTO op : ops) {
+            <span class="k">if</span> (op.getOperationType() != OperationType.CURRENCY || op.getOperationSens() != sens) continue;
+            for (OperationCurrencyDetailDTO detail : details(op)) {
+                String devise = detail.getCurrency() == <span class="k">null</span> ? <span class="s">"—"</span> : vide(detail.getCurrency().getIsoCode());
+                sb.append(<span class="s">"&lt;tr&gt;&lt;td&gt;"</span>).append(echapper(devise)).append(<span class="s">"&lt;/td&gt;&lt;td class=\"</span>montant\<span class="s">"&gt;"</span>)
+                  .append(montant(detail.getTotalAmountByCurrency())).append(<span class="s">' '</span>).append(echapper(devise)).append(<span class="s">"&lt;/td&gt;&lt;/tr&gt;"</span>);
+            }
+        }
+        <span class="k">return</span> sb.length() == 0 ? <span class="s">"&lt;tr&gt;&lt;td colspan=\"</span>2\<span class="s">" class=\"</span>vide\<span class="s">"&gt;Aucune&lt;/td&gt;&lt;/tr&gt;"</span> : sb.toString();
+    }
+
+    <span class="k">private</span> <span class="k">static</span> List&lt;OperationCurrencyDetailDTO&gt; details(CashOperationDTO op) {
+        <span class="k">return</span> op.getCurrencyDetails() == <span class="k">null</span> ? List.of() : op.getCurrencyDetails();
+    }
+
+    <span class="k">private</span> <span class="k">static</span> String montant(BigDecimal m) { <span class="k">return</span> MONTANT.format(m == <span class="k">null</span> ? BigDecimal.ZERO : m); }
+    <span class="k">private</span> <span class="k">static</span> String vide(String s) { <span class="k">return</span> s == <span class="k">null</span> ? <span class="s">""</span> : s; }
+
+    <span class="k">static</span> String echapper(String s) {
+        <span class="k">if</span> (s == <span class="k">null</span>) <span class="k">return</span> <span class="s">""</span>;
+        <span class="k">return</span> s.replace(<span class="s">"&amp;"</span>, <span class="s">"&amp;amp;"</span>).replace(<span class="s">"&lt;"</span>, <span class="s">"&amp;lt;"</span>).replace(<span class="s">"&gt;"</span>, <span class="s">"&amp;gt;"</span>).replace(<span class="s">"\"</span><span class="s">", "</span>&amp;quot;");
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationJournalUseCaseImpl.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationJournalUseCaseImpl.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.NotificationEnregistree;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.inputs.service.NotificationJournalUseCase;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationJournalPort;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+<span class="k">import</span> org.springframework.stereotype.Service;
+
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/** N'existe que si un journal est fourni par l'adapter actif (mode mock). */</span>
+<span class="a">@Service</span>
+<span class="a">@ConditionalOnBean</span>(NotificationJournalPort.<span class="k">class</span>)
+<span class="a">@RequiredArgsConstructor</span>
+<span class="k">public</span> <span class="k">class</span> NotificationJournalUseCaseImpl <span class="k">implements</span> NotificationJournalUseCase {
+
+    <span class="k">private</span> <span class="k">final</span> NotificationJournalPort journal;
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> List&lt;NotificationEnregistree&gt; lister() { <span class="k">return</span> journal.lister(); }
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> Optional&lt;NotificationEnregistree&gt; trouver(String id) { <span class="k">return</span> journal.trouver(id); }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>notification-demande.html</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\resources\templates\notification-demande.html</span></div><pre><button class="copy">Copier</button><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=<span class="s">"fr"</span>&gt;
+&lt;head&gt;
+&lt;meta charset=<span class="s">"UTF-8"</span>&gt;
+&lt;title&gt;${evenement} ${reference}&lt;/title&gt;
+&lt;style&gt;
+  body { margin: 0; background: #f3f6f4; font-family: Arial, Helvetica, sans-serif; color: #1d2b27; }
+  .wrap { max-width: 640px; margin: 24px auto; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #dfe7e3; }
+  .header { background: #0e7d5a; color: #fff; padding: 18px 24px; }
+  .header .marque { font-size: 20px; font-weight: 700; letter-spacing: .02em; }
+  .header .sous { font-size: 12px; opacity: .9; margin-top: 2px; }
+  .bandeau { padding: 14px 24px; background: #e6f4ee; color: #0e7d5a; font-weight: 700; font-size: 16px; border-bottom: 1px solid #cfe6da; }
+  .bandeau.urgent { background: #fdecea; color: #ba1a1a; border-color: #f3c2bd; }
+  .contenu { padding: 20px 24px; font-size: 14px; line-height: 1.5; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 13px; }
+  th { text-align: left; width: 42%; color: #5c6b63; font-weight: 600; padding: 7px 8px; background: #f6f8f7; border: 1px solid #e8ecea; }
+  td { padding: 7px 8px; border: 1px solid #e8ecea; }
+  td.montant { text-align: right; font-family: Consolas, monospace; white-space: nowrap; }
+  td.vide { color: #8a9790; font-style: italic; }
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #0e7d5a; margin: 18px 0 6px; }
+  .footer { padding: 14px 24px; background: #f6f8f7; color: #6b7a73; font-size: 11px; border-top: 1px solid #e8ecea; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div <span class="k">class</span>=<span class="s">"wrap"</span>&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"header"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"marque"</span>&gt;BMCI · QlickFlow — Gestion des Fonds&lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"sous"</span>&gt;Notification automatique au Directeur d'agence&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"bandeau ${classeUrgence}"</span>&gt;${evenement} — ${reference}&lt;/div&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"contenu"</span>&gt;
+    &lt;p&gt;Bonjour ${directeur},&lt;/p&gt;
+    &lt;p&gt;La demande &lt;strong&gt;${reference}&lt;/strong&gt; ${verbe} par l'agence.&lt;/p&gt;
+
+    &lt;table&gt;
+      &lt;tr&gt;&lt;th&gt;Agence&lt;/th&gt;&lt;td&gt;${agence}&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;th&gt;Zone / Transporteur&lt;/th&gt;&lt;td&gt;${zone} / ${transporteur}&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;th&gt;Date&lt;/th&gt;&lt;td&gt;${date}&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;th&gt;Initiateur&lt;/th&gt;&lt;td&gt;${initiateur}&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;th&gt;Demande urgente&lt;/th&gt;&lt;td&gt;${urgence}&lt;/td&gt;&lt;/tr&gt;
+      ${blocAnnulation}
+    &lt;/table&gt;
+
+    &lt;h3&gt;Récapitulatif de la demande&lt;/h3&gt;
+    &lt;table&gt;
+      &lt;tr&gt;&lt;th&gt;Alimentation caisse (MAD)&lt;/th&gt;&lt;td <span class="k">class</span>=<span class="s">"montant"</span>&gt;${totalCaisse} MAD&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;th&gt;Alimentation GAB (MAD)&lt;/th&gt;&lt;td <span class="k">class</span>=<span class="s">"montant"</span>&gt;${totalGab} MAD&lt;/td&gt;&lt;/tr&gt;
+    &lt;/table&gt;
+    &lt;h3&gt;Commande de devises&lt;/h3&gt;
+    &lt;table&gt;${lignesDevises}&lt;/table&gt;
+    &lt;h3&gt;Ramassage de fonds&lt;/h3&gt;
+    &lt;table&gt;${lignesRamassage}&lt;/table&gt;
+    &lt;h3&gt;Commentaire&lt;/h3&gt;
+    &lt;p&gt;${commentaire}&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div <span class="k">class</span>=<span class="s">"footer"</span>&gt;
+    Message généré automatiquement par QlickFlow — merci de ne pas y répondre. BMCI, Groupe BNP Paribas.
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImpl.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java</span></div><p class="note">Trois appels, toujours après le succès de l'opération. <code>getCashDemandById(id)</code> = méthode publique existante du use case.</p><pre><button class="copy">Copier</button><code><span class="c">// CashDemandUseCaseImpl — À AJOUTER</span>
+
+<span class="c">// 1. Imports</span>
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.notification.NotificationDemandeService;
+
+<span class="c">// 2. Dépendance (champ final → le constructeur @RequiredArgsConstructor gagne un argument ; ajouter le @Mock correspondant dans le test)</span>
+    <span class="k">private</span> <span class="k">final</span> NotificationDemandeService notificationDemandeService;
+
+<span class="c">// 3. Dans soumettre(UUID id, …, ContexteAppelant contexte) — DERNIÈRE ligne avant le return (la saga a réussi, le statut est SUBMITTED)</span>
+        notificationDemandeService.notifier(getCashDemandById(id), EvenementDemande.SOUMISSION, contexte.uid());
+
+<span class="c">// 4. Dans terminerModification(UUID id, boolean confirmee, ContexteAppelant contexte) — uniquement dans la branche confirmee == true,</span>
+<span class="c">//    après la libération du verrou (statut revenu à SUBMITTED) ; rien dans la branche abandon</span>
+        notificationDemandeService.notifier(getCashDemandById(id), EvenementDemande.MISE_A_JOUR, contexte.uid());
+
+<span class="c">// 5. Dans cancel(UUID id, String motif, ContexteAppelant contexte) — annulation par l'AGENCE uniquement : la Caisse Centrale (toutes agences)</span>
+<span class="c">//    ne déclenche pas d'email (règle Jira). À placer après la corrélation de msgAnnulerDemande.</span>
+        <span class="k">if</span> (!contexte.toutesAgences()) {
+            notificationDemandeService.notifier(getCashDemandById(id), EvenementDemande.ANNULATION, contexte.uid());
+        }</code></pre></div>
+<h2 id="s4">4. external-services — adapters</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationMockAdapter.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\notification\mock\NotificationMockAdapter.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.notification.mock;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.NotificationEnregistree;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationJournalPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationPort;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="k">import</span> org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+<span class="k">import</span> org.springframework.stereotype.Component;
+
+<span class="k">import</span> java.io.IOException;
+<span class="k">import</span> java.io.UncheckedIOException;
+<span class="k">import</span> java.nio.charset.StandardCharsets;
+<span class="k">import</span> java.nio.file.Files;
+<span class="k">import</span> java.nio.file.Path;
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.time.format.DateTimeFormatter;
+<span class="k">import</span> java.util.ArrayDeque;
+<span class="k">import</span> java.util.ArrayList;
+<span class="k">import</span> java.util.Deque;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/**
+ * AER_LM-277 — serveur email injoignable : chaque email est journalisé, écrit en .html dans gdf.notification.mock.dossier
+ * et conservé en mémoire (50 derniers) pour la consultation via NotificationJournalPort. Actif si gdf.notification.mode=mock (défaut).
+ */</span>
+<span class="a">@Component</span>
+<span class="a">@ConditionalOnProperty</span>(name = <span class="s">"gdf.notification.mode"</span>, havingValue = <span class="s">"mock"</span>, matchIfMissing = <span class="k">true</span>)
+<span class="a">@Slf4j</span>
+<span class="k">public</span> <span class="k">class</span> NotificationMockAdapter <span class="k">implements</span> NotificationPort, NotificationJournalPort {
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> int TAILLE_JOURNAL = 50;
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> DateTimeFormatter HORODATAGE = DateTimeFormatter.ofPattern(<span class="s">"yyyyMMdd-HHmmss-SSS"</span>);
+
+    <span class="k">private</span> <span class="k">final</span> Path dossier;
+    <span class="k">private</span> <span class="k">final</span> Deque&lt;NotificationEnregistree&gt; journal = <span class="k">new</span> ArrayDeque&lt;&gt;();
+
+    <span class="k">public</span> NotificationMockAdapter(<span class="a">@Value</span>(<span class="s">"${gdf.notification.mock.dossier:./notifications-mock}"</span>) String dossier) {
+        <span class="k">this</span>.dossier = Path.of(dossier);
+    }
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> synchronized <span class="k">void</span> envoyer(EmailNotification email) {
+        LocalDateTime maintenant = LocalDateTime.now();
+        String id = HORODATAGE.format(maintenant) + <span class="s">"_"</span> + nettoyer(email.sujet());
+        journal.addFirst(<span class="k">new</span> NotificationEnregistree(id, maintenant, email.destinataire(), email.sujet(), email.corpsHtml()));
+        while (journal.size() &gt; TAILLE_JOURNAL) { journal.removeLast(); }
+        try {
+            Files.createDirectories(dossier);
+            Files.writeString(dossier.resolve(id + <span class="s">".html"</span>), email.corpsHtml(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            <span class="k">throw</span> <span class="k">new</span> UncheckedIOException(<span class="s">"Écriture de l'email mock impossible dans "</span> + dossier, e);
+        }
+        log.info(<span class="s">"[notification-mock] À : {} | Sujet : {} | Fichier : {}/{}.html"</span>, email.destinataire(), email.sujet(), dossier, id);
+    }
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> synchronized List&lt;NotificationEnregistree&gt; lister() { <span class="k">return</span> <span class="k">new</span> ArrayList&lt;&gt;(journal); }
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> synchronized Optional&lt;NotificationEnregistree&gt; trouver(String id) {
+        <span class="k">return</span> journal.stream().filter(n -&gt; n.id().equals(id)).findFirst();
+    }
+
+    <span class="k">private</span> <span class="k">static</span> String nettoyer(String s) {
+        <span class="k">return</span> s.replaceAll(<span class="s">"[^A-Za-z0-9_-]+"</span>, <span class="s">"_"</span>).replaceAll(<span class="s">"^_+|_+$"</span>, <span class="s">""</span>);
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>UtilisateurInterneDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\UtilisateurInterneDTO.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users.dto;
+
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+<span class="c">/** Réponse de GET /api/v1/internal/users/{uid} (utilisateurs-ci), réduite aux champs lus ici. */</span>
+<span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+<span class="k">public</span> <span class="k">record</span> UtilisateurInterneDTO(String uid, OrgaUnitInterneDTO orgaUnit) {
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>OrgaUnitInterneDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\OrgaUnitInterneDTO.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users.dto;
+
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+<span class="c">/** Unité d'organisation de l'utilisateur ; manager = Directeur d'agence pour une agence. */</span>
+<span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+<span class="k">public</span> <span class="k">record</span> OrgaUnitInterneDTO(String code, String <span class="k">type</span>, ManagerInterneDTO manager) {
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>ManagerInterneDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\ManagerInterneDTO.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users.dto;
+
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+<span class="a">@JsonIgnoreProperties</span>(ignoreUnknown = <span class="k">true</span>)
+<span class="k">public</span> <span class="k">record</span> ManagerInterneDTO(String uid, String email, String firstName, String lastName) {
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>UtilisateursDirecteurAdapter.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\UtilisateursDirecteurAdapter.java</span></div><p class="note">Même propriété <code>qf.users.internal-base-url</code> qu'<code>UtilisateursAgenceAdapter</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.ManagerInterneDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.UtilisateurInterneDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.DirecteurAgencePort;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="k">import</span> org.springframework.stereotype.Component;
+<span class="k">import</span> org.springframework.web.client.RestClient;
+
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/**
+ * AER_LM-277 — Directeur d'agence lu dans la fiche de l'utilisateur qui agit : GET /api/v1/internal/users/{uid} → orgaUnit.manager.
+ * Même style qu'UtilisateursAgenceAdapter : RestClient.create (pas un bean), tolérant — toute erreur → Optional.empty() + warn.
+ */</span>
+<span class="a">@Component</span>
+<span class="a">@Slf4j</span>
+<span class="k">public</span> <span class="k">class</span> UtilisateursDirecteurAdapter <span class="k">implements</span> DirecteurAgencePort {
+
+    <span class="k">private</span> <span class="k">final</span> RestClient client;
+
+    <span class="k">public</span> UtilisateursDirecteurAdapter(<span class="a">@Value</span>(<span class="s">"${qf.users.internal-base-url}"</span>) String baseUrl) {
+        <span class="k">this</span>.client = RestClient.create(baseUrl);
+    }
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> Optional&lt;DirecteurAgence&gt; directeurDe(String uid) {
+        <span class="k">if</span> (uid == <span class="k">null</span> || uid.isBlank()) { <span class="k">return</span> Optional.empty(); }
+        try {
+            UtilisateurInterneDTO u = client.<span class="k">get</span>()
+                    .uri(<span class="s">"/api/v1/internal/users/{uid}"</span>, uid)
+                    .retrieve()
+                    .body(UtilisateurInterneDTO.<span class="k">class</span>);
+            <span class="k">if</span> (u == <span class="k">null</span> || u.orgaUnit() == <span class="k">null</span> || u.orgaUnit().manager() == <span class="k">null</span>) {
+                log.warn(<span class="s">"[notification] {} : pas d'agence ou pas de manager (Directeur d'agence) sur son agence"</span>, uid);
+                <span class="k">return</span> Optional.empty();
+            }
+            ManagerInterneDTO m = u.orgaUnit().manager();
+            String nom = ((m.firstName() == <span class="k">null</span> ? <span class="s">""</span> : m.firstName()) + <span class="s">" "</span> + (m.lastName() == <span class="k">null</span> ? <span class="s">""</span> : m.lastName())).trim();
+            <span class="k">return</span> Optional.of(<span class="k">new</span> DirecteurAgence(m.uid(), m.email(), nom.isEmpty() ? m.uid() : nom));
+        } catch (RuntimeException e) {
+            log.warn(<span class="s">"[notification] fiche utilisateur {} injoignable chez utilisateurs-ci : {}"</span>, uid, e.getMessage());
+            <span class="k">return</span> Optional.empty();
+        }
+    }
+}</code></pre></div>
+<h2 id="s5">5. application — REST</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationResumeDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\notification\dto\NotificationResumeDTO.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.notification.dto;
+
+<span class="k">import</span> java.time.LocalDateTime;
+
+<span class="c">/** Ligne de la liste GET /notifications (sans le corps HTML). */</span>
+<span class="k">public</span> <span class="k">record</span> NotificationResumeDTO(String id, LocalDateTime date, String destinataire, String sujet) {
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationJournalController.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\notification\NotificationJournalController.java</span></div><p class="note">Dépend uniquement du port d'entrée. Absent en mode smtp (<code>@ConditionalOnBean</code>). Même chaîne de sécurité que <code>/cash</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.notification;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.application.rest.retail.notification.dto.NotificationResumeDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.inputs.service.NotificationJournalUseCase;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+<span class="k">import</span> org.springframework.http.MediaType;
+<span class="k">import</span> org.springframework.http.ResponseEntity;
+<span class="k">import</span> org.springframework.web.bind.annotation.GetMapping;
+<span class="k">import</span> org.springframework.web.bind.annotation.PathVariable;
+<span class="k">import</span> org.springframework.web.bind.annotation.RequestMapping;
+<span class="k">import</span> org.springframework.web.bind.annotation.RestController;
+
+<span class="k">import</span> java.util.List;
+
+<span class="c">/**
+ * AER_LM-277 — consultation du journal des notifications (mode mock uniquement : le use case n'existe pas en mode smtp).
+ *   GET /notifications        → liste, la plus récente en premier
+ *   GET /notifications/{id}   → l'email rendu en HTML
+ * Via la gateway : /api/v1/public/fund-management/notifications
+ */</span>
+<span class="a">@RestController</span>
+<span class="a">@RequestMapping</span>(<span class="s">"/notifications"</span>)
+<span class="a">@ConditionalOnBean</span>(NotificationJournalUseCase.<span class="k">class</span>)
+<span class="a">@RequiredArgsConstructor</span>
+<span class="k">public</span> <span class="k">class</span> NotificationJournalController {
+
+    <span class="k">private</span> <span class="k">final</span> NotificationJournalUseCase journal;
+
+    <span class="a">@GetMapping</span>(produces = MediaType.APPLICATION_JSON_VALUE)
+    <span class="k">public</span> List&lt;NotificationResumeDTO&gt; lister() {
+        <span class="k">return</span> journal.lister().stream()
+                .map(n -&gt; <span class="k">new</span> NotificationResumeDTO(n.id(), n.date(), n.destinataire(), n.sujet()))
+                .toList();
+    }
+
+    <span class="a">@GetMapping</span>(value = <span class="s">"/{id}"</span>, produces = MediaType.TEXT_HTML_VALUE)
+    <span class="k">public</span> ResponseEntity&lt;String&gt; email(<span class="a">@PathVariable</span> String id) {
+        <span class="k">return</span> journal.trouver(id)
+                .map(n -&gt; ResponseEntity.ok(n.corpsHtml()))
+                .orElseGet(() -&gt; ResponseEntity.notFound().build());
+    }
+}</code></pre></div>
+<h2 id="s6">6. container — configuration et tests</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>application-local.yml</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\application-local.yml</span></div><pre><button class="copy">Copier</button><code># application-local.yml (et application.yml pour la valeur par défaut) — À AJOUTER
+gdf:
+  notification:
+    mode: mock                        # mock (défaut) | smtp — à passer en smtp quand l'infra aura ouvert le serveur mail
+    mock:
+      dossier: ./notifications-mock   # un .html par email envoyé, à ouvrir dans le navigateur</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationDemandeServiceTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeServiceTest.java</span></div><p class="note">Suppose les setters Lombok des DTO ; si <code>CurrencyDTO</code> est en constructeur, adapter les 2 lignes.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.OperationType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.DirecteurAgencePort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashOperationDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CurrencyDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.OperationCurrencyDetailDTO;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.ArgumentCaptor;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertTrue;
+
+<span class="a">@ExtendWith</span>(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> NotificationDemandeServiceTest {
+
+    <span class="a">@Mock</span> DirecteurAgencePort directeurAgencePort;
+    <span class="a">@Mock</span> NotificationPort notificationPort;
+
+    <span class="k">private</span> NotificationDemandeService service() {
+        <span class="k">return</span> <span class="k">new</span> NotificationDemandeService(directeurAgencePort, notificationPort, <span class="k">new</span> GabaritEmailDemande());
+    }
+
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demande() {
+        CashRequestDTO d = <span class="k">new</span> CashRequestDTO();
+        d.setUniqueRequestRef(<span class="s">"20261009-1104-03"</span>);
+        d.setBranchCode(<span class="s">"1104"</span>);
+        d.setAgenceNom(<span class="s">"CASA MOHAMED V"</span>);
+        d.setZoneNom(<span class="s">"Zone Casablanca"</span>);
+        d.setPrestataireNom(<span class="s">"Brink's"</span>);
+        d.setAgentNom(<span class="s">"Youness BALADI"</span>);
+        d.setAgentProfil(<span class="s">"Chef de caisse"</span>);
+        d.setCreatedAt(LocalDateTime.of(2026, 10, 9, 10, 30));
+        d.setUrgent(<span class="k">true</span>);
+        d.setComment(<span class="s">"Besoin &lt;urgent&gt; de coupures de 200"</span>);
+
+        CashOperationDTO caisse = <span class="k">new</span> CashOperationDTO();
+        caisse.setOperationType(OperationType.CASH_DESK);
+        caisse.setOperationSens(RequestType.SUPPLY);
+        OperationCurrencyDetailDTO mad = <span class="k">new</span> OperationCurrencyDetailDTO();
+        CurrencyDTO devise = <span class="k">new</span> CurrencyDTO(); devise.setIsoCode(<span class="s">"MAD"</span>);
+        mad.setCurrency(devise);
+        mad.setTotalAmountByCurrency(<span class="k">new</span> BigDecimal(<span class="s">"150000"</span>));
+        caisse.setCurrencyDetails(List.of(mad));
+
+        CashOperationDTO ramassage = <span class="k">new</span> CashOperationDTO();
+        ramassage.setOperationType(OperationType.CURRENCY);
+        ramassage.setOperationSens(RequestType.COLLECTION);
+        OperationCurrencyDetailDTO eur = <span class="k">new</span> OperationCurrencyDetailDTO();
+        CurrencyDTO euro = <span class="k">new</span> CurrencyDTO(); euro.setIsoCode(<span class="s">"EUR"</span>);
+        eur.setCurrency(euro);
+        eur.setTotalAmountByCurrency(<span class="k">new</span> BigDecimal(<span class="s">"2500"</span>));
+        ramassage.setCurrencyDetails(List.of(eur));
+
+        d.setOperations(List.of(caisse, ramassage));
+        <span class="k">return</span> d;
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> soumission_envoieAuDaAvecRecap() {
+        Mockito.when(directeurAgencePort.directeurDe(<span class="s">"j62211"</span>))
+                .thenReturn(Optional.of(<span class="k">new</span> DirecteurAgence(<span class="s">"j61104"</span>, <span class="s">"j61104@bnpparibas.com"</span>, <span class="s">"Marouane MASSOUNE"</span>)));
+
+        service().notifier(demande(), EvenementDemande.SOUMISSION, <span class="s">"j62211"</span>);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">"j61104@bnpparibas.com"</span>, email.getValue().destinataire());
+        assertEquals(<span class="s">"[QlickFlow] Création de demande 20261009-1104-03 — Agence 1104"</span>, email.getValue().sujet());
+        String html = email.getValue().corpsHtml();
+        assertTrue(html.contains(<span class="s">"Bonjour Marouane MASSOUNE"</span>));
+        assertTrue(html.contains(<span class="s">"1104 - CASA MOHAMED V"</span>));
+        assertTrue(html.contains(<span class="s">"Youness BALADI (Chef de caisse)"</span>));
+        assertTrue(html.contains(<span class="s">"09/10/2026 à 10:30"</span>));
+        assertTrue(html.contains(<span class="s">"150 000,00 MAD"</span>) || html.contains(<span class="s">"150 000,00 MAD"</span>));   <span class="c">// espace insécable selon le JDK</span>
+        assertTrue(html.contains(<span class="s">"&lt;td&gt;EUR&lt;/td&gt;"</span>));
+        assertTrue(html.contains(<span class="s">"&amp;lt;urgent&amp;gt;"</span>));                                          <span class="c">// échappement HTML du commentaire</span>
+        assertTrue(html.contains(<span class="s">"class=\"</span>bandeau urgent\<span class="s">""</span>));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> annulation_ajouteLeMotif() {
+        Mockito.when(directeurAgencePort.directeurDe(<span class="s">"j62211"</span>))
+                .thenReturn(Optional.of(<span class="k">new</span> DirecteurAgence(<span class="s">"j61104"</span>, <span class="s">"j61104@bnpparibas.com"</span>, <span class="s">"Marouane MASSOUNE"</span>)));
+        CashRequestDTO d = demande();
+        d.setCancellationReason(<span class="s">"Erreur de saisie du montant"</span>);
+
+        service().notifier(d, EvenementDemande.ANNULATION, <span class="s">"j62211"</span>);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertTrue(email.getValue().sujet().startsWith(<span class="s">"[QlickFlow] Annulation de demande"</span>));
+        assertTrue(email.getValue().corpsHtml().contains(<span class="s">"Erreur de saisie du montant"</span>));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> sansDa_nEnvoieRien() {
+        Mockito.when(directeurAgencePort.directeurDe(<span class="s">"j62211"</span>)).thenReturn(Optional.empty());
+
+        service().notifier(demande(), EvenementDemande.SOUMISSION, <span class="s">"j62211"</span>);
+
+        Mockito.verifyNoInteractions(notificationPort);
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> echecEnvoi_neRemontePas() {
+        Mockito.when(directeurAgencePort.directeurDe(<span class="s">"j62211"</span>))
+                .thenReturn(Optional.of(<span class="k">new</span> DirecteurAgence(<span class="s">"j61104"</span>, <span class="s">"j61104@bnpparibas.com"</span>, <span class="s">"Marouane MASSOUNE"</span>)));
+        Mockito.doThrow(<span class="k">new</span> IllegalStateException(<span class="s">"SMTP down"</span>)).when(notificationPort).envoyer(Mockito.any());
+
+        service().notifier(demande(), EvenementDemande.MISE_A_JOUR, <span class="s">"j62211"</span>);     <span class="c">// ne doit pas lever</span>
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImplTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java</span></div><pre><button class="copy">Copier</button><code><span class="c">// CashDemandUseCaseImplTest — À AJOUTER</span>
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.notification.NotificationDemandeService;
+
+    <span class="a">@Mock</span> NotificationDemandeService notificationDemandeService;     <span class="c">// nouvelle dépendance du constructeur (@InjectMocks la fournit)</span>
+
+    <span class="c">// Mockito strict : dans les tests existants de soumettre / terminerModification(true) / cancel agence, ajouter en fin de test</span>
+    <span class="c">//   Mockito.verify(notificationDemandeService).notifier(Mockito.any(), Mockito.eq(EvenementDemande.SOUMISSION), Mockito.eq(DA.uid()));</span>
+    <span class="c">// (resp. MISE_A_JOUR, ANNULATION) ; dans le test d'annulation par la Caisse Centrale :</span>
+    <span class="c">//   Mockito.verifyNoInteractions(notificationDemandeService);</span></code></pre></div>
+<h2 id="s7">7. Annexe — passage en SMTP</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NotificationSmtpAdapter.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\notification\smtp\NotificationSmtpAdapter.java</span></div><p class="note">À poser uniquement avec la dépendance <code>spring-boot-starter-mail</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.notification.smtp;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationPort;
+<span class="k">import</span> jakarta.mail.MessagingException;
+<span class="k">import</span> jakarta.mail.internet.MimeMessage;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="k">import</span> org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+<span class="k">import</span> org.springframework.mail.javamail.JavaMailSender;
+<span class="k">import</span> org.springframework.mail.javamail.MimeMessageHelper;
+<span class="k">import</span> org.springframework.stereotype.Component;
+
+<span class="k">import</span> java.nio.charset.StandardCharsets;
+
+<span class="c">/**
+ * Envoi réel — à activer quand l'infra aura ouvert le serveur mail : gdf.notification.mode=smtp + spring.mail.*
+ * + dépendance spring-boot-starter-mail dans fund-management-container. Aucun autre fichier ne change.
+ */</span>
+<span class="a">@Component</span>
+<span class="a">@ConditionalOnProperty</span>(name = <span class="s">"gdf.notification.mode"</span>, havingValue = <span class="s">"smtp"</span>)
+<span class="a">@RequiredArgsConstructor</span>
+<span class="k">public</span> <span class="k">class</span> NotificationSmtpAdapter <span class="k">implements</span> NotificationPort {
+
+    <span class="k">private</span> <span class="k">final</span> JavaMailSender mailSender;
+
+    <span class="a">@Value</span>(<span class="s">"${gdf.notification.expediteur:noreply-qlickflow@bmci.ma}"</span>)
+    <span class="k">private</span> String expediteur;
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> <span class="k">void</span> envoyer(EmailNotification email) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = <span class="k">new</span> MimeMessageHelper(message, <span class="k">false</span>, StandardCharsets.UTF_8.name());
+            helper.setFrom(expediteur);
+            helper.setTo(email.destinataire());
+            helper.setSubject(email.sujet());
+            helper.setText(email.corpsHtml(), <span class="k">true</span>);
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            <span class="k">throw</span> <span class="k">new</span> IllegalStateException(<span class="s">"Envoi SMTP impossible : "</span> + e.getMessage(), e);
+        }
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>pom.xml + application-&lt;env&gt;.yml</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- fund-management-container/pom.xml — À AJOUTER le jour du passage en SMTP (version gérée par le parent Spring Boot) --&gt;</span>
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-mail&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+# application-&lt;env&gt;.yml — À AJOUTER le jour du passage en SMTP
+gdf:
+  notification:
+    mode: smtp
+    expediteur: noreply-qlickflow<span class="a">@bmci</span>.ma
+spring:
+  mail:
+    host: smtp.bmci.ma          # à fournir par l'infra
+    port: 25
+    properties:
+      mail.smtp.auth: <span class="k">false</span>
+      mail.smtp.starttls.enable: <span class="k">false</span></code></pre></div>
+<h2 id="s8">8. Vérification</h2>
+<div class="card"><ol>
+<li>Prérequis : l'agence de l'utilisateur de test a un manager renseigné (<code>GET http://localhost:8091/api/v1/internal/users/&lt;uid&gt;</code> → <code>orgaUnit.manager.email</code> non vide ; collection Postman jointe).</li>
+<li>Chef de caisse → Nouvelle demande → Soumettre. Log : <code>[notification-mock] À : &lt;email du DA&gt; | Sujet : [QlickFlow] Création de demande … | Fichier : ./notifications-mock/…html</code>.</li>
+<li><code>http://localhost:9090/api/v1/public/fund-management/notifications</code> → liste JSON ; <code>…/notifications/{id}</code> → l'email rendu.</li>
+<li>Mode Modification → Soumettre les Modifications → « Mise à jour de demande ». Retour au listing sans soumettre → rien.</li>
+<li>Annuler la demande (agence) → « Annulation de demande » avec le motif.</li>
+<li>Caisse Centrale → Traiter / Annuler → aucun email.</li>
+<li>Agence sans manager ou utilisateurs-ci arrêté → warn, demande non impactée.</li>
+<li><code>mvn test -Dtest=NotificationDemandeServiceTest,CashDemandUseCaseImplTest</code>.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
