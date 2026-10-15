@@ -702,17 +702,14 @@
       "name": "16 - Interne : fiche agence 1120 avec gabsHorsSite (fund-management)",
       "request": {
         "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
+        "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/internal/orga/agences/1120",
+          "raw": "http://localhost:8091/api/v1/internal/orga/agences/1120",
+          "protocol": "http",
           "host": [
-            "{{baseUrl}}"
+            "localhost"
           ],
+          "port": "8091",
           "path": [
             "api",
             "v1",
@@ -722,7 +719,7 @@
             "1120"
           ]
         },
-        "description": "À appeler DIRECTEMENT sur utilisateurs-ci (baseUrl = http://localhost:8091), sans jeton : /api/v1/internal n'est pas routé par la gateway."
+        "description": "Directement sur utilisateurs-ci (8091), sans jeton : /api/v1/internal n'est pas routé par la gateway (un 404 format timestamp/path/requestId = réponse de la gateway)."
       },
       "event": [
         {
@@ -733,6 +730,47 @@
               "pm.test('200', () => pm.response.to.have.status(200));",
               "const a = pm.response.json(); pm.test('gabsHorsSite présent', () => pm.expect(a.gabsHorsSite.length).to.be.at.least(1));",
               "pm.test('130120017 dans la liste', () => pm.expect(a.gabsHorsSite.map(g => g.idGab)).to.include('130120017'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17a - Jeton (mock) : POST /mock-auth/login?uid=j62211 (chef de caisse)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/mock-auth/login?uid=j62211",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "mock-auth",
+            "login"
+          ],
+          "query": [
+            {
+              "key": "uid",
+              "value": "j62211"
+            }
+          ]
+        },
+        "description": "Remplace {{token}} par le jeton du chef de caisse pour la 17. Pour revenir à h11111, rejouer la 00."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200));",
+              "const c = pm.cookies.get('QF_MOCK_SESSION'); if (c) pm.environment.set('token', c);"
             ]
           }
         }
