@@ -1,0 +1,1364 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-313 — Console : écran GAB hors site</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-313 — Console : écran GAB hors site (liste, création, modification) + entrée de menu</h1><p>portail-ci (src/app/console) · 15/10/2026 · après AER_LM-311 / 300 / 312</p></header>
+<nav><a href="#s0">Périmètre</a><a href="#s1">Interface · service</a><a href="#s2">Composant</a><a href="#s3">Menu · route · icônes</a><a href="#s4">Vérification</a></nav><main><h2 id="s0">0. Périmètre</h2>
+<div class="card"><p>Même construction que l'écran cut-off (AER_LM-308) : composant NgModule dans <code>console/components/</code>, service dans <code>core/services/console/</code>, interface dans <code>shared/interfaces/</code>, garde de permission dans <code>ngOnInit</code>, variables SCSS et classes (<code>page-title</code>, <code>tab-button</code>, <code>content-card</code>, <code>form-input</code>, pilules, messages, spinner, modale) identiques. Le tableau, la recherche, le bouton orange AJOUTER, EDITER vert et la pagination reprennent l'onglet Zone Transporteur.</p>
+<table>
+<tr><th>Fichier</th><th>Rôle</th></tr>
+<tr><td><code>shared/interfaces/gab-hors-site.interface.ts</code></td><td>DTO = contrat de la 312 (<code>GabHorsSiteDTO</code>, Create/Update, <code>VilleDTO</code>, types H/D, EN_LIGNE/HORS_LIGNE)</td></tr>
+<tr><td><code>core/services/console/gab/gab-hors-site.service.ts</code> + spec</td><td><code>/gab/hors-site</code> (liste, par id, POST, PUT, villes) + transporteurs (<code>/referentiels/prestataires</code>) + agences (<code>/orga/agences</code>)</td></tr>
+<tr><td><code>console/components/console-gab-hors-site/</code> (ts, html, scss, spec)</td><td>liste filtrable et paginée (10/page, côté client — parc de quelques dizaines de GAB), modale Ajouter / Modifier, pas de suppression</td></tr>
+<tr><td><code>console-layout.component.html</code> + <code>.ts</code> + <code>.css</code></td><td>sous-menu « GAB HORS SITE » sous PARAMÈTRES ET CONFIGURATION (ouvert au survol, maintenu ouvert sur l'écran), conditionné aux permissions <code>GDF_CONSULTER_GAB</code> / <code>GDF_GERER_GAB</code></td></tr>
+<tr><td><code>console-routing.module.ts</code>, <code>console.module.ts</code></td><td>route <code>/admin/parametres/gab-hors-site</code> + déclaration</td></tr>
+<tr><td><code>assets/icons/gab-hors-site.svg</code>, <code>gab-hors-site_blanc.svg</code></td><td>icône menu normal / actif (pictogramme GAB, 20×20, traits <code>#6b7570</code> / blanc)</td></tr>
+</table>
+<p><b>Règles d'écran</b> : bouton AJOUTER et colonne Actions visibles seulement avec <code>GDF_GERER_GAB</code> ; sans aucune des deux permissions → <code>/admin/access-denied</code>. Champs obligatoires = identifiant, nom, numéro de compte, agence, ville (bouton TERMINER grisé sinon) ; transporteur BRINKS, prix 0, type H, état EN LIGNE préremplis ; prix saisi avec virgule (« 350,50 »), même règle que le coût de déplacement. Erreur back (409 doublon, 400) affichée dans la modale ; succès affiché dans la carte puis rechargement.</p>
+<p>Accès : inchangé — <code>/admin</code> reste gardé par l'<code>AuthGuard</code> du portail ; le Super Admin (h11111) a les permissions GAB via la V23 et déroule l'écran en recette.</p></div>
+<h2 id="s1">1. Interface et service</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gab-hors-site.interface.ts</b><br><span class="path">C:\dev\portail-ci\src\app\shared\interfaces\gab-hors-site.interface.ts</span></div><p class="note"><code>PrestataireDTO</code> vient de <code>referentiel.interface.ts</code> (259).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { PrestataireDTO } <span class="k">from</span> <span class="s">'./referentiel.interface'</span>;
+
+<span class="c">/** Types fermés côté back (enums TypeGab / EtatGab / Ville de utilisateurs-ci). */</span>
+<span class="k">export</span> <span class="k">type</span> TypeGab = <span class="s">'H'</span> | <span class="s">'D'</span>;
+<span class="k">export</span> <span class="k">type</span> EtatGab = <span class="s">'EN_LIGNE'</span> | <span class="s">'HORS_LIGNE'</span>;
+
+<span class="c">/** GET /gab/hors-site/villes — même forme que PrestataireDTO : id = code enum, nom = libellé. */</span>
+<span class="k">export</span> <span class="k">interface</span> VilleDTO {
+  id: string;
+  nom: string;
+}
+
+<span class="k">export</span> <span class="k">interface</span> SimpleAgenceDTO {
+  id: number;
+  code: string;
+  nom: string;
+}
+
+<span class="c">/** Réponse de GET /gab/hors-site, /{id}, /pages, /agence/{agenceId}, POST. */</span>
+<span class="k">export</span> <span class="k">interface</span> GabHorsSiteDTO {
+  id: number;
+  idGab: string;
+  nom: string;
+  numeroCompte: string;
+  agence: SimpleAgenceDTO;
+  ville: VilleDTO;
+  transporteur: PrestataireDTO;
+  prixUnitaire: number;
+  <span class="k">type</span>: TypeGab;
+  etat: EtatGab;
+}
+
+<span class="c">/** POST /gab/hors-site — transporteur / prixUnitaire / type / etat optionnels (défauts BRINKS / 0 / H / EN_LIGNE côté back). */</span>
+<span class="k">export</span> <span class="k">interface</span> CreateGabHorsSiteDTO {
+  idGab: string;
+  nom: string;
+  numeroCompte: string;
+  agenceId: number;
+  ville: string;
+  transporteur?: string;
+  prixUnitaire?: number;
+  <span class="k">type</span>?: TypeGab;
+  etat?: EtatGab;
+}
+
+<span class="c">/** PUT /gab/hors-site — id obligatoire, tout champ absent reste inchangé. */</span>
+<span class="k">export</span> <span class="k">interface</span> UpdateGabHorsSiteDTO <span class="k">extends</span> Partial&lt;Omit&lt;CreateGabHorsSiteDTO, never&gt;&gt; {
+  id: number;
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gab-hors-site.service.ts</b><br><span class="path">C:\dev\portail-ci\src\app\core\services\console\gab\gab-hors-site.service.ts</span></div><p class="note">Service autonome de l'écran, comme <code>CutoffService</code> : il porte aussi les deux lectures de référentiel dont la modale a besoin (transporteurs, agences).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { Injectable } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { HttpClient, HttpErrorResponse } <span class="k">from</span> <span class="s">'@angular/common/http'</span>;
+<span class="k">import</span> { Observable, throwError } <span class="k">from</span> <span class="s">'rxjs'</span>;
+<span class="k">import</span> { catchError, map } <span class="k">from</span> <span class="s">'rxjs/operators'</span>;
+<span class="k">import</span> { ApiConfigService } <span class="k">from</span> <span class="s">'../../api-config.service'</span>;
+<span class="k">import</span> { ApiResponse } <span class="k">from</span> <span class="s">'../../../../shared/interfaces/derogation.interface'</span>;
+<span class="k">import</span> { AgenceDTO } <span class="k">from</span> <span class="s">'../../../../shared/interfaces/habilitation.interface'</span>;
+<span class="k">import</span> { PrestataireDTO } <span class="k">from</span> <span class="s">'../../../../shared/interfaces/referentiel.interface'</span>;
+<span class="k">import</span> {
+  CreateGabHorsSiteDTO,
+  GabHorsSiteDTO,
+  UpdateGabHorsSiteDTO,
+  VilleDTO
+} <span class="k">from</span> <span class="s">'../../../../shared/interfaces/gab-hors-site.interface'</span>;
+
+<span class="c">/**
+ * AER_LM-313 — GAB hors site (utilisateurs-ci, /api/v1/public/users/gab/hors-site).
+ * Même modèle que ReferentielService : baseUrl console + map(r =&gt; r.data) + handleError.
+ */</span>
+<span class="a">@Injectable</span>({
+  providedIn: <span class="s">'root'</span>
+})
+<span class="k">export</span> <span class="k">class</span> GabHorsSiteService {
+
+  <span class="k">private</span> <span class="k">readonly</span> baseUrl: string;
+  <span class="k">private</span> <span class="k">readonly</span> consoleUrl: string;
+
+  constructor(
+    <span class="k">private</span> http: HttpClient,
+    <span class="k">private</span> apiConfig: ApiConfigService
+  ) {
+    <span class="k">this</span>.consoleUrl = <span class="k">this</span>.apiConfig.buildConsoleApiUrl();
+    <span class="k">this</span>.baseUrl = <span class="s">`${this.consoleUrl}/gab/hors-site`</span>;
+  }
+
+  getGabs(): Observable&lt;GabHorsSiteDTO[]&gt; {
+    <span class="k">return</span> <span class="k">this</span>.http.<span class="k">get</span>&lt;ApiResponse&lt;GabHorsSiteDTO[]&gt;&gt;(<span class="k">this</span>.baseUrl)
+      .pipe(map(r =&gt; r.data), catchError(<span class="k">this</span>.handleError));
+  }
+
+  getGab(id: number): Observable&lt;GabHorsSiteDTO&gt; {
+    <span class="k">return</span> <span class="k">this</span>.http.<span class="k">get</span>&lt;ApiResponse&lt;GabHorsSiteDTO&gt;&gt;(<span class="s">`${this.baseUrl}/${id}`</span>)
+      .pipe(map(r =&gt; r.data), catchError(<span class="k">this</span>.handleError));
+  }
+
+  createGab(dto: CreateGabHorsSiteDTO): Observable&lt;GabHorsSiteDTO&gt; {
+    <span class="k">return</span> <span class="k">this</span>.http.post&lt;ApiResponse&lt;GabHorsSiteDTO&gt;&gt;(<span class="k">this</span>.baseUrl, dto)
+      .pipe(map(r =&gt; r.data), catchError(<span class="k">this</span>.handleError));
+  }
+
+  updateGab(dto: UpdateGabHorsSiteDTO): Observable&lt;string&gt; {
+    <span class="k">return</span> <span class="k">this</span>.http.put&lt;ApiResponse&lt;string&gt;&gt;(<span class="k">this</span>.baseUrl, dto)
+      .pipe(map(r =&gt; r.data), catchError(<span class="k">this</span>.handleError));
+  }
+
+  <span class="c">/** Liste fermée des villes (enum Ville). */</span>
+  getVilles(): Observable&lt;VilleDTO[]&gt; {
+    <span class="k">return</span> <span class="k">this</span>.http.<span class="k">get</span>&lt;ApiResponse&lt;VilleDTO[]&gt;&gt;(<span class="s">`${this.baseUrl}/villes`</span>)
+      .pipe(map(r =&gt; r.data), catchError(<span class="k">this</span>.handleError));
+  }
+
+  <span class="c">/** Transporteurs = prestataires du référentiel (BRINKS / G4S). */</span>
+  getTransporteurs(): Observable&lt;PrestataireDTO[]&gt; {
+    <span class="k">return</span> <span class="k">this</span>.http.<span class="k">get</span>&lt;ApiResponse&lt;PrestataireDTO[]&gt;&gt;(<span class="s">`${this.consoleUrl}/referentiels/prestataires`</span>)
+      .pipe(map(r =&gt; r.data), catchError(<span class="k">this</span>.handleError));
+  }
+
+  <span class="c">/** Agences de rattachement (GET liste d'AgenceController, non paginé). */</span>
+  getAgences(): Observable&lt;AgenceDTO[]&gt; {
+    <span class="k">return</span> <span class="k">this</span>.http.<span class="k">get</span>&lt;ApiResponse&lt;AgenceDTO[]&gt;&gt;(<span class="s">`${this.consoleUrl}/orga/agences`</span>)
+      .pipe(map(r =&gt; r.data), catchError(<span class="k">this</span>.handleError));
+  }
+
+  <span class="k">private</span> handleError(error: HttpErrorResponse): Observable&lt;never&gt; {
+    <span class="k">let</span> errorMessage: string;
+
+    <span class="k">if</span> (error.status === 0) {
+      errorMessage = <span class="s">'Le serveur est injoignable. Veuillez réessayer plus tard.'</span>;
+    } <span class="k">else</span> <span class="k">if</span> (error.status === 403) {
+      errorMessage = <span class="s">"Vous n'avez pas le droit de gérer les GAB hors site."</span>;
+    } <span class="k">else</span> <span class="k">if</span> (error.error?.message) {
+      errorMessage = error.error.message;
+    } <span class="k">else</span> {
+      errorMessage = <span class="s">'Une erreur est survenue. Veuillez réessayer.'</span>;
+    }
+
+    <span class="k">return</span> throwError(() =&gt; <span class="k">new</span> Error(errorMessage));
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gab-hors-site.service.spec.ts</b><br><span class="path">C:\dev\portail-ci\src\app\core\services\console\gab\gab-hors-site.service.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { TestBed } <span class="k">from</span> <span class="s">'@angular/core/testing'</span>;
+<span class="k">import</span> { HttpClientTestingModule, HttpTestingController } <span class="k">from</span> <span class="s">'@angular/common/http/testing'</span>;
+<span class="k">import</span> { GabHorsSiteService } <span class="k">from</span> <span class="s">'./gab-hors-site.service'</span>;
+<span class="k">import</span> { ApiConfigService } <span class="k">from</span> <span class="s">'../../api-config.service'</span>;
+<span class="k">import</span> { GabHorsSiteDTO } <span class="k">from</span> <span class="s">'../../../../shared/interfaces/gab-hors-site.interface'</span>;
+
+<span class="k">describe</span>(<span class="s">'GabHorsSiteService'</span>, () =&gt; {
+  <span class="k">const</span> BASE = <span class="s">'http://gw/api/v1/public/users'</span>;
+  <span class="k">const</span> URL = <span class="s">`${BASE}/gab/hors-site`</span>;
+
+  <span class="k">let</span> service: GabHorsSiteService;
+  <span class="k">let</span> http: HttpTestingController;
+
+  <span class="k">const</span> gab: GabHorsSiteDTO = {
+    id: 1, idGab: <span class="s">'130120017'</span>, nom: <span class="s">"CASA VAL D'ANFA"</span>, numeroCompte: <span class="s">'0112081010030370'</span>,
+    agence: { id: 42, code: <span class="s">'1120'</span>, nom: <span class="s">"CASA VAL D'ANFA"</span> },
+    ville: { id: <span class="s">'CASA'</span>, nom: <span class="s">'Casablanca'</span> },
+    transporteur: { id: <span class="s">'BRINKS'</span>, nom: <span class="s">"Brink's"</span> },
+    prixUnitaire: 0, <span class="k">type</span>: <span class="s">'H'</span>, etat: <span class="s">'EN_LIGNE'</span>
+  };
+
+  <span class="k">beforeEach</span>(() =&gt; {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [
+        GabHorsSiteService,
+        { provide: ApiConfigService, useValue: { buildConsoleApiUrl: () =&gt; BASE } }
+      ]
+    });
+    service = TestBed.inject(GabHorsSiteService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  <span class="k">afterEach</span>(() =&gt; http.verify());
+
+  <span class="k">it</span>(<span class="s">'getGabs : GET et renvoie data'</span>, () =&gt; {
+    <span class="k">let</span> resultat: GabHorsSiteDTO[] | undefined;
+    service.getGabs().subscribe(r =&gt; (resultat = r));
+    <span class="k">const</span> req = http.expectOne(URL);
+    <span class="k">expect</span>(req.request.method).toBe(<span class="s">'GET'</span>);
+    req.flush({ success: <span class="k">true</span>, data: [gab] });
+    <span class="k">expect</span>(resultat?.length).toBe(1);
+  });
+
+  <span class="k">it</span>(<span class="s">'createGab : POST avec le DTO'</span>, () =&gt; {
+    service.createGab({ idGab: <span class="s">'130012065'</span>, nom: <span class="s">'AGADIR TIKIDA BEACH'</span>, numeroCompte: <span class="s">'0101281010030999'</span>, agenceId: 42, ville: <span class="s">'AGADIR'</span> })
+      .subscribe();
+    <span class="k">const</span> req = http.expectOne(URL);
+    <span class="k">expect</span>(req.request.method).toBe(<span class="s">'POST'</span>);
+    <span class="k">expect</span>(req.request.body.idGab).toBe(<span class="s">'130012065'</span>);
+    req.flush({ success: <span class="k">true</span>, data: gab });
+  });
+
+  <span class="k">it</span>(<span class="s">'updateGab : PUT avec id dans le corps'</span>, () =&gt; {
+    service.updateGab({ id: 1, etat: <span class="s">'HORS_LIGNE'</span> }).subscribe();
+    <span class="k">const</span> req = http.expectOne(URL);
+    <span class="k">expect</span>(req.request.method).toBe(<span class="s">'PUT'</span>);
+    <span class="k">expect</span>(req.request.body).toEqual({ id: 1, etat: <span class="s">'HORS_LIGNE'</span> });
+    req.flush({ success: <span class="k">true</span>, data: <span class="s">'GAB hors site mis à jour avec succès'</span> });
+  });
+
+  <span class="k">it</span>(<span class="s">'409 : reprend le message du back'</span>, () =&gt; {
+    <span class="k">let</span> message = <span class="s">''</span>;
+    service.createGab({ idGab: <span class="s">'130120017'</span>, nom: <span class="s">'X'</span>, numeroCompte: <span class="s">'0112081010030370'</span>, agenceId: 42, ville: <span class="s">'CASA'</span> })
+      .subscribe({ error: e =&gt; (message = e.message) });
+    http.expectOne(URL).flush({ success: <span class="k">false</span>, message: <span class="s">"Un GAB hors site avec l'identifiant '130120017' existe déjà."</span> },
+      { status: 409, statusText: <span class="s">'Conflict'</span> });
+    <span class="k">expect</span>(message).toContain(<span class="s">'existe déjà'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'403 : message « pas le droit »'</span>, () =&gt; {
+    <span class="k">let</span> message = <span class="s">''</span>;
+    service.getGabs().subscribe({ error: e =&gt; (message = e.message) });
+    http.expectOne(URL).flush({}, { status: 403, statusText: <span class="s">'Forbidden'</span> });
+    <span class="k">expect</span>(message).toBe(<span class="s">"Vous n'avez pas le droit de gérer les GAB hors site."</span>);
+  });
+});</code></pre></div>
+<h2 id="s2">2. Composant</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>console-gab-hors-site.component.ts</b><br><span class="path">C:\dev\portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.ts</span></div><p class="note"><code>AuthService.hasPermission(string[])</code> = OU sur les permissions de l'utilisateur (même appel que le dashboard).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { Component, OnInit } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { forkJoin, Observable } <span class="k">from</span> <span class="s">'rxjs'</span>;
+<span class="k">import</span> { finalize } <span class="k">from</span> <span class="s">'rxjs/operators'</span>;
+<span class="k">import</span> { GabHorsSiteService } <span class="k">from</span> <span class="s">'../../../core/services/console/gab/gab-hors-site.service'</span>;
+<span class="k">import</span> { AuthService } <span class="k">from</span> <span class="s">'src/app/auth/auth.service'</span>;
+<span class="k">import</span> { AgenceDTO } <span class="k">from</span> <span class="s">'../../../shared/interfaces/habilitation.interface'</span>;
+<span class="k">import</span> { PrestataireDTO } <span class="k">from</span> <span class="s">'../../../shared/interfaces/referentiel.interface'</span>;
+<span class="k">import</span> {
+  CreateGabHorsSiteDTO,
+  EtatGab,
+  GabHorsSiteDTO,
+  TypeGab,
+  UpdateGabHorsSiteDTO,
+  VilleDTO
+} <span class="k">from</span> <span class="s">'../../../shared/interfaces/gab-hors-site.interface'</span>;
+
+<span class="k">const</span> PERMISSION_CONSULTER = <span class="s">'GDF_CONSULTER_GAB'</span>;
+<span class="k">const</span> PERMISSION_GERER = <span class="s">'GDF_GERER_GAB'</span>;
+<span class="k">const</span> TAILLE_PAGE = 10;
+
+<span class="k">type</span> OngletGab = <span class="s">'GAB'</span>;
+<span class="k">type</span> ModeModale = <span class="s">'AJOUT'</span> | <span class="s">'MODIFICATION'</span>;
+
+<span class="c">/** Saisie de la modale (prix en texte pour accepter la virgule, comme le coût de déplacement de l'agence). */</span>
+<span class="k">interface</span> FormulaireGab {
+  id: number | <span class="k">null</span>;
+  idGab: string;
+  nom: string;
+  numeroCompte: string;
+  agenceId: number | <span class="k">null</span>;
+  ville: string;
+  transporteur: string;
+  prixUnitaire: string;
+  <span class="k">type</span>: TypeGab;
+  etat: EtatGab;
+}
+
+<span class="k">const</span> FORMULAIRE_VIDE: FormulaireGab = {
+  id: <span class="k">null</span>, idGab: <span class="s">''</span>, nom: <span class="s">''</span>, numeroCompte: <span class="s">''</span>, agenceId: <span class="k">null</span>, ville: <span class="s">''</span>,
+  transporteur: <span class="s">'BRINKS'</span>, prixUnitaire: <span class="s">'0'</span>, <span class="k">type</span>: <span class="s">'H'</span>, etat: <span class="s">'EN_LIGNE'</span>
+};
+
+<span class="a">@Component</span>({
+  selector: <span class="s">'app-console-gab-hors-site'</span>,
+  templateUrl: <span class="s">'./console-gab-hors-site.component.html'</span>,
+  styleUrls: [<span class="s">'./console-gab-hors-site.component.scss'</span>]
+})
+<span class="k">export</span> <span class="k">class</span> ConsoleGabHorsSiteComponent <span class="k">implements</span> OnInit {
+
+  activeTab: OngletGab = <span class="s">'GAB'</span>;
+
+  gabs: GabHorsSiteDTO[] = [];
+  villes: VilleDTO[] = [];
+  transporteurs: PrestataireDTO[] = [];
+  agences: AgenceDTO[] = [];
+
+  recherche = <span class="s">''</span>;
+  pageCourante = 1;
+  <span class="k">readonly</span> taillePage = TAILLE_PAGE;
+
+  loading = <span class="k">false</span>;
+  errorMessage = <span class="s">''</span>;
+  successMessage = <span class="s">''</span>;
+
+  showModal = <span class="k">false</span>;
+  modeModale: ModeModale = <span class="s">'AJOUT'</span>;
+  formulaire: FormulaireGab = { ...FORMULAIRE_VIDE };
+  erreurModale = <span class="s">''</span>;
+  enregistrementEnCours = <span class="k">false</span>;
+
+  peutGerer = <span class="k">false</span>;
+
+  <span class="k">readonly</span> types: TypeGab[] = [<span class="s">'H'</span>, <span class="s">'D'</span>];
+  <span class="k">readonly</span> etats: { id: EtatGab; nom: string }[] = [
+    { id: <span class="s">'EN_LIGNE'</span>, nom: <span class="s">'En ligne'</span> },
+    { id: <span class="s">'HORS_LIGNE'</span>, nom: <span class="s">'Hors ligne'</span> }
+  ];
+
+  constructor(
+    <span class="k">private</span> gabService: GabHorsSiteService,
+    <span class="k">private</span> authService: AuthService,
+    <span class="k">private</span> router: Router
+  ) {}
+
+  ngOnInit(): <span class="k">void</span> {
+    <span class="k">if</span> (!<span class="k">this</span>.authService.hasPermission([PERMISSION_CONSULTER, PERMISSION_GERER])) {
+      <span class="k">this</span>.router.navigate([<span class="s">'/admin/access-denied'</span>]);
+      <span class="k">return</span>;
+    }
+    <span class="k">this</span>.peutGerer = <span class="k">this</span>.authService.hasPermission([PERMISSION_GERER]);
+    <span class="k">this</span>.charger();
+  }
+
+  setActiveTab(tab: OngletGab): <span class="k">void</span> {
+    <span class="k">this</span>.activeTab = tab;
+  }
+
+  <span class="c">// ----- Chargement</span>
+
+  charger(): <span class="k">void</span> {
+    <span class="k">this</span>.loading = <span class="k">true</span>;
+    <span class="k">this</span>.errorMessage = <span class="s">''</span>;
+
+    forkJoin({
+      gabs: <span class="k">this</span>.gabService.getGabs(),
+      villes: <span class="k">this</span>.gabService.getVilles(),
+      transporteurs: <span class="k">this</span>.gabService.getTransporteurs(),
+      agences: <span class="k">this</span>.gabService.getAgences()
+    })
+      .pipe(finalize(() =&gt; (<span class="k">this</span>.loading = <span class="k">false</span>)))
+      .subscribe({
+        next: ({ gabs, villes, transporteurs, agences }) =&gt; {
+          <span class="k">this</span>.gabs = gabs;
+          <span class="k">this</span>.villes = villes;
+          <span class="k">this</span>.transporteurs = transporteurs;
+          <span class="k">this</span>.agences = [...agences].sort((a, b) =&gt; a.code.localeCompare(b.code));
+        },
+        error: (error: Error) =&gt; {
+          <span class="k">this</span>.errorMessage = error.message || <span class="s">'Impossible de charger les GAB hors site.'</span>;
+        }
+      });
+  }
+
+  <span class="c">// ----- Liste : filtre + pagination côté client (parc de quelques dizaines de GAB)</span>
+
+  <span class="k">get</span> gabsFiltres(): GabHorsSiteDTO[] {
+    <span class="k">const</span> terme = <span class="k">this</span>.recherche.trim().toLowerCase();
+    <span class="k">if</span> (!terme) {
+      <span class="k">return</span> <span class="k">this</span>.gabs;
+    }
+    <span class="k">return</span> <span class="k">this</span>.gabs.filter(g =&gt;
+      g.idGab.toLowerCase().includes(terme)
+      || g.nom.toLowerCase().includes(terme)
+      || g.numeroCompte.toLowerCase().includes(terme)
+      || <span class="s">`${g.agence?.code} ${g.agence?.nom}`</span>.toLowerCase().includes(terme)
+      || g.ville?.nom.toLowerCase().includes(terme)
+    );
+  }
+
+  <span class="k">get</span> nombrePages(): number {
+    <span class="k">return</span> Math.max(1, Math.ceil(<span class="k">this</span>.gabsFiltres.length / <span class="k">this</span>.taillePage));
+  }
+
+  <span class="k">get</span> pages(): number[] {
+    <span class="k">return</span> Array.<span class="k">from</span>({ length: <span class="k">this</span>.nombrePages }, (_, i) =&gt; i + 1);
+  }
+
+  <span class="k">get</span> gabsPage(): GabHorsSiteDTO[] {
+    <span class="k">const</span> debut = (<span class="k">this</span>.pageCourante - 1) * <span class="k">this</span>.taillePage;
+    <span class="k">return</span> <span class="k">this</span>.gabsFiltres.slice(debut, debut + <span class="k">this</span>.taillePage);
+  }
+
+  onRecherche(): <span class="k">void</span> {
+    <span class="k">this</span>.pageCourante = 1;
+  }
+
+  allerPage(page: number): <span class="k">void</span> {
+    <span class="k">if</span> (page &gt;= 1 &amp;&amp; page &lt;= <span class="k">this</span>.nombrePages) {
+      <span class="k">this</span>.pageCourante = page;
+    }
+  }
+
+  trackParId(_: number, gab: GabHorsSiteDTO): number {
+    <span class="k">return</span> gab.id;
+  }
+
+  formaterPrix(prix: number): string {
+    <span class="k">return</span> <span class="s">`${(prix ?? 0).toFixed(2).replace('.', ',')} MAD`</span>;
+  }
+
+  <span class="c">// ----- Modale</span>
+
+  ouvrirAjout(): <span class="k">void</span> {
+    <span class="k">this</span>.modeModale = <span class="s">'AJOUT'</span>;
+    <span class="k">this</span>.formulaire = { ...FORMULAIRE_VIDE };
+    <span class="k">this</span>.ouvrirModale();
+  }
+
+  ouvrirModification(gab: GabHorsSiteDTO): <span class="k">void</span> {
+    <span class="k">this</span>.modeModale = <span class="s">'MODIFICATION'</span>;
+    <span class="k">this</span>.formulaire = {
+      id: gab.id,
+      idGab: gab.idGab,
+      nom: gab.nom,
+      numeroCompte: gab.numeroCompte,
+      agenceId: gab.agence?.id ?? <span class="k">null</span>,
+      ville: gab.ville?.id ?? <span class="s">''</span>,
+      transporteur: gab.transporteur?.id ?? <span class="s">'BRINKS'</span>,
+      prixUnitaire: (gab.prixUnitaire ?? 0).toFixed(2).replace(<span class="s">'.'</span>, <span class="s">','</span>),
+      <span class="k">type</span>: gab.<span class="k">type</span>,
+      etat: gab.etat
+    };
+    <span class="k">this</span>.ouvrirModale();
+  }
+
+  fermerModale(): <span class="k">void</span> {
+    <span class="k">this</span>.showModal = <span class="k">false</span>;
+    <span class="k">this</span>.erreurModale = <span class="s">''</span>;
+  }
+
+  <span class="k">private</span> ouvrirModale(): <span class="k">void</span> {
+    <span class="k">this</span>.erreurModale = <span class="s">''</span>;
+    <span class="k">this</span>.successMessage = <span class="s">''</span>;
+    <span class="k">this</span>.showModal = <span class="k">true</span>;
+  }
+
+  <span class="k">get</span> prixValide(): boolean {
+    <span class="k">return</span> <span class="k">this</span>.parserMontant(<span class="k">this</span>.formulaire.prixUnitaire) !== <span class="k">null</span>;
+  }
+
+  <span class="k">get</span> formulaireValide(): boolean {
+    <span class="k">const</span> f = <span class="k">this</span>.formulaire;
+    <span class="k">return</span> !!f.idGab.trim() &amp;&amp; !!f.nom.trim() &amp;&amp; !!f.numeroCompte.trim()
+      &amp;&amp; f.agenceId !== <span class="k">null</span> &amp;&amp; !!f.ville &amp;&amp; <span class="k">this</span>.prixValide;
+  }
+
+  <span class="c">/** « 350,50 » ou « 350.5 » → 350.5 ; vide → 0 ; invalide → null. */</span>
+  parserMontant(saisie: string): number | <span class="k">null</span> {
+    <span class="k">const</span> texte = (saisie ?? <span class="s">''</span>).trim().replace(/\s/g, <span class="s">''</span>).replace(<span class="s">','</span>, <span class="s">'.'</span>);
+    <span class="k">if</span> (texte === <span class="s">''</span>) {
+      <span class="k">return</span> 0;
+    }
+    <span class="k">if</span> (!/^\d+(\.\d{1,2})?$/.test(texte)) {
+      <span class="k">return</span> <span class="k">null</span>;
+    }
+    <span class="k">return</span> Number(texte);
+  }
+
+  terminer(): <span class="k">void</span> {
+    <span class="k">if</span> (!<span class="k">this</span>.formulaireValide || <span class="k">this</span>.enregistrementEnCours) {
+      <span class="k">return</span>;
+    }
+    <span class="k">this</span>.enregistrementEnCours = <span class="k">true</span>;
+    <span class="k">this</span>.erreurModale = <span class="s">''</span>;
+
+    <span class="k">const</span> f = <span class="k">this</span>.formulaire;
+    <span class="k">const</span> commun: CreateGabHorsSiteDTO = {
+      idGab: f.idGab.trim(),
+      nom: f.nom.trim(),
+      numeroCompte: f.numeroCompte.trim(),
+      agenceId: f.agenceId as number,
+      ville: f.ville,
+      transporteur: f.transporteur,
+      prixUnitaire: <span class="k">this</span>.parserMontant(f.prixUnitaire) ?? 0,
+      <span class="k">type</span>: f.<span class="k">type</span>,
+      etat: f.etat
+    };
+
+    <span class="k">const</span> requete: Observable&lt;unknown&gt; = <span class="k">this</span>.modeModale === <span class="s">'AJOUT'</span>
+      ? <span class="k">this</span>.gabService.createGab(commun)
+      : <span class="k">this</span>.gabService.updateGab({ id: f.id as number, ...commun } as UpdateGabHorsSiteDTO);
+
+    requete
+      .pipe(finalize(() =&gt; (<span class="k">this</span>.enregistrementEnCours = <span class="k">false</span>)))
+      .subscribe({
+        next: () =&gt; {
+          <span class="k">this</span>.successMessage = <span class="k">this</span>.modeModale === <span class="s">'AJOUT'</span>
+            ? <span class="s">`Le GAB ${commun.idGab} a été ajouté.`</span>
+            : <span class="s">`Le GAB ${commun.idGab} a été mis à jour.`</span>;
+          <span class="k">this</span>.fermerModale();
+          <span class="k">this</span>.charger();
+        },
+        error: (error: Error) =&gt; {
+          <span class="k">this</span>.erreurModale = error.message || <span class="s">"Impossible d'enregistrer le GAB hors site."</span>;
+        }
+      });
+  }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>console-gab-hors-site.component.html</b><br><span class="path">C:\dev\portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.html</span></div><p class="note">Loupe en SVG inline (aucun asset à ajouter). <code>ngModel</code> : <code>FormsModule</code> est déjà importé par <code>console.module.ts</code>.</p><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">"gab-page"</span>&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"page-header"</span>&gt;
+    &lt;h1 <span class="k">class</span>=<span class="s">"page-title"</span>&gt;GAB hors site&lt;/h1&gt;
+    &lt;p <span class="k">class</span>=<span class="s">"page-subtitle"</span>&gt;Administration des GAB hors site&lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;div <span class="k">class</span>=<span class="s">"main-container"</span>&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"tabs-container"</span>&gt;
+      &lt;button <span class="k">class</span>=<span class="s">"tab-button"</span>
+              [<span class="k">class</span>.active]=<span class="s">"activeTab === 'GAB'"</span>
+              (click)=<span class="s">"setActiveTab('GAB')"</span>&gt;
+        Gestion des fonds – GAB hors site
+      &lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"content-card"</span> *ngIf=<span class="s">"activeTab === 'GAB'"</span>&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"spinner-overlay"</span> *ngIf=<span class="s">"loading"</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"spinner"</span>&gt;&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"card-header"</span>&gt;
+        &lt;h2 <span class="k">class</span>=<span class="s">"card-title"</span>&gt;Liste des GAB hors site&lt;/h2&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"card-actions"</span>&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"search-box"</span>&gt;
+            &lt;svg <span class="k">class</span>=<span class="s">"search-icon"</span> viewBox=<span class="s">"0 0 24 24"</span> fill=<span class="s">"none"</span> stroke=<span class="s">"currentColor"</span> stroke-width=<span class="s">"2"</span> stroke-linecap=<span class="s">"round"</span> aria-hidden=<span class="s">"true"</span>&gt;&lt;circle cx=<span class="s">"11"</span> cy=<span class="s">"11"</span> r=<span class="s">"7"</span>/&gt;&lt;line x1=<span class="s">"16.5"</span> y1=<span class="s">"16.5"</span> x2=<span class="s">"21"</span> y2=<span class="s">"21"</span>/&gt;&lt;/svg&gt;
+            &lt;input <span class="k">type</span>=<span class="s">"text"</span>
+                   <span class="k">class</span>=<span class="s">"search-input"</span>
+                   placeholder=<span class="s">"RECHERCHER"</span>
+                   [(ngModel)]=<span class="s">"recherche"</span>
+                   (ngModelChange)=<span class="s">"onRecherche()"</span>&gt;
+          &lt;/div&gt;
+          &lt;button <span class="k">class</span>=<span class="s">"btn-ajouter"</span> *ngIf=<span class="s">"peutGerer"</span> (click)=<span class="s">"ouvrirAjout()"</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">"btn-icon"</span>&gt;&amp;#43;&lt;/span&gt; Ajouter un GAB
+          &lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"error-message"</span> *ngIf=<span class="s">"errorMessage"</span>&gt;{{ errorMessage }}&lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"success-message"</span> *ngIf=<span class="s">"successMessage"</span>&gt;{{ successMessage }}&lt;/div&gt;
+
+      &lt;table <span class="k">class</span>=<span class="s">"gab-table"</span> *ngIf=<span class="s">"!loading &amp;&amp; gabsPage.length &gt; 0"</span>&gt;
+        &lt;thead&gt;
+          &lt;tr&gt;
+            &lt;th&gt;ID GAB&lt;/th&gt;
+            &lt;th&gt;Nom&lt;/th&gt;
+            &lt;th&gt;Agence&lt;/th&gt;
+            &lt;th&gt;Ville&lt;/th&gt;
+            &lt;th&gt;Transporteur&lt;/th&gt;
+            &lt;th <span class="k">class</span>=<span class="s">"col-droite"</span>&gt;Prix unitaire&lt;/th&gt;
+            &lt;th&gt;Type&lt;/th&gt;
+            &lt;th&gt;État&lt;/th&gt;
+            &lt;th *ngIf=<span class="s">"peutGerer"</span>&gt;Actions&lt;/th&gt;
+          &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+          &lt;tr *ngFor=<span class="s">"let gab of gabsPage; trackBy: trackParId"</span>&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"cell-id"</span>&gt;{{ gab.idGab }}&lt;/td&gt;
+            &lt;td&gt;{{ gab.nom }}&lt;/td&gt;
+            &lt;td&gt;{{ gab.agence?.code }} - {{ gab.agence?.nom }}&lt;/td&gt;
+            &lt;td&gt;{{ gab.ville?.nom }}&lt;/td&gt;
+            &lt;td&gt;{{ gab.transporteur?.nom }}&lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"col-droite"</span>&gt;{{ formaterPrix(gab.prixUnitaire) }}&lt;/td&gt;
+            &lt;td&gt;{{ gab.<span class="k">type</span> }}&lt;/td&gt;
+            &lt;td&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"badge-etat"</span> [<span class="k">class</span>.badge-etat--hors-ligne]=<span class="s">"gab.etat === 'HORS_LIGNE'"</span>&gt;
+                {{ gab.etat === <span class="s">'EN_LIGNE'</span> ? <span class="s">'En ligne'</span> : <span class="s">'Hors ligne'</span> }}
+              &lt;/span&gt;
+            &lt;/td&gt;
+            &lt;td *ngIf=<span class="s">"peutGerer"</span>&gt;
+              &lt;button <span class="k">class</span>=<span class="s">"btn-editer"</span> (click)=<span class="s">"ouvrirModification(gab)"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"btn-icon"</span>&gt;&amp;#9998;&lt;/span&gt; Éditer
+              &lt;/button&gt;
+            &lt;/td&gt;
+          &lt;/tr&gt;
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+
+      &lt;p <span class="k">class</span>=<span class="s">"liste-vide"</span> *ngIf=<span class="s">"!loading &amp;&amp; !errorMessage &amp;&amp; gabsPage.length === 0"</span>&gt;
+        Aucun GAB hors site{{ recherche ? <span class="s">' ne correspond à la recherche'</span> : <span class="s">''</span> }}.
+      &lt;/p&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"pagination"</span> *ngIf=<span class="s">"nombrePages &gt; 1"</span>&gt;
+        &lt;button <span class="k">class</span>=<span class="s">"page-fleche"</span> (click)=<span class="s">"allerPage(pageCourante - 1)"</span> [disabled]=<span class="s">"pageCourante === 1"</span>&gt;&amp;#8249;&lt;/button&gt;
+        &lt;button <span class="k">class</span>=<span class="s">"page-numero"</span>
+                *ngFor=<span class="s">"let p of pages"</span>
+                [<span class="k">class</span>.active]=<span class="s">"p === pageCourante"</span>
+                (click)=<span class="s">"allerPage(p)"</span>&gt;{{ p }}&lt;/button&gt;
+        &lt;button <span class="k">class</span>=<span class="s">"page-fleche"</span> (click)=<span class="s">"allerPage(pageCourante + 1)"</span> [disabled]=<span class="s">"pageCourante === nombrePages"</span>&gt;&amp;#8250;&lt;/button&gt;
+      &lt;/div&gt;
+
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  <span class="c">&lt;!-- Modale Ajouter / Modifier --&gt;</span>
+  &lt;div <span class="k">class</span>=<span class="s">"modal-overlay"</span> *ngIf=<span class="s">"showModal"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"modal"</span>&gt;
+      &lt;button <span class="k">class</span>=<span class="s">"modal-close"</span> (click)=<span class="s">"fermerModale()"</span> aria-label=<span class="s">"Fermer"</span>&gt;&amp;times;&lt;/button&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"modal-header"</span>&gt;
+        &lt;h3 <span class="k">class</span>=<span class="s">"modal-title"</span>&gt;{{ modeModale === <span class="s">'AJOUT'</span> ? <span class="s">'Ajouter un GAB hors site'</span> : <span class="s">'Modifier le GAB hors site'</span> }}&lt;/h3&gt;
+        &lt;p <span class="k">class</span>=<span class="s">"modal-subtitle"</span>&gt;Veuillez compléter les informations ci-dessous&lt;/p&gt;
+      &lt;/div&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"modal-body"</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">"error-message"</span> *ngIf=<span class="s">"erreurModale"</span>&gt;{{ erreurModale }}&lt;/div&gt;
+
+        &lt;div <span class="k">class</span>=<span class="s">"form-grid"</span>&gt;
+          &lt;div <span class="k">class</span>=<span class="s">"form-field"</span>&gt;
+            &lt;label for=<span class="s">"gab-id"</span>&gt;Identifiant du GAB&lt;/label&gt;
+            &lt;input id=<span class="s">"gab-id"</span> <span class="k">type</span>=<span class="s">"text"</span> <span class="k">class</span>=<span class="s">"form-input"</span> maxlength=<span class="s">"20"</span>
+                   placeholder=<span class="s">"ex. 130120017"</span> [(ngModel)]=<span class="s">"formulaire.idGab"</span>&gt;
+          &lt;/div&gt;
+
+          &lt;div <span class="k">class</span>=<span class="s">"form-field"</span>&gt;
+            &lt;label for=<span class="s">"gab-nom"</span>&gt;Nom du GAB&lt;/label&gt;
+            &lt;input id=<span class="s">"gab-nom"</span> <span class="k">type</span>=<span class="s">"text"</span> <span class="k">class</span>=<span class="s">"form-input"</span> maxlength=<span class="s">"255"</span>
+                   placeholder=<span class="s">"ex. CASA VAL D'ANFA"</span> [(ngModel)]=<span class="s">"formulaire.nom"</span>&gt;
+          &lt;/div&gt;
+
+          &lt;div <span class="k">class</span>=<span class="s">"form-field"</span>&gt;
+            &lt;label for=<span class="s">"gab-compte"</span>&gt;Numéro de compte&lt;/label&gt;
+            &lt;input id=<span class="s">"gab-compte"</span> <span class="k">type</span>=<span class="s">"text"</span> <span class="k">class</span>=<span class="s">"form-input"</span> maxlength=<span class="s">"24"</span>
+                   placeholder=<span class="s">"ex. 0112081010030370"</span> [(ngModel)]=<span class="s">"formulaire.numeroCompte"</span>&gt;
+          &lt;/div&gt;
+
+          &lt;div <span class="k">class</span>=<span class="s">"form-field"</span>&gt;
+            &lt;label for=<span class="s">"gab-agence"</span>&gt;Agence de rattachement&lt;/label&gt;
+            &lt;select id=<span class="s">"gab-agence"</span> <span class="k">class</span>=<span class="s">"form-input"</span> [(ngModel)]=<span class="s">"formulaire.agenceId"</span>&gt;
+              &lt;option [ngValue]=<span class="s">"null"</span>&gt;Sélectionner une agence&lt;/option&gt;
+              &lt;option *ngFor=<span class="s">"let a of agences"</span> [ngValue]=<span class="s">"a.id"</span>&gt;{{ a.code }} - {{ a.nom }}&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/div&gt;
+
+          &lt;div <span class="k">class</span>=<span class="s">"form-field"</span>&gt;
+            &lt;label for=<span class="s">"gab-ville"</span>&gt;Ville de rattachement&lt;/label&gt;
+            &lt;select id=<span class="s">"gab-ville"</span> <span class="k">class</span>=<span class="s">"form-input"</span> [(ngModel)]=<span class="s">"formulaire.ville"</span>&gt;
+              &lt;option value=<span class="s">""</span>&gt;Sélectionner une ville&lt;/option&gt;
+              &lt;option *ngFor=<span class="s">"let v of villes"</span> [value]=<span class="s">"v.id"</span>&gt;{{ v.nom }}&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/div&gt;
+
+          &lt;div <span class="k">class</span>=<span class="s">"form-field"</span>&gt;
+            &lt;label for=<span class="s">"gab-transporteur"</span>&gt;Transporteur&lt;/label&gt;
+            &lt;select id=<span class="s">"gab-transporteur"</span> <span class="k">class</span>=<span class="s">"form-input"</span> [(ngModel)]=<span class="s">"formulaire.transporteur"</span>&gt;
+              &lt;option *ngFor=<span class="s">"let t of transporteurs"</span> [value]=<span class="s">"t.id"</span>&gt;{{ t.nom }}&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/div&gt;
+
+          &lt;div <span class="k">class</span>=<span class="s">"form-field"</span>&gt;
+            &lt;label for=<span class="s">"gab-prix"</span>&gt;Prix unitaire (MAD)&lt;/label&gt;
+            &lt;input id=<span class="s">"gab-prix"</span> <span class="k">type</span>=<span class="s">"text"</span> <span class="k">class</span>=<span class="s">"form-input"</span> inputmode=<span class="s">"decimal"</span>
+                   placeholder=<span class="s">"ex. 350,50"</span> [(ngModel)]=<span class="s">"formulaire.prixUnitaire"</span>&gt;
+            &lt;small <span class="k">class</span>=<span class="s">"field-error"</span> *ngIf=<span class="s">"!prixValide"</span>&gt;Montant invalide (ex. 350,50)&lt;/small&gt;
+          &lt;/div&gt;
+
+          &lt;div <span class="k">class</span>=<span class="s">"form-field"</span>&gt;
+            &lt;label for=<span class="s">"gab-type"</span>&gt;Type&lt;/label&gt;
+            &lt;select id=<span class="s">"gab-type"</span> <span class="k">class</span>=<span class="s">"form-input"</span> [(ngModel)]=<span class="s">"formulaire.type"</span>&gt;
+              &lt;option *ngFor=<span class="s">"let t of types"</span> [value]=<span class="s">"t"</span>&gt;{{ t }}&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/div&gt;
+
+          &lt;div <span class="k">class</span>=<span class="s">"form-field"</span>&gt;
+            &lt;label for=<span class="s">"gab-etat"</span>&gt;État&lt;/label&gt;
+            &lt;select id=<span class="s">"gab-etat"</span> <span class="k">class</span>=<span class="s">"form-input"</span> [(ngModel)]=<span class="s">"formulaire.etat"</span>&gt;
+              &lt;option *ngFor=<span class="s">"let e of etats"</span> [value]=<span class="s">"e.id"</span>&gt;{{ e.nom }}&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">"modal-footer"</span>&gt;
+        &lt;button <span class="k">class</span>=<span class="s">"btn-retour"</span> (click)=<span class="s">"fermerModale()"</span> [disabled]=<span class="s">"enregistrementEnCours"</span>&gt;
+          &lt;span <span class="k">class</span>=<span class="s">"btn-icon"</span>&gt;&amp;#8592;&lt;/span&gt; Retour
+        &lt;/button&gt;
+        &lt;button <span class="k">class</span>=<span class="s">"btn-terminer"</span> (click)=<span class="s">"terminer()"</span> [disabled]=<span class="s">"!formulaireValide || enregistrementEnCours"</span>&gt;
+          &lt;span <span class="k">class</span>=<span class="s">"btn-icon"</span>&gt;&amp;#10003;&lt;/span&gt; Terminer
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+&lt;/div&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>console-gab-hors-site.component.scss</b><br><span class="path">C:\dev\portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.scss</span></div><pre><button class="copy">Copier</button><code><span class="c">// Couleurs relevées sur la page Utilisateurs de la console (mêmes valeurs que console-parametres)</span>
+$vert: #00965E;             <span class="c">// onglet actif, bouton EDITER, pagination</span>
+$vert-fonce: #2f6649;
+$vert-clair: #8dbca3;       <span class="c">// bouton RETOUR</span>
+$orange: #e9873f;           <span class="c">// bouton AJOUTER</span>
+$texte: #2f3a35;
+$texte-secondaire: #6b7570;
+$bordure: #dde4e0;
+$fond-onglet: #e9edeb;
+$fond-grise: #f1f3f2;
+$rouge: #d14343;
+
+.gab-page {
+  padding: 24px 32px;
+}
+
+<span class="c">// ----- En-tête</span>
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 600;
+  font-style: italic;
+  color: $vert;
+}
+
+.page-subtitle {
+  margin: 6px 0 0;
+  font-size: 18px;
+  color: $texte-secondaire;
+}
+
+<span class="c">// ----- Onglet collé à la carte</span>
+.tabs-container {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0;
+}
+
+.tab-button {
+  padding: 12px 26px;
+  border: 1px solid $bordure;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: $fond-onglet;
+  font-size: 15px;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: $texte-secondaire;
+  cursor: pointer;
+
+  &amp;.active {
+    background: $vert;
+    border-color: $vert;
+    color: #fff;
+  }
+}
+
+<span class="c">// ----- Carte blanche</span>
+.content-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid $bordure;
+  border-radius: 0 12px 12px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 20px 24px 28px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: $texte;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+<span class="c">// ----- Recherche (pilule comme l'écran agences)</span>
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid $bordure;
+  border-radius: 19px;
+  background: #fff;
+
+  .search-icon {
+    width: 14px;
+    height: 14px;
+    color: $texte-secondaire;
+  }
+
+  .search-input {
+    border: none;
+    outline: none;
+    width: 180px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: $texte;
+
+    &amp;::placeholder {
+      color: $texte-secondaire;
+      text-transform: uppercase;
+    }
+  }
+}
+
+<span class="c">// ----- Boutons « pilule » en majuscules, comme EDITER / AJOUTER</span>
+%pilule {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 19px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &amp;:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-ajouter {
+  <span class="a">@extend</span> %pilule;
+  background: $orange;
+
+  &amp;:hover:not(:disabled) {
+    background: darken($orange, 8%);
+  }
+}
+
+.btn-editer {
+  <span class="a">@extend</span> %pilule;
+  height: 34px;
+  padding: 0 18px;
+  font-size: 12px;
+  background: $vert;
+
+  &amp;:hover:not(:disabled) {
+    background: $vert-fonce;
+  }
+}
+
+.btn-retour {
+  <span class="a">@extend</span> %pilule;
+  background: $vert-clair;
+
+  &amp;:hover:not(:disabled) {
+    background: darken($vert-clair, 8%);
+  }
+}
+
+.btn-terminer {
+  <span class="a">@extend</span> %pilule;
+  background: $vert;
+
+  &amp;:hover:not(:disabled) {
+    background: $vert-fonce;
+  }
+}
+
+.btn-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+<span class="c">// ----- Tableau</span>
+.gab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: $texte;
+
+  th {
+    padding: 12px 10px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 700;
+    color: $vert;
+    border-bottom: 1px solid $bordure;
+  }
+
+  td {
+    padding: 16px 10px;
+    border-bottom: 1px solid $fond-grise;
+    vertical-align: middle;
+  }
+
+  tbody tr:hover {
+    background: $fond-grise;
+  }
+
+  .cell-id {
+    font-weight: 600;
+  }
+
+  .col-droite {
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+.badge-etat {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e9f4ee;
+  color: $vert-fonce;
+
+  &amp;--hors-ligne {
+    background: $fond-grise;
+    color: $texte-secondaire;
+  }
+}
+
+.liste-vide {
+  margin: 24px 0 0;
+  text-align: center;
+  color: $texte-secondaire;
+}
+
+<span class="c">// ----- Pagination (cercles comme l'écran agences)</span>
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.page-numero,
+.page-fleche {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: $texte;
+  cursor: pointer;
+
+  &amp;:hover:not(:disabled) {
+    background: $fond-grise;
+  }
+
+  &amp;:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.page-numero.active {
+  background: $vert;
+  color: #fff;
+  border-radius: 8px;
+}
+
+.page-fleche {
+  background: $fond-grise;
+  color: $vert;
+}
+
+<span class="c">// ----- Messages</span>
+.error-message,
+.success-message {
+  margin-bottom: 20px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.error-message {
+  background: #fdeeee;
+  color: $rouge;
+}
+
+.success-message {
+  background: #e9f4ee;
+  color: $vert-fonce;
+}
+
+<span class="c">// ----- Chargement</span>
+.spinner-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 0 12px 12px 12px;
+  z-index: 2;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid $bordure;
+  border-top-color: $vert;
+  border-radius: 50%;
+  animation: tourner 0.8s linear infinite;
+}
+
+<span class="a">@keyframes</span> tourner {
+  to { transform: rotate(360deg); }
+}
+
+<span class="c">// ----- Modale (même squelette que console-parametres, élargie pour 9 champs)</span>
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.modal {
+  position: relative;
+  width: 720px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  color: $texte-secondaire;
+  cursor: pointer;
+}
+
+.modal-title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  color: $vert;
+}
+
+.modal-subtitle {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: $texte-secondaire;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px 24px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    color: $vert;
+  }
+}
+
+.form-input {
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid $bordure;
+  border-radius: 20px;
+  font-size: 14px;
+  color: $texte;
+  background: #fff;
+
+  &amp;:focus {
+    outline: none;
+    border-color: $vert;
+  }
+}
+
+select.form-input {
+  padding-right: 32px;
+}
+
+.field-error {
+  font-size: 12px;
+  color: $rouge;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>console-gab-hors-site.component.spec.ts</b><br><span class="path">C:\dev\portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { ComponentFixture, TestBed } <span class="k">from</span> <span class="s">'@angular/core/testing'</span>;
+<span class="k">import</span> { FormsModule } <span class="k">from</span> <span class="s">'@angular/forms'</span>;
+<span class="k">import</span> { Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { of, throwError } <span class="k">from</span> <span class="s">'rxjs'</span>;
+<span class="k">import</span> { ConsoleGabHorsSiteComponent } <span class="k">from</span> <span class="s">'./console-gab-hors-site.component'</span>;
+<span class="k">import</span> { GabHorsSiteService } <span class="k">from</span> <span class="s">'../../../core/services/console/gab/gab-hors-site.service'</span>;
+<span class="k">import</span> { AuthService } <span class="k">from</span> <span class="s">'src/app/auth/auth.service'</span>;
+<span class="k">import</span> { GabHorsSiteDTO } <span class="k">from</span> <span class="s">'../../../shared/interfaces/gab-hors-site.interface'</span>;
+
+<span class="k">describe</span>(<span class="s">'ConsoleGabHorsSiteComponent'</span>, () =&gt; {
+  <span class="k">let</span> fixture: ComponentFixture&lt;ConsoleGabHorsSiteComponent&gt;;
+  <span class="k">let</span> component: ConsoleGabHorsSiteComponent;
+  <span class="k">let</span> gabService: jasmine.SpyObj&lt;GabHorsSiteService&gt;;
+  <span class="k">let</span> authService: jasmine.SpyObj&lt;AuthService&gt;;
+  <span class="k">let</span> router: jasmine.SpyObj&lt;Router&gt;;
+
+  <span class="k">const</span> gab = (id: number, idGab: string, nom: string): GabHorsSiteDTO =&gt; ({
+    id, idGab, nom, numeroCompte: <span class="s">'0112081010030370'</span>,
+    agence: { id: 42, code: <span class="s">'1120'</span>, nom: <span class="s">"CASA VAL D'ANFA"</span> },
+    ville: { id: <span class="s">'CASA'</span>, nom: <span class="s">'Casablanca'</span> },
+    transporteur: { id: <span class="s">'BRINKS'</span>, nom: <span class="s">"Brink's"</span> },
+    prixUnitaire: 0, <span class="k">type</span>: <span class="s">'H'</span>, etat: <span class="s">'EN_LIGNE'</span>
+  });
+
+  <span class="k">beforeEach</span>(<span class="k">async</span> () =&gt; {
+    gabService = jasmine.createSpyObj(<span class="s">'GabHorsSiteService'</span>, [<span class="s">'getGabs'</span>, <span class="s">'getVilles'</span>, <span class="s">'getTransporteurs'</span>, <span class="s">'getAgences'</span>, <span class="s">'createGab'</span>, <span class="s">'updateGab'</span>]);
+    authService = jasmine.createSpyObj(<span class="s">'AuthService'</span>, [<span class="s">'hasPermission'</span>]);
+    router = jasmine.createSpyObj(<span class="s">'Router'</span>, [<span class="s">'navigate'</span>]);
+
+    gabService.getGabs.and.returnValue(of([gab(1, <span class="s">'130120017'</span>, <span class="s">"CASA VAL D'ANFA"</span>), gab(2, <span class="s">'130092026'</span>, <span class="s">'CASA OASIS DRIVE'</span>)]));
+    gabService.getVilles.and.returnValue(of([{ id: <span class="s">'CASA'</span>, nom: <span class="s">'Casablanca'</span> }]));
+    gabService.getTransporteurs.and.returnValue(of([{ id: <span class="s">'BRINKS'</span>, nom: <span class="s">"Brink's"</span> } as any]));
+    gabService.getAgences.and.returnValue(of([{ id: 42, code: <span class="s">'1120'</span>, nom: <span class="s">"CASA VAL D'ANFA"</span> } as any]));
+    authService.hasPermission.and.returnValue(<span class="k">true</span>);
+
+    <span class="k">await</span> TestBed.configureTestingModule({
+      declarations: [ConsoleGabHorsSiteComponent],
+      imports: [FormsModule],
+      providers: [
+        { provide: GabHorsSiteService, useValue: gabService },
+        { provide: AuthService, useValue: authService },
+        { provide: Router, useValue: router }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ConsoleGabHorsSiteComponent);
+    component = fixture.componentInstance;
+  });
+
+  <span class="k">it</span>(<span class="s">'charge la liste et les référentiels à l\'</span>initialisation', () =&gt; {
+    fixture.detectChanges();
+    <span class="k">expect</span>(component.gabs.length).toBe(2);
+    <span class="k">expect</span>(component.villes.length).toBe(1);
+    <span class="k">expect</span>(component.peutGerer).toBeTrue();
+  });
+
+  <span class="k">it</span>(<span class="s">'redirige vers access-denied sans permission'</span>, () =&gt; {
+    authService.hasPermission.and.returnValue(<span class="k">false</span>);
+    fixture.detectChanges();
+    <span class="k">expect</span>(router.navigate).toHaveBeenCalledWith([<span class="s">'/admin/access-denied'</span>]);
+    <span class="k">expect</span>(gabService.getGabs).not.toHaveBeenCalled();
+  });
+
+  <span class="k">it</span>(<span class="s">'filtre sur l\'</span>identifiant, le nom ou l\<span class="s">'agence'</span>, () =&gt; {
+    fixture.detectChanges();
+    component.recherche = <span class="s">'oasis'</span>;
+    <span class="k">expect</span>(component.gabsFiltres.length).toBe(1);
+    component.recherche = <span class="s">'1120'</span>;
+    <span class="k">expect</span>(component.gabsFiltres.length).toBe(2);
+  });
+
+  <span class="k">it</span>(<span class="s">'parserMontant : virgule acceptée, texte refusé'</span>, () =&gt; {
+    <span class="k">expect</span>(component.parserMontant(<span class="s">'350,50'</span>)).toBe(350.5);
+    <span class="k">expect</span>(component.parserMontant(<span class="s">''</span>)).toBe(0);
+    <span class="k">expect</span>(component.parserMontant(<span class="s">'abc'</span>)).toBeNull();
+  });
+
+  <span class="k">it</span>(<span class="s">'terminer en ajout : POST puis rechargement et message'</span>, () =&gt; {
+    fixture.detectChanges();
+    gabService.createGab.and.returnValue(of(gab(3, <span class="s">'130012065'</span>, <span class="s">'AGADIR TIKIDA BEACH'</span>)));
+    component.ouvrirAjout();
+    component.formulaire = { ...component.formulaire, idGab: <span class="s">'130012065'</span>, nom: <span class="s">'AGADIR TIKIDA BEACH'</span>, numeroCompte: <span class="s">'0101281010030999'</span>, agenceId: 42, ville: <span class="s">'AGADIR'</span> };
+
+    component.terminer();
+
+    <span class="k">expect</span>(gabService.createGab).toHaveBeenCalledWith(jasmine.objectContaining({ idGab: <span class="s">'130012065'</span>, ville: <span class="s">'AGADIR'</span>, prixUnitaire: 0 }));
+    <span class="k">expect</span>(component.showModal).toBeFalse();
+    <span class="k">expect</span>(component.successMessage).toContain(<span class="s">'130012065'</span>);
+    <span class="k">expect</span>(gabService.getGabs).toHaveBeenCalledTimes(2);
+  });
+
+  <span class="k">it</span>(<span class="s">'terminer en modification : PUT avec l\'</span>id, erreur affichée dans la modale', () =&gt; {
+    fixture.detectChanges();
+    gabService.updateGab.and.returnValue(throwError(() =&gt; <span class="k">new</span> Error(<span class="s">"Un GAB hors site avec l'identifiant '130092026' existe déjà."</span>)));
+    component.ouvrirModification(component.gabs[0]);
+    component.formulaire.idGab = <span class="s">'130092026'</span>;
+
+    component.terminer();
+
+    <span class="k">expect</span>(gabService.updateGab).toHaveBeenCalledWith(jasmine.objectContaining({ id: 1, idGab: <span class="s">'130092026'</span> }));
+    <span class="k">expect</span>(component.showModal).toBeTrue();
+    <span class="k">expect</span>(component.erreurModale).toContain(<span class="s">'existe déjà'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'formulaire invalide sans agence ni ville'</span>, () =&gt; {
+    component.ouvrirAjout();
+    component.formulaire = { ...component.formulaire, idGab: <span class="s">'x'</span>, nom: <span class="s">'y'</span>, numeroCompte: <span class="s">'z'</span> };
+    <span class="k">expect</span>(component.formulaireValide).toBeFalse();
+  });
+});</code></pre></div>
+<h2 id="s3">3. Menu, route, module, icônes</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>console-layout.component.html</b><br><span class="path">C:\dev\portail-ci\src\app\console\layouts\console-layout\console-layout.component.html  (Ctrl+F : /admin/parametres)</span></div><p class="note">Le <code>&lt;li&gt;</code> Paramètres de la 308 gagne la classe <code>menu-item--parent</code> ; le sous-menu est le <code>&lt;li class="submenu"&gt;</code> qui le suit. <code>routerLinkActive</code> sur le sous-menu s'applique dès qu'un de ses liens est actif, d'où le maintien ouvert sur l'écran GAB.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- console-layout.component.html — ÉDITION : remplace le &lt;li&gt; PARAMÈTRES ET CONFIGURATION ajouté par la 308 (de &lt;li class="menu-item" routerLink="/admin/parametres" … jusqu'à son &lt;/li&gt;) --&gt;</span>
+                    &lt;li <span class="k">class</span>=<span class="s">"menu-item menu-item--parent"</span> routerLink=<span class="s">"/admin/parametres"</span> routerLinkActive=<span class="s">"active"</span>
+                        *ngIf=<span class="s">"userInfo?.profile?.code === 'SA'"</span>&gt;
+                        &lt;img <span class="k">class</span>=<span class="s">"icon-normal"</span> src=<span class="s">"assets/icons/grommet-icons_configure.svg"</span> alt=<span class="s">"Paramètres"</span>&gt;
+                        &lt;img <span class="k">class</span>=<span class="s">"icon-active"</span> src=<span class="s">"assets/icons/grommet-icons_configure_blanc.svg"</span> alt=<span class="s">"Paramètres"</span>&gt;
+                        &lt;span&gt;PARAMÈTRES ET CONFIGURATION&lt;/span&gt;
+                    &lt;/li&gt;
+                    <span class="c">&lt;!-- Sous-menu : visible au survol de Paramètres (ou de lui-même) et tant qu'une de ses entrées est la route active --&gt;</span>
+                    &lt;li <span class="k">class</span>=<span class="s">"submenu"</span> routerLinkActive=<span class="s">"submenu--ouvert"</span> *ngIf=<span class="s">"userInfo?.profile?.code === 'SA' &amp;&amp; peutVoirGabHorsSite"</span>&gt;
+                        &lt;ul&gt;
+                            &lt;li <span class="k">class</span>=<span class="s">"submenu-item"</span> routerLink=<span class="s">"/admin/parametres/gab-hors-site"</span> routerLinkActive=<span class="s">"active"</span>&gt;
+                                &lt;img <span class="k">class</span>=<span class="s">"icon-normal"</span> src=<span class="s">"assets/icons/gab-hors-site.svg"</span> alt=<span class="s">"GAB hors site"</span>&gt;
+                                &lt;img <span class="k">class</span>=<span class="s">"icon-active"</span> src=<span class="s">"assets/icons/gab-hors-site_blanc.svg"</span> alt=<span class="s">"GAB hors site"</span>&gt;
+                                &lt;span&gt;GAB HORS SITE&lt;/span&gt;
+                            &lt;/li&gt;
+                        &lt;/ul&gt;
+                    &lt;/li&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>console-layout.component.css</b><br><span class="path">C:\dev\portail-ci\src\app\console\layouts\console-layout\console-layout.component.css  (avant le bloc /* ===== RESPONSIVE DESIGN ===== */)</span></div><p class="note">Le layout est en CSS (pas SCSS) : sélecteurs à plat, commentaires <code>/* */</code>. Couleurs = celles du menu.</p><pre><button class="copy">Copier</button><code><span class="c">/* ===== Sous-menu de PARAMÈTRES ET CONFIGURATION (AER_LM-313) =====
+   Fermé par défaut ; ouvert au survol du parent ou du sous-menu, maintenu ouvert quand une entrée enfant est la route active. */</span>
+.submenu {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.submenu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-item--parent:hover + .submenu,
+.submenu:hover,
+.submenu.submenu--ouvert {
+  display: block;
+}
+
+.submenu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 10px 52px;   <span class="c">/* retrait = icône + espace du parent */</span>
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #6b7570;
+  cursor: pointer;
+}
+
+.submenu-item img {
+  width: 16px;
+  height: 16px;
+}
+
+.submenu-item .icon-active {
+  display: none;
+}
+
+.submenu-item:hover {
+  color: #00965E;
+}
+
+.submenu-item.active {
+  background: linear-gradient(90deg, #00965E, #8dbca3);
+  color: #fff;
+}
+
+.submenu-item.active .icon-normal {
+  display: none;
+}
+
+.submenu-item.active .icon-active {
+  display: inline;
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>console-layout.component.ts</b><br><span class="path">C:\dev\portail-ci\src\app\console\layouts\console-layout\console-layout.component.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// console-layout.component.ts — À AJOUTER dans la classe (AuthService : l'injecter dans le constructeur s'il ne l'est pas déjà,</span>
+<span class="c">// import { AuthService } from 'src/app/auth/auth.service';)</span>
+  <span class="c">/** AER_LM-313 — entrée de menu GAB hors site : consultation ou gestion (permissions GDF_* de la V23). */</span>
+  <span class="k">get</span> peutVoirGabHorsSite(): boolean {
+    <span class="k">return</span> <span class="k">this</span>.authService.hasPermission([<span class="s">'GDF_CONSULTER_GAB'</span>, <span class="s">'GDF_GERER_GAB'</span>]);
+  }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>console-routing.module.ts</b><br><span class="path">C:\dev\portail-ci\src\app\console\console-routing.module.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// console-routing.module.ts — À AJOUTER (la route est sous parametres/ : le parent du menu reste surligné sur l'écran GAB)</span>
+<span class="k">import</span> { ConsoleGabHorsSiteComponent } <span class="k">from</span> <span class="s">'./components/console-gab-hors-site/console-gab-hors-site.component'</span>;
+
+            { path: <span class="s">'parametres/gab-hors-site'</span>, component: ConsoleGabHorsSiteComponent, canActivate: [AuthGuard] },</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>console.module.ts</b><br><span class="path">C:\dev\portail-ci\src\app\console\console.module.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// console.module.ts — À AJOUTER (import en tête + déclaration dans declarations: [...])</span>
+<span class="k">import</span> { ConsoleGabHorsSiteComponent } <span class="k">from</span> <span class="s">'./components/console-gab-hors-site/console-gab-hors-site.component'</span>;
+
+        ConsoleGabHorsSiteComponent,</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gab-hors-site.svg</b><br><span class="path">C:\dev\portail-ci\src\assets\icons\gab-hors-site.svg</span></div><pre><button class="copy">Copier</button><code>&lt;svg xmlns=<span class="s">"http://www.w3.org/2000/svg"</span> width=<span class="s">"20"</span> height=<span class="s">"20"</span> viewBox=<span class="s">"0 0 24 24"</span> fill=<span class="s">"none"</span> stroke=<span class="s">"#6b7570"</span> stroke-width=<span class="s">"1.8"</span> stroke-linecap=<span class="s">"round"</span> stroke-linejoin=<span class="s">"round"</span>&gt;
+  &lt;rect x=<span class="s">"4"</span> y=<span class="s">"2.5"</span> width=<span class="s">"16"</span> height=<span class="s">"19"</span> rx=<span class="s">"2"</span>/&gt;
+  &lt;rect x=<span class="s">"7"</span> y=<span class="s">"5.5"</span> width=<span class="s">"10"</span> height=<span class="s">"5"</span> rx=<span class="s">"1"</span>/&gt;
+  &lt;line x1=<span class="s">"7"</span> y1=<span class="s">"14"</span> x2=<span class="s">"13"</span> y2=<span class="s">"14"</span>/&gt;
+  &lt;line x1=<span class="s">"7"</span> y1=<span class="s">"17"</span> x2=<span class="s">"11"</span> y2=<span class="s">"17"</span>/&gt;
+  &lt;line x1=<span class="s">"15.5"</span> y1=<span class="s">"14"</span> x2=<span class="s">"17"</span> y2=<span class="s">"14"</span>/&gt;
+&lt;/svg&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gab-hors-site_blanc.svg</b><br><span class="path">C:\dev\portail-ci\src\assets\icons\gab-hors-site_blanc.svg</span></div><pre><button class="copy">Copier</button><code>&lt;svg xmlns=<span class="s">"http://www.w3.org/2000/svg"</span> width=<span class="s">"20"</span> height=<span class="s">"20"</span> viewBox=<span class="s">"0 0 24 24"</span> fill=<span class="s">"none"</span> stroke=<span class="s">"#ffffff"</span> stroke-width=<span class="s">"1.8"</span> stroke-linecap=<span class="s">"round"</span> stroke-linejoin=<span class="s">"round"</span>&gt;
+  &lt;rect x=<span class="s">"4"</span> y=<span class="s">"2.5"</span> width=<span class="s">"16"</span> height=<span class="s">"19"</span> rx=<span class="s">"2"</span>/&gt;
+  &lt;rect x=<span class="s">"7"</span> y=<span class="s">"5.5"</span> width=<span class="s">"10"</span> height=<span class="s">"5"</span> rx=<span class="s">"1"</span>/&gt;
+  &lt;line x1=<span class="s">"7"</span> y1=<span class="s">"14"</span> x2=<span class="s">"13"</span> y2=<span class="s">"14"</span>/&gt;
+  &lt;line x1=<span class="s">"7"</span> y1=<span class="s">"17"</span> x2=<span class="s">"11"</span> y2=<span class="s">"17"</span>/&gt;
+  &lt;line x1=<span class="s">"15.5"</span> y1=<span class="s">"14"</span> x2=<span class="s">"17"</span> y2=<span class="s">"14"</span>/&gt;
+&lt;/svg&gt;</code></pre></div>
+<h2 id="s4">4. Vérification</h2>
+<div class="card"><p>Aperçus joints : <code>AER_LM-313_apercu-liste.png</code>, <code>AER_LM-313_apercu-ecran.png</code> (modale).</p>
+<ol>
+<li><code>ng test --include='**/gab-hors-site*'</code> → 12 specs vertes (5 service, 7 composant).</li>
+<li>Connexion <code>h11111</code> → survol de PARAMÈTRES ET CONFIGURATION : le sous-menu « GAB HORS SITE » apparaît dessous ; clic → <code>/admin/parametres/gab-hors-site</code>, parent et sous-entrée surlignés, sous-menu maintenu ouvert ; sortir de la page → sous-menu refermé ; 56 lignes (V22), 6 pages, recherche « oasis » → 1 ligne, « agadir » → les GAB d'Agadir (ville et agence).</li>
+<li>AJOUTER UN GAB : TERMINER grisé tant qu'identifiant / nom / compte / agence / ville manquent ; saisir <code>130012065</code>, AGADIR TIKIDA BEACH, un compte, agence 1012, ville Agadir → message « Le GAB 130012065 a été ajouté. », ligne visible.</li>
+<li>Rejouer le même ajout → erreur 409 dans la modale « …existe déjà », modale ouverte.</li>
+<li>ÉDITER sur ce GAB : prix « 350,50 », état Hors ligne, transporteur G4S → TERMINER → ligne mise à jour (350,50 MAD, badge gris Hors ligne).</li>
+<li>Prix « abc » → message « Montant invalide », TERMINER grisé.</li>
+<li>Connexion <code>j62211</code> (chef de caisse) : pas d'entrée de menu ; URL directe <code>/admin/parametres/gab-hors-site</code> → redirigé par l'<code>AuthGuard</code> du portail (pas de permission console) ; même garde côté composant → <code>/admin/access-denied</code>.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
