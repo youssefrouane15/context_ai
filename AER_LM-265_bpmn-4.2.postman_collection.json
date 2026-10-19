@@ -1,0 +1,471 @@
+{
+  "info": {
+    "name": "AER_LM-265 BPMN 4.2 — déploiement et recette moteur",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Variable camunda = http://localhost:3030 (moteur partagé local). 00-04 = déploiement ; 05-10 = recette moteur seul."
+  },
+  "item": [
+    {
+      "name": "00 - Avant : versions de gestion-des-fonds (tenant QLICKFLOW)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/process-definition?key=gestion-des-fonds&tenantIdIn=QLICKFLOW&sortBy=version&sortOrder=desc",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "process-definition"
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "gestion-des-fonds"
+            },
+            {
+              "key": "tenantIdIn",
+              "value": "QLICKFLOW"
+            },
+            {
+              "key": "sortBy",
+              "value": "version"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200));",
+              "const d = pm.response.json(); pm.test('au moins une version', () => pm.expect(d.length).to.be.at.least(1));",
+              "console.log('Version courante :', d[0].version, 'tag', d[0].versionTag); pm.environment.set('versionAvant', d[0].version);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Avant : instances actives",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/process-instance/count?processDefinitionKey=gestion-des-fonds&tenantIdIn=QLICKFLOW",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "process-instance",
+            "count"
+          ],
+          "query": [
+            {
+              "key": "processDefinitionKey",
+              "value": "gestion-des-fonds"
+            },
+            {
+              "key": "tenantIdIn",
+              "value": "QLICKFLOW"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200)); console.log('Instances actives (resteront sur l\\'ancienne version) :', pm.response.json().count);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Déployer la 4.2",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/deployment/create",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "deployment",
+            "create"
+          ]
+        },
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "deployment-name",
+              "value": "gestion-des-fonds-4.2",
+              "type": "text"
+            },
+            {
+              "key": "tenant-id",
+              "value": "QLICKFLOW",
+              "type": "text"
+            },
+            {
+              "key": "enable-duplicate-filtering",
+              "value": "true",
+              "type": "text"
+            },
+            {
+              "key": "deploy-changed-only",
+              "value": "true",
+              "type": "text"
+            },
+            {
+              "key": "deployment-source",
+              "value": "process application",
+              "type": "text"
+            },
+            {
+              "key": "data",
+              "type": "file",
+              "src": "gestion-des-fonds_v4.2.bpmn"
+            }
+          ]
+        },
+        "description": "Sélectionner le fichier gestion-des-fonds_v4.2.bpmn dans le champ data (Body → form-data)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200));",
+              "const d = pm.response.json(); const defs = d.deployedProcessDefinitions || {};",
+              "const def = Object.values(defs)[0];",
+              "pm.test('définition déployée (sinon : fichier identique à un déploiement précédent)', () => pm.expect(def).to.not.be.undefined);",
+              "if (def) { pm.test('versionTag 4.2', () => pm.expect(def.versionTag).to.eql('4.2')); pm.test('tenant QLICKFLOW', () => pm.expect(def.tenantId).to.eql('QLICKFLOW')); pm.environment.set('deploymentId42', d.id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Après : dernière version = 4.2",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/process-definition?key=gestion-des-fonds&tenantIdIn=QLICKFLOW&latestVersion=true",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "process-definition"
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "gestion-des-fonds"
+            },
+            {
+              "key": "tenantIdIn",
+              "value": "QLICKFLOW"
+            },
+            {
+              "key": "latestVersion",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const d = pm.response.json()[0]; pm.test('versionTag 4.2', () => pm.expect(d.versionTag).to.eql('4.2'));",
+              "pm.test('non suspendue', () => pm.expect(d.suspended).to.eql(false));",
+              "pm.test('version incrémentée', () => pm.expect(d.version).to.be.above(Number(pm.environment.get('versionAvant'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Après : le XML déployé porte la gateway Cut-off applicable",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/process-definition/key/gestion-des-fonds/tenant-id/QLICKFLOW/xml",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "process-definition",
+            "key",
+            "gestion-des-fonds",
+            "tenant-id",
+            "QLICKFLOW",
+            "xml"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Gateway_CutoffApplicable présente', () => pm.expect(pm.response.json().bpmn20Xml).to.include('Gateway_CutoffApplicable'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Recette moteur : démarrer une demande monétique",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/process-definition/key/gestion-des-fonds/tenant-id/QLICKFLOW/start",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "process-definition",
+            "key",
+            "gestion-des-fonds",
+            "tenant-id",
+            "QLICKFLOW",
+            "start"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"businessKey\": \"11111111-2222-3333-4444-555555555501\",\n  \"variables\": {\n    \"typeDemande\": {\n      \"value\": \"GAB_HORS_SITE\",\n      \"type\": \"String\"\n    },\n    \"typeAgence\": {\n      \"value\": \"RETAIL\",\n      \"type\": \"String\"\n    },\n    \"referenceDemande\": {\n      \"value\": \"20261019-MON-01\",\n      \"type\": \"String\"\n    },\n    \"agenceCode\": {\n      \"value\": \"1104\",\n      \"type\": \"String\"\n    },\n    \"creePar\": {\n      \"value\": \"m70001\",\n      \"type\": \"String\"\n    },\n    \"urgent\": {\n      \"value\": false,\n      \"type\": \"Boolean\"\n    },\n    \"journeeCloturee\": {\n      \"value\": false,\n      \"type\": \"Boolean\"\n    }\n  }\n}"
+        },
+        "description": "Uniquement moteur seul (fund-management arrêté ou worker désactivé) ; sinon les workers réels prennent les tâches. Nettoyage : requête 10."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', () => pm.response.to.have.status(200)); pm.environment.set('instanceMon', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Compléter Initier puis Soumettre (2 appels)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/task?processInstanceBusinessKey=11111111-2222-3333-4444-555555555501&taskDefinitionKey=Task_InitierDemande",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "task"
+          ],
+          "query": [
+            {
+              "key": "processInstanceBusinessKey",
+              "value": "11111111-2222-3333-4444-555555555501"
+            },
+            {
+              "key": "taskDefinitionKey",
+              "value": "Task_InitierDemande"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.response.json()[0]; pm.test('tâche Initier active', () => pm.expect(t).to.not.be.undefined); pm.environment.set('tacheId', t.id);",
+              "// puis : POST {{camunda}}/engine-rest/task/{{tacheId}}/complete {} ; refaire ce GET avec taskDefinitionKey=Task_SoumettreDemande et compléter avec {\"variables\":{\"urgent\":{\"value\":false,\"type\":\"Boolean\"}}}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Tâche externe attendue : gdf-initialiser-demande",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/external-task?processInstanceBusinessKey=11111111-2222-3333-4444-555555555501",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "external-task"
+          ],
+          "query": [
+            {
+              "key": "processInstanceBusinessKey",
+              "value": "11111111-2222-3333-4444-555555555501"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.response.json()[0]; pm.test('topic gdf-initialiser-demande', () => pm.expect(t.topicName).to.eql('gdf-initialiser-demande')); pm.environment.set('extId', t.id);",
+              "// compléter à la main avec apresCutoff16=true pour prouver qu'il est ignoré : POST /external-task/{{extId}}/lock {workerId:'recette',lockDuration:60000} puis",
+              "// POST /external-task/{{extId}}/complete {workerId:'recette', variables:{apresCutoff16:{value:true,type:'Boolean'}, dateCutoff16h:{value:'<aujourd hui>T16:00:00.000+0100',type:'String'}}}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Après initialisation : tâche externe = gdf-eclater-besoins-gab (pas de report)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/external-task?processInstanceBusinessKey=11111111-2222-3333-4444-555555555501",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "external-task"
+          ],
+          "query": [
+            {
+              "key": "processInstanceBusinessKey",
+              "value": "11111111-2222-3333-4444-555555555501"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.response.json()[0]; pm.test('pas de gdf-reporter-jour-suivant, mais gdf-eclater-besoins-gab', () => pm.expect(t.topicName).to.eql('gdf-eclater-besoins-gab'));",
+              "// compléter : lock puis complete {workerId:'recette', variables:{nombreBesoinsGab:{value:3,type:'Integer'}}} → la user task Task_TraitementCaisseCentrale devient active"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Cut-off forcé : aucun gdf-cloturer-journee",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/job?processInstanceId={{instanceMon}}",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "job"
+          ],
+          "query": [
+            {
+              "key": "processInstanceId",
+              "value": "{{instanceMon}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j = pm.response.json()[0]; pm.test('timer 16h armé', () => pm.expect(j).to.not.be.undefined);",
+              "// POST /job/{id}/execute puis GET /external-task?processInstanceId={{instanceMon}} : aucune tâche gdf-cloturer-journee ; GET /process-instance/{{instanceMon}}/variables/journeeCloturee → false"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Nettoyage de l'instance de recette",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{camunda}}/engine-rest/process-instance/{{instanceMon}}?skipCustomListeners=true",
+          "host": [
+            "{{camunda}}"
+          ],
+          "path": [
+            "engine-rest",
+            "process-instance",
+            "{{instanceMon}}"
+          ],
+          "query": [
+            {
+              "key": "skipCustomListeners",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "camunda",
+      "value": "http://localhost:3030"
+    }
+  ]
+}
