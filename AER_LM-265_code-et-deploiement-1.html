@@ -1,0 +1,310 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-265 — Code fund-management + déploiement BPMN 4.2</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-265 — Handlers fund-management pour le BPMN 4.2 et procédure de déploiement sans impact sur les instances en cours</h1><p>fund-management (domain-core, application-service, external-services) · Camunda 7 tenant QLICKFLOW · 19/10/2026 · complète le doc BPMN 4.2</p></header>
+<nav><a href="#s0">Périmètre</a><a href="#s1">Code</a><a href="#s2">Tests</a><a href="#s3">Déploiement</a><a href="#s4">Ordre de livraison</a></nav><main><h2 id="s0">0. Périmètre</h2>
+<div class="card"><p>Le BPMN 4.2 est celui livré (fichier inchangé). Ce doc ajoute le code fund-management, les tests, puis la procédure de déploiement.</p>
+<table>
+<tr><th>Module</th><th>Fichier</th><th>Changement</th></tr>
+<tr><td rowspan="2">domain-core</td><td><code>retail.enums.TypeDemandeWorkflow</code></td><td>nouveau — AGENCE | GAB_HORS_SITE (valeur de la variable BPMN)</td></tr>
+<tr><td><code>CashRequest</code></td><td>+ champ <code>typeDemande</code> (null = AGENCE) — lu par <code>DemarrerProcessusStep</code></td></tr>
+<tr><td>application-service</td><td><code>retail.saga.DemarrerProcessusStep</code></td><td>typeDemande depuis la demande ; urgent = false en monétique</td></tr>
+<tr><td>application-service</td><td><code>ports.output.repository.BesoinGabPort</code></td><td>nouveau port — numérotation des besoins (implémentation data-access = Jira fund-management de ton collègue, sur son entité « besoin »)</td></tr>
+<tr><td rowspan="3">external-services</td><td><code>camunda.worker.InitialiserDemandeHandler</code></td><td>monétique : apresCutoff16 = false, dateEffet = jour</td></tr>
+<tr><td><code>camunda.worker.EclaterBesoinsGabHandler</code></td><td>nouveau — remplace le squelette du topic gdf-eclater-besoins-gab</td></tr>
+<tr><td><code>camunda.worker.GdfWorkerConfig</code></td><td>abonnement du topic au nouveau handler</td></tr>
+</table>
+<p><b>Ce qui reste à ton collègue</b> (à lui transmettre) : persister <code>CashRequest.typeDemande</code> (colonne, entité, <code>@Mapping</code> sur <code>toDomain</code>) et le poser à <code>GAB_HORS_SITE</code> à la création de sa demande monétique ; implémenter <code>BesoinGabPort</code> dans data-access sur son entité « besoin ». Tant que ce n'est pas fait, le champ vaut null partout → toutes les demandes partent en AGENCE, strictement comme aujourd'hui. Côté règles : modification / annulation d'une demande monétique = <code>creePar</code> uniquement, cut-off ignoré, date d'effet = jour de soumission.</p></div>
+<h2 id="s1">1. Code</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>TypeDemandeWorkflow.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\enums\TypeDemandeWorkflow.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.q360.domain.retail.enums;
+
+<span class="c">/**
+ * Type de demande transmis au workflow gestion-des-fonds (variable BPMN typeDemande, 4.2).
+ * AGENCE = circuit agence (DA / Chef de caisse) ; GAB_HORS_SITE = circuit monétique (Pôle Opérations Monétique, AER_LM-265).
+ */</span>
+<span class="k">public</span> enum TypeDemandeWorkflow {
+    AGENCE,
+    GAB_HORS_SITE
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\...\CashRequest.java  (la classe renvoyée par SoumissionDemandeContext.getDemande())</span></div><p class="note">Sans cible côté entité, MapStruct ignore ce champ source sur <code>toPersistence</code> / <code>updateHeader</code> (unmappedSourcePolicy par défaut) : rien à toucher dans <code>CashRequestPersistenceMapper</code> tant que la colonne n'existe pas. Après : <code>mvn clean install</code> du réacteur (application-service consomme le jar domain-core).</p><pre><button class="copy">Copier</button><code><span class="c">// CashRequest.java (domain-core) — À AJOUTER : import + champ, getter/setter dans le style de la classe (Lombok si elle est annotée,</span>
+<span class="c">// sinon getTypeDemande() / setTypeDemande(...) explicites). null = AGENCE : comportement inchangé tant que le parcours monétique ne le pose pas.</span>
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.TypeDemandeWorkflow;
+
+    <span class="c">/** AER_LM-265 — type de demande pour le workflow ; null = AGENCE. Posé à GAB_HORS_SITE par le parcours monétique (collègue). */</span>
+    <span class="k">private</span> TypeDemandeWorkflow typeDemande;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>DemarrerProcessusStep.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\saga\DemarrerProcessusStep.java</span></div><p class="note">Le reste de <code>executer</code> (dateCutoff16h, journeeCloturee, démarrage) et <code>compenser</code> ne changent pas.</p><pre><button class="copy">Copier</button><code><span class="c">// DemarrerProcessusStep.java — ÉDITION (import + 4 lignes dans executer)</span>
+
+<span class="c">// ---- Import (en tête)</span>
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.TypeDemandeWorkflow;
+
+<span class="c">// ---- executer(...) : AVANT</span>
+        variables.put(<span class="s">"typeDemande"</span>, <span class="s">"AGENCE"</span>);                                   <span class="c">// retail = demande agence</span>
+        variables.put(<span class="s">"typeAgence"</span>, <span class="s">"RETAIL"</span>);                                    <span class="c">// TODO : référentiel agences BP/Centre d'affaires quand dispo</span>
+        <span class="c">//variables.put("typeAgence", "BANQUE_PRIVEE");                           // TODO : référentiel agences BP/Centre d'affaires quand dispo</span>
+        variables.put(<span class="s">"referenceDemande"</span>, demande.getUniqueRequestRef());
+        variables.put(<span class="s">"agenceCode"</span>, demande.getBranchCode());
+        variables.put(<span class="s">"creePar"</span>, demande.getUidUser());
+        variables.put(<span class="s">"urgent"</span>, demande.getOperations() != <span class="k">null</span>
+                &amp;&amp; demande.getOperations().stream().anyMatch(op -&gt; Boolean.TRUE.equals(op.getIsUrgent())));
+
+<span class="c">// ---- executer(...) : APRÈS</span>
+        <span class="c">// BPMN 4.2 (AER_LM-265) : AGENCE (défaut) ou GAB_HORS_SITE ; le monétique n'a ni urgence ni cut-off.</span>
+        TypeDemandeWorkflow typeDemande = demande.getTypeDemande() != <span class="k">null</span> ? demande.getTypeDemande() : TypeDemandeWorkflow.AGENCE;
+        boolean monetique = typeDemande == TypeDemandeWorkflow.GAB_HORS_SITE;
+        variables.put(<span class="s">"typeDemande"</span>, typeDemande.name());
+        variables.put(<span class="s">"typeAgence"</span>, <span class="s">"RETAIL"</span>);                                    <span class="c">// TODO : référentiel agences BP/Centre d'affaires quand dispo</span>
+        variables.put(<span class="s">"referenceDemande"</span>, demande.getUniqueRequestRef());
+        variables.put(<span class="s">"agenceCode"</span>, demande.getBranchCode());
+        variables.put(<span class="s">"creePar"</span>, demande.getUidUser());
+        variables.put(<span class="s">"urgent"</span>, !monetique &amp;&amp; demande.getOperations() != <span class="k">null</span>
+                &amp;&amp; demande.getOperations().stream().anyMatch(op -&gt; Boolean.TRUE.equals(op.getIsUrgent())));</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>BesoinGabPort.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\ports\output\repository\BesoinGabPort.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.ports.output.repository;
+
+<span class="k">import</span> java.util.UUID;
+
+<span class="c">/**
+ * Port de sortie (BPMN 4.2, worker gdf-eclater-besoins-gab) : numérotation des besoins d'une demande GAB hors site.
+ * Implémentation côté data-access sur le modèle « besoin » de la demande monétique (AER_LM-264 / 265).
+ */</span>
+<span class="k">public</span> <span class="k">interface</span> BesoinGabPort {
+
+    <span class="c">/**
+     * Attribue à chaque besoin de la demande sa référence technique « referenceDemande-NN » (NN = 01, 02, … dans l'ordre de saisie),
+     * persiste, et renvoie le nombre de besoins numérotés. Idempotent : un besoin déjà référencé garde sa référence.
+     */</span>
+    int numeroterBesoins(UUID demandeId, String referenceDemande);
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>InitialiserDemandeHandler.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\InitialiserDemandeHandler.java</span></div><p class="note"><code>task.getVariable("typeDemande")</code> renvoie la String posée au démarrage ; comparaison par <code>name()</code>, jamais d'enum côté moteur.</p><pre><button class="copy">Copier</button><code><span class="c">// InitialiserDemandeHandler.java — ÉDITION : remplace le corps de execute(...) ; imports à ajouter : java.time.LocalDate (si absent),</span>
+<span class="c">// com.bmci.q360.domain.retail.enums.TypeDemandeWorkflow</span>
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> <span class="k">void</span> execute(ExternalTask task, ExternalTaskService service) {
+        <span class="c">// BPMN 4.2 (AER_LM-265) : pas de cut-off pour une demande GAB hors site — jamais de report, date d'effet = jour de soumission.</span>
+        boolean monetique = TypeDemandeWorkflow.GAB_HORS_SITE.name().equals(task.getVariable(<span class="s">"typeDemande"</span>));
+
+        boolean apresCutoff10 = <span class="k">false</span>;
+        LocalDateTime maintenant = LocalDateTime.now();
+        boolean apresCutoff16 = !monetique &amp;&amp; cutoffPolicy.apresCutoff(maintenant);          <span class="c">// AER_LM-267 : le boundary 16h</span>
+        <span class="c">// (jour d'effet = aujourd'hui, ou demain si soumise après 16h00 — même règle que CutoffPolicy)</span>
+        <span class="c">// java.util.Date : seul type date que le client external-task sérialise nativement (Date)</span>
+        Date dateCutoff16h = Date.<span class="k">from</span>(cutoffPolicy.dateCutoff16h(maintenant)
+                .atZone(ZoneId.systemDefault()).toInstant());
+
+        Map&lt;String, Object&gt; variables = <span class="k">new</span> HashMap&lt;&gt;();
+        variables.put(<span class="s">"heureSoumission"</span>, OffsetDateTime.now().toString());
+        variables.put(<span class="s">"apresCutoff10"</span>, apresCutoff10);
+        variables.put(<span class="s">"apresCutoff16"</span>, apresCutoff16);
+        variables.put(<span class="s">"dateCutoff16h"</span>, dateCutoff16h);                                       <span class="c">// le timer 16h en a besoin, même en monétique (la gateway « Cut-off applicable ? » neutralise son effet)</span>
+        <span class="k">if</span> (monetique) {
+            variables.put(<span class="s">"dateEffet"</span>, LocalDate.now().toString());                          <span class="c">// ISO yyyy-MM-dd, sans passer par gdf-reporter-jour-suivant</span>
+        }
+        service.complete(task, variables);
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>EclaterBesoinsGabHandler.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\EclaterBesoinsGabHandler.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.camunda.worker;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.repository.BesoinGabPort;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.camunda.bpm.client.task.ExternalTask;
+<span class="k">import</span> org.camunda.bpm.client.task.ExternalTaskHandler;
+<span class="k">import</span> org.camunda.bpm.client.task.ExternalTaskService;
+<span class="k">import</span> org.springframework.stereotype.Component;
+
+<span class="k">import</span> java.util.Map;
+<span class="k">import</span> java.util.UUID;
+
+<span class="c">/**
+ * BPMN 4.2 — topic gdf-eclater-besoins-gab (branche monétique, AER_LM-265).
+ * Numérote les besoins de la demande (une référence technique par GAB hors site) puis pose nombreBesoinsGab.
+ * Remplace le squelette TacheTraceeHandler de ce topic.
+ *
+ * @author Youssef ROUANE
+ * @date 19/10/2026
+ */</span>
+<span class="a">@Slf4j</span>
+<span class="a">@Component</span>
+<span class="a">@RequiredArgsConstructor</span>
+<span class="k">public</span> <span class="k">class</span> EclaterBesoinsGabHandler <span class="k">implements</span> ExternalTaskHandler {
+
+    <span class="k">private</span> <span class="k">final</span> BesoinGabPort besoinGabPort;
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> <span class="k">void</span> execute(ExternalTask task, ExternalTaskService service) {
+        UUID demandeId = UUID.fromString(task.getBusinessKey());
+        String referenceDemande = task.getVariable(<span class="s">"referenceDemande"</span>);
+
+        int nombreBesoins = besoinGabPort.numeroterBesoins(demandeId, referenceDemande);
+        log.info(<span class="s">"[gdf-eclater-besoins-gab] demande {} ({}) : {} besoin(s) numéroté(s)"</span>, demandeId, referenceDemande, nombreBesoins);
+
+        service.complete(task, Map.of(<span class="s">"nombreBesoinsGab"</span>, nombreBesoins));
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>GdfWorkerConfig.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java  (Ctrl+F : ECLATER_BESOINS_GAB)</span></div><pre><button class="copy">Copier</button><code><span class="c">// GdfWorkerConfig.java — ÉDITION : le topic ECLATER_BESOINS_GAB n'est plus abonné au squelette TacheTraceeHandler</span>
+<span class="c">// mais au nouveau handler. Même forme que la ligne INITIALISER_DEMANDE.</span>
+
+<span class="c">// ---- champ (avec les autres handlers injectés)</span>
+    <span class="k">private</span> <span class="k">final</span> EclaterBesoinsGabHandler eclaterBesoinsGabHandler;
+
+<span class="c">// ---- abonnement : AVANT (squelette)</span>
+<span class="c">//      ... .subscribe(GdfTopics.ECLATER_BESOINS_GAB) ... .handler(new TacheTraceeHandler(GdfTopics.ECLATER_BESOINS_GAB)) ...   (ou équivalent)</span>
+<span class="c">// ---- abonnement : APRÈS</span>
+<span class="c">//      ... .subscribe(GdfTopics.ECLATER_BESOINS_GAB) ... .handler(eclaterBesoinsGabHandler) ...</span></code></pre></div>
+<h2 id="s2">2. Tests</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>EclaterBesoinsGabHandlerTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\test\java\com\bmci\workflow\fund\management\external\camunda\worker\EclaterBesoinsGabHandlerTest.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.camunda.worker;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.repository.BesoinGabPort;
+<span class="k">import</span> org.camunda.bpm.client.task.ExternalTask;
+<span class="k">import</span> org.camunda.bpm.client.task.ExternalTaskService;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.ArgumentCaptor;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> java.util.Map;
+<span class="k">import</span> java.util.UUID;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+
+<span class="a">@ExtendWith</span>(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> EclaterBesoinsGabHandlerTest {
+
+    <span class="a">@Mock</span> BesoinGabPort besoinGabPort;
+    <span class="a">@Mock</span> ExternalTask task;
+    <span class="a">@Mock</span> ExternalTaskService service;
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> numeroteLesBesoinsEtPoseNombreBesoinsGab() {
+        UUID id = UUID.fromString(<span class="s">"11111111-2222-3333-4444-555555555501"</span>);
+        Mockito.when(task.getBusinessKey()).thenReturn(id.toString());
+        Mockito.when(task.getVariable(<span class="s">"referenceDemande"</span>)).thenReturn(<span class="s">"20261019-MON-01"</span>);
+        Mockito.when(besoinGabPort.numeroterBesoins(id, <span class="s">"20261019-MON-01"</span>)).thenReturn(3);
+
+        <span class="k">new</span> EclaterBesoinsGabHandler(besoinGabPort).execute(task, service);
+
+        <span class="a">@SuppressWarnings</span>(<span class="s">"unchecked"</span>)
+        ArgumentCaptor&lt;Map&lt;String, Object&gt;&gt; variables = ArgumentCaptor.forClass(Map.<span class="k">class</span>);
+        Mockito.verify(service).complete(Mockito.eq(task), variables.capture());
+        assertEquals(3, variables.getValue().<span class="k">get</span>(<span class="s">"nombreBesoinsGab"</span>));
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>InitialiserDemandeHandlerTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\test\java\com\bmci\workflow\fund\management\external\camunda\worker\InitialiserDemandeHandlerTest.java</span></div><p class="note">Imports : <code>java.time.LocalDate</code>, <code>java.util.Map</code>, <code>ArgumentCaptor</code>, <code>assertEquals/assertNull/assertNotNull</code>. Mockito strict : le test monétique ne stubbe pas <code>apresCutoff</code>.</p><pre><button class="copy">Copier</button><code><span class="c">// InitialiserDemandeHandlerTest.java — À AJOUTER (ou FICHIER NOUVEAU s'il n'existe pas : @ExtendWith(MockitoExtension.class),</span>
+<span class="c">// @Mock CutoffPolicy cutoffPolicy, @Mock ExternalTask task, @Mock ExternalTaskService service)</span>
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> monetique_jamaisDeReportEtDateEffetDuJour() {
+        Mockito.when(task.getVariable(<span class="s">"typeDemande"</span>)).thenReturn(<span class="s">"GAB_HORS_SITE"</span>);
+        Mockito.when(cutoffPolicy.dateCutoff16h(Mockito.any())).thenReturn(LocalDate.now().atTime(16, 0));
+        <span class="c">// pas de stub sur cutoffPolicy.apresCutoff : il ne doit pas être consulté (Mockito strict le signalerait)</span>
+
+        <span class="k">new</span> InitialiserDemandeHandler(cutoffPolicy).execute(task, service);
+
+        <span class="a">@SuppressWarnings</span>(<span class="s">"unchecked"</span>)
+        ArgumentCaptor&lt;Map&lt;String, Object&gt;&gt; variables = ArgumentCaptor.forClass(Map.<span class="k">class</span>);
+        Mockito.verify(service).complete(Mockito.eq(task), variables.capture());
+        assertEquals(<span class="k">false</span>, variables.getValue().<span class="k">get</span>(<span class="s">"apresCutoff16"</span>));
+        assertEquals(LocalDate.now().toString(), variables.getValue().<span class="k">get</span>(<span class="s">"dateEffet"</span>));
+        assertNotNull(variables.getValue().<span class="k">get</span>(<span class="s">"dateCutoff16h"</span>));
+    }
+
+    <span class="a">@Test</span>
+    <span class="k">void</span> agence_regleInchangee() {
+        Mockito.when(task.getVariable(<span class="s">"typeDemande"</span>)).thenReturn(<span class="s">"AGENCE"</span>);
+        Mockito.when(cutoffPolicy.apresCutoff(Mockito.any())).thenReturn(<span class="k">true</span>);
+        Mockito.when(cutoffPolicy.dateCutoff16h(Mockito.any())).thenReturn(LocalDate.now().atTime(16, 0));
+
+        <span class="k">new</span> InitialiserDemandeHandler(cutoffPolicy).execute(task, service);
+
+        <span class="a">@SuppressWarnings</span>(<span class="s">"unchecked"</span>)
+        ArgumentCaptor&lt;Map&lt;String, Object&gt;&gt; variables = ArgumentCaptor.forClass(Map.<span class="k">class</span>);
+        Mockito.verify(service).complete(Mockito.eq(task), variables.capture());
+        assertEquals(<span class="k">true</span>, variables.getValue().<span class="k">get</span>(<span class="s">"apresCutoff16"</span>));
+        assertNull(variables.getValue().<span class="k">get</span>(<span class="s">"dateEffet"</span>));
+    }</code></pre></div>
+<div class="card"><p><code>mvn -pl fund-management-external-services test -Dtest=EclaterBesoinsGabHandlerTest,InitialiserDemandeHandlerTest</code> ; puis <code>mvn clean install</code> du réacteur (le jar external-services est consommé par le container).</p></div>
+<h2 id="s3">3. Déploiement du BPMN 4.2 — pas à pas</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Procédure</b><br><span class="path">Postman — collection AER_LM-265_bpmn-4.2 (requêtes 00 → 04), variable camunda = http://localhost:3030</span></div><p class="note">Principe à retenir : une nouvelle version n'affecte jamais les instances en cours ; on ne supprime rien, on ne migre rien. Les deux erreurs du passé — déploiement sans tenant, suppression en cascade — sont rendues impossibles par la requête 02 (tenant imposé) et par l'absence de tout DELETE de déploiement dans la procédure.</p><pre><button class="copy">Copier</button><code># Déploiement BPMN 4.2 — Camunda 7 partagé, tenant QLICKFLOW, moteur local :3030 (adapter l'hôte en recette)
+# Règle de base : un nouveau déploiement crée une NOUVELLE VERSION de gestion-des-fonds ; les instances en cours
+# restent sur leur version (4.1) et la terminent telles quelles ; fund-management démarre par clé → toujours la dernière version.
+# Rien n<span class="s">'est migré, rien n'</span>est supprimé.
+
+## 0. Avant — état des lieux (Postman, GET)
+GET {{camunda}}/engine-rest/process-definition?key=gestion-des-fonds&amp;tenantIdIn=QLICKFLOW&amp;sortBy=version&amp;sortOrder=desc
+    → noter la version N et le versionTag courant (attendu 4.1). S<span class="s">'il y a plusieurs tenants ou aucun, STOP : c'</span>est le piège
+      « déploiement Modeler sans tenant invisible pour fund-management ».
+GET {{camunda}}/engine-rest/process-instance/count?processDefinitionKey=gestion-des-fonds&amp;tenantIdIn=QLICKFLOW
+    → nombre d<span class="s">'instances actives (information : elles finiront sur 4.1, c'</span>est normal et sans effet sur la 4.2).
+
+## 1. Déployer (Postman — POST multipart, PAS le Modeler : le tenant y est trop facile à oublier)
+POST {{camunda}}/engine-rest/deployment/create
+  Body form-data :
+    deployment-name            gestion-des-fonds-4.2
+    tenant-id                  QLICKFLOW
+    enable-duplicate-filtering <span class="k">true</span>
+    deploy-changed-only        <span class="k">true</span>
+    deployment-source          process application
+    data (<span class="k">type</span> File)           gestion-des-fonds_v4.2.bpmn
+  → 200 : <span class="s">"deployedProcessDefinitions"</span> contient gestion-des-fonds, version N+1, versionTag <span class="s">"4.2"</span>, tenantId <span class="s">"QLICKFLOW"</span>.
+  → si <span class="s">"deployedProcessDefinitions"</span> est vide : le fichier est identique à un déploiement précédent (duplicate filtering) — rien à faire.
+
+## 2. Vérifier
+GET {{camunda}}/engine-rest/process-definition?key=gestion-des-fonds&amp;tenantIdIn=QLICKFLOW&amp;latestVersion=<span class="k">true</span>
+    → versionTag = 4.2, suspended = <span class="k">false</span>.
+GET {{camunda}}/engine-rest/process-definition/key/gestion-des-fonds/tenant-id/QLICKFLOW/xml
+    → le XML contient Gateway_CutoffApplicable.
+
+## 3. Redémarrer fund-management APRÈS le déploiement (ordre : BPMN puis service)
+    Le worker s'abonne alors à gdf-eclater-besoins-gab avec le vrai handler. Si une instance 4.2 atteint ce topic avant
+    le redémarrage, la tâche externe attend simplement (pas d<span class="s">'erreur, pas d'</span>incident).
+
+## 4. Recette (10 min)
+  a. Demande agence (j62211) : créer → soumettre → GET /process-instance?processInstanceBusinessKey={id} → processDefinitionId finit par <span class="s">":N+1:…"</span>
+     (4.2) ; comportement identique à avant (report après 16h, verrou 16h).
+  b. Demande monétique : POST /cash/init puis /submit avec une demande portée par typeDemande = GAB_HORS_SITE (API du collègue) —
+     ou le scénario moteur seul du doc 265 (§3) tant que son API n'est pas là.
+  c. Une instance 4.1 encore ouverte : la traiter depuis la Caisse Centrale → elle se termine normalement.
+
+## 5. Erreurs du passé — et la parade
+  - « Déploiement sans tenant » : fund-management ne le voit pas et continue sur l'ancienne version → toujours tenant-id=QLICKFLOW (étape 1), contrôle étape 2.
+  - « J<span class="s">'ai supprimé l'</span>ancienne définition / le déploiement avec cascade » : DELETE /deployment/{id}?cascade=<span class="k">true</span> tue toutes les instances
+    en cours → ne JAMAIS supprimer un déploiement qui porte des instances actives. On n'y touche pas ; les instances 4.1 finissent seules.
+  - « Instances figées sur une version intermédiaire après un ménage partiel » : en local, si tu veux repartir propre, purge d'abord les
+    demandes (Purge_demandes_local.html) PUIS DELETE /process-instance/{id} de chaque instance restante
+    (GET /process-instance?processDefinitionKey=gestion-des-fonds&amp;tenantIdIn=QLICKFLOW), jamais l'inverse.
+  - « Le worker ne prend pas la tâche » : topic non abonné (handler non branché dans GdfWorkerConfig) ou tenant du worker ≠ QLICKFLOW →
+    GET /external-task?topicName=gdf-eclater-besoins-gab montre la tâche en attente ; vérifier le log d'abonnement au démarrage.
+
+## 6. Retour arrière (si la 4.2 pose problème en recette)
+  Ne pas supprimer la 4.2 si elle porte des instances. Redéployer la 4.1 (fichier gestion-des-fonds_v4.1.bpmn, même POST, deployment-name
+  gestion-des-fonds-4.1-rollback, sans deploy-changed-only) → elle devient la dernière version, les nouvelles demandes repartent dessus.
+  Sans aucune instance 4.2 : DELETE {{camunda}}/engine-rest/deployment/{idDu4.2}?cascade=<span class="k">false</span> suffit (refusé s<span class="s">'il reste des instances — c'</span>est voulu).</code></pre></div>
+<h2 id="s4">4. Ordre de livraison</h2>
+<div class="card"><ol>
+<li>Code fund-management mergé (ce doc §1-2) + port <code>BesoinGabPort</code> implémenté par ton collègue — tant qu'il ne l'est pas, Spring refusera de démarrer (bean manquant) : c'est volontaire, le handler ne doit pas tourner à vide. Si tu dois livrer avant lui, garde l'ancienne ligne du <code>GdfWorkerConfig</code> et ne pose le handler qu'avec son implémentation.</li>
+<li>Déployer le BPMN 4.2 (collection 00 → 04).</li>
+<li>Redémarrer fund-management.</li>
+<li>Recette : une demande agence (comportement inchangé, instance sur la nouvelle version) ; une demande monétique via l'API du collègue, ou le scénario moteur seul (collection 05 → 10) en attendant.</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
