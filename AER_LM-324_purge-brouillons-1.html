@@ -1,0 +1,331 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-324 — Purge quotidienne des demandes Brouillon</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-324 — Batch de nettoyage des demandes Brouillon</h1><p>fund-management (common, application-service, data-access, external-services, application, container) · Camunda 7 tenant QLICKFLOW · 19/10/2026 · correctif recette 20/10</p></header>
+<nav><a href="#s0">Périmètre</a><a href="#s1">Code</a><a href="#s2">Configuration</a><a href="#s3">Tests</a><a href="#s4">Recette</a></nav><main><h2 id="s0">0. Périmètre</h2>
+<div class="card"><p><b>Règle retenue</b> : les demandes sont créées et traitées le jour même ; un brouillon (<code>INITIATED</code>) encore présent à minuit n'a plus de raison d'être. Chaque nuit à 00:00, tous les brouillons sont supprimés : l'instance Camunda (bloquée sur <code>Task_SoumettreDemande</code>) d'abord, puis la demande et sa grappe en base. Pas de rétention, pas de ShedLock, pas d'outbox, pas d'endpoint : un <code>@Scheduled</code> Spring et un use case.</p>
+<table>
+<tr><th>Module</th><th>Fichier</th><th>Changement</th></tr>
+<tr><td rowspan="3">application-service</td><td><code>retail.ports.input.NettoyerBrouillonsUseCase</code></td><td>nouveau port d'entrée</td></tr>
+<tr><td><code>retail.nettoyage.NettoyageBrouillonsService</code></td><td>nouveau — la purge (Camunda puis base, erreur isolée par demande)</td></tr>
+<tr><td><code>retail.ports.output.repository.CashDemandRepository</code></td><td>+ <code>findIdsParStatut(RequestStatus)</code></td></tr>
+<tr><td>common</td><td><code>ports.output.workflow.ProcessusWorkflowPort</code></td><td>+ <code>supprimerInstancesParBusinessKey</code> — <b>correctif recette 20/10</b> : <code>supprimerInstance</code> attend l'id d'instance Camunda, pas l'id de la demande</td></tr>
+<tr><td rowspan="2">external-services</td><td><code>camunda.adapter.CamundaWorkflowAdapter</code></td><td>+ délégation</td></tr>
+<tr><td><code>camunda.client.CamundaEngineClient</code></td><td>+ GET /process-instance?businessKey (+ tenantIdIn) puis DELETE de chaque instance ; aucune = 0</td></tr>
+<tr><td rowspan="2">data-access</td><td><code>retail.adapter.CashDemandRepositoryImpl</code></td><td>+ implémentation (délègue au JPA)</td></tr>
+<tr><td><code>CashDemandJpaRepository</code></td><td>+ JPQL <code>findIdsByStatut</code> (ids seuls, sans l'arbre)</td></tr>
+<tr><td rowspan="2">application</td><td><code>application.scheduler.PlanificationConfig</code></td><td>nouveau — <code>@EnableScheduling</code></td></tr>
+<tr><td><code>application.scheduler.NettoyageBrouillonsScheduler</code></td><td>nouveau — adapter primaire planifié</td></tr>
+<tr><td>container</td><td><code>application.yaml</code> (main + test)</td><td>+ <code>gdf.nettoyage-brouillons.cron / zone</code></td></tr>
+</table>
+<p><b>Réutilisé tel quel</b> : <code>CashDemandRepository.supprimer(UUID)</code> (suppression physique déjà utilisée par la compensation de la saga d'initialisation — la grappe opérations → devises → coupures part avec) et <code>CamundaEngineClient.supprimerInstance</code> (DELETE /process-instance/{id}, appelé pour chaque instance trouvée par businessKey). Aucun script Flyway, aucune dépendance.</p>
+<p><b>Correctif recette du 20/10</b> (symptôme : « No process instance found for id &lt;uuid demande&gt; », 0 supprimé sur 76) : la saga passe à <code>supprimerInstance</code> l'id technique renvoyé par <code>demarrerProcessus</code> ; la purge, elle, n'a que l'id de la demande = businessKey. Le port gagne donc <code>supprimerInstancesParBusinessKey</code>, et un brouillon sans instance (versions 1-2 purgées en cascade le 19/10) est supprimé quand même — c'est le cas « déjà partie », pas une erreur.</p>
+<p><b>Périmètre</b> : retail — agence et monétique partagent <code>retail.cash_request</code>, donc les brouillons monétique sont purgés par le même job. Corpo n'est pas dans cette Jira.</p>
+<p><b>Multi-pods</b> : si deux pods tournent à minuit, chacun lit la même liste ; le second échoue sur une demande déjà partie (404 moteur ou ligne absente), l'erreur est journalisée en WARN et ignorée — aucun verrou nécessaire.</p></div>
+<h2 id="s1">1. Code</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NettoyerBrouillonsUseCase.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\input\NettoyerBrouillonsUseCase.java</span></div><p class="note">Ctrl+F dans application-service : si tes ports d'entrée existants vivent sous un autre nom que <code>ports.input</code> (ex. <code>ports.in</code>), mets ce fichier au même endroit et corrige le package — les deux imports (service et scheduler) suivent.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.ports.input;
+
+<span class="c">/**
+ * AER_LM-324 : purge des demandes restées en brouillon (INITIATED).
+ * Déclenché chaque nuit par le planificateur ; peut être appelé par tout adapter primaire.
+ */</span>
+<span class="k">public</span> <span class="k">interface</span> NettoyerBrouillonsUseCase {
+
+    <span class="c">/** @return nombre de brouillons effectivement supprimés (base + instance Camunda). */</span>
+    int nettoyer();
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NettoyageBrouillonsService.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\nettoyage\NettoyageBrouillonsService.java</span></div><p class="note"><code>ProcessusWorkflowPort</code> vit dans fund-management-common (import ci-dessus vérifié). Ordre volontaire : moteur d'abord — si la suppression Camunda échoue, la demande reste en base et sera reprise la nuit suivante ; l'inverse laisserait une instance orpheline dans le moteur.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.nettoyage;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestStatus;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.input.NettoyerBrouillonsUseCase;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.CashDemandRepository;
+<span class="k">import</span> com.bmci.common.workflow.fund.management.service.domain.ports.output.workflow.ProcessusWorkflowPort;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.stereotype.Service;
+
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.UUID;
+
+<span class="c">/**
+ * AER_LM-324 : les demandes sont créées et traitées le jour même ; un brouillon (INITIATED)
+ * encore présent à minuit n'a plus de raison d'être. Pour chacun : suppression de la ou des instances
+ * Camunda portant la demande en businessKey (bloquées sur Task_SoumettreDemande ; aucune = déjà partie),
+ * puis de la demande et de sa grappe en base.
+ * Une erreur sur une demande ne bloque pas les autres : elle est journalisée et la demande
+ * sera reprise à la purge suivante.
+ */</span>
+<span class="a">@Slf4j</span>
+<span class="a">@Service</span>
+<span class="a">@RequiredArgsConstructor</span>
+<span class="k">public</span> <span class="k">class</span> NettoyageBrouillonsService <span class="k">implements</span> NettoyerBrouillonsUseCase {
+
+    <span class="k">static</span> <span class="k">final</span> String MOTIF_SUPPRESSION = <span class="s">"Purge quotidienne des brouillons (AER_LM-324)"</span>;
+
+    <span class="k">private</span> <span class="k">final</span> CashDemandRepository cashDemandRepository;
+    <span class="k">private</span> <span class="k">final</span> ProcessusWorkflowPort processusWorkflowPort;
+
+    <span class="a">@Override</span>
+    <span class="k">public</span> int nettoyer() {
+        List&lt;UUID&gt; brouillons = cashDemandRepository.findIdsParStatut(RequestStatus.INITIATED);
+        <span class="k">if</span> (brouillons.isEmpty()) {
+            log.info(<span class="s">"Purge des brouillons : aucun brouillon à supprimer"</span>);
+            <span class="k">return</span> 0;
+        }
+        int supprimes = 0;
+        for (UUID id : brouillons) {
+            try {
+                processusWorkflowPort.supprimerInstancesParBusinessKey(id.toString(), MOTIF_SUPPRESSION);
+                cashDemandRepository.supprimer(id);
+                supprimes++;
+            } catch (RuntimeException e) {
+                log.warn(<span class="s">"Purge des brouillons : demande {} conservée, reprise à la prochaine purge ({})"</span>, id, e.getMessage());
+            }
+        }
+        log.info(<span class="s">"Purge des brouillons : {} supprimé(s) sur {} brouillon(s)"</span>, supprimes, brouillons.size());
+        <span class="k">return</span> supprimes;
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>ProcessusWorkflowPort.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-common\src\main\java\com\bmci\common\workflow\fund\management\service\domain\ports\output\workflow\ProcessusWorkflowPort.java  (après supprimerInstance)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">/**
+     * AER_LM-324 : supprime toutes les instances actives portant cette businessKey (id de la demande).
+     * Aucune instance (déjà supprimée, version purgée) = aucun appel, 0 renvoyé.
+     * @return nombre d'instances supprimées
+     */</span>
+    int supprimerInstancesParBusinessKey(String businessKey, String motif);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CamundaWorkflowAdapter.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\adapter\CamundaWorkflowAdapter.java  (après supprimerInstance)</span></div><pre><button class="copy">Copier</button><code>    <span class="a">@Override</span> <span class="k">public</span> int supprimerInstancesParBusinessKey(String businessKey, String motif) {
+        <span class="k">return</span> engineClient.supprimerInstancesParBusinessKey(businessKey, motif);
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CamundaEngineClient.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\client\CamundaEngineClient.java  (après supprimerInstance)</span></div><p class="note">Même <code>camundaRestClient</code>, même <code>avecTenant()</code> / <code>properties.getTenantId()</code> que <code>correlerMessage</code>. Le DELETE réutilise ton <code>supprimerInstance</code> existant (deleteReason + skipCustomListeners).</p><pre><button class="copy">Copier</button><code>    <span class="c">// ---- Imports à ajouter si absents : java.util.List, org.springframework.core.ParameterizedTypeReference</span>
+
+    <span class="c">/** GET /process-instance?businessKey=… (+ tenantIdIn) puis DELETE de chacune — purge des brouillons (AER_LM-324). */</span>
+    <span class="k">public</span> int supprimerInstancesParBusinessKey(String businessKey, String motif) {
+        List&lt;Map&lt;String, Object&gt;&gt; instances = camundaRestClient.<span class="k">get</span>()
+                .uri(uri -&gt; {
+                    var builder = uri.path(<span class="s">"/process-instance"</span>).queryParam(<span class="s">"businessKey"</span>, businessKey);
+                    <span class="k">if</span> (avecTenant()) {
+                        builder.queryParam(<span class="s">"tenantIdIn"</span>, properties.getTenantId());
+                    }
+                    <span class="k">return</span> builder.build();
+                })
+                .retrieve()
+                .body(<span class="k">new</span> ParameterizedTypeReference&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt;() {});
+        <span class="k">if</span> (instances == <span class="k">null</span> || instances.isEmpty()) {
+            <span class="k">return</span> 0;
+        }
+        for (Map&lt;String, Object&gt; instance : instances) {
+            supprimerInstance((String) instance.<span class="k">get</span>(<span class="s">"id"</span>), motif);
+        }
+        <span class="k">return</span> instances.size();
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepository.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\repository\CashDemandRepository.java  (après searchMonetique)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-324 : identifiants des demandes dans un statut donné (purge des brouillons). */</span>
+    List&lt;UUID&gt; findIdsParStatut(RequestStatus statut);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepositoryImpl.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java  (après searchMonetique)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-324 =====</span>
+    <span class="a">@Override</span>
+    <span class="a">@Transactional</span>(readOnly = <span class="k">true</span>)
+    <span class="k">public</span> List&lt;UUID&gt; findIdsParStatut(RequestStatus statut) {
+        <span class="k">return</span> cashDemandJpaRepository.findIdsByStatut(statut.name());
+    }</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandJpaRepository.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\repository\CashDemandJpaRepository.java  (à côté de findIdsByStatutEtDateEffet)</span></div><p class="note">Même forme que <code>findIdsByStatutEtDateEffet</code> : <code>requestStatus</code> est une colonne String sur l'entité, d'où le <code>statut.name()</code> dans l'adapter. Imports <code>@Query</code> / <code>@Param</code> déjà présents dans ce fichier.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-324 : ids des demandes d'un statut, sans charger l'arbre. */</span>
+    <span class="a">@Query</span>(<span class="s">"select c.id from CashRequestEntity c where c.requestStatus = :statut"</span>)
+    List&lt;UUID&gt; findIdsByStatut(<span class="a">@Param</span>(<span class="s">"statut"</span>) String statut);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>PlanificationConfig.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\scheduler\PlanificationConfig.java</span></div><p class="note">Ctrl+F <code>@EnableScheduling</code> dans le projet : s'il existe déjà quelque part, ne crée pas ce fichier.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.scheduler;
+
+<span class="k">import</span> org.springframework.context.annotation.Configuration;
+<span class="k">import</span> org.springframework.scheduling.annotation.EnableScheduling;
+
+<span class="c">/** Active les tâches planifiées de fund-management (AER_LM-324 : purge des brouillons). */</span>
+<span class="a">@Configuration</span>
+<span class="a">@EnableScheduling</span>
+<span class="k">public</span> <span class="k">class</span> PlanificationConfig {
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NettoyageBrouillonsScheduler.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\scheduler\NettoyageBrouillonsScheduler.java</span></div><p class="note">Module <code>fund-management-application</code>, à côté du REST : c'est un adapter primaire comme les contrôleurs. Si le package racine de ce module n'est pas <code>com.bmci.workflow.fund.management.application</code>, aligne les deux fichiers sur le package de tes contrôleurs + <code>.scheduler</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.scheduler;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.input.NettoyerBrouillonsUseCase;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.scheduling.annotation.Scheduled;
+<span class="k">import</span> org.springframework.stereotype.Component;
+
+<span class="c">/**
+ * AER_LM-324 : adapter primaire planifié — déclenche la purge des brouillons chaque nuit.
+ * Heure et fuseau en yaml (gdf.nettoyage-brouillons.*).
+ */</span>
+<span class="a">@Slf4j</span>
+<span class="a">@Component</span>
+<span class="a">@RequiredArgsConstructor</span>
+<span class="k">public</span> <span class="k">class</span> NettoyageBrouillonsScheduler {
+
+    <span class="k">private</span> <span class="k">final</span> NettoyerBrouillonsUseCase nettoyerBrouillonsUseCase;
+
+    <span class="a">@Scheduled</span>(cron = <span class="s">"${gdf.nettoyage-brouillons.cron}"</span>, zone = <span class="s">"${gdf.nettoyage-brouillons.zone}"</span>)
+    <span class="k">public</span> <span class="k">void</span> purgerBrouillons() {
+        log.info(<span class="s">"Purge des brouillons : démarrage"</span>);
+        nettoyerBrouillonsUseCase.nettoyer();
+    }
+}</code></pre></div>
+<h2 id="s2">2. Configuration</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>application.yaml</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\application.yaml  (bloc gdf à la racine ; si une clé gdf existe déjà, ajoute seulement nettoyage-brouillons dessous)</span></div><pre><button class="copy">Copier</button><code># AER_LM-324 : purge quotidienne des demandes en brouillon (INITIATED)
+gdf:
+  nettoyage-brouillons:
+    cron: <span class="s">"0 0 0 * * *"</span>            # minuit — 6 champs Spring (sec min h jour mois jour-semaine)
+    zone: <span class="s">"Africa/Casablanca"</span>      # indépendant du fuseau de la JVM</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>application.yaml (test)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\test\resources\application.yaml</span></div><p class="note">Sans ce bloc le contexte de test échoue sur le placeholder <code>${gdf.nettoyage-brouillons.cron}</code>.</p><pre><button class="copy">Copier</button><code># AER_LM-324 — même bloc que le yaml principal (fichier = copie intégrale, règle du projet)
+gdf:
+  nettoyage-brouillons:
+    cron: <span class="s">"0 0 0 * * *"</span>
+    zone: <span class="s">"Africa/Casablanca"</span></code></pre></div>
+<h2 id="s3">3. Tests</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NettoyageBrouillonsServiceTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\nettoyage\NettoyageBrouillonsServiceTest.java</span></div><p class="note">Mockito strict : chaque test ne stubbe que ce qu'il consomme. 4 cas : vide, ordre moteur → base, brouillon sans instance moteur (supprimé quand même), erreur moteur isolée.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.nettoyage;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestStatus;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.CashDemandRepository;
+<span class="k">import</span> com.bmci.common.workflow.fund.management.service.domain.ports.output.workflow.ProcessusWorkflowPort;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.InjectMocks;
+<span class="k">import</span> org.mockito.InOrder;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.UUID;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="k">import</span> <span class="k">static</span> org.mockito.ArgumentMatchers.anyString;
+<span class="k">import</span> <span class="k">static</span> org.mockito.Mockito.*;
+
+<span class="a">@ExtendWith</span>(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> NettoyageBrouillonsServiceTest {
+
+    <span class="a">@Mock</span> <span class="k">private</span> CashDemandRepository cashDemandRepository;
+    <span class="a">@Mock</span> <span class="k">private</span> ProcessusWorkflowPort processusWorkflowPort;
+    <span class="a">@InjectMocks</span> <span class="k">private</span> NettoyageBrouillonsService service;
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"Aucun brouillon : rien n'est supprimé"</span>)
+    <span class="k">void</span> aucunBrouillon() {
+        when(cashDemandRepository.findIdsParStatut(RequestStatus.INITIATED)).thenReturn(List.of());
+
+        assertEquals(0, service.nettoyer());
+
+        verifyNoInteractions(processusWorkflowPort);
+        verify(cashDemandRepository, never()).supprimer(any());
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"Chaque brouillon : instance Camunda supprimée avant la demande"</span>)
+    <span class="k">void</span> supprimeInstancePuisDemande() {
+        UUID a = UUID.randomUUID();
+        UUID b = UUID.randomUUID();
+        when(cashDemandRepository.findIdsParStatut(RequestStatus.INITIATED)).thenReturn(List.of(a, b));
+
+        assertEquals(2, service.nettoyer());
+
+        InOrder ordre = inOrder(processusWorkflowPort, cashDemandRepository);
+        ordre.verify(processusWorkflowPort).supprimerInstancesParBusinessKey(eq(a.toString()), eq(NettoyageBrouillonsService.MOTIF_SUPPRESSION));
+        ordre.verify(cashDemandRepository).supprimer(a);
+        ordre.verify(processusWorkflowPort).supprimerInstancesParBusinessKey(eq(b.toString()), eq(NettoyageBrouillonsService.MOTIF_SUPPRESSION));
+        ordre.verify(cashDemandRepository).supprimer(b);
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"Brouillon sans instance moteur (déjà purgée) : la demande est quand même supprimée"</span>)
+    <span class="k">void</span> sansInstanceMoteurLaDemandeEstSupprimee() {
+        UUID orphelin = UUID.randomUUID();
+        when(cashDemandRepository.findIdsParStatut(RequestStatus.INITIATED)).thenReturn(List.of(orphelin));
+        when(processusWorkflowPort.supprimerInstancesParBusinessKey(eq(orphelin.toString()), anyString())).thenReturn(0);
+
+        assertEquals(1, service.nettoyer());
+
+        verify(cashDemandRepository).supprimer(orphelin);
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"Erreur moteur sur un brouillon : il est conservé, les autres sont purgés"</span>)
+    <span class="k">void</span> erreurSurUneDemandeNeBloquePasLesAutres() {
+        UUID enErreur = UUID.randomUUID();
+        UUID ok = UUID.randomUUID();
+        when(cashDemandRepository.findIdsParStatut(RequestStatus.INITIATED)).thenReturn(List.of(enErreur, ok));
+        doThrow(<span class="k">new</span> IllegalStateException(<span class="s">"moteur indisponible"</span>))
+                .when(processusWorkflowPort).supprimerInstancesParBusinessKey(eq(enErreur.toString()), anyString());
+
+        assertEquals(1, service.nettoyer());
+
+        verify(cashDemandRepository, never()).supprimer(enErreur);
+        verify(cashDemandRepository).supprimer(ok);
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>NettoyageBrouillonsSchedulerTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\test\java\com\bmci\workflow\fund\management\application\scheduler\NettoyageBrouillonsSchedulerTest.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.scheduler;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.input.NettoyerBrouillonsUseCase;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.InjectMocks;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> <span class="k">static</span> org.mockito.Mockito.verify;
+
+<span class="a">@ExtendWith</span>(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> NettoyageBrouillonsSchedulerTest {
+
+    <span class="a">@Mock</span> <span class="k">private</span> NettoyerBrouillonsUseCase nettoyerBrouillonsUseCase;
+    <span class="a">@InjectMocks</span> <span class="k">private</span> NettoyageBrouillonsScheduler scheduler;
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"Le déclenchement planifié appelle le use case"</span>)
+    <span class="k">void</span> delegueAuUseCase() {
+        scheduler.purgerBrouillons();
+        verify(nettoyerBrouillonsUseCase).nettoyer();
+    }
+}</code></pre></div>
+<div class="card"><p><code>mvn clean install</code> du réacteur (common, application-service et external-services sont consommés en jar par le container).</p></div>
+<h2 id="s4">4. Recette</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Déroulé</b><br><span class="path">Écran agence + SQL + REST moteur (http://localhost:3030)</span></div><pre><button class="copy">Copier</button><code>RECETTE LOCALE (fund-management + moteur 3030 démarrés)
+
+1. Préparer deux brouillons depuis l'écran agence (persona Chef de caisse g10002) :
+   Nouvelle demande → Enregistrer (sans Soumettre), deux fois.
+   Contrôle base :  select id, unique_request_ref, request_status <span class="k">from</span> retail.cash_request where request_status = <span class="s">'INITIATED'</span>;
+   Contrôle moteur : GET http:<span class="c">//localhost:3030/engine-rest/process-instance?businessKey=&lt;id&gt;&amp;tenantIdIn=QLICKFLOW   → 1 instance (Task_SoumettreDemande)</span>
+   (les anciens brouillons dont la version a été purgée hier n<span class="s">'ont plus d'</span>instance : ils sont supprimés quand même)
+
+2. Déclencher la purge sans attendre minuit — dans application.yaml LOCAL uniquement :
+   gdf.nettoyage-brouillons.cron: <span class="s">"0 */2 * * * *"</span>      (toutes les 2 minutes)
+   Redémarrer fund-management, attendre le log :
+   <span class="s">"Purge des brouillons : démarrage"</span> puis <span class="s">"Purge des brouillons : 2 supprimé(s) sur 2 brouillon(s)"</span>
+
+3. Contrôles après purge :
+   base   : la requête du 1 renvoie 0 ligne ; les opérations/coupures liées sont parties avec (cascade de la grappe, déjà utilisée par la compensation de saga)
+   moteur : GET /engine-rest/process-instance?businessKey=&lt;id&gt; → []
+   les demandes SUBMITTED / IN_MODIFICATION / traitées / annulées sont intactes :
+            select request_status, count(*) <span class="k">from</span> retail.cash_request group by 1;
+
+4. Cas d'erreur : arrêter le moteur Camunda, créer un brouillon, laisser passer une purge →
+   log WARN <span class="s">"demande &lt;id&gt; conservée, reprise à la prochaine purge"</span>, la ligne reste en base ;
+   relancer le moteur → purge suivante : supprimée.
+
+5. Remettre le cron à <span class="s">"0 0 0 * * *"</span> avant de committer le yaml.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
