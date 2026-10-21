@@ -1,0 +1,857 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Agentic AI · Prépa Carrefour</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: dark-first console. Sticky top nav as tabs; each tab is one chapter; content column ~72ch with a right-side quick index on wide screens. */
+:root{
+  --bg:#0f1318; --bg-2:#161c23; --bg-3:#1d252e; --line:#2a3440;
+  --fg:#e6ebf0; --fg-2:#a7b3c0; --fg-3:#6f7d8c;
+  --accent:#4fd1c5; --accent-2:#f6ad55; --accent-3:#9f7aea; --good:#68d391; --warn:#f6ad55; --bad:#fc8181;
+  --font-display:"Manrope",system-ui,sans-serif;
+  --font-body:"Source Sans 3",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#f4f6f8; --bg-2:#ffffff; --bg-3:#e9eef3; --line:#d3dbe3;
+  --fg:#141a21; --fg-2:#3f4b58; --fg-3:#6b7785;
+  --accent:#0f8f84; --accent-2:#c05621; --accent-3:#6b46c1; --good:#2f855a; --warn:#c05621; --bad:#c53030;
+  color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#f4f6f8; --bg-2:#ffffff; --bg-3:#e9eef3; --line:#d3dbe3;
+  --fg:#141a21; --fg-2:#3f4b58; --fg-3:#6b7785;
+  --accent:#0f8f84; --accent-2:#c05621; --accent-3:#6b46c1; --good:#2f855a; --warn:#c05621; --bad:#c53030;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:17px;line-height:1.55;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg-2)}
+a{color:var(--accent)}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(1.7rem,4vw,2.4rem);font-weight:800;letter-spacing:-.01em}
+h2{font-size:1.45rem;font-weight:800;margin-block:2.2rem .8rem;padding-top:1.4rem;border-top:1px solid var(--line)}
+h2:first-of-type{border-top:0;padding-top:0;margin-top:.6rem}
+h3{font-size:1.12rem;font-weight:700;margin-block:1.4rem .5rem;color:var(--fg)}
+p{margin:0 0 .9rem}
+ul,ol{margin:0 0 1rem;padding-left:1.3rem}
+li{margin-bottom:.3rem}
+li::marker{color:var(--fg-3)}
+code,kbd{font-family:var(--font-mono);font-size:.86em;background:var(--bg-3);padding:.1em .4em;border-radius:4px;color:var(--fg)}
+pre{font-family:var(--font-mono);font-size:.82rem;line-height:1.5;background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:1rem;overflow-x:auto;margin:0 0 1rem}
+pre code{background:none;padding:0;font-size:inherit}
+strong{color:var(--fg);font-weight:600}
+.eyebrow{font-family:var(--font-display);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.muted{color:var(--fg-2)}
+.small{font-size:.9rem}
+
+/* Header */
+header.hero{background:var(--bg-2);border-bottom:1px solid var(--line)}
+.hero-in{max-width:1180px;margin:0 auto;padding-block:1.6rem 1.2rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hero-grid{display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:end}
+.hero p{max-width:68ch;color:var(--fg-2);margin:.6rem 0 0}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.9rem}
+.chip{font-family:var(--font-mono);font-size:.74rem;color:var(--fg-2);background:var(--bg-3);border:1px solid var(--line);padding:.25rem .55rem;border-radius:999px;white-space:nowrap}
+.chip b{color:var(--accent);font-weight:600}
+.countdown{text-align:right;font-family:var(--font-display)}
+.countdown .n{font-size:2.4rem;font-weight:800;color:var(--accent-2);line-height:1;font-variant-numeric:tabular-nums}
+.countdown .l{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3)}
+
+/* Tabs nav */
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--bg-2);border-bottom:1px solid var(--line)}
+.tabs-in{max-width:1180px;margin:0 auto;display:flex;gap:.25rem;overflow-x:auto;scrollbar-width:thin;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tabs button{appearance:none;background:none;border:0;border-bottom:3px solid transparent;color:var(--fg-2);font-family:var(--font-display);font-weight:700;font-size:.85rem;padding:.8rem .7rem .65rem;cursor:pointer;white-space:nowrap}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:4px}
+
+main{max-width:1180px;margin:0 auto;padding-block:1.2rem 4rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.panel{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:2.5rem}
+.panel>.content{min-width:0;max-width:74ch}
+.panel>aside{position:sticky;top:calc(env(safe-area-inset-top,0px) + 60px);align-self:start;font-size:.86rem;border-left:1px solid var(--line);padding-left:1rem}
+aside .eyebrow{display:block;margin-bottom:.5rem}
+aside a{display:block;color:var(--fg-2);text-decoration:none;padding:.2rem 0}
+aside a:hover{color:var(--accent)}
+section[hidden]{display:none}
+
+/* Components */
+.callout{border-left:3px solid var(--accent);background:var(--bg-2);padding:.8rem 1rem;border-radius:0 8px 8px 0;margin:0 0 1rem}
+.callout.amber{border-left-color:var(--accent-2)}
+.callout.violet{border-left-color:var(--accent-3)}
+.callout .eyebrow{display:block;margin-bottom:.25rem}
+.callout.amber .eyebrow{color:var(--accent-2)}
+.callout.violet .eyebrow{color:var(--accent-3)}
+.callout p:last-child{margin:0}
+
+table{border-collapse:collapse;width:100%;font-size:.92rem;margin:0 0 1rem}
+.tbl{overflow-x:auto;margin:0 0 1rem}
+th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--font-display);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-3)}
+td:first-child{font-weight:600;white-space:nowrap}
+
+details{border:1px solid var(--line);border-radius:8px;background:var(--bg-2);margin:0 0 .6rem}
+summary{cursor:pointer;padding:.75rem 1rem;font-family:var(--font-display);font-weight:700;font-size:.98rem;list-style:none;display:flex;gap:.6rem;align-items:baseline}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";color:var(--accent);font-family:var(--font-mono);flex:none}
+details[open] summary::before{content:"–"}
+summary .tag{margin-left:auto;font-family:var(--font-mono);font-size:.68rem;color:var(--fg-3);font-weight:400;white-space:nowrap}
+details .body{padding:0 1rem .9rem;border-top:1px solid var(--line);padding-top:.7rem;font-size:.95rem}
+details .body p:last-child{margin:0}
+
+.pipeline{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.5rem;margin:0 0 1.2rem}
+.stage{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:.7rem .75rem;min-width:0}
+.stage .k{font-family:var(--font-display);font-weight:800;font-size:.8rem;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+.stage .t{font-weight:600;margin:.2rem 0 .3rem}
+.stage ul{padding-left:1rem;margin:0;font-size:.83rem;color:var(--fg-2)}
+.stage li{margin-bottom:.15rem}
+
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;margin:0 0 1rem}
+.card{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:.9rem 1rem;min-width:0}
+.card h4{font-size:.95rem;margin-bottom:.35rem}
+.card p,.card ul{font-size:.92rem;margin-bottom:0}
+
+.glossary-tools{display:flex;gap:.5rem;margin:0 0 .8rem}
+.glossary-tools input{flex:1;background:var(--bg-2);border:1px solid var(--line);color:var(--fg);padding:.55rem .75rem;border-radius:8px;font:inherit;min-width:0}
+.glossary-tools input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.gl{display:grid;grid-template-columns:150px minmax(0,1fr);gap:.4rem 1rem;padding:.55rem 0;border-bottom:1px solid var(--line);font-size:.95rem}
+.gl dt{font-family:var(--font-mono);font-size:.84rem;color:var(--accent);font-weight:600}
+.gl dd{margin:0;color:var(--fg-2)}
+.gl dd b{color:var(--fg)}
+.gl[hidden]{display:none}
+.gl-count{font-size:.8rem;color:var(--fg-3);margin-bottom:.6rem}
+
+/* Flashcards */
+.fc-wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:.8rem;margin:0 0 1.2rem}
+.fc{background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:1.3rem 1.2rem;min-height:170px;display:flex;flex-direction:column;justify-content:center;cursor:pointer;position:relative}
+.fc:focus-visible{outline:2px solid var(--accent)}
+.fc .q{font-family:var(--font-display);font-weight:700;font-size:1.08rem}
+.fc .a{display:none;font-size:.95rem;color:var(--fg-2);margin-top:.6rem}
+.fc.flip .a{display:block}
+.fc .hint{position:absolute;top:.6rem;right:.8rem;font-family:var(--font-mono);font-size:.68rem;color:var(--fg-3)}
+.fc-ctl{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+button.btn{appearance:none;font:inherit;font-family:var(--font-display);font-weight:700;font-size:.85rem;background:var(--bg-3);color:var(--fg);border:1px solid var(--line);padding:.5rem .9rem;border-radius:8px;cursor:pointer}
+button.btn.primary{background:var(--accent);color:#0b1a1a;border-color:var(--accent)}
+button.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fc-prog{font-family:var(--font-mono);font-size:.78rem;color:var(--fg-3);margin-left:auto;font-variant-numeric:tabular-nums}
+
+/* Checklist */
+.ck{display:flex;gap:.7rem;align-items:flex-start;padding:.5rem 0;border-bottom:1px solid var(--line)}
+.ck input{margin-top:.35rem;accent-color:var(--accent);width:17px;height:17px;flex:none}
+.ck label{cursor:pointer;flex:1}
+.ck label .d{display:block;font-size:.86rem;color:var(--fg-3)}
+.ck.done label{color:var(--fg-3);text-decoration:line-through}
+.ck.done label .d{text-decoration:none}
+.bar{height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden;margin:.4rem 0 1rem}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.day{font-family:var(--font-display);font-weight:800;font-size:.78rem;color:var(--accent-2);letter-spacing:.1em;text-transform:uppercase;margin:1.3rem 0 .2rem}
+
+.mail{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:1rem 1.1rem;font-size:.95rem;position:relative;margin:0 0 1rem}
+.mail .copy{position:absolute;top:.6rem;right:.6rem}
+.mail p:last-child{margin:0}
+
+@media (max-width:860px){
+  .panel{grid-template-columns:minmax(0,1fr)}
+  .panel>aside{display:none}
+  .pipeline{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid2{grid-template-columns:minmax(0,1fr)}
+  .hero-grid{grid-template-columns:minmax(0,1fr)}
+  .countdown{text-align:left}
+  .gl{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion: reduce){ .bar i{transition:none} }
+</style>
+
+<header class="hero">
+  <div class="hero-in">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">Guide de préparation · Tech Lead · Carrefour Digital Factory Marchandise</span>
+        <h1>Maîtriser l'agentic AI pour l'entretien Carrefour</h1>
+        <p>Tout ce qu'il faut savoir pour parler avec autorité de « transformation agentique du cycle discovery → delivery » : concepts, architectures, stack 2026, rôle du Tech Lead, questions probables, plan de montée en compétence et préparation du premier appel avec Soukaina El Ghazali.</p>
+        <div class="meta">
+          <span class="chip">Contact : <b>Soukaina El Ghazali</b> · Tech Manager NS Performing Franchise</span>
+          <span class="chip">Reco : <b>Othmane Maniar</b></span>
+          <span class="chip">Entité : <b>DF Marchandise</b> · Massy (91)</span>
+          <span class="chip">Mail reçu : <b>20 oct. 2026, 16:32</b></span>
+        </div>
+      </div>
+      <div class="countdown">
+        <div class="n" id="days">—</div>
+        <div class="l">jours depuis le mail</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Chapitres">
+  <div class="tabs-in" role="tablist" id="tablist">
+    <button role="tab" data-tab="contexte" aria-selected="true">1 · Contexte Carrefour</button>
+    <button role="tab" data-tab="concepts">2 · Concepts</button>
+    <button role="tab" data-tab="patterns">3 · Architectures</button>
+    <button role="tab" data-tab="sdlc">4 · Discovery → Delivery</button>
+    <button role="tab" data-tab="stack">5 · Stack 2026</button>
+    <button role="tab" data-tab="techlead">6 · Rôle Tech Lead</button>
+    <button role="tab" data-tab="entretien">7 · Entretien</button>
+    <button role="tab" data-tab="glossaire">8 · Glossaire</button>
+    <button role="tab" data-tab="flash">9 · Flashcards</button>
+    <button role="tab" data-tab="plan">10 · Plan 7 jours</button>
+    <button role="tab" data-tab="appel">11 · Premier appel</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ============ 1. CONTEXTE ============ -->
+<section id="tab-contexte" class="panel" role="tabpanel">
+<div class="content">
+<h2>Ce que dit le mail, mot à mot</h2>
+<p>Soukaina cherche un <strong>Tech Lead</strong> pour une équipe « engagée dans une <strong>transformation agentique du cycle de discovery jusqu'au delivery</strong> d'un de mes produits ». Trois informations clés :</p>
+<ul>
+  <li><strong>« Transformation agentique »</strong> : il ne s'agit pas seulement de construire des agents IA pour les clients ; il s'agit d'injecter des agents dans <em>la façon dont l'équipe produit elle-même le logiciel</em> (discovery, specs, code, tests, release). C'est le sujet « agentic SDLC ».</li>
+  <li><strong>« Discovery jusqu'au delivery »</strong> : vocabulaire product (Marty Cagan, dual-track agile). Discovery = comprendre le problème et valider la solution ; Delivery = construire, tester, livrer. On attend un Tech Lead à l'aise des deux côtés.</li>
+  <li><strong>« Un de mes produits »</strong> : elle gère plusieurs produits ; « NS Performing Franchise » est probablement le périmètre (performance du réseau franchisé, non-alimentaire ?). <strong>À faire préciser lors de l'appel</strong>, sans deviner.</li>
+</ul>
+
+<h2>Carrefour en 2026 : le cadre stratégique</h2>
+<div class="callout">
+<span class="eyebrow">Plan « Carrefour 2030 » (présenté le 18 février 2026)</span>
+<p>L'IA est annoncée comme l'un des paris stratégiques majeurs : ~100 M€/an investis dans l'IA, une « IA Factory » interne, un partenariat avec Google pour le <strong>commerce agentique</strong> (achat via Gemini : l'IA sélectionne, compare et commande pour le client), des caméras IA Captana et des étiquettes connectées VusionGroup en magasin. Le CEO Alexandre Bompard parle d'une transformation de toute la chaîne de valeur, des achats à l'assortiment jusqu'à la relation client.</p>
+</div>
+<ul>
+  <li><strong>Direction Transformation et Digitalisation Marchandise (groupe)</strong>, basée à Massy : c'est la maison de la « Digital Factory Marchandise ». Elle construit les outils des équipes Marchandise (achats, assortiment, pricing, performance magasin/franchise), avec un périmètre international.</li>
+  <li><strong>Carrefour Links</strong> (depuis 2021) : plateforme de data collaboration avec 200+ industriels, rattachée à cette même direction. Signal fort : culture data mature, Google Cloud / BigQuery très probable.</li>
+  <li><strong>Franchise</strong> : plus de la moitié du parc français est franchisé. Un produit « performing franchise » adresse probablement le pilotage de la performance des magasins franchisés (assortiment, promos, ruptures, marges) : parfait terrain pour des agents qui analysent de la donnée et proposent des actions.</li>
+  <li><strong>Google partout</strong> : Lab Carrefour-Google depuis 2019, Gemini pour le commerce agentique, assistant interne « ai.Carrefour » basé sur Gemini déployé en Espagne. Attends-toi à <strong>Vertex AI, Gemini, Google ADK, BigQuery</strong> plutôt qu'à AWS/Azure. Prépare un discours « agnostique du modèle » mais montre que tu connais l'écosystème Google.</li>
+</ul>
+
+<h3>Comment positionner ton profil en une phrase</h3>
+<div class="callout amber">
+<span class="eyebrow">Pitch 20 secondes</span>
+<p>« Tech Lead fullstack Java/Angular, 8 ans en banque où j'ai orchestré des processus métier complexes (Camunda BPMN, microservices, micro-frontends) sous forte contrainte réglementaire. L'orchestration d'agents, c'est le même métier avec une brique non déterministe en plus : je sais découper, gouverner, observer et livrer. »</p>
+</div>
+</div>
+<aside>
+  <span class="eyebrow">Dans ce chapitre</span>
+  <a href="#tab-contexte">Lecture du mail</a>
+  <a href="#tab-contexte">Carrefour 2030</a>
+  <a href="#tab-contexte">Pitch 20 s</a>
+</aside>
+</section>
+
+<!-- ============ 2. CONCEPTS ============ -->
+<section id="tab-concepts" class="panel" role="tabpanel" hidden>
+<div class="content">
+<h2>Agent vs workflow : la distinction à connaître par cœur</h2>
+<p>Un <strong>workflow</strong> enchaîne des appels LLM dans un ordre codé à l'avance (comme un process BPMN). Un <strong>agent</strong> décide lui-même de la prochaine action : il observe, raisonne, appelle un outil, lit le résultat et recommence jusqu'à atteindre l'objectif. Règle d'or (Anthropic, « Building effective agents ») : <em>utilise le système le plus simple qui fait le travail</em>. Un agent coûte plus cher, est plus lent et moins prévisible ; il se justifie quand le chemin ne peut pas être connu à l'avance.</p>
+
+<h2>La boucle agentique</h2>
+<pre><code>loop:
+  pensée   ← LLM(system_prompt + historique + observations)
+  action   ← choisir un outil + ses arguments   (tool use / function calling)
+  résultat ← exécuter l'outil (API, SQL, shell, navigateur, autre agent)
+  si objectif atteint ou budget épuisé → réponse finale
+  sinon → ajouter résultat au contexte, recommencer</code></pre>
+<ul>
+  <li><strong>Tool use / function calling</strong> : le modèle produit un JSON structuré (nom + arguments) ; c'est <em>ton code</em> qui exécute. Le modèle ne « fait » rien, il demande.</li>
+  <li><strong>Contexte</strong> : tout ce que le modèle voit à chaque tour. Le <strong>context engineering</strong> (quoi mettre, quoi résumer, quoi compacter) a remplacé le « prompt engineering » comme compétence centrale.</li>
+  <li><strong>Mémoire</strong> : court terme (le contexte), long terme (fichiers, base vectorielle, notes), procédurale (skills, instructions type <code>AGENTS.md</code>).</li>
+  <li><strong>Planification</strong> : décomposer la tâche (plan-then-execute), ou laisser le modèle replanifier à chaque tour (ReAct).</li>
+  <li><strong>Réflexion / auto-critique</strong> : un second passage (ou un second agent) évalue et corrige le résultat.</li>
+</ul>
+
+<h2>Les briques périphériques</h2>
+<div class="grid2">
+  <div class="card"><h4>RAG (Retrieval-Augmented Generation)</h4><p>Chercher des passages pertinents (vectoriel + mots-clés, hybride) et les injecter dans le contexte. Indispensable sur la doc métier interne. Les pièges : chunking, fraîcheur, permissions, hallucination si le retrieval est pauvre.</p></div>
+  <div class="card"><h4>Structured outputs</h4><p>Forcer le modèle à respecter un schéma JSON (Pydantic / records Java). Transforme la sortie LLM en contrat d'API fiable, condition pour l'intégrer dans un flux déterministe.</p></div>
+  <div class="card"><h4>Guardrails</h4><p>Contrôles avant (validation des entrées, filtrage) et après (schéma, règles métier, modération) chaque appel. Et surtout : <strong>permissions d'outils</strong> (lecture seule, allow-list, confirmation humaine pour les actions irréversibles).</p></div>
+  <div class="card"><h4>Evals</h4><p>Jeux de tests pour agents : cas de référence, métriques (succès de tâche, coût, latence), <strong>LLM-as-judge</strong> pour la qualité. Sans evals, on fait du « vibe-based » : interdit en prod.</p></div>
+  <div class="card"><h4>Observabilité</h4><p>Traces de chaque tour (prompt, outils, tokens, latence), via OpenTelemetry (conventions sémantiques GenAI), Langfuse, LangSmith, Arize Phoenix. C'est le « logging » des agents.</p></div>
+  <div class="card"><h4>Human-in-the-loop</h4><p>Points de contrôle humains : validation d'un plan, approbation d'une action à risque, revue d'une PR. Le niveau d'autonomie se règle par étape, il ne s'impose pas.</p></div>
+</div>
+
+<h2>Les protocoles d'interopérabilité</h2>
+<div class="tbl"><table>
+<tr><th>Protocole</th><th>Qui</th><th>À quoi ça sert</th><th>Analogie</th></tr>
+<tr><td>MCP</td><td>Anthropic (nov. 2024), ouvert, désormais hébergé par la Linux Foundation</td><td>Connecter un agent à des outils et des données : un serveur MCP expose <em>tools</em>, <em>resources</em>, <em>prompts</em>. Adopté par OpenAI, Google, Microsoft, les IDE.</td><td>Le « USB-C » des agents ; côté Java : Spring AI et LangChain4j ont un SDK MCP</td></tr>
+<tr><td>A2A</td><td>Google (avr. 2025), Linux Foundation</td><td>Faire collaborer des agents entre eux : découverte via « Agent Card », tâches, messages, artefacts.</td><td>HTTP/REST entre services, mais pour agents</td></tr>
+<tr><td>UCP / AP2 / ACP</td><td>Google (Universal Commerce Protocol, Agent Payments Protocol), OpenAI + Stripe (Agentic Commerce Protocol)</td><td>Permettre à un agent d'acheter : catalogue, panier, paiement avec mandat. C'est le socle du « commerce agentique » du plan Carrefour 2030.</td><td>Le « checkout » standardisé pour agents</td></tr>
+</table></div>
+
+<h2>Les notions économiques à avoir en tête</h2>
+<ul>
+  <li><strong>Tokens</strong> : unité de facturation. Un agent qui boucle 20 fois avec 50k tokens de contexte coûte 1M tokens. D'où : compaction, caching de prompt, choix de modèle par étape (petit modèle pour router, gros pour raisonner).</li>
+  <li><strong>Latence</strong> : chaque tour = un appel réseau. Les agents conviennent aux tâches asynchrones (batch nocturne, PR, rapport), moins aux interfaces temps réel sans streaming.</li>
+  <li><strong>Non-déterminisme</strong> : même entrée, sorties variables. On ne teste pas « égal à », on teste des propriétés et des seuils statistiques.</li>
+</ul>
+</div>
+<aside>
+  <span class="eyebrow">Dans ce chapitre</span>
+  <a href="#tab-concepts">Agent vs workflow</a>
+  <a href="#tab-concepts">La boucle agentique</a>
+  <a href="#tab-concepts">RAG, guardrails, evals</a>
+  <a href="#tab-concepts">MCP, A2A, UCP</a>
+</aside>
+</section>
+
+<!-- ============ 3. PATTERNS ============ -->
+<section id="tab-patterns" class="panel" role="tabpanel" hidden>
+<div class="content">
+<h2>Les 6 patterns canoniques</h2>
+<p>Référence la plus citée en entretien : le guide « Building effective agents » (Anthropic, déc. 2024), repris depuis par toute l'industrie. Classés du plus simple au plus autonome. Pour toi qui viens de Camunda, chaque pattern a un équivalent BPMN : utilise-le pour montrer que tu comprends.</p>
+
+<details open><summary>1. Prompt chaining <span class="tag">workflow · séquence</span></summary><div class="body">
+<p>Décomposer une tâche en étapes LLM fixes, avec des vérifications programmatiques entre elles (« gates »). Ex. : générer le plan d'un document → vérifier qu'il couvre les critères → rédiger → traduire.</p>
+<p><strong>BPMN :</strong> tâches en séquence avec gateways exclusives. <strong>Quand :</strong> la tâche se découpe proprement et chaque étape est plus simple qu'un prompt unique.</p>
+</div></details>
+
+<details><summary>2. Routing <span class="tag">workflow · classification</span></summary><div class="body">
+<p>Un premier appel classe l'entrée et l'envoie vers le prompt/modèle/outil spécialisé. Ex. : un ticket support → « remboursement », « technique », « commercial ». Permet d'utiliser un petit modèle pour les cas simples.</p>
+<p><strong>BPMN :</strong> gateway exclusive pilotée par une règle (DMN). <strong>Quand :</strong> catégories distinctes et classification fiable.</p>
+</div></details>
+
+<details><summary>3. Parallelization <span class="tag">workflow · fan-out / fan-in</span></summary><div class="body">
+<p>Deux variantes : <em>sectioning</em> (sous-tâches indépendantes en parallèle, puis agrégation) et <em>voting</em> (même tâche plusieurs fois, vote ou consensus). Ex. : un agent revoit la sécurité, un autre la perf, un autre la lisibilité d'une PR.</p>
+<p><strong>BPMN :</strong> gateway parallèle. <strong>Quand :</strong> vitesse, ou besoin de plusieurs points de vue.</p>
+</div></details>
+
+<details><summary>4. Orchestrator-workers <span class="tag">agent · dynamique</span></summary><div class="body">
+<p>Un orchestrateur découpe dynamiquement la tâche, délègue à des workers, puis synthétise. Différence avec la parallélisation : les sous-tâches ne sont pas connues à l'avance. Ex. : « implémente cette feature » → l'orchestrateur identifie les fichiers à modifier et lance un worker par fichier.</p>
+<p><strong>BPMN :</strong> sous-process multi-instance dont la cardinalité est calculée au runtime. <strong>Quand :</strong> tâches complexes dont la structure émerge en cours de route. C'est le pattern de Claude Code et des « sub-agents ».</p>
+</div></details>
+
+<details><summary>5. Evaluator-optimizer <span class="tag">agent · boucle</span></summary><div class="body">
+<p>Un LLM produit, un autre évalue selon des critères explicites, et on itère jusqu'à acceptation. Ex. : traduction littéraire, génération de tests jusqu'à couverture cible, génération de code jusqu'à build vert.</p>
+<p><strong>BPMN :</strong> boucle avec condition de sortie. <strong>Quand :</strong> on sait écrire des critères d'évaluation clairs et l'itération apporte de la valeur mesurable.</p>
+</div></details>
+
+<details><summary>6. Agent autonome <span class="tag">agent · boucle ouverte</span></summary><div class="body">
+<p>Le modèle planifie, agit via des outils, lit l'environnement (résultats de tests, erreurs, réponses d'API) et continue jusqu'à la fin ou un plafond. Nécessite : des outils bien conçus, des garde-fous (budget de tours, sandbox), des points d'arrêt humains, des evals sérieux.</p>
+<p><strong>BPMN :</strong> il n'y en a pas, et c'est le point : l'agent remplace le diagramme par un objectif. <strong>Quand :</strong> problèmes ouverts, environnement riche en feedback (le code en est le meilleur exemple : compilateur + tests = feedback gratuit).</p>
+</div></details>
+
+<h2>Systèmes multi-agents : quand et comment</h2>
+<ul>
+  <li><strong>Spécialisation par rôle</strong> (PM-agent, dev-agent, QA-agent) : seulement si chaque rôle a des outils, un contexte ou des instructions vraiment différents. Sinon un seul agent avec de bons outils fait mieux.</li>
+  <li><strong>Topologies</strong> : hiérarchique (orchestrateur), pipeline (hand-off), réseau (A2A). Préfère hiérarchique : plus simple à observer et à déboguer.</li>
+  <li><strong>Problèmes classiques</strong> : explosion de coût, perte de contexte entre agents, conflits d'écriture (deux agents modifient le même fichier), boucles sans fin. Solutions : contexte partagé explicite (fichier de plan, tâches), verrous sur les ressources, budget global.</li>
+</ul>
+
+<h2>Design des outils : le travail invisible qui fait la qualité</h2>
+<div class="callout violet">
+<span class="eyebrow">ACI : agent-computer interface</span>
+<p>On passe autant de temps à concevoir l'interface agent-outil que l'interface humain-écran. Un bon outil : nom et description sans ambiguïté, paramètres peu nombreux et typés, exemples dans la description, erreurs explicites et actionnables (« montant négatif interdit ; passe un entier positif en centimes »), formats proches de ce que le modèle voit sur internet (Markdown plutôt que XML exotique), idempotence quand c'est possible.</p>
+</div>
+<p>Pour un Tech Lead Java : chaque outil est un <em>service</em> avec un contrat. La même rigueur qu'un endpoint REST (validation, timeouts, retries, observabilité), plus une description lisible par le modèle.</p>
+</div>
+<aside>
+  <span class="eyebrow">Dans ce chapitre</span>
+  <a href="#tab-patterns">6 patterns canoniques</a>
+  <a href="#tab-patterns">Multi-agents</a>
+  <a href="#tab-patterns">Design des outils</a>
+</aside>
+</section>
+
+<!-- ============ 4. SDLC ============ -->
+<section id="tab-sdlc" class="panel" role="tabpanel" hidden>
+<div class="content">
+<h2>Le cycle discovery → delivery, version agentique</h2>
+<p>Ce que Carrefour appelle « transformation agentique du cycle » correspond à ce que Forrester nomme <em>agentic software development</em> : des agents présents à chaque étape, orchestrés, avec des humains qui fixent le cadre et valident. En 2026, la vraie valeur n'est pas « coder plus vite » mais <strong>réduire les temps morts entre les étapes</strong> (attente de specs, de review, de tests, de release notes).</p>
+
+<div class="pipeline">
+  <div class="stage"><div class="k">Discovery</div><div class="t">Comprendre</div><ul><li>Synthèse d'interviews utilisateurs</li><li>Analyse de données (SQL agentique sur BigQuery)</li><li>Veille concurrence</li><li>Brouillon de PRD, hypothèses, KPI</li></ul></div>
+  <div class="stage"><div class="k">Définition</div><div class="t">Spécifier</div><ul><li>User stories + critères d'acceptation</li><li>Détection d'ambiguïtés / contradictions</li><li>Maquettes rapides (prototype jetable)</li><li>ADR et options d'architecture</li></ul></div>
+  <div class="stage"><div class="k">Build</div><div class="t">Construire</div><ul><li>Agents de code (spec-driven)</li><li>Migration, refactoring de masse</li><li>Génération de tests</li><li>Documentation à jour en continu</li></ul></div>
+  <div class="stage"><div class="k">Vérification</div><div class="t">Qualifier</div><ul><li>Review automatisée multi-angles</li><li>Tests E2E générés, exploration</li><li>Scan sécurité + correction proposée</li><li>Evals des features IA elles-mêmes</li></ul></div>
+  <div class="stage"><div class="k">Delivery & Run</div><div class="t">Livrer</div><ul><li>Release notes, changelog</li><li>Triage d'incidents, post-mortems</li><li>Analyse de logs / alertes</li><li>Boucle retour → discovery</li></ul></div>
+</div>
+
+<h2>Les pratiques qui structurent une équipe agentique</h2>
+<details open><summary>Spec-driven development <span class="tag">build</span></summary><div class="body">
+<p>La spec devient le livrable principal : un document structuré (objectif, contraintes, interfaces, critères d'acceptation, cas limites) que l'agent transforme en plan puis en code. Outils : GitHub Spec Kit, Kiro (AWS), ou simplement un <code>SPEC.md</code> + <code>PLAN.md</code> dans le dépôt. Pour le Tech Lead : la qualité de la spec est la nouvelle qualité du code. Une spec floue produit du code plausible mais faux.</p>
+</div></details>
+<details><summary>Fichiers d'instructions de dépôt (AGENTS.md, CLAUDE.md) <span class="tag">build</span></summary><div class="body">
+<p>Un fichier à la racine qui explique à n'importe quel agent : comment builder, lancer les tests, les conventions, l'architecture, ce qu'il ne faut pas toucher. Le standard ouvert <code>AGENTS.md</code> est lu par la plupart des outils (Codex, Cursor, Gemini CLI, Copilot) ; <code>CLAUDE.md</code> par Claude Code. C'est de la documentation vivante, versionnée, et c'est au Tech Lead de la maintenir.</p>
+</div></details>
+<details><summary>Review en deux couches <span class="tag">vérification</span></summary><div class="body">
+<p>Couche 1 : agents (lint sémantique, sécurité, cohérence avec la spec, tests manquants). Couche 2 : humain, qui se concentre sur l'intention, l'architecture et les trade-offs. Règle : tout code généré est traité avec la même rigueur ou plus qu'un code humain (Forrester 2026). Les commits d'agents sont signés avec une identité et un périmètre.</p>
+</div></details>
+<details><summary>Niveaux d'autonomie par étape <span class="tag">gouvernance</span></summary><div class="body">
+<p>Définir explicitement, par type de tâche, le niveau : <em>suggère</em> (l'humain fait), <em>prépare</em> (l'humain valide), <em>exécute et notifie</em>, <em>exécute en silence</em>. Les équipes performantes ne démarrent pas en « full autonome » : elles montent d'un cran quand les evals et le track record le justifient.</p>
+</div></details>
+<details><summary>Evals et métriques d'équipe <span class="tag">gouvernance</span></summary><div class="body">
+<p>Mesurer avant d'industrialiser : lead time par étape, taux d'acceptation des PR générées, taux de rework, défauts en prod, coût tokens par feature. Et des evals pour chaque agent interne (ex. : « sur 50 tickets historiques, l'agent de spec retrouve-t-il les critères d'acceptation qu'on avait écrits ? »).</p>
+</div></details>
+<details><summary>Sécurité & conformité <span class="tag">gouvernance</span></summary><div class="body">
+<ul>
+  <li><strong>OWASP Top 10 for LLM Applications</strong> : prompt injection (n°1), fuite de données sensibles, supply-chain des modèles/plugins, excès d'agentivité (« excessive agency »).</li>
+  <li><strong>Prompt injection via outils</strong> : un agent qui lit un ticket, un mail ou une page web peut recevoir des instructions malveillantes. Parade : séparer données et instructions, allow-list d'outils, confirmation humaine pour les actions sensibles, sandbox.</li>
+  <li><strong>Secrets et données</strong> : jamais de PII client dans un prompt sans base légale ; data-residency ; journalisation.</li>
+  <li><strong>AI Act européen</strong> : obligations progressives entre 2025 et 2027 ; calendrier en discussion (« digital omnibus ») fin 2025. Un outil interne d'aide au dev est généralement à risque limité, mais il faut documenter. Dis que tu suis le sujet, pas que tu es juriste.</li>
+</ul>
+</div></details>
+
+<h2>Exemple concret à raconter : une feature de bout en bout</h2>
+<div class="callout">
+<span class="eyebrow">Scénario à dérouler en entretien</span>
+<p>Un responsable franchise demande « une alerte quand la marge d'une catégorie décroche sur un magasin ». (1) Un agent de discovery interroge BigQuery, sort les distributions de marge, propose 3 définitions de « décrochage » avec leurs faux positifs. (2) Le PM choisit ; un agent rédige la story et ses critères d'acceptation, en pointant deux cas limites (magasin nouvellement ouvert, catégorie saisonnière). (3) L'agent de code lit <code>AGENTS.md</code>, implémente le service Java + l'écran Angular, génère les tests, ouvre la PR. (4) Trois agents reviewers (sécurité, perf SQL, cohérence spec) commentent ; le Tech Lead arbitre et merge. (5) Release notes générées, déploiement progressif, un agent surveille les alertes la première semaine et résume. Partout : l'humain décide, l'agent prépare.</p>
+</div>
+</div>
+<aside>
+  <span class="eyebrow">Dans ce chapitre</span>
+  <a href="#tab-sdlc">Le pipeline en 5 étapes</a>
+  <a href="#tab-sdlc">Pratiques structurantes</a>
+  <a href="#tab-sdlc">Sécurité & AI Act</a>
+  <a href="#tab-sdlc">Scénario de bout en bout</a>
+</aside>
+</section>
+
+<!-- ============ 5. STACK ============ -->
+<section id="tab-stack" class="panel" role="tabpanel" hidden>
+<div class="content">
+<h2>Frameworks d'agents : ce qu'il faut savoir nommer</h2>
+<div class="tbl"><table>
+<tr><th>Outil</th><th>Langage</th><th>Point fort</th><th>Pour toi</th></tr>
+<tr><td>Spring AI</td><td>Java</td><td>Abstraction ChatClient, tool calling, RAG, MCP client/serveur, advisors (mémoire, guardrails). GA depuis 2025, intégré Spring Boot.</td><td><strong>Ta porte d'entrée naturelle.</strong> Construis un agent en Spring AI avant l'entretien.</td></tr>
+<tr><td>LangChain4j</td><td>Java (+ Quarkus)</td><td>Très complet (AiServices déclaratifs, tools, MCP, embeddings, multi-modèles). Communauté active.</td><td>Alternative à Spring AI ; à connaître pour comparer.</td></tr>
+<tr><td>Google ADK</td><td>Python, Java, Go</td><td>Agent Development Kit de Google : multi-agents, A2A natif, déploiement sur Vertex AI Agent Engine. Version Java officielle.</td><td><strong>Très probable chez Carrefour</strong> (partenariat Google). Lis le quickstart Java.</td></tr>
+<tr><td>LangGraph</td><td>Python / TS</td><td>Graphe d'états explicite, checkpoints, human-in-the-loop, durable execution. Référence pour les workflows contrôlés.</td><td>Le mental model « graphe » est le plus proche de BPMN.</td></tr>
+<tr><td>Claude Agent SDK</td><td>Python / TS</td><td>Le moteur de Claude Code exposé en SDK : outils fichiers/shell, sub-agents, MCP, permissions.</td><td>Pour des agents « qui font », notamment de code.</td></tr>
+<tr><td>OpenAI Agents SDK</td><td>Python / TS</td><td>Léger : agents, hand-offs, guardrails, tracing. Successeur de Swarm.</td><td>Bon pour illustrer les hand-offs.</td></tr>
+<tr><td>CrewAI / AutoGen (AG2)</td><td>Python</td><td>Équipes d'agents par rôles ; conversation multi-agents.</td><td>À citer, sans en faire le cœur.</td></tr>
+<tr><td>Camunda 8 + IA</td><td>Java / BPMN</td><td>Camunda a ajouté des connecteurs IA et une « AI Agent task » : BPMN comme orchestrateur d'agents.</td><td><strong>Ton atout différenciant :</strong> « orchestration agentique gouvernée par BPMN » est un vrai discours d'architecte.</td></tr>
+</table></div>
+
+<h2>Agents de code (le cœur de la transformation du delivery)</h2>
+<ul>
+  <li><strong>Claude Code</strong> (terminal, IDE, web) : agent autonome sur le dépôt, sub-agents, hooks, MCP, <code>CLAUDE.md</code>, skills. Référence pour les tâches longues.</li>
+  <li><strong>GitHub Copilot</strong> (coding agent, agent mode, revue de PR) : intégré à GitHub, ce que beaucoup de grands groupes déploient d'abord.</li>
+  <li><strong>Cursor</strong>, <strong>Windsurf</strong> : IDE agentiques ; <strong>Gemini CLI / Gemini Code Assist</strong> et <strong>Jules</strong> (Google) : à connaître vu le contexte Carrefour ; <strong>OpenAI Codex</strong> (CLI + cloud).</li>
+  <li><strong>Pratiques</strong> : tâches bornées, branche par agent, PR courte, tests comme feedback, CI qui reste la source de vérité, pas de merge sans humain sur le code critique.</li>
+</ul>
+
+<h2>Plateforme et données (hypothèse Google Cloud)</h2>
+<div class="grid2">
+  <div class="card"><h4>Modèles</h4><p>Gemini (via Vertex AI) comme défaut probable ; Claude et autres disponibles sur Vertex AI Model Garden. Prône le <strong>multi-modèle derrière une abstraction</strong> (Spring AI / LangChain4j le permettent) : router selon coût et complexité.</p></div>
+  <div class="card"><h4>Données</h4><p>BigQuery (analytique), Vertex AI Vector Search ou pgvector (RAG), Cloud SQL / AlloyDB. Un agent « text-to-SQL » sur BigQuery avec un modèle sémantique est un classique Marchandise.</p></div>
+  <div class="card"><h4>Exécution</h4><p>Cloud Run / GKE pour les services Java ; Vertex AI Agent Engine ou Agentspace pour héberger des agents ; Pub/Sub pour l'asynchrone ; Workflows / Camunda pour l'orchestration longue.</p></div>
+  <div class="card"><h4>Observabilité & evals</h4><p>OpenTelemetry GenAI + Cloud Trace, ou Langfuse (open source, auto-hébergeable), LangSmith, Arize Phoenix. Evals : Promptfoo, DeepEval, Vertex AI Gen AI Evaluation, Ragas pour le RAG.</p></div>
+</div>
+
+<h2>Squelette Spring AI d'un agent avec outils</h2>
+<pre><code>@Service
+public class MarginAlertAgent {
+  private final ChatClient chat;
+
+  MarginAlertAgent(ChatClient.Builder b, MarginTools tools) {
+    this.chat = b.defaultSystem("""
+        Tu es un analyste performance franchise. Utilise les outils
+        pour vérifier chaque chiffre avant de conclure. Réponds en JSON.
+        """)
+      .defaultTools(tools)                       // méthodes @Tool exposées au modèle
+      .defaultAdvisors(new SimpleLoggerAdvisor()) // traces
+      .build();
+  }
+
+  public AlertReport analyse(String storeId, String category) {
+    return chat.prompt()
+      .user(u -> u.text("Magasin {s}, catégorie {c} : la marge décroche-t-elle ?")
+                   .param("s", storeId).param("c", category))
+      .call()
+      .entity(AlertReport.class);               // structured output
+  }
+}
+
+@Component
+class MarginTools {
+  @Tool(description = "Marge brute hebdo d'une catégorie pour un magasin, 12 dernières semaines")
+  List&lt;WeeklyMargin&gt; marginHistory(String storeId, String category) { /* BigQuery */ }
+
+  @Tool(description = "Médiane de marge de la catégorie sur les magasins comparables")
+  double peerMedian(String category, String storeCluster) { /* ... */ }
+}</code></pre>
+<p class="small muted">Le modèle décide d'appeler <code>marginHistory</code> puis <code>peerMedian</code> ; Spring AI exécute, réinjecte les résultats, et désérialise la réponse finale dans <code>AlertReport</code>. Trois notions d'entretien en 30 lignes : tool calling, structured output, observabilité.</p>
+</div>
+<aside>
+  <span class="eyebrow">Dans ce chapitre</span>
+  <a href="#tab-stack">Frameworks d'agents</a>
+  <a href="#tab-stack">Agents de code</a>
+  <a href="#tab-stack">Plateforme Google Cloud</a>
+  <a href="#tab-stack">Exemple Spring AI</a>
+</aside>
+</section>
+
+<!-- ============ 6. TECH LEAD ============ -->
+<section id="tab-techlead" class="panel" role="tabpanel" hidden>
+<div class="content">
+<h2>Ce qu'on attend d'un Tech Lead « agentique »</h2>
+<ul>
+  <li><strong>Architecte du système humain + agents</strong> : décide où un agent apporte de la valeur, où il n'en apporte pas, et à quel niveau d'autonomie.</li>
+  <li><strong>Gardien de la qualité</strong> : specs, <code>AGENTS.md</code>, evals, revue à deux couches, définition de « done » qui inclut les tests générés.</li>
+  <li><strong>Platform builder</strong> : outils internes (serveurs MCP vers le SI Carrefour, skills d'équipe, templates de prompts versionnés), pipelines CI avec gates IA.</li>
+  <li><strong>Coach et conduite du changement</strong> : l'équipe passe de « j'écris du code » à « je spécifie, je délègue, je vérifie ». Il faut gérer l'anxiété, les sceptiques et les enthousiastes qui mergent sans lire.</li>
+  <li><strong>FinOps IA</strong> : suivre coût tokens, latence, et prouver le ROI (lead time, défauts, throughput) à la hiérarchie.</li>
+  <li><strong>Interface avec le PM</strong> : la discovery devient collaborative avec des agents ; le Tech Lead aide à cadrer les hypothèses techniques tôt.</li>
+</ul>
+
+<h2>Mapper ton expérience : banque → Carrefour</h2>
+<div class="tbl"><table>
+<tr><th>Ce que tu as fait</th><th>Comment le raconter en « agentique »</th></tr>
+<tr><td>Camunda 7, BPMN, DMN (BMCI)</td><td>Orchestration explicite de processus longs, compensation, human tasks : exactement les notions d'orchestrateur, de checkpoint, de human-in-the-loop. Tu sais déjà modéliser où l'humain intervient.</td></tr>
+<tr><td>Microservices, contrats d'API</td><td>Un outil d'agent = un service avec contrat. Tool design, idempotence, timeouts, retries, circuit breakers : même discipline.</td></tr>
+<tr><td>Micro-frontends Angular</td><td>Découpage par domaine, autonomie des équipes : utile pour des agents spécialisés par domaine fonctionnel.</td></tr>
+<tr><td>Trade finance, UCP 600, SWIFT (Natixis, BNP)</td><td>Règles métier strictes et documents non structurés : terrain idéal pour RAG + extraction structurée + guardrails. Tu comprends qu'un agent doit « citer sa source ».</td></tr>
+<tr><td>Contexte réglementaire bancaire</td><td>Gouvernance, traçabilité, séparation des rôles : transposables à la gouvernance des agents (audit trail, permissions, approbation).</td></tr>
+<tr><td>Side business : automatisation de contenu IA (blogs, génération d'images, pipelines)</td><td>Tu as déjà industrialisé des pipelines LLM en production avec contraintes de coût et de qualité. C'est une expérience concrète, pas théorique. Raconte-la sobrement.</td></tr>
+<tr><td>Tech Lead : code reviews, mentoring</td><td>Tu fais déjà la « couche 2 » de la revue ; tu sais ce qu'une revue de qualité regarde, donc ce qu'il faut demander aux agents reviewers.</td></tr>
+</table></div>
+
+<h2>Postures qui rassurent un Tech Manager</h2>
+<div class="grid2">
+  <div class="card"><h4>Pragmatique</h4><p>« Je commence par un workflow simple, mesurable, puis j'augmente l'autonomie quand les evals le justifient. »</p></div>
+  <div class="card"><h4>Lucide sur les limites</h4><p>« Les agents sont excellents là où le feedback est automatique (tests, compilateur, données). Ils sont médiocres sans spec claire. Mon travail, c'est de créer ces boucles de feedback. »</p></div>
+  <div class="card"><h4>Orienté équipe</h4><p>« La transformation réussit si chaque dev gagne du temps dès la semaine 1 sur une tâche concrète qu'il déteste. On commence par là. »</p></div>
+  <div class="card"><h4>Orienté métier</h4><p>« Dans le Marchandise, la donnée est le produit. Un agent qui aide le PM à interroger BigQuery pendant la discovery vaut autant qu'un agent qui code. »</p></div>
+</div>
+
+<h2>Les erreurs à ne pas faire en entretien</h2>
+<ul>
+  <li>Dire « l'IA va remplacer les devs » ou l'inverse (« c'est un gadget »). La bonne réponse : le rôle se déplace vers spécification, vérification, architecture.</li>
+  <li>Citer 15 frameworks sans en avoir touché un. Mieux : un framework Java pratiqué (Spring AI) + un mental model (LangGraph/ADK) + les protocoles.</li>
+  <li>Oublier la gouvernance (sécurité, coût, conformité). Chez un distributeur coté avec des données fournisseurs, c'est éliminatoire.</li>
+  <li>Parler de « prompt magique ». Parle de context engineering, d'outils, d'evals.</li>
+</ul>
+</div>
+<aside>
+  <span class="eyebrow">Dans ce chapitre</span>
+  <a href="#tab-techlead">Attendus du rôle</a>
+  <a href="#tab-techlead">Mapping banque → Carrefour</a>
+  <a href="#tab-techlead">Postures</a>
+  <a href="#tab-techlead">Erreurs à éviter</a>
+</aside>
+</section>
+
+<!-- ============ 7. ENTRETIEN ============ -->
+<section id="tab-entretien" class="panel" role="tabpanel" hidden>
+<div class="content">
+<h2>Questions probables et réponses modèles</h2>
+<p class="muted small">Entraîne-toi à répondre en 60 à 90 secondes. Ouvre chaque question, formule ta réponse à voix haute, puis compare.</p>
+
+<h3>Technique</h3>
+<details><summary>Quelle différence entre un agent et un workflow LLM ? Quand choisir l'un ou l'autre ?</summary><div class="body">
+<p>Un workflow encode le chemin à l'avance ; l'agent choisit ses actions à chaque tour. Je choisis le workflow par défaut (prévisible, testable, moins cher) et l'agent quand le chemin dépend de ce qu'on découvre en route : debugging, implémentation d'une feature sur un dépôt inconnu, investigation d'incident. Et je mélange : un orchestrateur BPMN/LangGraph déterministe avec des nœuds agentiques bornés.</p>
+</div></details>
+<details><summary>Comment garantir la fiabilité d'un système non déterministe ?</summary><div class="body">
+<p>Trois leviers : (1) structured outputs et validation de schéma à chaque frontière ; (2) evals : jeu de cas de référence rejoué en CI avec métriques de succès, coût, latence, et LLM-as-judge pour la qualité ; (3) conception des outils pour que le feedback soit automatique (tests, compilateur, requêtes vérifiables). Plus de l'observabilité par trace pour analyser chaque échec. On ne vise pas 100 % mais un taux mesuré, avec un humain sur les actions irréversibles.</p>
+</div></details>
+<details><summary>Comment gérez-vous la prompt injection dans un agent qui lit des tickets ou des mails ?</summary><div class="body">
+<p>Je considère tout contenu lu par l'agent comme non fiable. Mesures : séparer instructions système et données (balisage, mention explicite), allow-list d'outils par tâche, lecture seule par défaut, confirmation humaine pour les écritures sensibles, sandbox pour l'exécution de code, détection de patterns d'injection, et journalisation complète. C'est le n°1 de l'OWASP LLM Top 10, je le traite comme une injection SQL : jamais de confiance dans l'entrée.</p>
+</div></details>
+<details><summary>Expliquez MCP. Pourquoi est-ce important pour une équipe comme la nôtre ?</summary><div class="body">
+<p>MCP standardise la façon dont un agent découvre et appelle des outils et des données : un serveur expose tools, resources et prompts ; n'importe quel client compatible (Claude Code, Copilot, Gemini CLI, un agent Spring AI) les utilise. Pour une Digital Factory, ça veut dire qu'on écrit <em>une fois</em> un serveur MCP « référentiel produits » ou « BigQuery Marchandise » et que tous les agents de l'équipe en profitent, avec des permissions centralisées. En Java, Spring AI et LangChain4j fournissent client et serveur.</p>
+</div></details>
+<details><summary>Comment feriez-vous un agent text-to-SQL fiable sur BigQuery pour la discovery ?</summary><div class="body">
+<p>Pas de SQL libre sur le schéma brut. Je construis une couche sémantique (vues métier documentées, métriques définies), un outil « describe_table » et « run_query » en lecture seule avec quota, des exemples de requêtes validées en few-shot ou en RAG, une étape de vérification (dry-run, contrôle des coûts BigQuery, bornes de dates) et des evals sur un jeu de questions-réponses connues. Le résultat est présenté avec la requête exécutée, pour que le PM puisse vérifier.</p>
+</div></details>
+<details><summary>Comment contrôler les coûts ?</summary><div class="body">
+<p>Budget de tours et de tokens par tâche, prompt caching sur les gros contextes stables, routage par complexité (petit modèle pour classer, gros pour raisonner), compaction de contexte, batch asynchrone pour le non-urgent, et un tableau de bord coût par feature / par agent. Le coût est une métrique de l'eval, pas une surprise de fin de mois.</p>
+</div></details>
+<details><summary>Que mettez-vous dans un AGENTS.md ?</summary><div class="body">
+<p>Commandes de build, test, lint ; structure du dépôt et où mettre quoi ; conventions (nommage, style, patterns imposés) ; ce qu'il ne faut jamais toucher ou faire (migrations, secrets, dépendances) ; comment écrire un test et un commit ; liens vers specs et ADR. Court, à jour, versionné, et revu comme du code.</p>
+</div></details>
+
+<h3>Leadership & transformation</h3>
+<details><summary>Comment embarquez-vous une équipe sceptique sur les agents ?</summary><div class="body">
+<p>Je ne commence pas par la vision, je commence par une tâche détestée (tests de non-régression, release notes, migration de lib) que l'agent prend dès la semaine 1, mesurée. Je garde l'humain propriétaire du merge. J'organise des sessions de pairing avec agent et un canal pour partager prompts et skills. Les sceptiques deviennent les meilleurs reviewers : je leur confie la couche 2.</p>
+</div></details>
+<details><summary>Comment mesurez-vous le succès de la transformation ?</summary><div class="body">
+<p>Lead time par étape (idée → spec, spec → PR, PR → prod), taux d'acceptation des PR générées, taux de rework, défauts en prod, satisfaction équipe, et coût IA par feature. Avec une baseline mesurée avant. Si le lead time baisse mais le rework explose, on a déplacé le problème.</p>
+</div></details>
+<details><summary>Un dev a mergé du code généré qui a cassé la prod. Que faites-vous ?</summary><div class="body">
+<p>Post-mortem sans blâme : quel test manquait, quel gate CI aurait dû bloquer, pourquoi la revue humaine n'a pas vu. Puis règle : code généré = même exigence qu'humain ou plus ; agent reviewer obligatoire sur les chemins critiques ; déploiement progressif. L'incident sert à calibrer le niveau d'autonomie, pas à revenir en arrière.</p>
+</div></details>
+<details><summary>Pourquoi vous, venant de la banque ?</summary><div class="body">
+<p>Parce que j'ai orchestré des processus complexes sous contrainte (Camunda, microservices, réglementaire) et que l'agentique, c'est de l'orchestration avec une brique non déterministe : il faut quelqu'un qui sait gouverner. Et parce que le Marchandise ressemble à la finance : des flux, des règles, des données critiques, des partenaires externes. J'apporte la rigueur, et j'ai déjà mis des pipelines LLM en production à titre personnel.</p>
+</div></details>
+
+<h3>Questions à poser à Soukaina (montrent ta séniorité)</h3>
+<ul>
+  <li>Quel est le produit concerné et qui sont ses utilisateurs (franchisés, équipes marchandise, sièges pays) ?</li>
+  <li>Où en est l'équipe aujourd'hui : assistants IDE ? agents en CI ? agents côté produit ? Qu'est-ce qui a marché, et qu'est-ce qui a déçu ?</li>
+  <li>Quelle plateforme : Google Cloud / Vertex / Gemini ? Accès à d'autres modèles ? Y a-t-il une « IA Factory » groupe qui fournit des briques (MCP, modèles, guardrails) ?</li>
+  <li>Taille et composition de l'équipe (dev, QA, PM, data) ; part du périmètre en Java/Angular ; dette technique.</li>
+  <li>Comment la discovery fonctionne aujourd'hui avec le PM ? Qu'est-ce qu'on attend de « agentique » sur cette phase précisément ?</li>
+  <li>Quel niveau d'autonomie est acceptable pour l'organisation (politique sécurité, DPO, audit) ?</li>
+  <li>Cadre de la mission : freelance / portage via ESN ? Durée ? Présence sur site à Massy vs remote ? (Important : tu es basé à Casablanca.)</li>
+  <li>Comment le succès sera-t-il évalué à 3 et 6 mois ?</li>
+</ul>
+</div>
+<aside>
+  <span class="eyebrow">Dans ce chapitre</span>
+  <a href="#tab-entretien">Questions techniques</a>
+  <a href="#tab-entretien">Leadership</a>
+  <a href="#tab-entretien">Questions à poser</a>
+</aside>
+</section>
+
+<!-- ============ 8. GLOSSAIRE ============ -->
+<section id="tab-glossaire" class="panel" role="tabpanel" hidden>
+<div class="content">
+<h2>Glossaire</h2>
+<div class="glossary-tools"><input id="glq" type="search" placeholder="Filtrer : MCP, eval, RAG, agentic commerce…" aria-label="Filtrer le glossaire"></div>
+<div class="gl-count" id="glcount"></div>
+<dl id="gl">
+<div class="gl"><dt>Agent</dt><dd>Système où un LLM choisit dynamiquement ses actions et outils pour atteindre un objectif, en boucle.</dd></div>
+<div class="gl"><dt>Agentic commerce</dt><dd>Achat réalisé par un agent IA pour le compte d'un client (sélection, comparaison, commande, paiement). Axe du plan Carrefour 2030 avec Google.</dd></div>
+<div class="gl"><dt>Agentic SDLC / ASDLC</dt><dd>Cycle de développement où des agents interviennent à chaque étape (discovery, spec, build, test, delivery), orchestrés sous supervision humaine.</dd></div>
+<div class="gl"><dt>AGENTS.md</dt><dd>Fichier standard à la racine d'un dépôt décrivant à un agent de code comment builder, tester et respecter les conventions.</dd></div>
+<div class="gl"><dt>A2A</dt><dd>Agent-to-Agent protocol (Google, 2025) : communication entre agents via Agent Cards, tâches et artefacts.</dd></div>
+<div class="gl"><dt>Context engineering</dt><dd>Art de composer ce que le modèle voit : instructions, outils, mémoire, documents, résumés, dans la limite de la fenêtre de contexte.</dd></div>
+<div class="gl"><dt>Context window</dt><dd>Quantité maximale de tokens que le modèle peut traiter en un appel (de 128k à 1M+ selon les modèles en 2026).</dd></div>
+<div class="gl"><dt>Compaction</dt><dd>Résumer l'historique d'un agent pour libérer de la place dans le contexte sans perdre l'essentiel.</dd></div>
+<div class="gl"><dt>Discovery</dt><dd>Phase produit : comprendre le problème, valider la valeur, l'utilisabilité, la faisabilité et la viabilité avant de construire.</dd></div>
+<div class="gl"><dt>Delivery</dt><dd>Phase produit : construire, tester, livrer, opérer.</dd></div>
+<div class="gl"><dt>Dual-track agile</dt><dd>Discovery et delivery menés en parallèle par la même équipe, en continu.</dd></div>
+<div class="gl"><dt>Embedding</dt><dd>Vecteur numérique représentant le sens d'un texte, utilisé pour la recherche sémantique (RAG).</dd></div>
+<div class="gl"><dt>Eval</dt><dd>Évaluation systématique d'un système IA sur un jeu de cas avec métriques ; l'équivalent des tests pour le non-déterministe.</dd></div>
+<div class="gl"><dt>Excessive agency</dt><dd>Risque OWASP : un agent avec trop de permissions ou d'autonomie par rapport à son besoin réel.</dd></div>
+<div class="gl"><dt>Function calling / tool use</dt><dd>Capacité du modèle à produire un appel structuré vers une fonction définie par le développeur.</dd></div>
+<div class="gl"><dt>Guardrails</dt><dd>Contrôles automatiques en entrée/sortie d'un LLM : validation, filtrage, règles métier, permissions.</dd></div>
+<div class="gl"><dt>Hallucination</dt><dd>Réponse plausible mais fausse. Se combat par retrieval, outils vérifiables, structured outputs et evals.</dd></div>
+<div class="gl"><dt>Hand-off</dt><dd>Transfert de la conversation ou de la tâche d'un agent à un autre agent spécialisé.</dd></div>
+<div class="gl"><dt>Human-in-the-loop (HITL)</dt><dd>Point de validation humaine inséré dans une boucle agentique.</dd></div>
+<div class="gl"><dt>LLM-as-judge</dt><dd>Utiliser un modèle pour noter la sortie d'un autre selon une grille ; sert aux evals de qualité.</dd></div>
+<div class="gl"><dt>MCP</dt><dd>Model Context Protocol : standard ouvert pour connecter agents et outils/données (tools, resources, prompts).</dd></div>
+<div class="gl"><dt>Multi-agent</dt><dd>Système composé de plusieurs agents coopérants (orchestrateur-workers, pipeline, réseau).</dd></div>
+<div class="gl"><dt>Orchestrateur</dt><dd>Composant (code, graphe ou agent) qui décompose, délègue et synthétise. Rôle que jouait Camunda dans tes projets.</dd></div>
+<div class="gl"><dt>Prompt caching</dt><dd>Réutiliser le préfixe de prompt déjà traité par le fournisseur pour réduire coût et latence.</dd></div>
+<div class="gl"><dt>Prompt injection</dt><dd>Attaque où des instructions malveillantes sont glissées dans les données lues par le modèle. N°1 de l'OWASP LLM Top 10.</dd></div>
+<div class="gl"><dt>RAG</dt><dd>Retrieval-Augmented Generation : récupérer des documents pertinents et les fournir au modèle pour répondre.</dd></div>
+<div class="gl"><dt>ReAct</dt><dd>Reason + Act : schéma de boucle où le modèle alterne raisonnement et appel d'outil.</dd></div>
+<div class="gl"><dt>Sandbox</dt><dd>Environnement isolé où un agent exécute du code ou des commandes sans risque pour la prod.</dd></div>
+<div class="gl"><dt>Skill</dt><dd>Paquet d'instructions (et parfois de scripts) qu'un agent charge à la demande pour une tâche donnée. Spécialisation sans fine-tuning.</dd></div>
+<div class="gl"><dt>Spec-driven development</dt><dd>Approche où une spécification structurée pilote la génération de plan puis de code par un agent.</dd></div>
+<div class="gl"><dt>Structured output</dt><dd>Sortie du modèle contrainte à un schéma (JSON Schema), désérialisable en objet typé.</dd></div>
+<div class="gl"><dt>Sub-agent</dt><dd>Agent lancé par un autre agent pour une sous-tâche, avec son propre contexte.</dd></div>
+<div class="gl"><dt>Token</dt><dd>Unité de texte traitée et facturée par le modèle (~¾ de mot en anglais, moins en français).</dd></div>
+<div class="gl"><dt>Trace</dt><dd>Enregistrement complet d'une exécution agentique : prompts, outils, résultats, tokens, temps.</dd></div>
+<div class="gl"><dt>UCP / AP2 / ACP</dt><dd>Protocoles de commerce agentique (Google ; Google + partenaires paiement ; OpenAI + Stripe) : catalogue, panier, paiement avec mandat.</dd></div>
+<div class="gl"><dt>Vibe coding</dt><dd>Développement guidé par l'intuition et le prompt, sans spec ni revue. Acceptable pour un prototype jetable, pas pour un produit.</dd></div>
+</dl>
+</div>
+<aside>
+  <span class="eyebrow">Astuce</span>
+  <a href="#tab-glossaire">Tape un mot pour filtrer ; vide pour tout revoir.</a>
+</aside>
+</section>
+
+<!-- ============ 9. FLASHCARDS ============ -->
+<section id="tab-flash" class="panel" role="tabpanel" hidden>
+<div class="content">
+<h2>Flashcards</h2>
+<p class="muted small">Touche la carte pour révéler la réponse. Idéal 10 minutes par jour.</p>
+<div class="fc-wrap"><div class="fc" id="fc" tabindex="0" role="button" aria-label="Carte, touche pour retourner"><span class="hint">touche pour retourner</span><div class="q" id="fcq"></div><div class="a" id="fca"></div></div></div>
+<div class="fc-ctl">
+  <button class="btn" id="fcprev">← Précédente</button>
+  <button class="btn primary" id="fcflip">Retourner</button>
+  <button class="btn" id="fcnext">Suivante →</button>
+  <button class="btn" id="fcshuffle">Mélanger</button>
+  <span class="fc-prog" id="fcprog"></span>
+</div>
+</div>
+<aside>
+  <span class="eyebrow">Clavier</span>
+  <a href="#tab-flash">Espace : retourner · ← → : naviguer</a>
+</aside>
+</section>
+
+<!-- ============ 10. PLAN ============ -->
+<section id="tab-plan" class="panel" role="tabpanel" hidden>
+<div class="content">
+<h2>Plan de montée en compétence : 7 jours</h2>
+<p class="muted small">Coche au fur et à mesure (sauvegardé sur cet appareil). Objectif : arriver à l'entretien avec un projet Java agentique que tu peux montrer et une pratique quotidienne de Claude Code ou d'un équivalent.</p>
+<div class="bar"><i id="planbar"></i></div>
+<div id="planlist">
+<div class="day">Jour 1 · Fondations</div>
+<div class="ck"><input type="checkbox" id="p1"><label for="p1">Lire « Building effective agents » (Anthropic) et « A practical guide to building agents » (OpenAI)<span class="d">~1 h. Note les 6 patterns avec ton équivalent BPMN.</span></label></div>
+<div class="ck"><input type="checkbox" id="p2"><label for="p2">Lire la spec MCP (overview + concepts) et la page A2A<span class="d">~45 min. Retiens : tools / resources / prompts ; Agent Card.</span></label></div>
+<div class="ck"><input type="checkbox" id="p3"><label for="p3">Relire les chapitres 2 et 3 de ce guide, faire les flashcards</label></div>
+<div class="day">Jour 2 · Spring AI</div>
+<div class="ck"><input type="checkbox" id="p4"><label for="p4">Créer un projet Spring Boot + Spring AI (clé API d'un fournisseur ou Gemini via Vertex)<span class="d">ChatClient, un prompt système, un structured output.</span></label></div>
+<div class="ck"><input type="checkbox" id="p5"><label for="p5">Ajouter 2 à 3 outils <code>@Tool</code> (ex. : lecture d'un CSV de ventes, calcul de médiane) et observer la boucle<span class="d">Active le logging des appels d'outils. Regarde combien de tours et de tokens.</span></label></div>
+<div class="day">Jour 3 · MCP + RAG</div>
+<div class="ck"><input type="checkbox" id="p6"><label for="p6">Exposer tes outils comme serveur MCP (Spring AI MCP server) et les appeler depuis Claude Code ou un client MCP</label></div>
+<div class="ck"><input type="checkbox" id="p7"><label for="p7">Ajouter un mini RAG (pgvector ou in-memory) sur 10 documents métier fictifs « franchise »<span class="d">Pose une question dont la réponse est dans un doc ; vérifie la citation.</span></label></div>
+<div class="day">Jour 4 · Agents de code</div>
+<div class="ck"><input type="checkbox" id="p8"><label for="p8">Écrire un <code>AGENTS.md</code> / <code>CLAUDE.md</code> pour ton projet, puis demander à un agent de code d'ajouter une feature avec tests<span class="d">Note ce qui a marché, ce qui a dérapé, combien de temps de revue.</span></label></div>
+<div class="ck"><input type="checkbox" id="p9"><label for="p9">Lancer 2 reviewers agents sur la PR (sécurité, cohérence spec) et comparer avec ta propre revue</label></div>
+<div class="day">Jour 5 · Evals, observabilité, gouvernance</div>
+<div class="ck"><input type="checkbox" id="p10"><label for="p10">Écrire 10 cas d'eval pour ton agent (entrée → résultat attendu) et les rejouer dans un test JUnit<span class="d">Mesure succès, tokens, latence. Ajoute un LLM-as-judge sur un cas.</span></label></div>
+<div class="ck"><input type="checkbox" id="p11"><label for="p11">Installer Langfuse (docker) ou activer OpenTelemetry et regarder une trace complète</label></div>
+<div class="ck"><input type="checkbox" id="p12"><label for="p12">Lire l'OWASP Top 10 for LLM Applications ; tester une prompt injection sur ton propre agent</label></div>
+<div class="day">Jour 6 · Écosystème Google</div>
+<div class="ck"><input type="checkbox" id="p13"><label for="p13">Parcourir le quickstart Google ADK (version Java) et la page Vertex AI Agent Engine<span class="d">Objectif : pouvoir dire en quoi ADK diffère de Spring AI et où il s'héberge.</span></label></div>
+<div class="ck"><input type="checkbox" id="p14"><label for="p14">Lire 2 articles sur Carrefour 2030 / commerce agentique et le partenariat Google (voir sources en bas)</label></div>
+<div class="day">Jour 7 · Répétition</div>
+<div class="ck"><input type="checkbox" id="p15"><label for="p15">Répondre à voix haute aux 11 questions du chapitre 7, chronomètre en main</label></div>
+<div class="ck"><input type="checkbox" id="p16"><label for="p16">Préparer une démo de 5 minutes de ton projet (écran partagé) et un schéma d'architecture</label></div>
+<div class="ck"><input type="checkbox" id="p17"><label for="p17">Finaliser la liste de questions à poser et le pitch 20 secondes</label></div>
+</div>
+
+<h2>Sources à lire (par ordre de priorité)</h2>
+<ol>
+  <li>Anthropic, « Building effective agents » (déc. 2024) et « Effective context engineering for AI agents » (2025)</li>
+  <li>OpenAI, « A practical guide to building agents » (2025)</li>
+  <li>Spec MCP : modelcontextprotocol.io ; A2A : a2a-protocol.org</li>
+  <li>Spring AI reference docs (tools, MCP, structured outputs, advisors) ; LangChain4j docs</li>
+  <li>Google ADK docs (Java) ; Vertex AI Agent Builder / Agent Engine</li>
+  <li>Forrester, « The State of Agentic Software Development 2026 » (résumés publics) ; OWASP Top 10 for LLM Applications</li>
+  <li>Articles sur le plan Carrefour 2030 (e-commerce-nation.fr, diginomica.com, cio.com)</li>
+</ol>
+</div>
+<aside>
+  <span class="eyebrow">Progression</span>
+  <a href="#tab-plan" id="planpct">0 / 17</a>
+</aside>
+</section>
+
+<!-- ============ 11. APPEL ============ -->
+<section id="tab-appel" class="panel" role="tabpanel" hidden>
+<div class="content">
+<h2>Réponse au mail de Soukaina</h2>
+<p class="muted small">À envoyer rapidement (idéalement sous 24 h). Court, chaleureux, pro, avec des créneaux concrets. Adapte les créneaux : tu es à Casablanca (même heure que Paris en hiver à partir du 25 octobre, une heure de moins jusque-là).</p>
+<div class="mail" id="mail">
+<button class="btn copy" id="copymail">Copier</button>
+<div id="mailtxt">
+<p>Bonjour Soukaina,</p>
+<p>Merci pour votre message, et merci à Othmane pour la recommandation.</p>
+<p>Le sujet m'intéresse beaucoup : la transformation agentique du cycle discovery → delivery est exactement le type de chantier sur lequel j'ai envie de m'engager en tant que Tech Lead, et il rejoint ce que je pratique aujourd'hui (orchestration de processus complexes, microservices Java/Angular, et mise en production de pipelines LLM).</p>
+<p>Je suis disponible pour un premier échange téléphonique cette semaine, par exemple :</p>
+<ul>
+  <li>jeudi 22 octobre entre 10h et 12h ou entre 14h et 17h,</li>
+  <li>vendredi 23 octobre entre 9h et 12h.</li>
+</ul>
+<p>Si ces créneaux ne conviennent pas, je m'adapte volontiers à vos disponibilités. Vous pouvez me joindre au [ton numéro].</p>
+<p>Au plaisir d'échanger,</p>
+<p>Youssef Rouane</p>
+</div>
+</div>
+
+<h2>Déroulé type du premier appel (20 à 30 min)</h2>
+<ol>
+  <li><strong>Elle présente le contexte</strong> (10 min). Écoute activement, prends des notes : produit, équipe, stack, état de l'agentique, attentes. Repère les mots-clés qu'elle utilise et réutilise-les.</li>
+  <li><strong>Tu te présentes</strong> (3 min). Pitch 20 secondes + 2 exemples concrets : (a) orchestration Camunda / microservices à BMCI ; (b) ce que tu as construit avec des agents (ton projet Spring AI + tes pipelines IA de contenu, en une phrase).</li>
+  <li><strong>Tes questions</strong> (5 à 8 min). Choisis 3 ou 4 dans le chapitre 7. Commence par le produit et l'équipe, finis par le cadre (statut, remote, durée).</li>
+  <li><strong>Clôture</strong>. Confirme ton intérêt, demande les prochaines étapes et le format de l'entretien (technique ? étude de cas ? avec qui ?).</li>
+</ol>
+
+<h2>Points sensibles à anticiper</h2>
+<div class="grid2">
+  <div class="card"><h4>Localisation</h4><p>Tu es à Casablanca. Prépare une réponse claire : remote avec déplacements réguliers à Massy ? Disponibilité pour une présence initiale plus forte ? Ne laisse pas d'ambiguïté, mais n'ouvre pas le sujet en premier ; attends qu'elle parle du cadre.</p></div>
+  <div class="card"><h4>Statut</h4><p>Freelance / portage via ESN ou référencement Carrefour. Demande par quel canal contractuel ils passent habituellement ; si elle évoque une ESN partenaire, c'est normal.</p></div>
+  <div class="card"><h4>Expérience agentique « officielle »</h4><p>Tu n'as pas de ligne « agents IA » dans une mission bancaire. Assume-le : ton expérience est réelle mais hors mission (side projects en production) + une préparation structurée. Les Tech Managers préfèrent la lucidité au bluff.</p></div>
+  <div class="card"><h4>Rémunération</h4><p>Ne la négocie pas au premier appel. Si elle demande ton TJM, donne une fourchette et dis que tu ajusteras selon le cadre (remote, durée, périmètre).</p></div>
+</div>
+
+<h2>Après l'appel</h2>
+<ul>
+  <li>Mail de remerciement le jour même, 4 lignes, en reprenant un point précis de la discussion.</li>
+  <li>Mettre à jour ce guide avec ce que tu as appris (produit, stack, attentes) et recentrer la préparation technique dessus.</li>
+  <li>Si un entretien technique est prévu : demander le format et préparer une démo + un schéma d'architecture cible pour <em>leur</em> cas.</li>
+</ul>
+</div>
+<aside>
+  <span class="eyebrow">Dans ce chapitre</span>
+  <a href="#tab-appel">Réponse au mail</a>
+  <a href="#tab-appel">Déroulé de l'appel</a>
+  <a href="#tab-appel">Points sensibles</a>
+</aside>
+</section>
+
+</main>
+
+<script>
+(function(){
+  // Tabs
+  var tabs=[].slice.call(document.querySelectorAll('[role=tab]'));
+  var panels={};
+  tabs.forEach(function(t){panels[t.dataset.tab]=document.getElementById('tab-'+t.dataset.tab)});
+  function show(name){
+    if(!panels[name]) name='contexte';
+    tabs.forEach(function(t){var on=t.dataset.tab===name;t.setAttribute('aria-selected',on?'true':'false');panels[t.dataset.tab].hidden=!on});
+    window.scrollTo({top:0});
+    try{localStorage.setItem('agentic.tab',name)}catch(e){}
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){show(t.dataset.tab)})});
+  var initial=null;
+  var h=(location.hash||'').replace('#','').replace(/^tab-/,'');
+  if(h&&panels[h]) initial=h;
+  if(!initial){try{initial=localStorage.getItem('agentic.tab')}catch(e){}}
+  show(initial||'contexte');
+  document.querySelectorAll('aside a').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault()})});
+
+  // Countdown from mail date
+  var d0=new Date(2026,9,20,16,32), now=new Date();
+  document.getElementById('days').textContent=Math.max(0,Math.floor((now-d0)/864e5));
+
+  // Glossary filter
+  var q=document.getElementById('glq'), rows=[].slice.call(document.querySelectorAll('#gl .gl')), cnt=document.getElementById('glcount');
+  function norm(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
+  function filt(){var v=norm(q.value.trim()),n=0;rows.forEach(function(r){var ok=!v||norm(r.textContent).indexOf(v)>=0;r.hidden=!ok;if(ok)n++});cnt.textContent=n+' terme'+(n>1?'s':'')+(v?' pour « '+q.value.trim()+' »':'')}
+  q.addEventListener('input',filt);filt();
+
+  // Flashcards
+  var cards=[
+   ['Workflow vs agent : la différence en une phrase ?','Le workflow suit un chemin codé à l\'avance ; l\'agent choisit lui-même sa prochaine action à chaque tour. Par défaut, le plus simple qui marche.'],
+   ['Cite les 6 patterns de « Building effective agents ».','Prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer, agent autonome.'],
+   ['Que fait réellement le modèle lors d\'un « tool call » ?','Il émet un JSON (nom d\'outil + arguments). C\'est ton code qui exécute et renvoie le résultat dans le contexte.'],
+   ['MCP : les trois primitives exposées par un serveur ?','Tools (actions), Resources (données), Prompts (gabarits). Transport stdio ou HTTP.'],
+   ['MCP vs A2A ?','MCP connecte un agent à des outils/données ; A2A fait collaborer des agents entre eux (Agent Card, tâches, artefacts).'],
+   ['Risque n°1 de l\'OWASP LLM Top 10 ?','La prompt injection : des instructions malveillantes dans les données lues. Parade : séparer données/instructions, allow-list d\'outils, HITL, sandbox.'],
+   ['Qu\'est-ce qu\'un eval ?','Un jeu de cas rejoué systématiquement avec métriques (succès, coût, latence, qualité via LLM-as-judge). Les tests du non-déterministe.'],
+   ['Context engineering, définition ?','Composer ce que le modèle voit à chaque tour : instructions, outils, documents, mémoire, résumés, dans la limite de la fenêtre.'],
+   ['Trois leviers pour réduire le coût d\'un agent ?','Prompt caching, routage petit/gros modèle selon la complexité, compaction du contexte (+ budget de tours).'],
+   ['Spec-driven development, c\'est quoi ?','La spec structurée (objectif, contraintes, interfaces, critères) devient l\'entrée principale ; l\'agent en dérive plan puis code.'],
+   ['À quoi sert AGENTS.md ?','Dire à n\'importe quel agent de code comment builder, tester, respecter les conventions et ce qu\'il ne doit pas toucher. Versionné, revu comme du code.'],
+   ['Discovery vs delivery ?','Discovery : comprendre et valider le problème/solution (valeur, utilisabilité, faisabilité, viabilité). Delivery : construire, tester, livrer, opérer.'],
+   ['Pourquoi le code est-il le meilleur terrain pour les agents ?','Le feedback est automatique et gratuit : compilateur, tests, lint, CI. L\'agent peut vérifier son travail seul.'],
+   ['Équivalent BPMN de l\'orchestrator-workers ?','Un sous-process multi-instance dont le nombre d\'instances est calculé au runtime par l\'orchestrateur.'],
+   ['Quatre niveaux d\'autonomie à définir par tâche ?','Suggère / Prépare (humain valide) / Exécute et notifie / Exécute en silence. On monte d\'un cran quand les evals le justifient.'],
+   ['Carrefour 2030 : les trois faits IA à citer ?','~100 M€/an dans l\'IA, une IA Factory interne, partenariat Google (Gemini) sur le commerce agentique. Plan présenté le 18 février 2026.'],
+   ['Framework Java à nommer en premier ?','Spring AI (ChatClient, @Tool, structured outputs, MCP, advisors). Puis LangChain4j ; Google ADK a aussi une version Java.'],
+   ['Qu\'est-ce qu\'un structured output et pourquoi c\'est clé ?','Sortie contrainte à un schéma JSON, désérialisée en objet typé. Transforme le LLM en composant intégrable dans un flux déterministe.'],
+   ['Protocoles du commerce agentique ?','UCP et AP2 (Google), ACP (OpenAI + Stripe) : catalogue, panier, paiement avec mandat de l\'utilisateur.'],
+   ['Comment répondre à « l\'IA va remplacer les devs » ?','Le rôle se déplace : spécifier, déléguer, vérifier, architecturer. Les agents excellent avec feedback automatique et spec claire ; sans, ils produisent du plausible.']
+  ];
+  var i=0, fc=document.getElementById('fc'), fq=document.getElementById('fcq'), fa=document.getElementById('fca'), fp=document.getElementById('fcprog');
+  function render(){fc.classList.remove('flip');fq.textContent=cards[i][0];fa.textContent=cards[i][1];fp.textContent=(i+1)+' / '+cards.length}
+  function flip(){fc.classList.toggle('flip')}
+  function next(){i=(i+1)%cards.length;render()}
+  function prev(){i=(i-1+cards.length)%cards.length;render()}
+  fc.addEventListener('click',flip);
+  fc.addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();flip()}});
+  document.getElementById('fcflip').addEventListener('click',flip);
+  document.getElementById('fcnext').addEventListener('click',next);
+  document.getElementById('fcprev').addEventListener('click',prev);
+  document.getElementById('fcshuffle').addEventListener('click',function(){for(var k=cards.length-1;k>0;k--){var j=Math.floor(Math.random()*(k+1));var t=cards[k];cards[k]=cards[j];cards[j]=t}i=0;render()});
+  document.addEventListener('keydown',function(e){if(document.getElementById('tab-flash').hidden)return;if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')next();else if(e.key==='ArrowLeft')prev()});
+  render();
+
+  // Plan checklist
+  var boxes=[].slice.call(document.querySelectorAll('#planlist input[type=checkbox]'));
+  var saved={};try{saved=JSON.parse(localStorage.getItem('agentic.plan')||'{}')}catch(e){saved={}}
+  function upd(){var n=0;boxes.forEach(function(b){b.closest('.ck').classList.toggle('done',b.checked);if(b.checked)n++});document.getElementById('planbar').style.width=Math.round(100*n/boxes.length)+'%';document.getElementById('planpct').textContent=n+' / '+boxes.length}
+  boxes.forEach(function(b){if(saved[b.id])b.checked=true;b.addEventListener('change',function(){saved[b.id]=b.checked;try{localStorage.setItem('agentic.plan',JSON.stringify(saved))}catch(e){}upd()})});
+  upd();
+
+  // Copy mail
+  document.getElementById('copymail').addEventListener('click',function(){
+    var btn=this, txt=document.getElementById('mailtxt').innerText.trim();
+    function done(ok){btn.textContent=ok?'Copié':'Sélectionne le texte';setTimeout(function(){btn.textContent='Copier'},1800)}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){done(true)},function(){sel();done(false)})}else{sel();done(false)}
+    function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById('mailtxt'));var s=window.getSelection();s.removeAllRanges();s.addRange(r)}
+  });
+})();
+</script>
+
+</body></html>
