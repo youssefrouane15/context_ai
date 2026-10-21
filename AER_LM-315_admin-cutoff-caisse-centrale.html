@@ -23,13 +23,14 @@ pre code{background:none;padding:0;color:inherit;font-size:13px}
 table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
 ol,ul{padding-left:22px}li{margin:4px 0}
 </style></head><body>
-<header><h1>AER_LM-315 — Option menu « Administration du cut-off » et habilitation Caisse Centrale</h1><p>utilisateurs-ci (V23) · fund-management · portail-ci · fund-management-front · 20/10/2026</p></header>
+<header><h1>AER_LM-315 — Option menu « Administration du cut-off » et habilitation Caisse Centrale</h1><p>utilisateurs-ci (V23, profil Caisse Centrale Admin) · fund-management · portail-ci · fund-management-front · 20/10/2026 · révisé 21/10 (profil dédié)</p></header>
 <nav><a href="#s0">Périmètre</a><a href="#s1">utilisateurs-ci</a><a href="#s2">fund-management</a><a href="#s3">portail-ci</a><a href="#s4">fund-management-front</a><a href="#s5">Recette</a></nav><main><h2 id="s0">0. Périmètre</h2>
-<div class="card"><p><b>Décision</b> : une permission <code>GDF_ADMINISTRER_CUTOFF</code> (plateforme GESTION_FONDS), rattachée au rôle 11 « GDF Caisse Centrale » — donc au profil <code>CAISSE_CENTRALE</code> existant, pas de profil « Caisse Centrale Admin » séparé pour l'instant (si le PO le demande : un script V24 avec le même schéma que la V22, rôle + profil + rattachement). Le Super Admin garde exactement ce qu'il a. L'enregistrement du « modifié par » est déjà fait par la 308 (<code>contexteCourant.courant()</code>) : rien à faire.</p>
+<div class="card"><p><b>Modèle</b> (demande PO du 21/10) : nouvelle permission <code>GDF_ADMINISTRER_CUTOFF</code> (plateforme GESTION_FONDS) portée par un nouveau rôle « GDF Administration cut-off », et nouveau profil <b>« Caisse Centrale Admin »</b> (code <code>CAISSE_CENTRALE_ADMIN</code>) rattaché au rôle 11 « GDF Caisse Centrale » existant <b>et</b> à ce nouveau rôle — « les droits Caisse Centrale plus le cut-off », sans dupliquer les permissions du rôle 11. Le profil <code>CAISSE_CENTRALE</code> et le Super Admin ne bougent pas. L'enregistrement du « modifié par » est déjà fait par la 308 (<code>contexteCourant.courant()</code>) : rien à faire.</p>
 <table>
 <tr><th>Projet</th><th>Fichier</th><th>Changement</th></tr>
-<tr><td rowspan="2">utilisateurs-ci</td><td><code>entities.habilitations.Permission</code></td><td>+ constante, après <code>GDF_TRAITER_DEMANDE_MONETIQUE</code> (branche 311)</td></tr>
-<tr><td><code>V23__habilitation_cutoff_caisse_centrale.sql</code></td><td>rôle 11 + permission, idempotent</td></tr>
+<tr><td rowspan="3">utilisateurs-ci</td><td><code>entities.habilitations.Permission</code></td><td>+ constante, après <code>GDF_TRAITER_DEMANDE_MONETIQUE</code> (branche 311)</td></tr>
+<tr><td><code>enums.ProfileEnum</code></td><td>+ <code>CAISSE_CENTRALE_ADMIN</code> (NONE)</td></tr>
+<tr><td><code>V23__profil_caisse_centrale_admin.sql</code></td><td>rôle + permission + profil + rattachements, idempotent, même schéma que la V22</td></tr>
 <tr><td>fund-management</td><td><code>RetailReferentielController</code></td><td><code>PUT /cutoffs/{type}</code> : <code>hasAnyAuthority(CONSOLE_ADMIN_EDIT_ADMIN, GDF_ADMINISTRER_CUTOFF)</code></td></tr>
 <tr><td rowspan="2">portail-ci</td><td><code>auth/admin.guard.ts</code> (+ spec)</td><td>profil non admin porteur de la permission : accès à <code>/admin/parametres</code> seulement</td></tr>
 <tr><td><code>console-layout.component.html / .ts</code></td><td>menu : écrans admin sur <code>estAdminConsole</code>, Paramètres sur <code>peutAdministrerCutoff</code></td></tr>
@@ -40,14 +41,42 @@ ol,ul{padding-left:22px}li{margin:4px 0}
 <h2 id="s1">1. utilisateurs-ci</h2>
 <div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Permission.java</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\entities\habilitations\Permission.java</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ---- À placer après GDF_TRAITER_DEMANDE_MONETIQUE (branche feature/AER_LM-311) : remplacer son « ; » final par « , »</span>
     GDF_ADMINISTRER_CUTOFF(Platform.GESTION_FONDS, <span class="s">"Administrer les heures de cut-off"</span>);</code></pre></div>
-<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V23__habilitation_cutoff_caisse_centrale.sql</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\resources\db\migration\V23__habilitation_cutoff_caisse_centrale.sql</span></div><p class="note">Pas de CHECK sur <code>permission</code> depuis la V16 : l'enum Java suffit. Pas de <code>setval</code> : aucune ligne dans <code>hab_roles</code> / <code>hab_profiles</code>.</p><pre><button class="copy">Copier</button><code><span class="c">-- AER_LM-315 : administration des heures de cut-off par la Caisse Centrale.</span>
-<span class="c">-- Permission GDF_ADMINISTRER_CUTOFF (enum Java Permission, seule source de vérité — pas de CHECK),</span>
-<span class="c">-- rattachée au rôle 11 « GDF Caisse Centrale » (profil CAISSE_CENTRALE).</span>
-<span class="c">-- Le Super Admin (rôle 8) garde son accès par CONSOLE_ADMIN_EDIT_ADMIN : rien à ajouter pour lui.</span>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>ProfileEnum.java</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\enums\ProfileEnum.java</span></div><p class="note"><code>ProfileEnumTest</code> : si un test compte les valeurs (modifié +1/-1 dans la MR 311), incrémenter le nombre attendu.</p><pre><button class="copy">Copier</button><code><span class="c">// ProfileEnum.java — À AJOUTER après OPERATIONS_MONETIQUE (branche 311) : remplacer son « ; » final par « , »</span>
+    CAISSE_CENTRALE_ADMIN(<span class="s">"CAISSE_CENTRALE_ADMIN"</span>, OrganizationUnitType.NONE, <span class="k">false</span>);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V23__profil_caisse_centrale_admin.sql</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\resources\db\migration\V23__profil_caisse_centrale_admin.sql</span></div><p class="note">Pas de CHECK sur <code>permission</code> depuis la V16 : l'enum Java suffit. Le rattachement au rôle 11 reprend l'id fixe de la V16 (« GDF Caisse Centrale »), le nouveau rôle est retrouvé par son nom comme en V22.</p><pre><button class="copy">Copier</button><code><span class="c">-- AER_LM-315 : profil « Caisse Centrale Admin » = droits Caisse Centrale + administration des heures de cut-off.</span>
+<span class="c">-- Permission GDF_ADMINISTRER_CUTOFF (enum Java Permission, seule source de vérité — pas de CHECK).</span>
+<span class="c">-- Nouveau rôle « GDF Administration cut-off » (la seule permission) + nouveau profil CAISSE_CENTRALE_ADMIN</span>
+<span class="c">-- rattaché au rôle 11 « GDF Caisse Centrale » existant ET au nouveau rôle. Rôle 11 et profil CAISSE_CENTRALE inchangés.</span>
+<span class="c">
+-- 1. Rôle</span>
+insert into hab_roles (id, name, description, actif, created_at, updated_at, platform)
+select (select coalesce(max(id), 0) + 1 <span class="k">from</span> hab_roles),
+       <span class="s">'GDF Administration cut-off'</span>, <span class="s">'Administration des heures de cut-off (Caisse Centrale)'</span>, <span class="k">true</span>, now(), now(), <span class="s">'GESTION_FONDS'</span>
+ where not exists (select 1 <span class="k">from</span> hab_roles where name = <span class="s">'GDF Administration cut-off'</span>);
+
 insert into hab_role_permission (role_id, permission)
-select 11, <span class="s">'GDF_ADMINISTRER_CUTOFF'</span>
-where exists (select 1 <span class="k">from</span> hab_roles where id = 11)
-  and not exists (select 1 <span class="k">from</span> hab_role_permission where role_id = 11 and permission = <span class="s">'GDF_ADMINISTRER_CUTOFF'</span>);</code></pre></div>
+select r.id, <span class="s">'GDF_ADMINISTRER_CUTOFF'</span>
+  <span class="k">from</span> hab_roles r
+ where r.name = <span class="s">'GDF Administration cut-off'</span>
+   and not exists (select 1 <span class="k">from</span> hab_role_permission x where x.role_id = r.id and x.permission = <span class="s">'GDF_ADMINISTRER_CUTOFF'</span>);
+<span class="c">
+-- 2. Profil</span>
+insert into hab_profiles (id, profile_type, name, code, description, actif, created_at, updated_at)
+select (select coalesce(max(id), 0) + 1 <span class="k">from</span> hab_profiles),
+       <span class="s">'STANDARD_USER'</span>, <span class="s">'Caisse Centrale Admin'</span>, <span class="s">'CAISSE_CENTRALE_ADMIN'</span>, <span class="s">'Caisse Centrale avec administration du cut-off'</span>, <span class="k">true</span>, now(), now()
+ where not exists (select 1 <span class="k">from</span> hab_profiles where code = <span class="s">'CAISSE_CENTRALE_ADMIN'</span>);
+<span class="c">
+-- 3. Rattachements : rôle 11 « GDF Caisse Centrale » (existant) + rôle « GDF Administration cut-off »</span>
+insert into hab_profile_role (profile_id, role_id)
+select p.id, r.id
+  <span class="k">from</span> hab_profiles p, hab_roles r
+ where p.code = <span class="s">'CAISSE_CENTRALE_ADMIN'</span>
+   and (r.id = 11 or r.name = <span class="s">'GDF Administration cut-off'</span>)
+   and not exists (select 1 <span class="k">from</span> hab_profile_role x where x.profile_id = p.id and x.role_id = r.id);
+<span class="c">
+-- 4. Séquences (incrément 50 : les remettre au-delà du dernier id)</span>
+select setval(<span class="s">'hab_roles_seq'</span>,    greatest((select max(id) <span class="k">from</span> hab_roles),    (select last_value <span class="k">from</span> hab_roles_seq)));
+select setval(<span class="s">'hab_profiles_seq'</span>, greatest((select max(id) <span class="k">from</span> hab_profiles), (select last_value <span class="k">from</span> hab_profiles_seq)));</code></pre></div>
 <h2 id="s2">2. fund-management</h2>
 <div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>RetailReferentielController.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\RetailReferentielController.java</span></div><p class="note">Les authorities de fund-management sont construites depuis les permissions renvoyées par utilisateurs-ci : la nouvelle constante arrive sans autre changement. Le GET reste sur <code>GDF_CONSULTER_DEMANDE</code>.</p><pre><button class="copy">Copier</button><code><span class="c">// RetailReferentielController.java — ÉDITION : une seule annotation (Ctrl+F : CONSOLE_ADMIN_EDIT_ADMIN)</span>
 
@@ -246,21 +275,25 @@ where exists (select 1 <span class="k">from</span> hab_roles where id = 11)
 <div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Déroulé par profil</b><br><span class="path">Écrans portail + fund-management-front, SQL, Postman hors démo</span></div><pre><button class="copy">Copier</button><code>RECETTE (dev-sso 9001 → utilisateurs-ci 8091 → gateway 9090 → fund-management 8300 → portail 4200 → fund-management-front 4201)
 
 0. Base utilisateurs-ci : V23 appliquée
-   select * <span class="k">from</span> qf_admin.hab_role_permission where permission = <span class="s">'GDF_ADMINISTRER_CUTOFF'</span>;   → 1 ligne, role_id = 11
+   select p.code, r.name <span class="k">from</span> qf_admin.hab_profiles p
+     join qf_admin.hab_profile_role pr on pr.profile_id = p.id join qf_admin.hab_roles r on r.id = pr.role_id
+    where p.code = <span class="s">'CAISSE_CENTRALE_ADMIN'</span>;                       → 2 lignes : GDF Caisse Centrale, GDF Administration cut-off
 
-1. Persona Caisse Centrale (profil CAISSE_CENTRALE) — login mock sur le portail
-   GET http:<span class="c">//localhost:9090/api/v1/public/users/me → profile.roles[].permissions[] contient GDF_ADMINISTRER_CUTOFF</span>
+1. Persona : console (h11111) → Utilisateurs → modifier un utilisateur Caisse Centrale de recette → profil « Caisse Centrale Admin »
+   (ou en créer un). Login mock sur le portail avec cet uid :
+   GET http:<span class="c">//localhost:9090/api/v1/public/users/me → profile.code = CAISSE_CENTRALE_ADMIN,</span>
+   roles[] = GDF Caisse Centrale + GDF Administration cut-off, permissions[] contient GDF_ADMINISTRER_CUTOFF
 
 2. Gestion des fonds (4201) : clic sur l<span class="s">'avatar → le menu porte « Administration du cut-off » entre l'</span>identité et Déconnexion
    → clic : arrivée sur http:<span class="c">//localhost:4200/admin/parametres, menu latéral réduit à PARAMÈTRES ET CONFIGURATION</span>
 
-3. Modifier l'heure → Enregistrer → 200 ; « Modifié par &lt;uid Caisse Centrale&gt; le &lt;date&gt; » (contexteCourant déjà en place côté 308)
+3. Modifier l'heure → Enregistrer → 200 ; « Modifié par &lt;uid Caisse Centrale Admin&gt; le &lt;date&gt; » (contexteCourant déjà en place côté 308)
 
 4. Cloisonnement : saisir http:<span class="c">//localhost:4200/admin/user à la main → redirection vers « / » (AdminGuard)</span>
 
-5. Chef de caisse (g10002) : pas d'entrée « Administration du cut-off » dans le menu ; /admin/parametres à la main → redirection « / »
+5. Caisse Centrale simple (profil CAISSE_CENTRALE) et Chef de caisse (g10002) : pas d'entrée « Administration du cut-off » dans le menu ; /admin/parametres à la main → redirection « / »
 
 6. Super Admin (h11111) : console inchangée (5 entrées + Paramètres), PUT cut-off toujours autorisé par CONSOLE_ADMIN_EDIT_ADMIN
 
-7. Postman (hors démo) — PUT http:<span class="c">//localhost:8300/&lt;base de RetailReferentielController&gt;/cutoffs/&lt;type&gt; (même requête que ta recette 308) avec le Bearer Caisse Centrale → 200 ;</span>
-   avec le Bearer Chef de caisse → 403</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
+7. Postman (hors démo) — PUT http:<span class="c">//localhost:8300/&lt;base de RetailReferentielController&gt;/cutoffs/&lt;type&gt; (même requête que ta recette 308) avec le Bearer Caisse Centrale Admin → 200 ;</span>
+   avec le Bearer Caisse Centrale simple → 403</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
