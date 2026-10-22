@@ -1,0 +1,209 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-300 — Accueil par profil et menu Gestion des fonds</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-300 — Accueil par profil, menu latéral par circuit, ouverture depuis le portail</h1><p>fund-management-front · portail-ci (dashboard) · 22/10/2026 · s'applique après le doc « Alignement des droits monétique »</p></header>
+<nav><a href="#s0">Règle</a><a href="#s1">fund-management-front</a><a href="#s2">portail-ci</a><a href="#s3">Recette</a></nav><main><h2 id="s0">0. Règle</h2>
+<div class="card"><table><tr><th>Profil</th><th>Accueil (route vide)</th><th>Menu latéral</th></tr>
+<tr><td>Pôle opérations monétique</td><td><code>/monetique/list</code></td><td>Nouvelle demande GAB · Historique GAB</td></tr>
+<tr><td>Caisse Centrale</td><td><code>/caisse-centrale</code></td><td>Historique Demandes · Caisse Centrale</td></tr>
+<tr><td>Support</td><td><code>/caisse-centrale</code></td><td>Historique Demandes · Caisse Centrale</td></tr>
+<tr><td>Agence (DA, Chef de caisse)</td><td>saisie agence (inchangé)</td><td>Nouvelle Demande · Historique Demandes</td></tr></table>
+<p><b>Point clé</b> : la Caisse Centrale porte aussi <code>GDF_TRAITER_DEMANDE_MONETIQUE</code> (traitement, Jira 300), donc <code>creerMonetique</code> est vrai pour elle comme pour le Pôle. Ce qui les distingue est <code>toutesAgences</code> : testé en premier dans l'accueil, et en exclusion sur les entrées GAB du menu.</p>
+<p>Les entrées GAB sont réservées au Pôle (<code>creerMonetique && !toutesAgences</code>) : la Caisse Centrale traite les demandes monétique depuis sa vue (route <code>caisse-centrale/monetique/:id</code> déjà en place), elle n'a pas besoin de l'historique GAB. <code>consulterMonetique</code> reste la clé des routes <code>monetique/list</code> et <code>monetique/consultation/:id</code> (accès par lien).</p>
+<p><b>Préalable</b> : le 403 sur <code>GET /cash/monetique</code> venait de la migration droits monétique (V24 chez toi) pas encore jouée lors du test ; <code>/me</code> porte maintenant <code>GDF_CONSULTER_DEMANDE_MONETIQUE</code> — redémarrer fund-management suffit.</p></div>
+<h2 id="s1">1. fund-management-front</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>accueil-par-profil.guard.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\accueil-par-profil.guard.ts</span></div><p class="note">Remplace la garde <code>accueilParProfil</code> existante (déjà référencée par la route vide). Chemins d'import relatifs depuis <code>presenter/pages/fund-management/</code> : si <code>ContexteUtilisateurService</code> ou le modèle vivent ailleurs, reprendre les imports de <code>fund-management.routes.ts</code> (Ctrl+F <code>exigePermission</code>, même fichier d'origine).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { inject } <span class="k">from</span> <span class="s">'@angular/core'</span>;
+<span class="k">import</span> { CanActivateFn, Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+<span class="k">import</span> { ContexteUtilisateurService } <span class="k">from</span> <span class="s">'../../../adapters/apiAdapters/contexte-utilisateur.service'</span>;
+<span class="k">import</span> { ContexteGdf } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/contexte-utilisateur.model'</span>;
+
+<span class="c">/**
+ * Accueil par profil (règle du 22/10) :
+ *  - Pôle opérations monétique → historique GAB hors site
+ *  - Caisse Centrale / Support → vue Caisse Centrale
+ *  - Agence (DA, Chef de caisse) → écran de saisie (route vide, comme avant)
+ * Renvoie l'UrlTree de l'écran cible, ou true pour rester sur la saisie agence.
+ */</span>
+<span class="k">export</span> <span class="k">function</span> routeAccueil(ctx: ContexteGdf | <span class="k">null</span>): string | <span class="k">null</span> {
+  <span class="k">if</span> (!ctx) {
+    <span class="k">return</span> <span class="k">null</span>;
+  }
+  <span class="c">// La Caisse Centrale porte aussi GDF_TRAITER_DEMANDE_MONETIQUE (traitement) : toutesAgences la distingue du Pôle</span>
+  <span class="k">if</span> (ctx.habilitations.toutesAgences) {
+    <span class="k">return</span> <span class="s">'/caisse-centrale'</span>;
+  }
+  <span class="k">if</span> (ctx.habilitations.creerMonetique) {
+    <span class="k">return</span> <span class="s">'/monetique/list'</span>;
+  }
+  <span class="k">if</span> (ctx.habilitations.creer) {
+    <span class="k">return</span> <span class="k">null</span>;
+  }
+  <span class="k">return</span> ctx.habilitations.consulter ? <span class="s">'/list'</span> : <span class="k">null</span>;
+}
+
+<span class="k">export</span> <span class="k">const</span> accueilParProfil: CanActivateFn = <span class="k">async</span> () =&gt; {
+  <span class="k">const</span> router = inject(Router);
+  <span class="k">const</span> ctx = <span class="k">await</span> inject(ContexteUtilisateurService).charger();
+  <span class="k">const</span> cible = routeAccueil(ctx);
+  <span class="k">return</span> cible ? router.parseUrl(cible) : <span class="k">true</span>;
+};</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fund-management.routes.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><p class="note">Cause de la page blanche du Pôle : la garde locale (sans monétique) renvoyait <code>/list</code>, route gardée par <code>consulter</code> que le Pôle n'a plus → navigation annulée sur <code>#/</code>.</p><pre><button class="copy">Copier</button><code><span class="c">// fund-management.routes.ts — ÉDITION (3 points)</span>
+
+<span class="c">// ---- 1. SUPPRIMER la garde locale (elle masque le nouveau fichier : IntelliJ affichait « no usages » sur accueil-par-profil.guard.ts)</span>
+<span class="k">const</span> accueilParProfil: CanActivateFn = <span class="k">async</span> () =&gt; {
+  <span class="k">const</span> router = inject(Router);
+  <span class="k">const</span> ctx = <span class="k">await</span> inject(ContexteUtilisateurService).charger();
+  <span class="k">if</span> (!ctx) { <span class="k">return</span> <span class="k">false</span>; }
+  <span class="k">if</span> (ctx.habilitations.creer) { <span class="k">return</span> <span class="k">true</span>; }
+  <span class="k">if</span> (ctx.habilitations.toutesAgences) { <span class="k">return</span> router.createUrlTree([<span class="s">'caisse-centrale'</span>]); }
+  <span class="k">return</span> router.createUrlTree([<span class="s">'list'</span>]);
+};
+
+<span class="c">// ---- 2. AJOUTER l'import (même dossier)</span>
+<span class="k">import</span> { accueilParProfil } <span class="k">from</span> <span class="s">'./accueil-par-profil.guard'</span>;
+
+<span class="c">// ---- 3. Router n'est plus utilisé ici</span>
+<span class="k">import</span> { Routes, CanActivateFn } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+
+<span class="c">// ---- La route vide ne change pas : canActivate: [accueilParProfil]</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>accueil-par-profil.guard.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\accueil-par-profil.guard.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { routeAccueil } <span class="k">from</span> <span class="s">'./accueil-par-profil.guard'</span>;
+<span class="k">import</span> { ContexteGdf } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/contexte-utilisateur.model'</span>;
+<span class="k">import</span> { HABILITATIONS_AUCUNE } <span class="k">from</span> <span class="s">'../../../domain/domain-core/entities/demande-capacites'</span>;
+
+<span class="k">describe</span>(<span class="s">'routeAccueil (accueil par profil)'</span>, () =&gt; {
+  <span class="k">const</span> ctx = (h: Partial&lt;ContexteGdf[<span class="s">'habilitations'</span>]&gt;): ContexteGdf =&gt; ({
+    uid: <span class="s">'x'</span>, nomComplet: <span class="s">'x'</span>, profileCode: <span class="s">'x'</span>, profileName: <span class="s">'x'</span>, agenceCode: <span class="k">null</span>, agenceNom: <span class="k">null</span>,
+    permissions: [], habilitations: { ...HABILITATIONS_AUCUNE, ...h },
+  });
+
+  <span class="k">it</span>(<span class="s">'Pôle opérations monétique → historique GAB'</span>, () =&gt; {
+    <span class="k">expect</span>(routeAccueil(ctx({ consulterMonetique: <span class="k">true</span>, creerMonetique: <span class="k">true</span> }))).toBe(<span class="s">'/monetique/list'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'Caisse Centrale → vue Caisse Centrale'</span>, () =&gt; {
+    <span class="k">expect</span>(routeAccueil(ctx({ consulter: <span class="k">true</span>, traiter: <span class="k">true</span>, toutesAgences: <span class="k">true</span>, consulterMonetique: <span class="k">true</span>, creerMonetique: <span class="k">true</span> }))).toBe(<span class="s">'/caisse-centrale'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'Support → vue Caisse Centrale'</span>, () =&gt; {
+    <span class="k">expect</span>(routeAccueil(ctx({ consulter: <span class="k">true</span>, toutesAgences: <span class="k">true</span> }))).toBe(<span class="s">'/caisse-centrale'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'Chef de caisse → reste sur la saisie'</span>, () =&gt; {
+    <span class="k">expect</span>(routeAccueil(ctx({ consulter: <span class="k">true</span>, creer: <span class="k">true</span> }))).toBeNull();
+  });
+
+  <span class="k">it</span>(<span class="s">'sans contexte → reste sur la route'</span>, () =&gt; {
+    <span class="k">expect</span>(routeAccueil(<span class="k">null</span>)).toBeNull();
+  });
+});</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>sidebar.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.html  (tout le bloc &lt;nav class="sidebar-nav"&gt;)</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- sidebar.component.html — ÉDITION : les 5 entrées du &lt;nav class="sidebar-nav"&gt; --&gt;</span>
+
+<span class="c">&lt;!-- ---- AVANT : Nouvelle demande GAB sur creerMonetique, Historique GAB sur consulterMonetique, les autres sur creer / consulter / toutesAgences --&gt;</span>
+
+<span class="c">&lt;!-- ---- APRÈS --&gt;</span>
+  &lt;nav <span class="k">class</span>=<span class="s">"sidebar-nav"</span>&gt;
+    <span class="c">&lt;!-- Agence (DA, Chef de caisse) --&gt;</span>
+    &lt;a routerLink=<span class="s">"/"</span> [routerLinkActiveOptions]=<span class="s">"{ exact: true }"</span>
+       routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().creer"</span>&gt;
+      &lt;mat-icon&gt;add_circle_outline&lt;/mat-icon&gt;
+      &lt;span&gt;Nouvelle Demande&lt;/span&gt;
+    &lt;/a&gt;
+
+    <span class="c">&lt;!-- Agence, Caisse Centrale, Support — pas le Pôle monétique --&gt;</span>
+    &lt;a routerLink=<span class="s">"/list"</span> routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().consulter"</span>&gt;
+      &lt;mat-icon&gt;history&lt;/mat-icon&gt;
+      &lt;span&gt;Historique Demandes&lt;/span&gt;
+    &lt;/a&gt;
+
+    <span class="c">&lt;!-- Pôle opérations monétique uniquement (AER_LM-319 / 321) : la Caisse Centrale porte aussi GDF_TRAITER_DEMANDE_MONETIQUE
+         (traitement), d'où l'exclusion par toutesAgences — ses demandes GAB passent par la vue Caisse Centrale --&gt;</span>
+    &lt;a routerLink=<span class="s">"/monetique"</span> [routerLinkActiveOptions]=<span class="s">"{ exact: true }"</span>
+       routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().creerMonetique &amp;&amp; !habilitations().toutesAgences"</span>&gt;
+      &lt;mat-icon&gt;local_atm&lt;/mat-icon&gt;
+      &lt;span&gt;Nouvelle demande GAB&lt;/span&gt;
+    &lt;/a&gt;
+
+    &lt;a routerLink=<span class="s">"/monetique/list"</span> routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().creerMonetique &amp;&amp; !habilitations().toutesAgences"</span>&gt;
+      &lt;mat-icon&gt;receipt_long&lt;/mat-icon&gt;
+      &lt;span&gt;Historique GAB&lt;/span&gt;
+    &lt;/a&gt;
+
+    <span class="c">&lt;!-- Caisse Centrale, Support --&gt;</span>
+    &lt;a routerLink=<span class="s">"/caisse-centrale"</span> routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().toutesAgences"</span>&gt;
+      &lt;mat-icon&gt;account_balance&lt;/mat-icon&gt;
+      &lt;span&gt;Caisse Centrale&lt;/span&gt;
+    &lt;/a&gt;
+  &lt;/nav&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>sidebar.component.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// sidebar.component.spec.ts — ÉDITION des 2 cas ajoutés par le doc 319 (+ 1 nouveau)</span>
+
+  <span class="k">it</span>(<span class="s">'Pôle opérations monétique : entrées GAB seulement'</span>, () =&gt; {
+    habilitations.set({ ...HABILITATIONS_AUCUNE, consulterMonetique: <span class="k">true</span>, creerMonetique: <span class="k">true</span> });
+    fixture.detectChanges();
+    <span class="k">const</span> libelles = Array.<span class="k">from</span>(fixture.nativeElement.querySelectorAll(<span class="s">'.nav-item span'</span>)).map((e: any) =&gt; e.textContent.trim());
+    <span class="k">expect</span>(libelles).toEqual(jasmine.arrayContaining([<span class="s">'Nouvelle demande GAB'</span>, <span class="s">'Historique GAB'</span>]));
+    <span class="k">expect</span>(libelles).not.toContain(<span class="s">'Nouvelle Demande'</span>);
+    <span class="k">expect</span>(libelles).not.toContain(<span class="s">'Historique Demandes'</span>);
+    <span class="k">expect</span>(libelles).not.toContain(<span class="s">'Caisse Centrale'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'Caisse Centrale : Historique Demandes + Caisse Centrale, sans entrées GAB'</span>, () =&gt; {
+    habilitations.set({ ...HABILITATIONS_AUCUNE, consulter: <span class="k">true</span>, traiter: <span class="k">true</span>, toutesAgences: <span class="k">true</span>, consulterMonetique: <span class="k">true</span>, creerMonetique: <span class="k">true</span> });
+    fixture.detectChanges();
+    <span class="k">const</span> libelles = Array.<span class="k">from</span>(fixture.nativeElement.querySelectorAll(<span class="s">'.nav-item span'</span>)).map((e: any) =&gt; e.textContent.trim());
+    <span class="k">expect</span>(libelles).toEqual(jasmine.arrayContaining([<span class="s">'Historique Demandes'</span>, <span class="s">'Caisse Centrale'</span>]));
+    <span class="k">expect</span>(libelles).not.toContain(<span class="s">'Historique GAB'</span>);
+    <span class="k">expect</span>(libelles).not.toContain(<span class="s">'Nouvelle demande GAB'</span>);
+  });</code></pre></div>
+<h2 id="s2">2. portail-ci</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>dashboard.component.ts</b><br><span class="path">C:\dev\portail-ci\src\app\features\dashboard\components\dashboard\dashboard.component.ts</span></div><p class="note"><code>location.assign</code> = même onglet avec entrée d'historique (≠ <code>replace</code>). Le bouton « Administration » de fund-management-front vers la console reste en nouvel onglet (décision du 21/10).</p><pre><button class="copy">Copier</button><code><span class="c">// dashboard.component.ts — ÉDITION : ouverture de Gestion des fonds dans le même onglet (historique navigateur conservé)</span>
+
+<span class="c">// ---- AVANT</span>
+  navigateToExternal(url: string): <span class="k">void</span>{
+    window.open(url, <span class="s">'_blank'</span>, <span class="s">'noopener'</span>);
+  }
+
+<span class="c">// ---- APRÈS</span>
+  navigateToExternal(url: string): <span class="k">void</span> {
+    window.location.assign(url);   <span class="c">// même onglet, entrée d'historique ajoutée (retour arrière → dashboard)</span>
+  }</code></pre></div>
+<h2 id="s3">3. Recette</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Déroulé par profil</b><br><span class="path">portail (4200) → fund-management-front (4201)</span></div><pre><button class="copy">Copier</button><code>0. fund-management redémarré après la V24 (droits monétique) : GET /cash/monetique en Pôle → 200.
+
+1. Portail (c63005, Pôle monétique) : carte Gestion des fonds → Accéder → même onglet, arrivée sur #/monetique/list ;
+   flèche retour → dashboard portail. Sidebar : Nouvelle demande GAB + Historique GAB seulement. Historique GAB liste sa demande.
+
+2. Caisse Centrale (g10003) : Accéder → #/caisse-centrale. Sidebar : Historique Demandes + Caisse Centrale (pas d'entrée GAB).
+   La demande GAB 20261022-9000-01 est dans la vue Caisse Centrale ; détail via caisse-centrale/monetique/:id.
+
+3. Support : Accéder → #/caisse-centrale ; sidebar Historique Demandes + Caisse Centrale, consultation seule.
+
+4. Chef de caisse (g10002) : Accéder → #/ (saisie agence) ; sidebar Nouvelle Demande + Historique Demandes.
+
+5. URL à la main : Chef de caisse sur #/monetique/list → refusé ; Caisse Centrale sur #/monetique → refusé.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
