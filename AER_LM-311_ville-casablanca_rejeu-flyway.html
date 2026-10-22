@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-311 — Ville CASABLANCA : rejeu Flyway et alignement des bases</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-311 — Renommage CASA → CASABLANCA : rejeu local, V24 et déblocage du déploiement</h1><p>utilisateurs-ci · schéma qf_admin · 22/10/2026</p></header>
+<nav><a href="#s0">Cause</a><a href="#s1">Poste local</a><a href="#s2">Script V24</a><a href="#s3">Tech lead</a></nav><main><h2 id="s0">0. Cause</h2>
+<div class="card"><p><b>Symptôme</b> : <code>GET /gab/hors-site</code> → 400 « No enum constant …Ville.CASA » (poste local) ; chez le tech lead, V21 en échec « violates check constraint chk_gab_hors_site_ville » (ligne CASABLANCA).</p>
+<p><b>Cause</b> : l'enum <code>Ville</code> et le seed V21 ont été passés à <code>CASABLANCA</code>, mais Flyway ne rejoue jamais une migration appliquée — une base où la V20/V21 d'origine (<code>CASA</code>) a tourné garde ses 14 lignes <code>CASA</code> et son ancien CHECK. Supprimer les lignes de <code>flyway_schema_history</code> ne suffit pas : la V20 est en <code>create table if not exists</code> et la V21 en <code>NOT EXISTS</code>, le rejeu ne touche à rien.</p>
+<table><tr><th>Base</th><th>État</th><th>Action</th></tr>
+<tr><td>Poste local (Youssef)</td><td>table créée avec CHECK CASA, 14 lignes CASA</td><td>§1 — drop + rejeu V20→V23</td></tr>
+<tr><td>Tech lead</td><td>V20 passée (CHECK CASA), V21 en échec, table vide</td><td>§3 — CHECK à la main + purge de l'échec, puis redéploiement</td></tr>
+<tr><td>Toute base future</td><td>—</td><td>§2 — V24 dans la branche (idempotente)</td></tr></table></div>
+<h2 id="s1">1. Poste local — rejeu propre</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Rejeu V20 → V23</b><br><span class="path">pgAdmin — utilisateurs-ci, puis redémarrer QlickflowAdminApplication</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Poste local (pgAdmin, base utilisateurs-ci, schéma qf_admin) : rejeu propre V20 → V23.</span>
+<span class="c">-- La V20 est en "create table if not exists" et la V21 est idempotente : sans drop, Flyway rejoue sans rien changer.</span>
+drop table <span class="k">if</span> exists qf_admin.gab_hors_site;
+drop sequence <span class="k">if</span> exists qf_admin.gab_hors_site_seq;
+delete <span class="k">from</span> qf_admin.flyway_schema_history where version in (<span class="s">'20'</span>,<span class="s">'21'</span>,<span class="s">'22'</span>,<span class="s">'23'</span>);
+<span class="c">-- Puis redémarrer utilisateurs-ci : V20 (CHECK CASABLANCA), V21 (56 GAB), V22, V23.</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Contrôle</b><br><span class="path">pgAdmin — après redémarrage</span></div><pre><button class="copy">Copier</button><code>select ville, count(*) <span class="k">from</span> qf_admin.gab_hors_site group by ville order by ville;      -- CASABLANCA 14, aucun CASA
+select version, description, success <span class="k">from</span> qf_admin.flyway_schema_history where version in (<span class="s">'20'</span>,<span class="s">'21'</span>,<span class="s">'22'</span>,<span class="s">'23'</span>,<span class="s">'24'</span>) order by installed_rank;</code></pre></div>
+<h2 id="s2">2. Script V24 (branche feature/AER_LM-311)</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V24__gab_hors_site_ville_casablanca.sql</b><br><span class="path">C:\dev\utilisateurs-ci\src\main\resources\db\migration\V24__gab_hors_site_ville_casablanca.sql</span></div><p class="note">La V23 (profil Caisse Centrale Admin, AER_LM-315) est prise : V24 est le prochain numéro. Après le rejeu du §1, elle passe chez toi sans effet.</p><pre><button class="copy">Copier</button><code><span class="c">-- AER_LM-311 : la ville Casablanca est codée CASABLANCA (enum Ville). Aligne les bases où la V20/V21 d'origine</span>
+<span class="c">-- (code CASA) est déjà passée : données + CHECK. Sans effet sur une base rejouée depuis la V20 corrigée.</span>
+update gab_hors_site set ville = <span class="s">'CASABLANCA'</span> where ville = <span class="s">'CASA'</span>;
+
+alter table gab_hors_site drop constraint <span class="k">if</span> exists chk_gab_hors_site_ville;
+alter table gab_hors_site add constraint chk_gab_hors_site_ville
+    check (ville in (<span class="s">'AGADIR'</span>,<span class="s">'BERRECHID'</span>,<span class="s">'CASABLANCA'</span>,<span class="s">'ESSAOUIRA'</span>,<span class="s">'FES'</span>,<span class="s">'KENITRA'</span>,<span class="s">'MARRAKECH'</span>,<span class="s">'MEKNES'</span>,<span class="s">'RABAT'</span>,<span class="s">'SETTAT'</span>,<span class="s">'TANGER'</span>));</code></pre></div>
+<h2 id="s3">3. Tech lead — déblocage du déploiement</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>À exécuter avant de redéployer</b><br><span class="path">pgAdmin / psql — base de l'environnement de déploiement</span></div><p class="note">Le jar redéployé doit contenir la V21 corrigée (CASABLANCA) et la V24.</p><pre><button class="copy">Copier</button><code><span class="c">-- Environnement du tech lead : V20 appliquée avec l'ancien CHECK, V21 en échec (success = false) → la table est vide.</span>
+<span class="c">-- 1. Aligner le CHECK à la main (la V24 n'est atteinte qu'après V21)</span>
+alter table qf_admin.gab_hors_site drop constraint <span class="k">if</span> exists chk_gab_hors_site_ville;
+alter table qf_admin.gab_hors_site add constraint chk_gab_hors_site_ville
+    check (ville in (<span class="s">'AGADIR'</span>,<span class="s">'BERRECHID'</span>,<span class="s">'CASABLANCA'</span>,<span class="s">'ESSAOUIRA'</span>,<span class="s">'FES'</span>,<span class="s">'KENITRA'</span>,<span class="s">'MARRAKECH'</span>,<span class="s">'MEKNES'</span>,<span class="s">'RABAT'</span>,<span class="s">'SETTAT'</span>,<span class="s">'TANGER'</span>));
+<span class="c">-- 2. Retirer la trace de l'échec, sinon Flyway refuse de démarrer</span>
+delete <span class="k">from</span> qf_admin.flyway_schema_history where version = <span class="s">'21'</span> and success = <span class="k">false</span>;
+<span class="c">-- 3. Redéployer : V21 (CASABLANCA) passe, puis V22, V23, V24 (sans effet).</span></code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
