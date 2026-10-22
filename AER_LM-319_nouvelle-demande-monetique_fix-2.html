@@ -1,0 +1,256 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-319/321 — Bouton « Nouvelle Demande » GAB hors site</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-319/321 — « Nouvelle Demande » inactif pour le Pôle opérations monétique : garde de route et navigation</h1><p>fund-management-front · fund-management (DroitsMonetique) · 22/10/2026</p></header>
+<nav><a href="#s0">Diagnostic</a><a href="#s1">Correctif front + back</a><a href="#s2">Tests</a><a href="#s3">Recette</a></nav><main><h2 id="s0">0. Diagnostic — comment on est sûr sans connaître l'utilisateur</h2>
+<div class="card"><p><b>Symptôme</b> : clic sur « Nouvelle Demande » → rien, pas d'erreur. Deux causes successives, toutes deux lisibles dans le code et la console, indépendamment de la persona.</p>
+<table><tr><th>Preuve</th><th>Lecture</th></tr>
+<tr><td><code>NG04005: Invalid number of '../'</code> puis, après passage en chemin absolu, plus aucune erreur</td><td>la navigation part bien ; si la cible existait et était autorisée, l'URL changerait.</td></tr>
+<tr><td>Console : <code>contexte-utilisateur.service.ts:30 → 1</code> réaffiché à chaque clic</td><td>c'est le <code>console.log('1')</code> de <code>charger()</code>, appelé uniquement par <code>exigePermission</code> : la garde de la route <code>/monetique</code> s'exécute à chaque clic.</td></tr>
+<tr><td>Une garde <code>CanActivateFn</code> qui renvoie <code>false</code> annule la navigation <b>sans erreur et sans redirection</b></td><td>exactement le comportement observé → <code>ctx.habilitations.creer</code> vaut <code>false</code>.</td></tr>
+<tr><td>Console : <code>contexte-utilisateur.model.ts:54 → Array(5)</code></td><td>5 permissions GDF : c'est la signature du rôle « GDF Opérations monétique » de la V22 (CONSULTER_DEMANDE, TOUTES_AGENCES, CONSULTER_GAB, GERER_GAB, TRAITER_DEMANDE_MONETIQUE) — <code>GDF_CREER_DEMANDE</code> n'y est pas. Le Chef de caisse en aurait 4, la Caisse Centrale 6, le Super Admin bien plus.</td></tr>
+<tr><td><code>deriverContexteGdf</code> : <code>creer: a('GDF_CREER_DEMANDE')</code></td><td>le front ne lit pas <code>GDF_TRAITER_DEMANDE_MONETIQUE</code> : la permission existe en base mais n'alimente aucune habilitation.</td></tr></table>
+<p><b>Conclusion</b> : quel que soit l'utilisateur, un profil sans <code>GDF_CREER_DEMANDE</code> ne peut pas atteindre <code>/monetique</code>, et le seul profil censé saisir une demande GAB est précisément dans ce cas. Le correctif = une habilitation dédiée <code>creerMonetique</code>, sans toucher à <code>creer</code> (qui pilote <code>peutSoumettre</code> et les capacités agence).</p>
+<p><b>Côté back, même désaccord</b> (visible seulement une fois la route débloquée) : <code>POST /cash/monetique</code> → 403. <code>DroitsMonetique</code> reprend les droits agence (<code>GDF_CREER/MODIFIER/ANNULER_DEMANDE</code>) que le rôle « GDF Opérations monétique » de la V22 ne porte pas ; il porte <code>GDF_TRAITER_DEMANDE_MONETIQUE</code>. Décision du 22/10 (option A) : on reste sur le modèle V22 — une permission pour tout le circuit monétique, consultation sur <code>GDF_CONSULTER_DEMANDE</code>.</p>
+<p><b>Menu (sidebar)</b> : les deux entrées GAB sont conditionnées par <code>creer</code> / <code>consulter</code> — d'où leur présence chez le Chef de caisse. Elles passent sur <code>creerMonetique</code>, ainsi que la route <code>monetique/list</code>. Le Pôle monétique garde « Historique Demandes » (il porte <code>GDF_CONSULTER_DEMANDE</code>) et « Caisse Centrale » (<code>GDF_TOUTES_AGENCES</code>) : c'est ce que ta V22 lui donne, à revoir avec le PO si ce n'est pas voulu — rien d'autre n'est modifié.</p>
+<p><b>Second défaut front</b>, indépendant : <code>navigate(['monetique'], { relativeTo: this.route.parent })</code> — les routes <code>monetique/*</code> sont plates (premier niveau), pas des enfants ; <code>this.route.parent</code> est la racine vide. Chemins absolus.</p></div>
+<h2 id="s1">1. Correctif</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demande-capacites.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\demande-capacites.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// demande-capacites.ts — ÉDITION (2 endroits)</span>
+
+<span class="c">// ---- 1. Interface HabilitationsGdf : AVANT</span>
+  exporter: boolean;        <span class="c">// AER_LM-288 : GDF_EXPORTER_DEMANDE (Caisse Centrale, Support)</span>
+}
+
+<span class="c">// ---- 1. Interface HabilitationsGdf : APRÈS</span>
+  exporter: boolean;        <span class="c">// AER_LM-288 : GDF_EXPORTER_DEMANDE (Caisse Centrale, Support)</span>
+  creerMonetique: boolean;  <span class="c">// AER_LM-319 : GDF_TRAITER_DEMANDE_MONETIQUE (Pôle opérations monétique) — saisie d'une demande GAB hors site</span>
+}
+
+<span class="c">// ---- 2. HABILITATIONS_AUCUNE : AVANT</span>
+<span class="k">export</span> <span class="k">const</span> HABILITATIONS_AUCUNE: HabilitationsGdf =
+  { consulter: <span class="k">false</span>, creer: <span class="k">false</span>, modifier: <span class="k">false</span>, annuler: <span class="k">false</span>, traiter: <span class="k">false</span>, toutesAgences: <span class="k">false</span>, exporter: <span class="k">false</span> };
+
+<span class="c">// ---- 2. HABILITATIONS_AUCUNE : APRÈS</span>
+<span class="k">export</span> <span class="k">const</span> HABILITATIONS_AUCUNE: HabilitationsGdf =
+  { consulter: <span class="k">false</span>, creer: <span class="k">false</span>, modifier: <span class="k">false</span>, annuler: <span class="k">false</span>, traiter: <span class="k">false</span>, toutesAgences: <span class="k">false</span>, exporter: <span class="k">false</span>, creerMonetique: <span class="k">false</span> };</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>contexte-utilisateur.model.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\contexte-utilisateur.model.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// contexte-utilisateur.model.ts — ÉDITION : deriverContexteGdf, bloc habilitations (Ctrl+F : GDF_EXPORTER_DEMANDE)</span>
+
+<span class="c">// ---- AVANT</span>
+      toutesAgences: a(<span class="s">'GDF_TOUTES_AGENCES'</span>),
+      exporter: a(<span class="s">'GDF_EXPORTER_DEMANDE'</span>)
+    }
+
+<span class="c">// ---- APRÈS</span>
+      toutesAgences: a(<span class="s">'GDF_TOUTES_AGENCES'</span>),
+      exporter: a(<span class="s">'GDF_EXPORTER_DEMANDE'</span>),
+      creerMonetique: a(<span class="s">'GDF_TRAITER_DEMANDE_MONETIQUE'</span>)
+    }
+
+<span class="c">// ---- Et supprimer la ligne de debug :  console.log('a', codes)</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>contexte-utilisateur.service.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\adapters\apiAdapters\contexte-utilisateur.service.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// contexte-utilisateur.service.ts — ÉDITION : charger(), supprimer la ligne de debug</span>
+  charger(): Promise&lt;ContexteGdf | <span class="k">null</span>&gt; {
+    console.log(<span class="s">'1'</span>)          <span class="c">// ← SUPPRIMER</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fund-management.routes.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><p class="note">La route <code>monetique/modification/:id</code> passe aussi sur <code>creerMonetique</code> (bloc suivant), en cohérence avec le back.</p><pre><button class="copy">Copier</button><code><span class="c">// fund-management.routes.ts — ÉDITION : route de saisie monétique (Ctrl+F : AER_LM-319)</span>
+
+<span class="c">// ---- AVANT</span>
+  <span class="c">// AER_LM-319 : saisie d'une demande Monétique (GAB Hors Site / Drive)</span>
+  {
+    path: <span class="s">'monetique'</span>,
+    component: DemandeMonetiqueComponent,
+    data: { mode: <span class="s">'creation'</span> },
+    canActivate: [exigePermission(<span class="s">'creer'</span>)]
+  },
+
+<span class="c">// ---- APRÈS</span>
+  <span class="c">// AER_LM-319 : saisie d'une demande Monétique (GAB Hors Site / Drive) — Pôle opérations monétique (GDF_TRAITER_DEMANDE_MONETIQUE)</span>
+  {
+    path: <span class="s">'monetique'</span>,
+    component: DemandeMonetiqueComponent,
+    data: { mode: <span class="s">'creation'</span> },
+    canActivate: [exigePermission(<span class="s">'creerMonetique'</span>)]
+  },</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fund-management.routes.ts — modification</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts  (Ctrl+F : monetique/modification)</span></div><pre><button class="copy">Copier</button><code><span class="c">// fund-management.routes.ts — ÉDITION : route de modification monétique (même règle que la saisie)</span>
+
+<span class="c">// ---- AVANT</span>
+  {
+    path: <span class="s">'monetique/modification/:id'</span>,
+    component: DemandeMonetiqueComponent,
+    data: { mode: <span class="s">'modification'</span> },
+    canActivate: [exigePermission(<span class="s">'modifier'</span>)]
+  },
+
+<span class="c">// ---- APRÈS</span>
+  {
+    path: <span class="s">'monetique/modification/:id'</span>,
+    component: DemandeMonetiqueComponent,
+    data: { mode: <span class="s">'modification'</span> },
+    canActivate: [exigePermission(<span class="s">'creerMonetique'</span>)]
+  },</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>fund-management.routes.ts — historique</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts  (Ctrl+F : monetique/list)</span></div><pre><button class="copy">Copier</button><code><span class="c">// fund-management.routes.ts — ÉDITION : route de l'historique monétique (Ctrl+F : AER_LM-321)</span>
+
+<span class="c">// ---- AVANT</span>
+  {
+    path: <span class="s">'monetique/list'</span>,
+    component: DemandesMonetiqueListComponent,
+    canActivate: [exigePermission(<span class="s">'consulter'</span>)]
+  },
+
+<span class="c">// ---- APRÈS</span>
+  {
+    path: <span class="s">'monetique/list'</span>,
+    component: DemandesMonetiqueListComponent,
+    canActivate: [exigePermission(<span class="s">'creerMonetique'</span>)]
+  },</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>sidebar.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.html</span></div><p class="note">Les entrées « Nouvelle Demande » (<code>creer</code>), « Historique Demandes » (<code>consulter</code>) et « Caisse Centrale » (<code>toutesAgences</code>) ne changent pas.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- sidebar.component.html — ÉDITION : les deux entrées Monétique (Ctrl+F : AER_LM-319 et AER_LM-321) --&gt;</span>
+
+<span class="c">&lt;!-- ---- AVANT --&gt;</span>
+    <span class="c">&lt;!-- AER_LM-319 : demandes Monétique (GAB Hors Site / Drive) --&gt;</span>
+    &lt;a routerLink=<span class="s">"/monetique"</span> [routerLinkActiveOptions]=<span class="s">"{ exact: true }"</span>
+       routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().creer"</span>&gt;
+      &lt;mat-icon&gt;local_atm&lt;/mat-icon&gt;
+      &lt;span&gt;Nouvelle demande GAB&lt;/span&gt;
+    &lt;/a&gt;
+
+    <span class="c">&lt;!-- AER_LM-321 : historique des demandes Monétique --&gt;</span>
+    &lt;a routerLink=<span class="s">"/monetique/list"</span> routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().consulter"</span>&gt;
+      &lt;mat-icon&gt;receipt_long&lt;/mat-icon&gt;
+      &lt;span&gt;Historique GAB&lt;/span&gt;
+    &lt;/a&gt;
+
+<span class="c">&lt;!-- ---- APRÈS : entrées réservées au circuit monétique (GDF_TRAITER_DEMANDE_MONETIQUE), invisibles pour les profils agence --&gt;</span>
+    <span class="c">&lt;!-- AER_LM-319 : demandes Monétique (GAB Hors Site / Drive) --&gt;</span>
+    &lt;a routerLink=<span class="s">"/monetique"</span> [routerLinkActiveOptions]=<span class="s">"{ exact: true }"</span>
+       routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().creerMonetique"</span>&gt;
+      &lt;mat-icon&gt;local_atm&lt;/mat-icon&gt;
+      &lt;span&gt;Nouvelle demande GAB&lt;/span&gt;
+    &lt;/a&gt;
+
+    <span class="c">&lt;!-- AER_LM-321 : historique des demandes Monétique --&gt;</span>
+    &lt;a routerLink=<span class="s">"/monetique/list"</span> routerLinkActive=<span class="s">"actif"</span> <span class="k">class</span>=<span class="s">"nav-item"</span>
+       *ngIf=<span class="s">"habilitations().creerMonetique"</span>&gt;
+      &lt;mat-icon&gt;receipt_long&lt;/mat-icon&gt;
+      &lt;span&gt;Historique GAB&lt;/span&gt;
+    &lt;/a&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>DroitsMonetique.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\DroitsMonetique.java</span></div><p class="note">Aucun changement dans <code>MonetiqueDemandeController</code> : les <code>@PreAuthorize</code> référencent les constantes. Si un test du contrôleur vérifie la valeur des constantes, l'aligner sur <code>GDF_TRAITER_DEMANDE_MONETIQUE</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail;
+
+<span class="c">/**
+ * Droits du circuit monétique (GAB hors site). Alignés sur le rôle « GDF Opérations monétique » (utilisateurs-ci, V22 AER_LM-300) :
+ * une seule permission GDF_TRAITER_DEMANDE_MONETIQUE couvre la saisie, la modification et l'annulation ; la consultation reste GDF_CONSULTER_DEMANDE.
+ */</span>
+<span class="k">public</span> <span class="k">final</span> <span class="k">class</span> DroitsMonetique {
+
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> String TRAITER   = <span class="s">"GDF_TRAITER_DEMANDE_MONETIQUE"</span>;
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> String SAISIR    = TRAITER;
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> String CONSULTER = <span class="s">"GDF_CONSULTER_DEMANDE"</span>;
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> String MODIFIER  = TRAITER;
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> String ANNULER   = TRAITER;
+
+    <span class="k">private</span> DroitsMonetique() {}
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-monetique-list.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.ts</span></div><p class="note">Chemins absolus de la feature ; en MFE le shell préfixe les routes exposées, ce point sera contrôlé à l'intégration.</p><pre><button class="copy">Copier</button><code><span class="c">// demandes-monetique-list.component.ts — ÉDITION : navigation en chemins absolus (les routes monetique/* sont plates, pas des enfants)</span>
+
+<span class="c">// ---- Import : retirer ActivatedRoute</span>
+<span class="k">import</span> { Router } <span class="k">from</span> <span class="s">'@angular/router'</span>;
+
+<span class="c">// ---- Champ : SUPPRIMER</span>
+  <span class="k">private</span> <span class="k">readonly</span> route = inject(ActivatedRoute);
+
+<span class="c">// ---- Méthodes : AVANT</span>
+  nouvelleDemande(): <span class="k">void</span> { <span class="k">this</span>.router.navigate([<span class="s">'monetique'</span>], { relativeTo: <span class="k">this</span>.route.parent }); }
+  ...
+  voirDetail(l: LigneMonetique): <span class="k">void</span> {
+    <span class="k">this</span>.router.navigate([<span class="s">'monetique'</span>, <span class="s">'consultation'</span>, l.id], { relativeTo: <span class="k">this</span>.route.parent });
+  }
+
+<span class="c">// ---- Méthodes : APRÈS</span>
+  nouvelleDemande(): <span class="k">void</span> { <span class="k">this</span>.router.navigate([<span class="s">'/monetique'</span>]); }
+  ...
+  voirDetail(l: LigneMonetique): <span class="k">void</span> {
+    <span class="k">this</span>.router.navigate([<span class="s">'/monetique'</span>, <span class="s">'consultation'</span>, l.id]);
+  }</code></pre></div>
+<h2 id="s2">2. Tests</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>contexte-utilisateur.model.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\contexte-utilisateur.model.spec.ts</span></div><p class="note">Toute fixture <code>HabilitationsGdf</code> littérale existante doit gagner <code>creerMonetique: false</code> — le compilateur les liste.</p><pre><button class="copy">Copier</button><code><span class="c">// contexte-utilisateur.model.spec.ts — À AJOUTER (dans le describe de deriverContexteGdf ; la fixture UtilisateurMe suit la forme des tests existants)</span>
+
+  <span class="k">it</span>(<span class="s">'Pôle opérations monétique : creerMonetique vrai, creer faux (AER_LM-319)'</span>, () =&gt; {
+    <span class="k">const</span> me = {
+      uid: <span class="s">'y00001'</span>, firstName: <span class="s">'Yassine'</span>, lastName: <span class="s">'S.'</span>,
+      profile: { code: <span class="s">'OPERATIONS_MONETIQUE'</span>, name: <span class="s">'Pôle opérations monétique'</span>,
+        roles: [{ platform: <span class="s">'GESTION_FONDS'</span>, permissions: [
+          { code: <span class="s">'GDF_CONSULTER_DEMANDE'</span> }, { code: <span class="s">'GDF_TOUTES_AGENCES'</span> },
+          { code: <span class="s">'GDF_CONSULTER_GAB'</span> }, { code: <span class="s">'GDF_GERER_GAB'</span> }, { code: <span class="s">'GDF_TRAITER_DEMANDE_MONETIQUE'</span> } ] }] },
+      orgaUnit: <span class="k">null</span>,
+    } as unknown as UtilisateurMe;
+
+    <span class="k">const</span> ctx = deriverContexteGdf(me);
+
+    <span class="k">expect</span>(ctx.habilitations.creerMonetique).toBeTrue();
+    <span class="k">expect</span>(ctx.habilitations.creer).toBeFalse();
+    <span class="k">expect</span>(ctx.habilitations.toutesAgences).toBeTrue();
+  });
+
+  <span class="k">it</span>(<span class="s">'Chef de caisse : creerMonetique faux'</span>, () =&gt; {
+    <span class="k">const</span> me = {
+      uid: <span class="s">'g10002'</span>, profile: { code: <span class="s">'CHEF_CAISSE'</span>, roles: [{ platform: <span class="s">'GESTION_FONDS'</span>,
+        permissions: [{ code: <span class="s">'GDF_CONSULTER_DEMANDE'</span> }, { code: <span class="s">'GDF_CREER_DEMANDE'</span> }] }] },
+      orgaUnit: { <span class="k">type</span>: <span class="s">'AGENCE'</span>, code: <span class="s">'1422'</span>, nom: <span class="s">'DAR BOUAAZA'</span> },
+    } as unknown as UtilisateurMe;
+
+    <span class="k">expect</span>(deriverContexteGdf(me).habilitations.creerMonetique).toBeFalse();
+  });</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>sidebar.component.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.spec.ts</span></div><p class="note">Import <code>HABILITATIONS_AUCUNE</code> depuis <code>demande-capacites</code> ; <code>habilitations</code> = le signal du double de service déjà présent dans la spec (Ctrl+F <code>toutesAgences</code> pour retrouver sa fixture).</p><pre><button class="copy">Copier</button><code><span class="c">// sidebar.component.spec.ts — À AJOUTER (dans le describe existant ; le double de ContexteUtilisateurService expose</span>
+<span class="c">// `habilitations` en signal — reprendre la forme de la fixture déjà utilisée pour « Caisse Centrale »)</span>
+
+  <span class="k">it</span>(<span class="s">'Chef de caisse : entrées agence visibles, entrées GAB masquées'</span>, () =&gt; {
+    habilitations.set({ ...HABILITATIONS_AUCUNE, consulter: <span class="k">true</span>, creer: <span class="k">true</span> });
+    fixture.detectChanges();
+    <span class="k">const</span> libelles = Array.<span class="k">from</span>(fixture.nativeElement.querySelectorAll(<span class="s">'.nav-item span'</span>)).map((e: any) =&gt; e.textContent.trim());
+    <span class="k">expect</span>(libelles).toContain(<span class="s">'Nouvelle Demande'</span>);
+    <span class="k">expect</span>(libelles).toContain(<span class="s">'Historique Demandes'</span>);
+    <span class="k">expect</span>(libelles).not.toContain(<span class="s">'Nouvelle demande GAB'</span>);
+    <span class="k">expect</span>(libelles).not.toContain(<span class="s">'Historique GAB'</span>);
+  });
+
+  <span class="k">it</span>(<span class="s">'Pôle opérations monétique : entrées GAB visibles, « Nouvelle Demande » agence masquée'</span>, () =&gt; {
+    habilitations.set({ ...HABILITATIONS_AUCUNE, consulter: <span class="k">true</span>, toutesAgences: <span class="k">true</span>, creerMonetique: <span class="k">true</span> });
+    fixture.detectChanges();
+    <span class="k">const</span> libelles = Array.<span class="k">from</span>(fixture.nativeElement.querySelectorAll(<span class="s">'.nav-item span'</span>)).map((e: any) =&gt; e.textContent.trim());
+    <span class="k">expect</span>(libelles).toContain(<span class="s">'Nouvelle demande GAB'</span>);
+    <span class="k">expect</span>(libelles).toContain(<span class="s">'Historique GAB'</span>);
+    <span class="k">expect</span>(libelles).not.toContain(<span class="s">'Nouvelle Demande'</span>);
+  });</code></pre></div>
+<h2 id="s3">3. Recette</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Déroulé</b><br><span class="path">fund-management-front (4201)</span></div><pre><button class="copy">Copier</button><code>1. ng build (ou ng serve) : le compilateur liste chaque littéral HabilitationsGdf incomplet (specs, fixtures) → ajouter « creerMonetique: <span class="k">false</span> ».
+2. Pôle opérations monétique (profil OPERATIONS_MONETIQUE) → Historique GAB → « Nouvelle Demande » → écran de saisie GAB hors site (#/monetique).
+   Console DevTools : plus aucun log « 1 » / « a », aucune erreur NG04xxx.
+3. Même persona : clic œil sur une ligne → #/monetique/consultation/&lt;id&gt;.
+4. Chef de caisse (g10002) : saisir #/monetique à la main → la garde refuse (pas de creerMonetique), l'URL ne change pas.
+5. Super Admin / Caisse Centrale : rien ne change sur leurs écrans (creer / traiter / toutesAgences intacts).
+5b. Menu : Chef de caisse (g10002) → Nouvelle Demande + Historique Demandes seulement ; Pôle monétique → Historique Demandes,
+    Nouvelle demande GAB, Historique GAB, Caisse Centrale (toutesAgences) ; /monetique/list à la main en Chef de caisse → refusé.
+6. Back : POST http:<span class="c">//localhost:9090/api/v1/public/fund-management/cash/monetique avec le Pôle monétique → 201 (plus de 403) ;</span>
+   avec le Chef de caisse → 403. PUT /{id}, PATCH /{id}/modification/start|end, /{id}/cancel → 200 pour le monétique.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
