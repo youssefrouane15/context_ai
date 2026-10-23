@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listing — puce « Pôle monétique »</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Listing agence / Caisse Centrale : puce « PÔLE MONÉTIQUE » pour les demandes du circuit monétique</h1><p>fund-management-front · demandes-list · 23/10/2026</p></header>
+<nav><a href="#s0">Cause</a><a href="#s1">Correctif</a><a href="#s2">Tests</a><a href="#s3">Recette</a></nav><main><h2 id="s0">0. Cause</h2>
+<div class="card"><p><code>chipsContenu(d)</code> traduit chaque opération en puce (RAMASSAGE / GAB / CAISSE / DEVISES) et retombe sur <code>return op.operationType</code> pour un type inconnu : les opérations monétique (<code>ALIMENTATION_GAB</code>) s'affichent donc en code brut, avec une classe <code>chip--alimentation_gab</code> sans style.</p>
+<p><b>Correctif</b> : la règle se base sur le canal de la demande (<code>DemandeFonds.canalDemande === 'MONETIQUE'</code>, champ déjà présent dans le modèle) et non sur le libellé d'opération ; une demande monétique affiche une seule puce <b>PÔLE MONÉTIQUE</b>, même forme que les autres, teinte violette dédiée (distincte du vert / ambre / bleu / ardoise déjà utilisés). Le code de puce reste <code>MONETIQUE</code> (classe CSS sans espace ni accent) ; seul le libellé affiché passe par <code>libelleChip</code>.</p></div>
+<h2 id="s1">1. Correctif</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.regles.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.regles.ts — ÉDITION : remplace la fonction chipsContenu (lignes 167-177) par ce bloc</span>
+
+<span class="c">/** AER_LM-265 : une demande du circuit monétique (canalDemande = MONETIQUE) affiche une seule puce « Pôle monétique ». */</span>
+<span class="k">export</span> <span class="k">const</span> CHIP_MONETIQUE = <span class="s">'MONETIQUE'</span>;
+
+<span class="c">/** Mêmes chips que les listings précédents : CAISSE / GAB / DEVISES / RAMASSAGE, sans doublon ; MONETIQUE pour le circuit GAB hors site. */</span>
+<span class="k">export</span> <span class="k">function</span> chipsContenu(d: DemandeFonds): string[] {
+  <span class="k">if</span> (d.canalDemande === CHIP_MONETIQUE) {
+    <span class="k">return</span> [CHIP_MONETIQUE];
+  }
+  <span class="k">const</span> chips = (d.operations ?? []).map(op =&gt; {
+    <span class="k">if</span> (op.operationSens === <span class="s">'COLLECTION'</span>) { <span class="k">return</span> <span class="s">'RAMASSAGE'</span>; }
+    <span class="k">if</span> (op.operationType === <span class="s">'ATM'</span>)        { <span class="k">return</span> <span class="s">'GAB'</span>; }
+    <span class="k">if</span> (op.operationType === <span class="s">'CASH_DESK'</span>)  { <span class="k">return</span> <span class="s">'CAISSE'</span>; }
+    <span class="k">if</span> (op.operationType === <span class="s">'CURRENCY'</span>)   { <span class="k">return</span> <span class="s">'DEVISES'</span>; }
+    <span class="k">return</span> op.operationType;
+  });
+  <span class="k">return</span> [...<span class="k">new</span> Set(chips)];
+}
+
+<span class="c">/** Libellé affiché d'une puce de contenu (le code sert aussi de suffixe de classe CSS). */</span>
+<span class="k">export</span> <span class="k">function</span> libelleChip(code: string): string {
+  <span class="k">return</span> code === CHIP_MONETIQUE ? <span class="s">'PÔLE MONÉTIQUE'</span> : code;
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demandes-list.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.component.ts — À AJOUTER (2 points)</span>
+
+<span class="c">// ---- 1. Import : ajouter libelleChip à l'import existant depuis './demandes-list.regles'</span>
+<span class="c">//         (Ctrl+F : from './demandes-list.regles')</span>
+  libelleChip,
+
+<span class="c">// ---- 2. Dans la classe, à côté des autres champs readonly exposés au template (ex. statuts / types)</span>
+  <span class="k">readonly</span> libelleChip = libelleChip;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- demandes-list.component.html — ÉDITION : cellule « Contenu de la demande » (ligne 155) --&gt;</span>
+
+<span class="c">&lt;!-- ---- AVANT --&gt;</span>
+          &lt;span <span class="k">class</span>=<span class="s">"chip"</span> *ngFor=<span class="s">"let c of l.contenu"</span> [<span class="k">class</span>]=<span class="s">"'chip chip--' + c.toLowerCase()"</span>&gt;{{ c }}&lt;/span&gt;
+
+<span class="c">&lt;!-- ---- APRÈS --&gt;</span>
+          &lt;span <span class="k">class</span>=<span class="s">"chip"</span> *ngFor=<span class="s">"let c of l.contenu"</span> [<span class="k">class</span>]=<span class="s">"'chip chip--' + c.toLowerCase()"</span>&gt;{{ libelleChip(c) }}&lt;/span&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demandes-list.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.scss</span></div><p class="note">Même construction que <code>&amp;--devises</code> (hex en dur, comme lui) ; règle de premier niveau, même spécificité que les variantes imbriquées.</p><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.component.scss — À AJOUTER juste après la fermeture du bloc .chip (après &amp;--devises, ligne 543)</span>
+
+<span class="c">/* AER_LM-265 : demande du Pôle opérations monétique — même forme que les autres puces, teinte violette dédiée */</span>
+.chip--monetique {
+  background: #ede9fe;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}</code></pre></div>
+<h2 id="s2">2. Tests</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demandes-list.regles.spec.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// demandes-list.regles.spec.ts — À AJOUTER (nouveau describe ; imports à compléter : chipsContenu, libelleChip, CHIP_MONETIQUE, DemandeFonds)</span>
+
+<span class="k">describe</span>(<span class="s">'chipsContenu / libelleChip (AER_LM-265)'</span>, () =&gt; {
+  <span class="k">const</span> demande = (canalDemande: string | <span class="k">null</span>, operations: any[] = []): DemandeFonds =&gt;
+    ({ id: <span class="s">'x'</span>, branchCode: <span class="s">'9000'</span>, establishment: <span class="s">'RETAIL'</span>, requestStatus: <span class="s">'SUBMITTED'</span>, canalDemande, operations } as DemandeFonds);
+
+  <span class="k">it</span>(<span class="s">'demande monétique : une seule puce MONETIQUE, quelles que soient ses opérations'</span>, () =&gt; {
+    <span class="k">expect</span>(chipsContenu(demande(<span class="s">'MONETIQUE'</span>, [{ operationType: <span class="s">'ALIMENTATION_GAB'</span> }, { operationType: <span class="s">'ALIMENTATION_GAB'</span> }])))
+      .toEqual([CHIP_MONETIQUE]);
+  });
+
+  <span class="k">it</span>(<span class="s">'demande agence : puces habituelles inchangées'</span>, () =&gt; {
+    <span class="k">expect</span>(chipsContenu(demande(<span class="s">'AGENCE'</span>, [{ operationType: <span class="s">'ATM'</span> }, { operationType: <span class="s">'CURRENCY'</span>, operationSens: <span class="s">'COLLECTION'</span> }])))
+      .toEqual([<span class="s">'GAB'</span>, <span class="s">'RAMASSAGE'</span>]);
+    <span class="k">expect</span>(chipsContenu(demande(<span class="k">null</span>, [{ operationType: <span class="s">'CASH_DESK'</span> }]))).toEqual([<span class="s">'CAISSE'</span>]);
+  });
+
+  <span class="k">it</span>(<span class="s">'libellé : PÔLE MONÉTIQUE pour le monétique, code tel quel sinon'</span>, () =&gt; {
+    <span class="k">expect</span>(libelleChip(CHIP_MONETIQUE)).toBe(<span class="s">'PÔLE MONÉTIQUE'</span>);
+    <span class="k">expect</span>(libelleChip(<span class="s">'DEVISES'</span>)).toBe(<span class="s">'DEVISES'</span>);
+  });
+});</code></pre></div>
+<h2 id="s3">3. Recette</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Déroulé</b><br><span class="path">fund-management-front (4201) — Caisse Centrale puis agence</span></div><pre><button class="copy">Copier</button><code>1. Caisse Centrale (g10003) → vue Caisse Centrale : les demandes 20261023-9000-xx affichent une puce violette « PÔLE MONÉTIQUE »
+   (plus de ALIMENTATION_GAB en texte brut) ; les demandes agence gardent DEVISES / CAISSE / RAMASSAGE / GAB.
+2. Même contrôle sur « Historique Demandes » (même composant, mode agence).
+3. Si la puce n'apparaît pas : DevTools → Network → requête de listing → une demande 9000 doit porter <span class="s">"canalDemande"</span>: <span class="s">"MONETIQUE"</span>.
+   Si le champ est absent de la réponse, c<span class="s">'est le DTO de listing côté fund-management qui ne l'</span>expose pas (à signaler au collègue).</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
