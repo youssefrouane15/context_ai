@@ -1,0 +1,123 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Titre dynamique — Pôle Monétique</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Barre du haut (« BMCI - Opérations Monétiques ») et bloc logo pour le Pôle Monétique</h1><p>fund-management-front · app.component · sidebar · 23/10/2026 (v2 : titre et sous-titre de la maquette)</p></header>
+<nav><a href="#s0">Règle</a><a href="#s1">Code</a><a href="#s2">Recette</a></nav><main><h2 id="s0">0. Règle</h2>
+<div class="card"><table><tr><th>Profil</th><th>Barre du haut</th><th>Bloc logo (sidebar)</th></tr>
+<tr><td>Agence (DA, Chef de caisse)</td><td>Gestion des fonds - Vue Agence</td><td>Réseau Agence / code - agence</td></tr>
+<tr><td>Caisse Centrale, Support, Super Admin</td><td>Gestion des fonds - Vue Caisse Centrale</td><td>Caisse Centrale / libellé du profil</td></tr>
+<tr><td><b>Pôle opérations monétique</b></td><td><b>BMCI - Opérations Monétiques</b><br>Portail de Gestion des Fonds GAB Hors-Site (maquette)</td><td><b>Pôle Monétique / GAB Hors-Site</b> (maquette)</td></tr></table>
+<p>Critère Pôle = <code>creerMonetique &amp;&amp; !toutesAgences</code> : la Caisse Centrale porte aussi le droit monétique (traitement) mais garde le périmètre toutes agences — même distinction que l'accueil par profil et la sidebar.</p></div>
+<h2 id="s1">1. Code</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>app.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\app.component.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// app.component.ts — ÉDITION : remplace le bloc « titre » (lignes 42-51) par ce bloc</span>
+
+  <span class="c">/** Pôle opérations monétique : saisie monétique sans périmètre toutes agences (la Caisse Centrale traite le monétique mais a toutesAgences). */</span>
+  <span class="k">private</span> <span class="k">readonly</span> estPoleMonetique = computed(() =&gt; {
+    <span class="k">const</span> h = <span class="k">this</span>.contexteUtilisateur.contexte()?.habilitations;
+    <span class="k">return</span> !!h &amp;&amp; h.creerMonetique &amp;&amp; !h.toutesAgences;
+  });
+
+  <span class="c">/**
+   * « Vue Caisse Centrale » pour un profil toutes agences sans agence de rattachement (Caisse Centrale, Support, Super Admin)
+   * ou dès que l'on est sur l'écran /caisse-centrale ; en-tête de la maquette pour le Pôle opérations monétique ; « Vue Agence » sinon.
+   */</span>
+  <span class="k">readonly</span> titre = computed(() =&gt; {
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">const</span> profilCentral = !!ctx &amp;&amp; !ctx.agenceCode &amp;&amp; ctx.habilitations.toutesAgences;
+    <span class="k">const</span> ecranCentral = <span class="k">this</span>.url().includes(PREFIXE_CAISSE_CENTRALE);
+    <span class="k">if</span> (profilCentral || ecranCentral) {
+      <span class="k">return</span> <span class="s">'Gestion des fonds - Vue Caisse Centrale'</span>;
+    }
+    <span class="k">return</span> <span class="k">this</span>.estPoleMonetique() ? <span class="s">'BMCI - Opérations Monétiques'</span> : <span class="s">'Gestion des fonds - Vue Agence'</span>;
+  });
+
+  <span class="c">/** Sous-titre de la maquette « Pôle Opérations Monétique » ; aucune ligne pour les autres vues. */</span>
+  <span class="k">readonly</span> sousTitre = computed(() =&gt; <span class="k">this</span>.estPoleMonetique() ? <span class="s">'Portail de Gestion des Fonds GAB Hors-Site'</span> : <span class="k">null</span>);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>app.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\app.component.html</span></div><p class="note">Le h1 passe dans un bloc titre : la barre garde deux enfants (titre, avatar), sa mise en page ne change pas. Si <code>app.component.css</code> cible <code>.app-topbar &gt; h1</code> (enfant direct), remplacer par <code>.app-topbar h1</code>.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- app.component.html — ÉDITION : ligne 8 --&gt;</span>
+
+<span class="c">&lt;!-- ---- AVANT --&gt;</span>
+      &lt;h1&gt;{{ titre() }}&lt;/h1&gt;
+
+<span class="c">&lt;!-- ---- APRÈS --&gt;</span>
+      &lt;div <span class="k">class</span>=<span class="s">"app-topbar__titres"</span> [<span class="k">class</span>.app-topbar__titres--monetique]=<span class="s">"!!sousTitre()"</span>&gt;
+        &lt;h1&gt;{{ titre() }}&lt;/h1&gt;
+        <span class="a">@if</span> (sousTitre()) {
+          &lt;p <span class="k">class</span>=<span class="s">"app-topbar__sous-titre"</span>&gt;{{ sousTitre() }}&lt;/p&gt;
+        }
+      &lt;/div&gt;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>app.component.css</b><br><span class="path">C:\dev\fund-management-front\src\app\app.component.css</span></div><pre><button class="copy">Copier</button><code><span class="c">/* app.component.css — À AJOUTER en fin de fichier */</span>
+
+<span class="c">/* Bloc titre de la barre du haut : le h1 garde son style actuel pour Agence / Caisse Centrale */</span>
+.app-topbar__titres { display: flex; flex-direction: column; justify-content: center; }
+.app-topbar__titres h1 { margin: 0; }
+
+<span class="c">/* Pôle opérations monétique — maquette : h1 font-headline-sm text-on-surface leading-tight (18px / 700, #0f1e1a)
+   + p font-label-sm text-on-surface-variant leading-none (11px / 400, #3e4a41) */</span>
+.app-topbar .app-topbar__titres--monetique h1 {
+  font-family: <span class="s">'Inter'</span>, sans-serif; font-size: 18px; line-height: 1.25; font-weight: 700; color: #0f1e1a;
+}
+.app-topbar__sous-titre {
+  margin: 0; font-family: <span class="s">'Inter'</span>, sans-serif; font-size: 11px; line-height: 1; font-weight: 400; color: #3e4a41;
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>sidebar.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\shared\presenter\components\sidebar\sidebar.component.ts</span></div><p class="note"><code>habilitations</code> est le signal déjà exposé par la classe (ligne 25). Aucun changement de template.</p><pre><button class="copy">Copier</button><code><span class="c">// sidebar.component.ts — ÉDITION : titre et sous-titre du bloc logo (lignes 27-36)</span>
+
+<span class="c">// ---- AVANT</span>
+  <span class="c">/** « Réseau Agence » pour un profil rattaché à une agence, « Caisse Centrale » sinon (Caisse Centrale, Support, Super Admin). */</span>
+  <span class="k">readonly</span> titre = computed(() =&gt; <span class="k">this</span>.contexteUtilisateur.contexte()?.agenceCode ? <span class="s">'Réseau Agence'</span> : <span class="s">'Caisse Centrale'</span>);
+
+  <span class="c">/** « 1001 - Nations Unies » pour une agence, le libellé du profil sinon. */</span>
+  <span class="k">readonly</span> sousTitre = computed(() =&gt; {
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">if</span> (!ctx) { <span class="k">return</span> <span class="s">'…'</span>; }
+    <span class="k">if</span> (ctx.agenceCode) { <span class="k">return</span> ctx.agenceNom ? <span class="s">`${ctx.agenceCode} - ${ctx.agenceNom}`</span> : ctx.agenceCode; }
+    <span class="k">return</span> ctx.profileName ?? ctx.profileCode ?? <span class="s">'Siège'</span>;
+  });
+
+<span class="c">// ---- APRÈS</span>
+  <span class="c">/** Pôle opérations monétique : saisie monétique sans périmètre toutes agences (la Caisse Centrale traite le monétique mais a toutesAgences). */</span>
+  <span class="k">private</span> <span class="k">readonly</span> estPoleMonetique = computed(() =&gt; {
+    <span class="k">const</span> h = <span class="k">this</span>.habilitations();
+    <span class="k">return</span> h.creerMonetique &amp;&amp; !h.toutesAgences;
+  });
+
+  <span class="c">/** « Réseau Agence » pour un profil rattaché à une agence, « Pôle Monétique » pour le Pôle, « Caisse Centrale » sinon (Caisse Centrale, Support, Super Admin). */</span>
+  <span class="k">readonly</span> titre = computed(() =&gt; {
+    <span class="k">if</span> (<span class="k">this</span>.contexteUtilisateur.contexte()?.agenceCode) { <span class="k">return</span> <span class="s">'Réseau Agence'</span>; }
+    <span class="k">return</span> <span class="k">this</span>.estPoleMonetique() ? <span class="s">'Pôle Monétique'</span> : <span class="s">'Caisse Centrale'</span>;
+  });
+
+  <span class="c">/** « 1001 - Nations Unies » pour une agence, « GAB Hors-Site » pour le Pôle (maquette), le libellé du profil sinon. */</span>
+  <span class="k">readonly</span> sousTitre = computed(() =&gt; {
+    <span class="k">const</span> ctx = <span class="k">this</span>.contexteUtilisateur.contexte();
+    <span class="k">if</span> (!ctx) { <span class="k">return</span> <span class="s">'…'</span>; }
+    <span class="k">if</span> (ctx.agenceCode) { <span class="k">return</span> ctx.agenceNom ? <span class="s">`${ctx.agenceCode} - ${ctx.agenceNom}`</span> : ctx.agenceCode; }
+    <span class="k">if</span> (<span class="k">this</span>.estPoleMonetique()) { <span class="k">return</span> <span class="s">'GAB Hors-Site'</span>; }
+    <span class="k">return</span> ctx.profileName ?? ctx.profileCode ?? <span class="s">'Siège'</span>;
+  });</code></pre></div>
+<h2 id="s2">2. Recette</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Par profil</b><br><span class="path">fund-management-front (4201)</span></div><pre><button class="copy">Copier</button><code>1. Pôle monétique (c63005) : barre du haut « BMCI - Opérations Monétiques » (18 px, gras, noir) et dessous « Portail de Gestion des Fonds GAB Hors-Site » (11 px, gris) ; bloc logo « Pôle Monétique / GAB Hors-Site ».
+2. Caisse Centrale (g10003) : inchangé — « Gestion des fonds - Vue Caisse Centrale », bloc logo « Caisse Centrale / CAISSE CENTRALE ».
+3. Chef de caisse (g10002) : inchangé — « Gestion des fonds - Vue Agence », bloc logo « Réseau Agence / 1422 - DAR BOUAAZA ».
+4. Super Admin (h11111) : inchangé — Vue Caisse Centrale (toutesAgences).</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
