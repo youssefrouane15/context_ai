@@ -1,0 +1,446 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Historique GAB Hors-Site — alignement maquette</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Historique des Demandes GAB Hors-Site — alignement à la lettre sur la maquette PO</h1><p>fund-management-front · demandes-monetique-list · 23/10/2026 (v2 : valeurs du tailwind.config de la maquette) · TS inchangé</p></header>
+<nav><a href="#s0">Valeurs maquette</a><a href="#s1">HTML</a><a href="#s2">SCSS</a><a href="#s3">Police</a></nav><main><h2 id="s0">0. Valeurs reprises de la maquette</h2>
+<div class="card"><p><b>v2</b> : la v1 était estimée à l'œil (config Tailwind repliée dans les captures). Ici chaque règle reprend la classe Tailwind de la maquette et le token de son <code>tailwind.config</code>, en commentaire dans le SCSS. Seul écart : le fond de page vert <code>background #ecfef5</code> (non voulu par le PO) — le composant n'a pas de fond.</p>
+<table><tr><th>Élément</th><th>Avant (v1)</th><th>Maquette</th></tr>
+<tr><td>Police</td><td>héritée de l'app</td><td><b>Inter</b> (body-md 14/20 sur le composant)</td></tr>
+<tr><td>Icônes</td><td>Material Icons pleines</td><td><b>Material Symbols Outlined</b> (<code>fontSet</code> sur chaque <code>mat-icon</code>)</td></tr>
+<tr><td>Textes</td><td>gris ardoise #1E293B / #64748B</td><td>on-surface <b>#0f1e1a</b> / on-surface-variant <b>#3e4a41</b></td></tr>
+<tr><td>Champs, en-tête de tableau, barre</td><td>#F1F5F9</td><td>surface-container-low <b>#e6f8ef</b> (barre /60, lignes paires /20, survol /40)</td></tr>
+<tr><td>Case référence, pastilles GAB / Sans Vidage, survol détails</td><td>#F1F5F9</td><td>surface-container <b>#e0f2ea</b></td></tr>
+<tr><td>Badge fil d'Ariane, pastille « N Vidages », survol Réinitialiser</td><td>#F1F5F9 / #E2E8F0</td><td>surface-container-high <b>#daece4</b></td></tr>
+<tr><td>Survol Nouvelle Demande</td><td>#008653</td><td>primary-container #008653 (inchangé)</td></tr>
+<tr><td>Séparateur « • », placeholder</td><td>#CBD5E1</td><td>outline <b>#D5DAD8</b> / outline-variant <b>#bdcabe</b></td></tr>
+<tr><td>Point « N Vidages »</td><td>#3E674E</td><td>secondary #3e674e</td></tr>
+<tr><td>Statut « En modification »</td><td>#1D4ED8</td><td>info <b>#1E71AC</b></td></tr>
+<tr><td>Libellés de champs</td><td>11 px</td><td>label-sm 11/14 400, <code>flex gap-1</code></td></tr>
+<tr><td>Montant</td><td>14 px 700</td><td>body-md + font-bold (inchangé)</td></tr>
+<tr><td>En-tête de page</td><td>alignée en bas</td><td><code>md:items-center</code>, <code>pb-6</code> ; actions <code>gap-3</code></td></tr>
+<tr><td>Bloc filtres</td><td>dans la grille</td><td><code>p-5 mb-6 gap-4</code></td></tr></table></div>
+<h2 id="s1">1. HTML</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demandes-monetique-list.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.html</span></div><p class="note">Seul changement par rapport à la v1 : <code>fontSet="material-symbols-outlined"</code> sur toutes les icônes (icônes au trait de la maquette). Liaisons identiques, TS inchangé.</p><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">"listing"</span>&gt;
+
+  <span class="c">&lt;!-- ---------------------------------------------------------------- En-tête --&gt;</span>
+  &lt;section <span class="k">class</span>=<span class="s">"entete"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"entete__textes"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"fil"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"fil__badge"</span>&gt;Flux Opérationnels Monétiques&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"fil__sep"</span>&gt;•&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"fil__page"</span>&gt;Validation &amp;amp; Suivi GAB&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;h2 <span class="k">class</span>=<span class="s">"entete__titre"</span>&gt;Historique des Demandes GAB Hors-Site&lt;/h2&gt;
+      &lt;p <span class="k">class</span>=<span class="s">"entete__sous-titre"</span>&gt;Suivi, consultation et traçabilité des dotations et vidages du parc d'automates hors-site.&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"entete__actions"</span>&gt;
+      &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--clair"</span> (click)=<span class="s">"actualiser()"</span> [disabled]=<span class="s">"facade.chargementListe()"</span>&gt;
+        &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"icone-tourne"</span> [<span class="k">class</span>.icone-tourne--actif]=<span class="s">"facade.chargementListe()"</span>&gt;sync&lt;/mat-icon&gt;
+        &lt;span&gt;Actualiser le flux&lt;/span&gt;
+      &lt;/button&gt;
+      &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--primaire"</span> (click)=<span class="s">"nouvelleDemande()"</span>&gt;
+        &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span>&gt;add_circle&lt;/mat-icon&gt;
+        &lt;span&gt;Nouvelle Demande&lt;/span&gt;
+      &lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  <span class="c">&lt;!-- ---------------------------------------------------------------- Filtres --&gt;</span>
+  &lt;section <span class="k">class</span>=<span class="s">"carte filtres"</span> [formGroup]=<span class="s">"filtres"</span> aria-label=<span class="s">"Filtres de recherche"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"filtres__entete"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"filtres__titre"</span>&gt;&lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span>&gt;tune&lt;/mat-icon&gt; Filtres de Recherche Multicritères&lt;/div&gt;
+      &lt;span <span class="k">class</span>=<span class="s">"filtres__contexte"</span>&gt;BMCI Opérations • Pôle Monétique&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"filtres__ligne1"</span>&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Date début&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;calendar_today&lt;/mat-icon&gt;
+          &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> <span class="k">type</span>=<span class="s">"date"</span> formControlName=<span class="s">"dateDebut"</span>&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Date fin&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;event&lt;/mat-icon&gt;
+          &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> <span class="k">type</span>=<span class="s">"date"</span> formControlName=<span class="s">"dateFin"</span> [attr.min]=<span class="s">"filtres.value.dateDebut || null"</span>&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Ville&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;location_city&lt;/mat-icon&gt;
+          &lt;select <span class="k">class</span>=<span class="s">"champ__saisie champ__saisie--liste"</span> formControlName=<span class="s">"ville"</span>&gt;
+            &lt;option value=<span class="s">""</span>&gt;Toutes les villes&lt;/option&gt;
+            &lt;option *ngFor=<span class="s">"let v of villes()"</span> [value]=<span class="s">"v"</span>&gt;{{ v }}&lt;/option&gt;
+          &lt;/select&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__fleche"</span>&gt;expand_more&lt;/mat-icon&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Nom GAB&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;search&lt;/mat-icon&gt;
+          &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> formControlName=<span class="s">"nomGab"</span> placeholder=<span class="s">"Ex: Marjane Californie..."</span>&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Agence de rattachement&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;account_balance&lt;/mat-icon&gt;
+          &lt;select <span class="k">class</span>=<span class="s">"champ__saisie champ__saisie--liste"</span> formControlName=<span class="s">"agence"</span>&gt;
+            &lt;option value=<span class="s">""</span>&gt;Toutes les agences&lt;/option&gt;
+            &lt;option *ngFor=<span class="s">"let a of agences()"</span> [value]=<span class="s">"a.code"</span>&gt;{{ a.code }} - {{ a.libelle }}&lt;/option&gt;
+          &lt;/select&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__fleche"</span>&gt;expand_more&lt;/mat-icon&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"filtres__ligne2"</span>&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ champ--vidage"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Flag Vidage Automates&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;swap_horiz&lt;/mat-icon&gt;
+          &lt;select <span class="k">class</span>=<span class="s">"champ__saisie champ__saisie--liste"</span> formControlName=<span class="s">"vidage"</span>&gt;
+            &lt;option *ngFor=<span class="s">"let o of optionsVidage"</span> [value]=<span class="s">"o.code"</span>&gt;{{ o.libelle }}&lt;/option&gt;
+          &lt;/select&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__fleche"</span>&gt;expand_more&lt;/mat-icon&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ champ--statut"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Statut Traitement&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;filter_list&lt;/mat-icon&gt;
+          &lt;select <span class="k">class</span>=<span class="s">"champ__saisie champ__saisie--liste"</span> formControlName=<span class="s">"statut"</span>&gt;
+            &lt;option *ngFor=<span class="s">"let s of statuts"</span> [value]=<span class="s">"s.code"</span>&gt;{{ s.libelle }}&lt;/option&gt;
+          &lt;/select&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"champ__fleche"</span>&gt;expand_more&lt;/mat-icon&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"filtres__actions"</span>&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--gris"</span> (click)=<span class="s">"reinitialiser()"</span>&gt;Réinitialiser&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  <span class="c">&lt;!-- ---------------------------------------------------------------- Tableau --&gt;</span>
+  &lt;section <span class="k">class</span>=<span class="s">"carte tableau-carte"</span> aria-label=<span class="s">"Demandes"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__barre"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"tableau__barre-titre"</span>&gt;
+        &lt;span&gt;Demandes d<span class="s">'alimentation &amp;amp; d'</span>équilibrage&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"compteur"</span>&gt;{{ lignes().length }} affichée{{ lignes().length &gt; 1 ? <span class="s">'s'</span> : <span class="s">''</span> }}&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"legende"</span>&gt;
+        &lt;span&gt;&lt;i <span class="k">class</span>=<span class="s">"point point--traite"</span>&gt;&lt;/i&gt; Traité&lt;/span&gt;
+        &lt;span&gt;&lt;i <span class="k">class</span>=<span class="s">"point point--attente"</span>&gt;&lt;/i&gt; En Attente&lt;/span&gt;
+        &lt;span&gt;&lt;i <span class="k">class</span>=<span class="s">"point point--annule"</span>&gt;&lt;/i&gt; Annulé&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__etat"</span> *ngIf=<span class="s">"facade.chargementListe()"</span>&gt;&lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span> <span class="k">class</span>=<span class="s">"icone-tourne icone-tourne--actif"</span>&gt;autorenew&lt;/mat-icon&gt; Chargement des demandes…&lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__etat tableau__etat--erreur"</span> *ngIf=<span class="s">"!facade.chargementListe() &amp;&amp; facade.erreurListe() as erreur"</span>&gt;
+      &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span>&gt;error_outline&lt;/mat-icon&gt; {{ erreur }}
+    &lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__etat"</span> *ngIf=<span class="s">"!facade.chargementListe() &amp;&amp; !facade.erreurListe() &amp;&amp; lignes().length === 0"</span>&gt;
+      &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span>&gt;inbox&lt;/mat-icon&gt; Aucune demande ne correspond aux filtres.
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"tableau-defilement"</span> *ngIf=<span class="s">"!facade.chargementListe() &amp;&amp; !facade.erreurListe() &amp;&amp; lignes().length &gt; 0"</span>&gt;
+      &lt;table <span class="k">class</span>=<span class="s">"tableau"</span>&gt;
+        &lt;thead&gt;
+          &lt;tr&gt;
+            &lt;th&gt;Référence&lt;/th&gt;
+            &lt;th&gt;Date demande&lt;/th&gt;
+            &lt;th&gt;GAB inclus &amp;amp; vidages&lt;/th&gt;
+            &lt;th <span class="k">class</span>=<span class="s">"a-droite"</span>&gt;Montant total&lt;/th&gt;
+            &lt;th <span class="k">class</span>=<span class="s">"au-centre"</span>&gt;Statut&lt;/th&gt;
+            &lt;th <span class="k">class</span>=<span class="s">"au-centre"</span>&gt;Détails&lt;/th&gt;
+          &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+          &lt;tr *ngFor=<span class="s">"let l of lignes(); let pair = even; trackBy: suivreLigne"</span> [<span class="k">class</span>.ligne--paire]=<span class="s">"!pair"</span>&gt;
+            &lt;td&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"ref"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"ref__icone"</span>&gt;&lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span>&gt;description&lt;/mat-icon&gt;&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"ref__texte"</span>&gt;{{ l.reference }}&lt;/span&gt;
+              &lt;/div&gt;
+            &lt;/td&gt;
+            &lt;td&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"date"</span> *ngIf=<span class="s">"l.date; else sansDate"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"date__jour"</span>&gt;{{ l.date | date:<span class="s">'dd/MM/yyyy'</span> }}&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"date__heure"</span>&gt;{{ l.date | date:<span class="s">'HH:mm'</span> }}&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;ng-template #sansDate&gt;—&lt;/ng-template&gt;
+            &lt;/td&gt;
+            &lt;td&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"pastilles"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"pastille pastille--gab"</span>&gt;&lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span>&gt;local_atm&lt;/mat-icon&gt; {{ l.libelleGab }}&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"pastille"</span> [ngClass]=<span class="s">"'pastille--' + l.vidage.ton"</span>&gt;
+                  &lt;i <span class="k">class</span>=<span class="s">"point"</span> *ngIf=<span class="s">"l.vidage.ton !== 'neutre'"</span> [<span class="k">class</span>.point--pulse]=<span class="s">"l.vidage.pulse"</span>&gt;&lt;/i&gt;
+                  {{ l.vidage.libelle }}
+                &lt;/span&gt;
+              &lt;/div&gt;
+            &lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"a-droite"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"montant"</span> [<span class="k">class</span>.montant--barre]=<span class="s">"l.annulee"</span>&gt;{{ l.montant }}&lt;/span&gt;&lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"au-centre"</span>&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"statut"</span> [ngClass]=<span class="s">"l.statut.classe"</span>&gt;&lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span>&gt;{{ l.statut.icone }}&lt;/mat-icon&gt; {{ l.statut.libelle }}&lt;/span&gt;
+            &lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"au-centre"</span>&gt;
+              &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton-icone"</span> title=<span class="s">"Consulter"</span> (click)=<span class="s">"voirDetail(l)"</span>&gt;
+                &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span>&gt;visibility&lt;/mat-icon&gt;
+              &lt;/button&gt;
+            &lt;/td&gt;
+          &lt;/tr&gt;
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+    &lt;/div&gt;
+
+    &lt;footer <span class="k">class</span>=<span class="s">"tableau__pied"</span> *ngIf=<span class="s">"!facade.chargementListe() &amp;&amp; !facade.erreurListe() &amp;&amp; lignes().length &gt; 0"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"tableau__resume"</span>&gt;
+        Affichage de &lt;strong&gt;{{ lignes().length }}&lt;/strong&gt; sur &lt;strong&gt;{{ facade.total() }}&lt;/strong&gt; demandes
+      &lt;/div&gt;
+      &lt;nav <span class="k">class</span>=<span class="s">"pagination"</span> aria-label=<span class="s">"Pagination"</span>&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"pagination__bouton"</span> (click)=<span class="s">"allerPage(pageCourante() - 1)"</span> [disabled]=<span class="s">"pageCourante() === 0"</span>&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span>&gt;chevron_left&lt;/mat-icon&gt;
+        &lt;/button&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> *ngFor=<span class="s">"let p of pages()"</span> <span class="k">class</span>=<span class="s">"pagination__bouton"</span>
+                [<span class="k">class</span>.pagination__bouton--actif]=<span class="s">"p === pageCourante()"</span> (click)=<span class="s">"allerPage(p)"</span>&gt;{{ p + 1 }}&lt;/button&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"pagination__bouton"</span> (click)=<span class="s">"allerPage(pageCourante() + 1)"</span>
+                [disabled]=<span class="s">"pageCourante() &gt;= nombrePages() - 1"</span>&gt;
+          &lt;mat-icon fontSet=<span class="s">"material-symbols-outlined"</span>&gt;chevron_right&lt;/mat-icon&gt;
+        &lt;/button&gt;
+      &lt;/nav&gt;
+    &lt;/footer&gt;
+  &lt;/section&gt;
+&lt;/div&gt;</code></pre></div>
+<h2 id="s2">2. SCSS</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demandes-monetique-list.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.scss</span></div><p class="note">Variables nommées comme les tokens de la maquette (<code>--primary</code>, <code>--surface-container-low</code>…) et mixins de l'échelle typographique (<code>label-sm</code>, <code>body-sm</code>…) : chaque règle se relit contre la classe Tailwind correspondante.</p><pre><button class="copy">Copier</button><code><span class="c">// Maquette « Pôle Opérations Monétique - Listing demandes » — valeurs reprises À LA LETTRE de son tailwind.config :</span>
+<span class="c">// police Inter, échelle typographique (label-sm 11/14 400, label-md 12/16 700, label-lg 14/20 700, body-sm 12/16 400,</span>
+<span class="c">// body-md 14/20 400, headline-md 22/28 700), couleurs Material 3 du thème, radius lg .5rem / xl .75rem, ombres Tailwind.</span>
+<span class="c">// Seul écart volontaire : le fond de page vert (bg-background #ecfef5) n'est pas repris — le composant n'a pas de fond.</span>
+:host {
+  <span class="c">// ---- couleurs (tailwind.config de la maquette)</span>
+<span class="c">  --primary: #006a40;</span>
+<span class="c">  --on-primary: #ffffff;</span>
+<span class="c">  --primary-container: #008653;</span>
+<span class="c">  --secondary: #3e674e;</span>
+<span class="c">  --surface: #ffffff;</span>
+<span class="c">  --surface-container-low: #e6f8ef;</span>
+<span class="c">  --surface-container: #e0f2ea;</span>
+<span class="c">  --surface-container-high: #daece4;</span>
+<span class="c">  --on-surface: #0f1e1a;</span>
+<span class="c">  --on-surface-variant: #3e4a41;</span>
+<span class="c">  --outline: #d5dad8;</span>
+<span class="c">  --outline-variant: #bdcabe;</span>
+<span class="c">  --success: #007f4f;</span>
+<span class="c">  --warning: #b13e19;</span>
+<span class="c">  --error: #c8281e;</span>
+<span class="c">  --info: #1e71ac;</span>
+  <span class="c">// ---- ombres Tailwind</span>
+<span class="c">  --ombre-sm: 0 1px 2px 0 rgba(0, 0, 0, .05);</span>
+<span class="c">  --ombre-md: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -2px rgba(0, 0, 0, .1);</span>
+<span class="c">  --ombre-lg: 0 10px 15px -3px rgba(0, 0, 0, .1), 0 4px 6px -4px rgba(0, 0, 0, .1);</span>
+<span class="c">  --transition: 150ms cubic-bezier(.4, 0, .2, 1);</span>
+
+  display: block; min-height: 100%;
+  font-family: <span class="s">'Inter'</span>, sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;   <span class="c">// body-md (body de la maquette)</span>
+  color: var(--on-surface);
+}
+mat-icon { font-size: 18px; width: 18px; height: 18px; line-height: 1; }
+
+<span class="c">// échelle typographique de la maquette</span>
+<span class="a">@mixin</span> label-sm { font-size: 11px; line-height: 14px; font-weight: 400; }
+<span class="a">@mixin</span> label-md { font-size: 12px; line-height: 16px; font-weight: 700; }
+<span class="a">@mixin</span> label-lg { font-size: 14px; line-height: 20px; font-weight: 700; }
+<span class="a">@mixin</span> body-sm  { font-size: 12px; line-height: 16px; font-weight: 400; }
+<span class="a">@mixin</span> body-md  { font-size: 14px; line-height: 20px; font-weight: 400; }
+<span class="a">@mixin</span> headline-md { font-size: 22px; line-height: 28px; font-weight: 700; }
+
+.listing { display: flex; flex-direction: column; padding: 24px 24px 48px; }   <span class="c">// main : px-gutter-desktop py-space-lg ; pb-12</span>
+
+<span class="c">// ---------------------------------------------------------------- en-tête (section … gap-4 pb-6)</span>
+.entete { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding-bottom: 24px; }
+.entete__textes { display: flex; flex-direction: column; gap: 4px; }
+.fil { display: flex; align-items: center; gap: 8px; }
+.fil__badge { <span class="a">@include</span> label-sm; display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 9999px;
+  background: var(--surface-container-high); color: var(--primary); letter-spacing: .025em; text-transform: uppercase; }
+.fil__sep { <span class="a">@include</span> label-sm; color: var(--outline); }
+.fil__page { <span class="a">@include</span> label-sm; color: var(--on-surface-variant); }
+.entete__titre { <span class="a">@include</span> headline-md; margin: 0; color: var(--primary); letter-spacing: -.025em; }
+.entete__sous-titre { <span class="a">@include</span> body-md; margin: 0; color: var(--on-surface-variant); }
+.entete__actions { display: flex; align-items: center; gap: 12px; }
+
+<span class="c">// ---------------------------------------------------------------- boutons</span>
+.bouton { <span class="a">@include</span> label-md; display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: 8px; font-family: inherit;
+  cursor: pointer; transition: all var(--transition);
+  &amp;:disabled { opacity: .6; cursor: not-allowed; } }
+<span class="c">// Actualiser : px-4 py-2.5 bg-surface hover:bg-surface-container text-on-surface-variant shadow-sm</span>
+.bouton--clair { padding: 10px 16px; background: var(--surface); color: var(--on-surface-variant); box-shadow: var(--ombre-sm);
+  &amp;:hover:not(:disabled) { background: var(--surface-container); } }
+<span class="c">// Nouvelle Demande : px-5 py-2.5 bg-primary hover:bg-primary-container text-on-primary shadow-md hover:shadow-lg duration-200</span>
+.bouton--primaire { padding: 10px 20px; background: var(--primary); color: var(--on-primary); box-shadow: var(--ombre-md);
+  transition-duration: 200ms;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  &amp;:hover:not(:disabled) { background: var(--primary-container); box-shadow: var(--ombre-lg); } }
+<span class="c">// Réinitialiser : px-4 py-2 bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface</span>
+.bouton--gris { padding: 8px 16px; background: var(--surface-container-low); color: var(--on-surface-variant);
+  &amp;:hover { background: var(--surface-container-high); color: var(--on-surface); } }
+.icone-tourne { color: var(--primary); transition: transform var(--transition); }
+.bouton--clair:hover .icone-tourne { transform: rotate(180deg); }
+.icone-tourne--actif { animation: tourne 1s linear infinite; }
+<span class="a">@keyframes</span> tourne { to { transform: rotate(360deg); } }
+
+<span class="c">// ---------------------------------------------------------------- cartes (bg-surface rounded-xl shadow-sm)</span>
+.carte { background: var(--surface); border-radius: 12px; box-shadow: var(--ombre-sm); }
+
+<span class="c">// ---------------------------------------------------------------- filtres (p-5 mb-6 gap-4)</span>
+.filtres { padding: 20px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px; }
+.filtres__entete { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; }
+.filtres__titre { <span class="a">@include</span> label-lg; display: flex; align-items: center; gap: 8px; color: var(--on-surface);
+  mat-icon { font-size: 20px; width: 20px; height: 20px; color: var(--primary); } }
+.filtres__contexte { <span class="a">@include</span> label-sm; color: var(--on-surface-variant); }
+.filtres__ligne1 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.filtres__ligne2 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; align-items: end; padding-top: 4px; }
+.champ--vidage { grid-column: span 4; }
+.champ--statut { grid-column: span 3; }
+.filtres__actions { grid-column: span 5; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+
+<span class="c">// champ : flex-col gap-1.5 ; libellé label-sm on-surface-variant ; icône absolute left-3 18px</span>
+.champ { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.champ__libelle { <span class="a">@include</span> label-sm; display: flex; align-items: center; gap: 4px; color: var(--on-surface-variant); }
+.champ__boite { position: relative; display: flex; align-items: center; }
+.champ__icone { position: absolute; left: 12px; color: var(--on-surface-variant); pointer-events: none; }
+.champ__fleche { position: absolute; right: 8px; color: var(--on-surface-variant); pointer-events: none; }
+<span class="c">// saisie : w-full bg-surface-container-low pl-9 pr-3 py-2 rounded-lg body-sm focus:bg-surface focus:ring-2 focus:ring-primary</span>
+.champ__saisie { <span class="a">@include</span> body-sm; box-sizing: border-box; width: 100%; padding: 8px 12px 8px 36px; border: none; border-radius: 8px;
+  background: var(--surface-container-low); color: var(--on-surface); font-family: inherit; transition: all var(--transition);
+  &amp;::placeholder { color: var(--outline-variant); }
+  &amp;:focus { outline: none; background: var(--surface); box-shadow: 0 0 0 2px var(--primary); } }
+.champ__saisie--liste { appearance: none; padding-right: 32px; cursor: pointer; }   <span class="c">// select : pr-8 appearance-none</span>
+
+<span class="c">// ---------------------------------------------------------------- tableau</span>
+.tableau-carte { overflow: hidden; display: flex; flex-direction: column; }
+<span class="c">// barre : px-6 py-4 bg-surface-container-low/60</span>
+.tableau__barre { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 16px 24px; background: rgba(230, 248, 239, .6); }
+.tableau__barre-titre { <span class="a">@include</span> label-lg; display: flex; align-items: center; gap: 8px; color: var(--on-surface); }
+.compteur { <span class="a">@include</span> label-sm; font-weight: 700; padding: 2px 8px; border-radius: 9999px; background: rgba(0, 106, 64, .1); color: var(--primary); }
+.legende { <span class="a">@include</span> label-sm; display: flex; align-items: center; gap: 12px; color: var(--on-surface-variant);
+  span { display: inline-flex; align-items: center; gap: 6px; }
+  .point { width: 10px; height: 10px; } }
+.point { display: inline-block; width: 6px; height: 6px; border-radius: 9999px; }
+.point--traite { background: var(--success); }
+.point--attente { background: var(--warning); }
+.point--annule { background: var(--error); }
+.point--pulse { animation: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite; }   <span class="c">// animate-pulse Tailwind</span>
+<span class="a">@keyframes</span> pulse { 50% { opacity: .5; } }
+
+.tableau-defilement { width: 100%; overflow-x: auto; }
+.tableau { width: 100%; border-collapse: collapse; text-align: left;
+  <span class="c">// thead : bg-surface-container-low text-on-surface-variant label-sm uppercase tracking-wider ; th py-3.5 px-6 font-bold</span>
+  th { <span class="a">@include</span> label-sm; font-weight: 700; padding: 14px 24px; background: var(--surface-container-low); color: var(--on-surface-variant);
+    text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+  <span class="c">// tbody : body-sm text-on-surface, aucun séparateur ; td py-4 px-6</span>
+  td { <span class="a">@include</span> body-sm; padding: 16px 24px; color: var(--on-surface); vertical-align: middle; }
+  tbody tr { transition: background-color var(--transition); }
+  tbody tr:hover { background: rgba(230, 248, 239, .4); }        <span class="c">// hover:bg-surface-container-low/40</span>
+}
+.ligne--paire { background: rgba(230, 248, 239, .2); }           <span class="c">// lignes paires : bg-surface-container-low/20</span>
+.a-droite { text-align: right !important; }
+.au-centre { text-align: center !important; }
+
+<span class="c">// référence : gap-2.5 ; case w-8 h-8 rounded-lg bg-surface-container text-primary ; texte label-md on-surface tracking-tight</span>
+.ref { display: flex; align-items: center; gap: 10px; }
+.ref__icone { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 8px; background: var(--surface-container); color: var(--primary); }
+.ref__texte { <span class="a">@include</span> label-md; color: var(--on-surface); letter-spacing: -.025em; white-space: nowrap; transition: color var(--transition); }
+tbody tr:hover .ref__texte { color: var(--primary); }
+
+<span class="c">// date : jour font-semibold on-surface ; heure label-sm on-surface-variant</span>
+.date { display: flex; flex-direction: column; }
+.date__jour { font-weight: 600; color: var(--on-surface); }
+.date__heure { <span class="a">@include</span> label-sm; color: var(--on-surface-variant); }
+
+<span class="c">// pastilles : gap-2 ; px-2.5 py-1 rounded-full label-sm</span>
+.pastilles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pastille { <span class="a">@include</span> label-sm; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; white-space: nowrap;
+  background: var(--surface-container); color: var(--on-surface-variant);                 <span class="c">// « Sans Vidage »</span>
+  mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+.pastille--gab { gap: 4px; color: var(--primary); font-weight: 700; }                     <span class="c">// bg-surface-container text-primary font-bold</span>
+.pastille--secondaire { background: var(--surface-container-high); font-weight: 500;      <span class="c">// « N Vidages »</span>
+  .point { background: var(--secondary); } }
+.pastille--alerte { background: rgba(177, 62, 25, .1); color: var(--warning); font-weight: 600;   <span class="c">// « dont 1 seul » / « Vidage seul »</span>
+  .point { background: var(--warning); } }
+
+<span class="c">// montant : font-bold body-md ; annulé line-through on-surface-variant</span>
+.montant { <span class="a">@include</span> body-md; font-weight: 700; color: var(--on-surface); white-space: nowrap; }
+.montant--barre { text-decoration: line-through; color: var(--on-surface-variant); }
+
+<span class="c">// statut : gap-1.5 px-3 py-1 rounded-full label-sm font-bold, fond couleur/10</span>
+.statut { <span class="a">@include</span> label-sm; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px;
+  white-space: nowrap;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+.statut--attente { background: rgba(177, 62, 25, .1); color: var(--warning); }
+.statut--traite { background: rgba(0, 127, 79, .1); color: var(--success); }
+.statut--annule { background: rgba(200, 40, 30, .1); color: var(--error); }
+.statut--modification { background: rgba(30, 113, 172, .1); color: var(--info); }
+.statut--brouillon { background: var(--surface-container); color: var(--on-surface-variant); }
+
+<span class="c">// détails : w-9 h-9 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-primary</span>
+.bouton-icone { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: none; border-radius: 8px;
+  background: transparent; color: var(--on-surface-variant); cursor: pointer; transition: all var(--transition);
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  &amp;:hover { background: var(--surface-container); color: var(--primary); } }
+
+.tableau__etat { <span class="a">@include</span> body-sm; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 32px; color: var(--on-surface-variant); }
+.tableau__etat--erreur { color: var(--error); }
+
+<span class="c">// pied : px-6 py-4 bg-surface ; résumé body-sm ; pages w-8 h-8 rounded-lg label-md</span>
+.tableau__pied { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 24px; background: var(--surface); }
+.tableau__resume { <span class="a">@include</span> body-sm; color: var(--on-surface-variant);
+  strong { font-weight: 700; color: var(--on-surface); } }
+.pagination { display: flex; align-items: center; gap: 4px; }
+.pagination__bouton { <span class="a">@include</span> label-md; display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px;
+  border: none; border-radius: 8px; background: transparent; color: var(--on-surface); font-family: inherit; cursor: pointer;
+  transition: background-color var(--transition);
+  &amp;:hover:not(:disabled):not(.pagination__bouton--actif) { background: var(--surface-container); }
+  &amp;:disabled { color: rgba(62, 74, 65, .4); cursor: not-allowed; } }                     <span class="c">// text-on-surface-variant/40</span>
+.pagination__bouton--actif { background: var(--primary); color: var(--on-primary); box-shadow: var(--ombre-sm); }
+
+<span class="c">// ---------------------------------------------------------------- responsive (md 768 px / sm 640 px, comme la maquette)</span>
+<span class="a">@media</span> (max-width: 767px) {
+  .entete { flex-direction: column; align-items: flex-start; }
+  .filtres__ligne1, .filtres__ligne2 { grid-template-columns: 1fr; }
+  .champ--vidage, .champ--statut, .filtres__actions { grid-column: auto; }
+}
+<span class="a">@media</span> (max-width: 639px) {
+  .tableau__barre, .tableau__pied { flex-direction: column; align-items: flex-start; }
+}</code></pre></div>
+<h2 id="s3">3. Police Inter</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>index.html</b><br><span class="path">C:\dev\fund-management-front\src\index.html</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- src/index.html — À AJOUTER dans &lt;head&gt; UNIQUEMENT si Ctrl+F « family=Inter » ne trouve rien (police de la maquette) --&gt;</span>
+&lt;link href=<span class="s">"https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap"</span> rel=<span class="s">"stylesheet"</span>&gt;
+<span class="c">&lt;!-- Material Symbols Outlined est déjà chargé (fund-management.component.html utilise class="material-symbols-outlined") --&gt;</span></code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
