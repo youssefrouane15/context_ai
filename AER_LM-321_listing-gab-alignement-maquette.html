@@ -1,0 +1,410 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Historique GAB Hors-Site — alignement maquette</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Historique des Demandes GAB Hors-Site — alignement sur la maquette PO</h1><p>fund-management-front · demandes-monetique-list · 23/10/2026 · TS inchangé, export Excel hors périmètre</p></header>
+<nav><a href="#s0">Écarts</a><a href="#s1">HTML</a><a href="#s2">SCSS</a></nav><main><h2 id="s0">0. Écarts relevés (maquette → écran)</h2>
+<div class="card"><p>Fond vert de la maquette ignoré comme demandé : les neutres (fonds de champs, surfaces, textes) restent en gris ardoise, comme sur les autres écrans. Tout le reste est repris de la config Tailwind et des classes de la maquette. Le <b>.ts ne change pas</b> ; le HTML ne change que par 4 textes.</p>
+<table><tr><th>Zone</th><th>Maquette</th><th>Avant</th></tr>
+<tr><td>Vert principal</td><td><code>primary #006A40</code>, survol <code>#008653</code></td><td>#00915A, survol par luminosité</td></tr>
+<tr><td>Statut / légende « En Attente », pastille « dont 1 seul »</td><td><code>warning #B13E19</code> sur fond warning/10 (rouille)</td><td>ambre #B45309 / #FEF3C7</td></tr>
+<tr><td>« Traité »</td><td><code>success #007F4F</code> sur success/10</td><td>#15803D / #DCFCE7</td></tr>
+<tr><td>« Annulé »</td><td><code>error #C8281E</code> sur error/10</td><td>#DC2626 / #FEE2E2</td></tr>
+<tr><td>Fil d'Ariane</td><td>11 px, séparateur « • », badge non gras</td><td>12 px, « › », badge 600</td></tr>
+<tr><td>Titre</td><td>22 px / 28, tracking -0.025em</td><td>24 px</td></tr>
+<tr><td>Boutons d'en-tête</td><td>12 px / 700, sans bordure ; Actualiser ombre légère ; Nouvelle Demande ombre moyenne, icône 20 px, padding 20 px</td><td>13 px / 600, bordure, 38 px fixes</td></tr>
+<tr><td>Cartes</td><td>ombre <code>0 1px 2px rgba(0,0,0,.05)</code></td><td>0 1px 3px … .08</td></tr>
+<tr><td>Bloc filtres</td><td>pas de trait sous l'en-tête ; titre 14 px / 700 ; contexte 11 px « BMCI Opérations • Pôle Monétique » ; libellés 11 px / 400</td><td>trait, 15 px / 600, 12 px</td></tr>
+<tr><td>Champs</td><td>hauteur 32 px, texte 12 px, sans bordure, icône à 12 px, focus anneau vert plein 2 px ; placeholder « Ex: Marjane Californie... »</td><td>38 px, 13 px, icône à 10 px, anneau vert clair</td></tr>
+<tr><td>Réinitialiser</td><td>32 px, 12 px / 700</td><td>36 px, 13 px / 600</td></tr>
+<tr><td>Barre du tableau</td><td>« Demandes d'alimentation &amp; d'équilibrage », 14 px / 700 ; puces de légende 10 px</td><td>titre court, 600, puces 8 px</td></tr>
+<tr><td>Lignes</td><td>aucun trait entre lignes, zébrage /20, survol /40, texte 12 px</td><td>trait 1 px, .3 / .6, 13 px</td></tr>
+<tr><td>Référence</td><td>12 px / 700, tracking -0.025em</td><td>13 px, -0.01em</td></tr>
+<tr><td>Heure, pastilles, statut</td><td>11 px ; point des pastilles 6 px ; « N Vidages » point <code>secondary #3E674E</code> ; pulsation Tailwind (2 s, opacité .5)</td><td>12 px ; point 8 px gris ; 1,6 s / .35</td></tr>
+<tr><td>Pied</td><td>pas de trait ; résumé 12 px ; pages 12 px / 700, page active ombre légère</td><td>trait, 13 px, 500</td></tr></table>
+<p>Non repris : bouton Export Excel (hors périmètre), et les textes d'options de « Flag Vidage » / « Statut » qui viennent de <code>OPTIONS_VIDAGE</code> / <code>STATUTS_FILTRE_MONETIQUE</code> (maquette : Tous (Dotation &amp; Vidage) · Avec Vidage uniquement · Sans Vidage · Vidage seul — Tous les statuts · En Attente · Traité · Annulé) : à aligner dans <code>monetique.regles.ts</code> s'ils diffèrent.</p></div>
+<h2 id="s1">1. HTML</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demandes-monetique-list.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.html</span></div><p class="note">Seuls changements : séparateur « • », contexte « BMCI Opérations • Pôle Monétique », placeholder « Ex: Marjane Californie... », titre « Demandes d'alimentation &amp; d'équilibrage ». Liaisons et structure identiques.</p><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">"listing"</span>&gt;
+
+  <span class="c">&lt;!-- ---------------------------------------------------------------- En-tête --&gt;</span>
+  &lt;section <span class="k">class</span>=<span class="s">"entete"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"entete__textes"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"fil"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"fil__badge"</span>&gt;Flux Opérationnels Monétiques&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"fil__sep"</span>&gt;•&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"fil__page"</span>&gt;Validation &amp;amp; Suivi GAB&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;h2 <span class="k">class</span>=<span class="s">"entete__titre"</span>&gt;Historique des Demandes GAB Hors-Site&lt;/h2&gt;
+      &lt;p <span class="k">class</span>=<span class="s">"entete__sous-titre"</span>&gt;Suivi, consultation et traçabilité des dotations et vidages du parc d'automates hors-site.&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"entete__actions"</span>&gt;
+      &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--clair"</span> (click)=<span class="s">"actualiser()"</span> [disabled]=<span class="s">"facade.chargementListe()"</span>&gt;
+        &lt;mat-icon <span class="k">class</span>=<span class="s">"icone-tourne"</span> [<span class="k">class</span>.icone-tourne--actif]=<span class="s">"facade.chargementListe()"</span>&gt;sync&lt;/mat-icon&gt;
+        &lt;span&gt;Actualiser le flux&lt;/span&gt;
+      &lt;/button&gt;
+      &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--primaire"</span> (click)=<span class="s">"nouvelleDemande()"</span>&gt;
+        &lt;mat-icon&gt;add_circle&lt;/mat-icon&gt;
+        &lt;span&gt;Nouvelle Demande&lt;/span&gt;
+      &lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  <span class="c">&lt;!-- ---------------------------------------------------------------- Filtres --&gt;</span>
+  &lt;section <span class="k">class</span>=<span class="s">"carte filtres"</span> [formGroup]=<span class="s">"filtres"</span> aria-label=<span class="s">"Filtres de recherche"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"filtres__entete"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"filtres__titre"</span>&gt;&lt;mat-icon&gt;tune&lt;/mat-icon&gt; Filtres de Recherche Multicritères&lt;/div&gt;
+      &lt;span <span class="k">class</span>=<span class="s">"filtres__contexte"</span>&gt;BMCI Opérations • Pôle Monétique&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"filtres__ligne1"</span>&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Date début&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;calendar_today&lt;/mat-icon&gt;
+          &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> <span class="k">type</span>=<span class="s">"date"</span> formControlName=<span class="s">"dateDebut"</span>&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Date fin&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;event&lt;/mat-icon&gt;
+          &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> <span class="k">type</span>=<span class="s">"date"</span> formControlName=<span class="s">"dateFin"</span> [attr.min]=<span class="s">"filtres.value.dateDebut || null"</span>&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Ville&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;location_city&lt;/mat-icon&gt;
+          &lt;select <span class="k">class</span>=<span class="s">"champ__saisie champ__saisie--liste"</span> formControlName=<span class="s">"ville"</span>&gt;
+            &lt;option value=<span class="s">""</span>&gt;Toutes les villes&lt;/option&gt;
+            &lt;option *ngFor=<span class="s">"let v of villes()"</span> [value]=<span class="s">"v"</span>&gt;{{ v }}&lt;/option&gt;
+          &lt;/select&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__fleche"</span>&gt;expand_more&lt;/mat-icon&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Nom GAB&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;search&lt;/mat-icon&gt;
+          &lt;input <span class="k">class</span>=<span class="s">"champ__saisie"</span> formControlName=<span class="s">"nomGab"</span> placeholder=<span class="s">"Ex: Marjane Californie..."</span>&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Agence de rattachement&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;account_balance&lt;/mat-icon&gt;
+          &lt;select <span class="k">class</span>=<span class="s">"champ__saisie champ__saisie--liste"</span> formControlName=<span class="s">"agence"</span>&gt;
+            &lt;option value=<span class="s">""</span>&gt;Toutes les agences&lt;/option&gt;
+            &lt;option *ngFor=<span class="s">"let a of agences()"</span> [value]=<span class="s">"a.code"</span>&gt;{{ a.code }} - {{ a.libelle }}&lt;/option&gt;
+          &lt;/select&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__fleche"</span>&gt;expand_more&lt;/mat-icon&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"filtres__ligne2"</span>&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ champ--vidage"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Flag Vidage Automates&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;swap_horiz&lt;/mat-icon&gt;
+          &lt;select <span class="k">class</span>=<span class="s">"champ__saisie champ__saisie--liste"</span> formControlName=<span class="s">"vidage"</span>&gt;
+            &lt;option *ngFor=<span class="s">"let o of optionsVidage"</span> [value]=<span class="s">"o.code"</span>&gt;{{ o.libelle }}&lt;/option&gt;
+          &lt;/select&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__fleche"</span>&gt;expand_more&lt;/mat-icon&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;label <span class="k">class</span>=<span class="s">"champ champ--statut"</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__libelle"</span>&gt;Statut Traitement&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"champ__boite"</span>&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__icone"</span>&gt;filter_list&lt;/mat-icon&gt;
+          &lt;select <span class="k">class</span>=<span class="s">"champ__saisie champ__saisie--liste"</span> formControlName=<span class="s">"statut"</span>&gt;
+            &lt;option *ngFor=<span class="s">"let s of statuts"</span> [value]=<span class="s">"s.code"</span>&gt;{{ s.libelle }}&lt;/option&gt;
+          &lt;/select&gt;
+          &lt;mat-icon <span class="k">class</span>=<span class="s">"champ__fleche"</span>&gt;expand_more&lt;/mat-icon&gt;
+        &lt;/span&gt;
+      &lt;/label&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"filtres__actions"</span>&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton bouton--gris"</span> (click)=<span class="s">"reinitialiser()"</span>&gt;Réinitialiser&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  <span class="c">&lt;!-- ---------------------------------------------------------------- Tableau --&gt;</span>
+  &lt;section <span class="k">class</span>=<span class="s">"carte tableau-carte"</span> aria-label=<span class="s">"Demandes"</span>&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__barre"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"tableau__barre-titre"</span>&gt;
+        &lt;span&gt;Demandes d<span class="s">'alimentation &amp;amp; d'</span>équilibrage&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">"compteur"</span>&gt;{{ lignes().length }} affichée{{ lignes().length &gt; 1 ? <span class="s">'s'</span> : <span class="s">''</span> }}&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"legende"</span>&gt;
+        &lt;span&gt;&lt;i <span class="k">class</span>=<span class="s">"point point--traite"</span>&gt;&lt;/i&gt; Traité&lt;/span&gt;
+        &lt;span&gt;&lt;i <span class="k">class</span>=<span class="s">"point point--attente"</span>&gt;&lt;/i&gt; En Attente&lt;/span&gt;
+        &lt;span&gt;&lt;i <span class="k">class</span>=<span class="s">"point point--annule"</span>&gt;&lt;/i&gt; Annulé&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__etat"</span> *ngIf=<span class="s">"facade.chargementListe()"</span>&gt;&lt;mat-icon <span class="k">class</span>=<span class="s">"icone-tourne icone-tourne--actif"</span>&gt;autorenew&lt;/mat-icon&gt; Chargement des demandes…&lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__etat tableau__etat--erreur"</span> *ngIf=<span class="s">"!facade.chargementListe() &amp;&amp; facade.erreurListe() as erreur"</span>&gt;
+      &lt;mat-icon&gt;error_outline&lt;/mat-icon&gt; {{ erreur }}
+    &lt;/div&gt;
+    &lt;div <span class="k">class</span>=<span class="s">"tableau__etat"</span> *ngIf=<span class="s">"!facade.chargementListe() &amp;&amp; !facade.erreurListe() &amp;&amp; lignes().length === 0"</span>&gt;
+      &lt;mat-icon&gt;inbox&lt;/mat-icon&gt; Aucune demande ne correspond aux filtres.
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">"tableau-defilement"</span> *ngIf=<span class="s">"!facade.chargementListe() &amp;&amp; !facade.erreurListe() &amp;&amp; lignes().length &gt; 0"</span>&gt;
+      &lt;table <span class="k">class</span>=<span class="s">"tableau"</span>&gt;
+        &lt;thead&gt;
+          &lt;tr&gt;
+            &lt;th&gt;Référence&lt;/th&gt;
+            &lt;th&gt;Date demande&lt;/th&gt;
+            &lt;th&gt;GAB inclus &amp;amp; vidages&lt;/th&gt;
+            &lt;th <span class="k">class</span>=<span class="s">"a-droite"</span>&gt;Montant total&lt;/th&gt;
+            &lt;th <span class="k">class</span>=<span class="s">"au-centre"</span>&gt;Statut&lt;/th&gt;
+            &lt;th <span class="k">class</span>=<span class="s">"au-centre"</span>&gt;Détails&lt;/th&gt;
+          &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+          &lt;tr *ngFor=<span class="s">"let l of lignes(); let pair = even; trackBy: suivreLigne"</span> [<span class="k">class</span>.ligne--paire]=<span class="s">"!pair"</span>&gt;
+            &lt;td&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"ref"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"ref__icone"</span>&gt;&lt;mat-icon&gt;description&lt;/mat-icon&gt;&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"ref__texte"</span>&gt;{{ l.reference }}&lt;/span&gt;
+              &lt;/div&gt;
+            &lt;/td&gt;
+            &lt;td&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"date"</span> *ngIf=<span class="s">"l.date; else sansDate"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"date__jour"</span>&gt;{{ l.date | date:<span class="s">'dd/MM/yyyy'</span> }}&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"date__heure"</span>&gt;{{ l.date | date:<span class="s">'HH:mm'</span> }}&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;ng-template #sansDate&gt;—&lt;/ng-template&gt;
+            &lt;/td&gt;
+            &lt;td&gt;
+              &lt;div <span class="k">class</span>=<span class="s">"pastilles"</span>&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"pastille pastille--gab"</span>&gt;&lt;mat-icon&gt;local_atm&lt;/mat-icon&gt; {{ l.libelleGab }}&lt;/span&gt;
+                &lt;span <span class="k">class</span>=<span class="s">"pastille"</span> [ngClass]=<span class="s">"'pastille--' + l.vidage.ton"</span>&gt;
+                  &lt;i <span class="k">class</span>=<span class="s">"point"</span> *ngIf=<span class="s">"l.vidage.ton !== 'neutre'"</span> [<span class="k">class</span>.point--pulse]=<span class="s">"l.vidage.pulse"</span>&gt;&lt;/i&gt;
+                  {{ l.vidage.libelle }}
+                &lt;/span&gt;
+              &lt;/div&gt;
+            &lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"a-droite"</span>&gt;&lt;span <span class="k">class</span>=<span class="s">"montant"</span> [<span class="k">class</span>.montant--barre]=<span class="s">"l.annulee"</span>&gt;{{ l.montant }}&lt;/span&gt;&lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"au-centre"</span>&gt;
+              &lt;span <span class="k">class</span>=<span class="s">"statut"</span> [ngClass]=<span class="s">"l.statut.classe"</span>&gt;&lt;mat-icon&gt;{{ l.statut.icone }}&lt;/mat-icon&gt; {{ l.statut.libelle }}&lt;/span&gt;
+            &lt;/td&gt;
+            &lt;td <span class="k">class</span>=<span class="s">"au-centre"</span>&gt;
+              &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"bouton-icone"</span> title=<span class="s">"Consulter"</span> (click)=<span class="s">"voirDetail(l)"</span>&gt;
+                &lt;mat-icon&gt;visibility&lt;/mat-icon&gt;
+              &lt;/button&gt;
+            &lt;/td&gt;
+          &lt;/tr&gt;
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+    &lt;/div&gt;
+
+    &lt;footer <span class="k">class</span>=<span class="s">"tableau__pied"</span> *ngIf=<span class="s">"!facade.chargementListe() &amp;&amp; !facade.erreurListe() &amp;&amp; lignes().length &gt; 0"</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">"tableau__resume"</span>&gt;
+        Affichage de &lt;strong&gt;{{ lignes().length }}&lt;/strong&gt; sur &lt;strong&gt;{{ facade.total() }}&lt;/strong&gt; demandes
+      &lt;/div&gt;
+      &lt;nav <span class="k">class</span>=<span class="s">"pagination"</span> aria-label=<span class="s">"Pagination"</span>&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"pagination__bouton"</span> (click)=<span class="s">"allerPage(pageCourante() - 1)"</span> [disabled]=<span class="s">"pageCourante() === 0"</span>&gt;
+          &lt;mat-icon&gt;chevron_left&lt;/mat-icon&gt;
+        &lt;/button&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> *ngFor=<span class="s">"let p of pages()"</span> <span class="k">class</span>=<span class="s">"pagination__bouton"</span>
+                [<span class="k">class</span>.pagination__bouton--actif]=<span class="s">"p === pageCourante()"</span> (click)=<span class="s">"allerPage(p)"</span>&gt;{{ p + 1 }}&lt;/button&gt;
+        &lt;button <span class="k">type</span>=<span class="s">"button"</span> <span class="k">class</span>=<span class="s">"pagination__bouton"</span> (click)=<span class="s">"allerPage(pageCourante() + 1)"</span>
+                [disabled]=<span class="s">"pageCourante() &gt;= nombrePages() - 1"</span>&gt;
+          &lt;mat-icon&gt;chevron_right&lt;/mat-icon&gt;
+        &lt;/button&gt;
+      &lt;/nav&gt;
+    &lt;/footer&gt;
+  &lt;/section&gt;
+&lt;/div&gt;</code></pre></div>
+<h2 id="s2">2. SCSS</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demandes-monetique-list.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.scss</span></div><p class="note">Mêmes classes que l'actuel (aucune supprimée, aucune ajoutée côté HTML) : seules les valeurs changent, plus deux variables (<code>--mon-vert-survol</code>, <code>--mon-secondaire</code>, <code>--mon-ombre-sm</code>).</p><pre><button class="copy">Copier</button><code><span class="c">// Maquette « Pôle Opérations Monétique - Listing demandes » : structure, typographie et couleurs d'état reprises à l'identique.</span>
+<span class="c">// Neutres (fonds, surfaces, textes) gardés en gris ardoise comme les autres écrans : la teinte verte de la maquette n'est pas retenue.</span>
+:host {
+<span class="c">  --mon-vert: #006A40; --mon-vert-survol: #008653; --mon-vert-clair: rgba(0, 106, 64, .1);</span>
+<span class="c">  --mon-fond: #F8FAFC; --mon-carte: #FFFFFF;</span>
+<span class="c">  --mon-surface: #F1F5F9; --mon-bordure: #E2E8F0; --mon-bordure-forte: #CBD5E1;</span>
+<span class="c">  --mon-texte: #1E293B; --mon-texte-doux: #64748B;</span>
+<span class="c">  --mon-succes: #007F4F; --mon-succes-fond: rgba(0, 127, 79, .1);</span>
+<span class="c">  --mon-alerte: #B13E19; --mon-alerte-fond: rgba(177, 62, 25, .1); --mon-alerte-point: #B13E19;</span>
+<span class="c">  --mon-erreur: #C8281E; --mon-erreur-fond: rgba(200, 40, 30, .1);</span>
+<span class="c">  --mon-info: #1D4ED8; --mon-info-fond: #DBEAFE;</span>
+<span class="c">  --mon-secondaire: #3E674E;</span>
+<span class="c">  --mon-ombre-sm: 0 1px 2px rgba(0, 0, 0, .05);</span>
+  display: block; min-height: 100%; color: var(--mon-texte);
+}
+mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+.listing { max-width: 1360px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; }
+
+<span class="c">// ---- en-tête</span>
+.entete { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.fil { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 11px; line-height: 14px; }
+.fil__badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; background: var(--mon-surface);
+  color: var(--mon-vert); text-transform: uppercase; letter-spacing: .025em; }
+.fil__sep { color: var(--mon-bordure-forte); }
+.fil__page { color: var(--mon-texte-doux); }
+.entete__titre { margin: 0; font-size: 22px; line-height: 28px; font-weight: 700; color: var(--mon-vert); letter-spacing: -.025em; }
+.entete__sous-titre { margin: 4px 0 0; color: var(--mon-texte-doux); font-size: 14px; line-height: 20px; }
+.entete__actions { display: flex; gap: 12px; }
+
+<span class="c">// ---- boutons</span>
+.bouton { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 8px;
+  border: none; font: inherit; font-size: 12px; line-height: 16px; font-weight: 700; cursor: pointer; transition: all .15s;
+  &amp;:disabled { opacity: .6; cursor: not-allowed; } }
+.bouton--primaire { padding: 10px 20px; background: var(--mon-vert); color: #fff; transition-duration: .2s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -2px rgba(0, 0, 0, .1);
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  &amp;:hover:not(:disabled) { background: var(--mon-vert-survol);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1), 0 4px 6px -4px rgba(0, 0, 0, .1); } }
+.bouton--clair { background: var(--mon-carte); color: var(--mon-texte-doux); box-shadow: var(--mon-ombre-sm);
+  &amp;:hover:not(:disabled) { background: var(--mon-surface); } }
+.bouton--gris { padding: 8px 16px; background: var(--mon-surface); color: var(--mon-texte-doux);
+  &amp;:hover { background: var(--mon-bordure); color: var(--mon-texte); } }
+.icone-tourne { color: var(--mon-vert); transition: transform .4s; }
+.bouton--clair:hover .icone-tourne { transform: rotate(180deg); }
+.icone-tourne--actif { animation: tourne 1s linear infinite; }
+<span class="a">@keyframes</span> tourne { to { transform: rotate(360deg); } }
+
+<span class="c">// ---- cartes</span>
+.carte { background: var(--mon-carte); border-radius: 12px; box-shadow: var(--mon-ombre-sm); }
+
+<span class="c">// ---- filtres</span>
+.filtres { padding: 20px; display: grid; gap: 16px; }
+.filtres__entete { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; }
+.filtres__titre { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; line-height: 20px; color: var(--mon-texte);
+  mat-icon { color: var(--mon-vert); font-size: 20px; width: 20px; height: 20px; } }
+.filtres__contexte { font-size: 11px; line-height: 14px; color: var(--mon-texte-doux); }
+.filtres__ligne1 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.filtres__ligne2 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; align-items: end; padding-top: 4px; }
+.champ--vidage { grid-column: span 4; }
+.champ--statut { grid-column: span 3; }
+.filtres__actions { grid-column: span 5; display: flex; justify-content: flex-end; gap: 10px; }
+
+.champ { display: grid; gap: 6px; min-width: 0; }
+.champ__libelle { font-size: 11px; line-height: 14px; font-weight: 400; color: var(--mon-texte-doux); }
+.champ__boite { position: relative; display: flex; align-items: center; }
+.champ__icone { position: absolute; left: 12px; color: var(--mon-texte-doux); pointer-events: none; }
+.champ__fleche { position: absolute; right: 8px; color: var(--mon-texte-doux); pointer-events: none; }
+.champ__saisie { box-sizing: border-box; width: 100%; height: 32px; padding: 0 12px 0 36px; border: none; border-radius: 8px;
+  background: var(--mon-surface); color: var(--mon-texte); font: inherit; font-size: 12px; line-height: 16px; transition: all .15s;
+  &amp;::placeholder { color: var(--mon-bordure-forte); }
+  &amp;:focus { outline: none; background: var(--mon-carte); box-shadow: 0 0 0 2px var(--mon-vert); } }
+.champ__saisie--liste { appearance: none; padding-right: 32px; cursor: pointer; }
+
+<span class="c">// ---- tableau</span>
+.tableau-carte { overflow: hidden; display: flex; flex-direction: column; }
+.tableau__barre { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 16px 24px; background: rgba(241, 245, 249, .6); }
+.tableau__barre-titre { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; line-height: 20px; }
+.compteur { padding: 2px 8px; border-radius: 999px; background: var(--mon-vert-clair); color: var(--mon-vert);
+  font-size: 11px; line-height: 14px; font-weight: 700; }
+.legende { display: flex; align-items: center; gap: 12px; font-size: 11px; line-height: 14px; color: var(--mon-texte-doux);
+  span { display: inline-flex; align-items: center; gap: 6px; }
+  .point { width: 10px; height: 10px; } }
+.point { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--mon-texte-doux); }
+.point--traite { background: var(--mon-succes); }
+.point--attente { background: var(--mon-alerte-point); }
+.point--annule { background: var(--mon-erreur); }
+.point--pulse { animation: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite; }
+<span class="a">@keyframes</span> pulse { 50% { opacity: .5; } }
+
+.tableau-defilement { overflow-x: auto; }
+.tableau { width: 100%; border-collapse: collapse; text-align: left;
+  th { padding: 14px 24px; background: var(--mon-surface); font-size: 11px; line-height: 14px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--mon-texte-doux); white-space: nowrap; }
+  td { padding: 16px 24px; font-size: 12px; line-height: 16px; vertical-align: middle; }
+  tbody tr { transition: background .15s; }
+  tbody tr:hover { background: rgba(241, 245, 249, .4); }
+}
+.ligne--paire { background: rgba(241, 245, 249, .2); }
+.a-droite { text-align: right !important; }
+.au-centre { text-align: center !important; }
+
+.ref { display: flex; align-items: center; gap: 10px; }
+.ref__icone { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+  border-radius: 8px; background: var(--mon-surface); color: var(--mon-vert); }
+.ref__texte { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: -.025em; white-space: nowrap; transition: color .15s; }
+tr:hover .ref__texte { color: var(--mon-vert); }
+
+.date { display: flex; flex-direction: column; }
+.date__jour { font-weight: 600; color: var(--mon-texte); }
+.date__heure { font-size: 11px; line-height: 14px; color: var(--mon-texte-doux); }
+
+.pastilles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pastille { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+  font-size: 11px; line-height: 14px; white-space: nowrap; background: var(--mon-surface); color: var(--mon-texte-doux);
+  mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+.pastille--gab { gap: 4px; color: var(--mon-vert); font-weight: 700; }
+.pastille--secondaire { background: var(--mon-bordure); font-weight: 500;
+  .point { background: var(--mon-secondaire); } }
+.pastille--alerte { background: var(--mon-alerte-fond); color: var(--mon-alerte); font-weight: 600;
+  .point { background: var(--mon-alerte-point); } }
+
+.montant { font-weight: 700; font-size: 14px; line-height: 20px; white-space: nowrap; }
+.montant--barre { text-decoration: line-through; color: var(--mon-texte-doux); }
+
+.statut { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px;
+  font-size: 11px; line-height: 14px; font-weight: 700; white-space: nowrap;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+.statut--attente { background: var(--mon-alerte-fond); color: var(--mon-alerte); }
+.statut--traite { background: var(--mon-succes-fond); color: var(--mon-succes); }
+.statut--annule { background: var(--mon-erreur-fond); color: var(--mon-erreur); }
+.statut--modification { background: var(--mon-info-fond); color: var(--mon-info); }
+.statut--brouillon { background: var(--mon-surface); color: var(--mon-texte-doux); }
+
+.bouton-icone { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+  border: none; border-radius: 8px; background: transparent; color: var(--mon-texte-doux); cursor: pointer;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  &amp;:hover { background: var(--mon-surface); color: var(--mon-vert); } }
+
+.tableau__etat { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 32px;
+  color: var(--mon-texte-doux); }
+.tableau__etat--erreur { color: var(--mon-erreur); }
+
+.tableau__pied { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 16px 24px; background: var(--mon-carte); }
+.tableau__resume { font-size: 12px; line-height: 16px; color: var(--mon-texte-doux); strong { color: var(--mon-texte); font-weight: 700; } }
+.pagination { display: flex; align-items: center; gap: 4px; }
+.pagination__bouton { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px;
+  border: none; border-radius: 8px; background: transparent; color: var(--mon-texte); font: inherit; font-size: 12px; line-height: 16px;
+  font-weight: 700; cursor: pointer;
+  &amp;:hover:not(:disabled):not(.pagination__bouton--actif) { background: var(--mon-surface); }
+  &amp;:disabled { color: rgba(100, 116, 139, .4); cursor: not-allowed; } }
+.pagination__bouton--actif { background: var(--mon-vert); color: #fff; box-shadow: var(--mon-ombre-sm); }
+
+<span class="c">// ---- responsive</span>
+<span class="a">@media</span> (max-width: 1100px) {
+  .filtres__ligne1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .champ--vidage, .champ--statut { grid-column: span 6; }
+  .filtres__actions { grid-column: span 12; }
+}
+<span class="a">@media</span> (max-width: 640px) {
+  .listing { padding: 12px; }
+  .filtres__ligne1 { grid-template-columns: 1fr; }
+  .champ--vidage, .champ--statut { grid-column: span 12; }
+  .entete__actions { width: 100%; .bouton { flex: 1; justify-content: center; } }
+}</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
