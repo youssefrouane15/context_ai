@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listing GAB — filtre « Avec Vidage Seul »</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Historique GAB Hors-Site — filtre « Avec Vidage Seul » sans effet</h1><p>fund-management (application, application-service, data-access) · 23/10/2026</p></header>
+<nav><a href="#s0">Cause</a><a href="#s1">Correctif</a><a href="#s2">Test</a><a href="#s3">Recette</a></nav><main><h2 id="s0">0. Cause</h2>
+<div class="card"><p>L'écran a 4 options (TOUS / AVEC / SANS / SEUL) et <code>versCriteres</code> envoie déjà <code>vidageSeul=true</code> pour la dernière (ligne 242 de <code>monetique.regles.ts</code>). Côté API, <code>rechercher</code> ne déclare pas ce paramètre, le record <code>DemandeMonetiqueSearchCriteria</code> ne le porte pas et la spécification ne le teste pas : Spring l'ignore, aucun filtre n'est appliqué → les 6 demandes. <b>Le front ne change pas.</b></p>
+<p><b>Règle</b> : « vidage seul » = un GAB de la demande est vidé sans être alimenté (<code>vidage = true</code> et montant d'alimentation nul ou 0) — c'est exactement ce que la pastille rouge « 1 Vidage seul » affiche déjà. Même sous-requête <code>existeGab</code> que le filtre AVEC.</p></div>
+<h2 id="s1">1. Correctif</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>MonetiqueDemandeController.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\MonetiqueDemandeController.java</span></div><pre><button class="copy">Copier</button><code><span class="c">// MonetiqueDemandeController.java — ÉDITION : rechercher(...) (Ctrl+F : Boolean vidage)</span>
+
+<span class="c">// ---- AVANT</span>
+            <span class="a">@RequestParam</span>(required = <span class="k">false</span>) Boolean vidage,
+            <span class="a">@RequestParam</span>(required = <span class="k">false</span>) String recherche,
+            <span class="a">@RequestParam</span>(defaultValue = <span class="s">"0"</span>) int page,
+            <span class="a">@RequestParam</span>(defaultValue = <span class="s">"20"</span>) int size) {
+
+        DemandeMonetiqueSearchCriteria criteria = <span class="k">new</span> DemandeMonetiqueSearchCriteria(
+                statut, dateDebut, dateFin, ville, agence, nomGab, vidage, recherche, page, size);
+
+<span class="c">// ---- APRÈS</span>
+            <span class="a">@RequestParam</span>(required = <span class="k">false</span>) Boolean vidage,
+            <span class="a">@RequestParam</span>(required = <span class="k">false</span>) Boolean vidageSeul,
+            <span class="a">@RequestParam</span>(required = <span class="k">false</span>) String recherche,
+            <span class="a">@RequestParam</span>(defaultValue = <span class="s">"0"</span>) int page,
+            <span class="a">@RequestParam</span>(defaultValue = <span class="s">"20"</span>) int size) {
+
+        DemandeMonetiqueSearchCriteria criteria = <span class="k">new</span> DemandeMonetiqueSearchCriteria(
+                statut, dateDebut, dateFin, ville, agence, nomGab, vidage, vidageSeul, recherche, page, size);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>DemandeMonetiqueSearchCriteria.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\dto\DemandeMonetiqueSearchCriteria.java</span></div><pre><button class="copy">Copier</button><code><span class="c">// DemandeMonetiqueSearchCriteria.java — ÉDITION : signature du record (le constructeur compact ne change pas)</span>
+
+<span class="c">// ---- AVANT</span>
+<span class="k">public</span> <span class="k">record</span> DemandeMonetiqueSearchCriteria(String statut, LocalDate dateDebut, LocalDate dateFin,
+                                             String ville, String agence, String nomGab, Boolean vidage,
+                                             String recherche, int page, int size) {
+
+<span class="c">// ---- APRÈS : vidageSeul = demandes dont un GAB est en vidage seul (vidage sans alimentation) — option « Avec Vidage Seul » de l'écran</span>
+<span class="k">public</span> <span class="k">record</span> DemandeMonetiqueSearchCriteria(String statut, LocalDate dateDebut, LocalDate dateFin,
+                                             String ville, String agence, String nomGab, Boolean vidage, Boolean vidageSeul,
+                                             String recherche, int page, int size) {
+
+<span class="c">// ---- Autres appels de ce constructeur (Ctrl+Maj+F « new DemandeMonetiqueSearchCriteria(») : ajouter l'argument après vidage,</span>
+<span class="c">//      ex. dans les tests : ..., nomGab, vidage, null, recherche, page, size)</span></code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>DemandeMonetiqueSpecifications.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\…\DemandeMonetiqueSpecifications.java  (Ctrl+F : c.vidage())</span></div><p class="note">Le nom de l'attribut montant de <code>CashOperationGabEntity</code> n'est pas dans mes captures : reprendre celui que le mapper utilise pour le montant total (Ctrl+F <code>BigDecimal</code> dans l'entité).</p><pre><button class="copy">Copier</button><code><span class="c">// DemandeMonetiqueSpecifications.java — À AJOUTER juste après le bloc « if (c.vidage() != null) { … } »</span>
+
+            <span class="k">if</span> (Boolean.TRUE.equals(c.vidageSeul())) {
+                <span class="c">// Vidage seul : GAB vidé sans alimentation — même règle que la pastille « Vidage seul » du listing</span>
+                predicates.add(existeGab(root, query, cb, g -&gt; cb.and(
+                        cb.isTrue(g.<span class="k">get</span>(<span class="s">"vidage"</span>)),
+                        cb.or(cb.isNull(g.<span class="k">get</span>(<span class="s">"montant"</span>)), cb.equal(g.<span class="k">get</span>(<span class="s">"montant"</span>), BigDecimal.ZERO)))));
+            }
+
+<span class="c">// ---- Import à ajouter : java.math.BigDecimal</span>
+<span class="c">// ---- « montant » = l'attribut de CashOperationGabEntity qui porte le montant d'alimentation du GAB (celui que versLigneMonetique</span>
+<span class="c">//      somme dans « Montant total » et teste à 0 pour « Vidage seul ») : Ctrl+F « BigDecimal » dans l'entité et reprendre son nom exact.</span></code></pre></div>
+<h2 id="s2">2. Test</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Test de la spécification</b><br><span class="path">fund-management-data-access (test existant du listing monétique)</span></div><pre><button class="copy">Copier</button><code><span class="c">// DemandeMonetiqueSpecificationsTest.java (ou le test d'intégration du listing monétique existant) — À AJOUTER</span>
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"vidageSeul : seules les demandes avec un GAB vidé sans alimentation"</span>)
+    <span class="k">void</span> vidageSeul() {
+        <span class="c">// 3 demandes en base : A = 1 GAB vidage + montant 0 ; B = 1 GAB vidage + montant 60 000 ; C = 1 GAB sans vidage</span>
+        var criteria = <span class="k">new</span> DemandeMonetiqueSearchCriteria(<span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">true</span>, <span class="k">null</span>, 0, 20);
+
+        var page = cashDemandJpaRepository.findAll(DemandeMonetiqueSpecifications.of(criteria), PageRequest.of(0, 20));
+
+        assertThat(page.getContent()).extracting(CashRequestEntity::getUniqueRequestRef).containsExactly(<span class="s">"A"</span>);
+    }</code></pre></div>
+<h2 id="s3">3. Recette</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Déroulé</b><br><span class="path">fund-management-front (4201)</span></div><pre><button class="copy">Copier</button><code>Pôle monétique (c63005) → Historique GAB, filtre « Flag Vidage Automates » :
+  Tous (Alimentation &amp; Vidage) → 6 demandes
+  Avec Vidage                  → 2 (…-04 « 1 Vidage seul », …-03 « 1 Vidage »)
+  Sans Vidage                  → 4
+  Avec Vidage Seul             → 1 (…-04 uniquement, montant 0 MAD)   ← avant correctif : 6
+Network : la requête porte vidageSeul=<span class="k">true</span> ; Postman : GET /cash/monetique?vidageSeul=<span class="k">true</span> → 1 élément.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
