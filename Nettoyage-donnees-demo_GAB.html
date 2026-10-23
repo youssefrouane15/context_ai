@@ -1,0 +1,56 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nettoyage des données avant démo</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>Nettoyage des données avant la démo — demandes GAB et GAB hors site</h1><p>staging · fund-management + utilisateurs-ci · pgAdmin · 23/10/2026</p></header>
+<nav><a href="#s0">Demandes GAB</a><a href="#s1">GAB hors site</a></nav><main><div class="card"><p>Lancer d'abord les requêtes de contrôle (<code>select</code>) : elles montrent exactement ce qui sera modifié. Les instances Camunda des demandes GAB restent bloquées à l'étape « éclater les besoins GAB » (code de <code>BesoinGabPort</code> non déployé en staging) ; sans effet à l'écran pour la démo.</p></div>
+<h2 id="s1">1. Demandes GAB → statut traité</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Base fund-management</b><br><span class="path">pgAdmin — base fund-management</span></div><p class="note">Filtre sur l'agence 9000 : celle de toutes les demandes GAB (références <code>…-9000-xx</code>).</p><pre><button class="copy">Copier</button><code><span class="c">-- Base fund-management (pgAdmin) — demandes GAB hors site (agence 9000) en attente → statut traité</span>
+<span class="c">
+-- Contrôle 1 : nom exact du statut « traité » (valeur portée par les demandes déjà traitées par la Caisse Centrale)</span>
+select distinct request_status <span class="k">from</span> retail.cash_request;
+<span class="c">
+-- Contrôle 2 : demandes GAB en attente qui seront modifiées</span>
+select id, unique_request_ref, request_status
+  <span class="k">from</span> retail.cash_request
+ where branch_code = <span class="s">'9000'</span> and request_status = <span class="s">'SUBMITTED'</span>;
+<span class="c">
+-- Mise à jour (remplacer 'VALIDATED' si le contrôle 1 affiche un autre nom pour le statut traité)</span>
+update retail.cash_request
+   set request_status = <span class="s">'VALIDATED'</span>, modification_date = now()
+ where branch_code = <span class="s">'9000'</span> and request_status = <span class="s">'SUBMITTED'</span>;</code></pre></div>
+<h2 id="s2">2. GAB hors site créés pendant la recette</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Base utilisateurs-ci</b><br><span class="path">pgAdmin — base utilisateurs-ci, schéma qf_admin</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Base utilisateurs-ci (pgAdmin, schéma qf_admin) — GAB hors site créés à la main pendant la recette</span>
+<span class="c">-- Les 56 GAB du fichier PO (chargés par la V21) sont conservés.</span>
+<span class="c">
+-- Contrôle : GAB ajoutés après le chargement initial</span>
+select id, id_gab, nom, created_at
+  <span class="k">from</span> qf_admin.gab_hors_site
+ where created_at &gt; (select installed_on <span class="k">from</span> qf_admin.flyway_schema_history where script like <span class="s">'V21__%'</span>);
+<span class="c">
+-- Suppression</span>
+delete <span class="k">from</span> qf_admin.gab_hors_site
+ where created_at &gt; (select installed_on <span class="k">from</span> qf_admin.flyway_schema_history where script like <span class="s">'V21__%'</span>);</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>Variante : tout supprimer</b><br><span class="path">pgAdmin — base utilisateurs-ci, schéma qf_admin (à n'utiliser que si le référentiel doit être vide)</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Variante : vider tout le référentiel GAB hors site (écran console et saisie de demande GAB vides ensuite)</span>
+delete <span class="k">from</span> qf_admin.gab_hors_site;</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
