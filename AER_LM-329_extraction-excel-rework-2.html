@@ -1,0 +1,515 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AER_LM-329 — Extraction Excel, rework 2 feuilles</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>AER_LM-329 — Extraction Excel Caisse Centrale : 2 feuilles, nouveau template, format français</h1><p>fund-management-application · export · 26/10/2026</p></header>
+<nav><a href="#s0">Périmètre</a><a href="#s1">Code</a><a href="#s2">Tests</a><a href="#s3">Recette</a></nav><main><h2 id="s0">0. Périmètre</h2>
+<div class="card"><p><b>Jira</b> : demandes agence sur 2 feuilles au lieu de 3 ; uniquement les demandes des filtres actifs ; tri par référence ; nouveau template joint.</p>
+<table><tr><th>Feuille</th><th>Colonnes</th><th>Règle</th></tr>
+<tr><td>Appels &amp; Ramassages en MAD</td><td>A-I communes · J-U quantités caisse (200 → 0,05) · V Total caisse (formule) · W-X quantités GAB (200, 100) · Y Total GAB (formule) · Z ramassage MAD</td><td>une ligne par demande portant une alimentation ou un ramassage MAD</td></tr>
+<tr><td>Appels &amp; Ramassages en Devise</td><td>A-I communes · J-K devise / montant alimentation · L-M devise / montant ramassage</td><td>une ligne par devise (hors MAD), alimentation et ramassage de la même devise sur la même ligne ; tri référence puis code devise</td></tr></table>
+<p><b>Décisions</b> : PU = coût de déplacement de l'agence (snapshot sur la demande) ; les totaux V / Y ne sont jamais écrits — la formule de la ligne 3 du template est recopiée sur chaque ligne avec son numéro ; montants au format Excel français <code># ##0,00</code>, quantités <code># ##0</code> (valeurs numériques, pas de texte) ; les colonnes sont lues dans le template (groupes de la ligne 1, coupures de la ligne 2) comme en V1.</p>
+<p><b>Inchangé</b> : <code>GET /cash/export</code> et <code>exporterCaisseCentrale</code> — les filtres du listing arrivent déjà en critères, brouillons et annulées exclus (règle 279). <code>ExportDemandesDTO</code> inchangé.</p></div>
+<div class="card"><p><b>Correctif 26/10 — test qui ne se termine jamais.</b> Le template du PO porte volontairement ses formules de total (V, Y) sur ~80 000 lignes ; la version précédente supprimait ces lignes une par une (<code>removeRow</code> sur une formule = mise à jour de la chaîne de calcul POI, 80 000 fois). <b>On ne supprime plus rien</b> : les demandes s'écrivent à partir de la ligne 3 (la ligne d'exemple est écrasée), les lignes suivantes gardent les formules du PO, qui affichent <code>&quot;&quot;</code> tant qu'elles sont vides. Template copié tel quel, aucune manipulation Excel.</p></div>
+<h2 id="s1">1. Code</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Template</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\resources\export\Template_QlickFlow_GesFond_extraction.xlsx</span></div><pre><button class="copy">Copier</button><code>Copier la pièce jointe de la Jira telle quelle (ligne 3 d<span class="s">'exemple et formules V / Y comprises : elles servent de modèle). Supprimer l'</span>ancien GesFond-Reporting.xlsx.</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ExtractionDemande.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExtractionDemande.java</span></div><p class="note"><code>lignesDevise()</code> fusionne alimentation et ramassage par devise et trie par code ; <code>ramassageMad()</code> somme les détails MAD des opérations COLLECTION ; <code>Sens</code> et <code>aUneAlimentation()</code> de la V1 disparaissent.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.OperationType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestType;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashOperationDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.OperationCurrencyDetailDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.OperationDenominationDTO;
+
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.util.ArrayList;
+<span class="k">import</span> java.util.Comparator;
+<span class="k">import</span> java.util.HashMap;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Map;
+
+<span class="c">/**
+ * Lecture d'une demande pour l'extraction Excel (AER_LM-279, rework AER_LM-329) : tous les accès aux DTO sont isolés ici.
+ * Feuille MAD : quantités par coupure (caisse / GAB) + montant du ramassage MAD.
+ * Feuille Devise : une ligne par devise (alimentation et ramassage côte à côte), triées par code devise.
+ */</span>
+<span class="k">final</span> <span class="k">class</span> ExtractionDemande {
+
+    enum Alimentation { CAISSE, GAB }
+
+    <span class="c">/** Une devise d'une demande : montant d'alimentation et/ou montant de ramassage (null = aucun dans ce sens). */</span>
+    <span class="k">record</span> LigneDevise(String devise, BigDecimal alimentation, BigDecimal ramassage) {}
+
+    <span class="k">static</span> <span class="k">final</span> String MAD = <span class="s">"MAD"</span>;
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> Map&lt;String, String&gt; LIBELLES_STATUT = Map.of(
+            <span class="s">"SUBMITTED"</span>, <span class="s">"En Attente"</span>, <span class="s">"IN_MODIFICATION"</span>, <span class="s">"En modification"</span>,
+            <span class="s">"VALIDATED"</span>, <span class="s">"Traitée"</span>, <span class="s">"CANCELLED"</span>, <span class="s">"Annulée"</span>, <span class="s">"INITIATED"</span>, <span class="s">"Brouillon"</span>);
+
+    <span class="k">private</span> <span class="k">final</span> CashRequestDTO d;
+
+    ExtractionDemande(CashRequestDTO d) { <span class="k">this</span>.d = d; }
+
+    String reference()          { <span class="k">return</span> d.getUniqueRequestRef(); }
+    boolean urgente()           { <span class="k">return</span> Boolean.TRUE.equals(d.getUrgent())
+            || operations().stream().anyMatch(op -&gt; Boolean.TRUE.equals(op.getIsUrgent())); }
+    String codeAgence()         { <span class="k">return</span> d.getBranchCode(); }
+    String nomAgence()          { <span class="k">return</span> d.getAgenceNom(); }
+    String zone()               { <span class="k">return</span> d.getZoneNom() != <span class="k">null</span> ? d.getZoneNom() : d.getZoneCode(); }
+    String transporteur()       { <span class="k">return</span> d.getPrestataireNom() != <span class="k">null</span> ? d.getPrestataireNom() : d.getPrestataire(); }
+    BigDecimal coutDeplacement(){ <span class="k">return</span> d.getCoutDeplacement(); }
+    LocalDateTime dateDemande() { <span class="k">return</span> d.getCreatedAt(); }
+    String libelleStatut()      { <span class="k">return</span> LIBELLES_STATUT.getOrDefault(d.getRequestStatus(), d.getRequestStatus()); }
+
+    <span class="k">private</span> List&lt;CashOperationDTO&gt; operations() { <span class="k">return</span> d.getOperations() == <span class="k">null</span> ? List.of() : d.getOperations(); }
+
+    <span class="k">private</span> <span class="k">static</span> List&lt;OperationCurrencyDetailDTO&gt; details(CashOperationDTO op) {
+        <span class="k">return</span> op.getCurrencyDetails() == <span class="k">null</span> ? List.of() : op.getCurrencyDetails();
+    }
+
+    <span class="k">private</span> <span class="k">static</span> boolean estAlimentation(CashOperationDTO op, Alimentation <span class="k">type</span>) {
+        OperationType attendu = <span class="k">type</span> == Alimentation.CAISSE ? OperationType.CASH_DESK : OperationType.ATM;
+        <span class="k">return</span> op.getOperationType() == attendu &amp;&amp; op.getOperationSens() == RequestType.SUPPLY;
+    }
+
+    <span class="c">/** Feuille MAD : la demande y figure si elle porte une alimentation (caisse ou GAB) ou un ramassage en MAD. */</span>
+    boolean figureEnMad() {
+        <span class="k">return</span> operations().stream().anyMatch(op -&gt; estAlimentation(op, Alimentation.CAISSE) || estAlimentation(op, Alimentation.GAB))
+                || ramassageMad() != <span class="k">null</span>;
+    }
+
+    <span class="c">/** Quantités par valeur faciale (200, 100, … 0.05), cumulées sur toutes les opérations du même type. */</span>
+    Map&lt;BigDecimal, Integer&gt; quantitesParFaceValue(Alimentation <span class="k">type</span>, Map&lt;String, BigDecimal&gt; faceValuesByCode) {
+        Map&lt;BigDecimal, Integer&gt; resultat = <span class="k">new</span> HashMap&lt;&gt;();
+        for (CashOperationDTO op : operations()) {
+            <span class="k">if</span> (!estAlimentation(op, <span class="k">type</span>)) continue;
+            for (OperationCurrencyDetailDTO detail : details(op)) {
+                <span class="k">if</span> (detail.getOperationDenominations() == <span class="k">null</span>) continue;
+                for (OperationDenominationDTO ligne : detail.getOperationDenominations()) {
+                    <span class="k">if</span> (ligne.getDenomination() == <span class="k">null</span> || ligne.getQuantity() == <span class="k">null</span>) continue;
+                    BigDecimal faceValue = faceValuesByCode.<span class="k">get</span>(ligne.getDenomination().getDenominationCode());
+                    <span class="k">if</span> (faceValue == <span class="k">null</span>) continue;
+                    resultat.merge(faceValue.stripTrailingZeros(), ligne.getQuantity(), Integer::sum);
+                }
+            }
+        }
+        <span class="k">return</span> resultat;
+    }
+
+    <span class="c">/** Montant du ramassage en MAD (somme des détails MAD des opérations COLLECTION), null si aucun. */</span>
+    BigDecimal ramassageMad() {
+        BigDecimal total = <span class="k">null</span>;
+        for (CashOperationDTO op : operations()) {
+            <span class="k">if</span> (op.getOperationSens() != RequestType.COLLECTION) continue;
+            for (OperationCurrencyDetailDTO detail : details(op)) {
+                <span class="k">if</span> (!MAD.equals(codeDevise(detail)) || detail.getTotalAmountByCurrency() == <span class="k">null</span>) continue;
+                total = total == <span class="k">null</span> ? detail.getTotalAmountByCurrency() : total.add(detail.getTotalAmountByCurrency());
+            }
+        }
+        <span class="k">return</span> total;
+    }
+
+    <span class="c">/**
+     * Feuille Devise : une ligne par devise étrangère (hors MAD), alimentation (CURRENCY / SUPPLY) et ramassage
+     * (CURRENCY / COLLECTION) sur la même ligne, triées par code devise.
+     */</span>
+    List&lt;LigneDevise&gt; lignesDevise() {
+        Map&lt;String, BigDecimal[]&gt; parDevise = <span class="k">new</span> HashMap&lt;&gt;();            <span class="c">// [0] alimentation, [1] ramassage</span>
+        for (CashOperationDTO op : operations()) {
+            <span class="k">if</span> (op.getOperationType() != OperationType.CURRENCY) continue;
+            int sens = op.getOperationSens() == RequestType.SUPPLY ? 0 : op.getOperationSens() == RequestType.COLLECTION ? 1 : -1;
+            <span class="k">if</span> (sens &lt; 0) continue;
+            for (OperationCurrencyDetailDTO detail : details(op)) {
+                String devise = codeDevise(detail);
+                <span class="k">if</span> (devise == <span class="k">null</span> || MAD.equals(devise) || detail.getTotalAmountByCurrency() == <span class="k">null</span>) continue;
+                BigDecimal[] montants = parDevise.computeIfAbsent(devise, k -&gt; <span class="k">new</span> BigDecimal[2]);
+                montants[sens] = montants[sens] == <span class="k">null</span> ? detail.getTotalAmountByCurrency() : montants[sens].add(detail.getTotalAmountByCurrency());
+            }
+        }
+        List&lt;LigneDevise&gt; lignes = <span class="k">new</span> ArrayList&lt;&gt;();
+        parDevise.forEach((devise, m) -&gt; lignes.add(<span class="k">new</span> LigneDevise(devise, m[0], m[1])));
+        lignes.sort(Comparator.comparing(LigneDevise::devise));
+        <span class="k">return</span> lignes;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> String codeDevise(OperationCurrencyDetailDTO detail) {
+        <span class="k">return</span> detail.getCurrency() == <span class="k">null</span> ? <span class="k">null</span> : detail.getCurrency().getIsoCode();
+    }
+}</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ExportExcelDemandes.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><p class="note"><code>ligne()</code> recopie les formules du modèle en remplaçant le numéro de ligne (<code>J3</code> → <code>J7</code>) ; <code>Styles</code> dérive un style par style source pour poser le format français sans perdre bordures et polices du template ; plus de suppression de lignes (voir correctif).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.ExportDemandesDTO;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Cell;
+<span class="k">import</span> org.apache.poi.ss.usermodel.CellStyle;
+<span class="k">import</span> org.apache.poi.ss.usermodel.CellType;
+<span class="k">import</span> org.apache.poi.ss.usermodel.DataFormat;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Row;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Sheet;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Workbook;
+<span class="k">import</span> org.apache.poi.xssf.usermodel.XSSFWorkbook;
+<span class="k">import</span> org.springframework.core.io.ClassPathResource;
+<span class="k">import</span> org.springframework.stereotype.Component;
+
+<span class="k">import</span> java.io.ByteArrayOutputStream;
+<span class="k">import</span> java.io.IOException;
+<span class="k">import</span> java.io.InputStream;
+<span class="k">import</span> java.io.UncheckedIOException;
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.time.format.DateTimeFormatter;
+<span class="k">import</span> java.util.ArrayList;
+<span class="k">import</span> java.util.Comparator;
+<span class="k">import</span> java.util.HashMap;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Map;
+
+<span class="c">/**
+ * Extraction Excel Caisse Centrale (AER_LM-279, rework AER_LM-329) à partir du template
+ * « Template_QlickFlow_GesFond_extraction.xlsx » (2 feuilles) :
+ *  - « Appels &amp; Ramassages en MAD »   : une ligne par demande ; A-I communes, J-U quantités caisse par coupure,
+ *                                        V total caisse (formule du template), W-X quantités GAB, Y total GAB (formule), Z ramassage MAD.
+ *  - « Appels &amp; Ramassages en Devise »: une ligne par devise de la demande ; A-I communes, J-K devise / montant d'alimentation,
+ *                                        L-M devise / montant de ramassage.
+ * Les colonnes de total sont recopiées depuis la formule du template (jamais calculées ici). Montants au format français.
+ * Le template du PO porte ses formules de total sur ~80 000 lignes (affichent "" tant que la ligne est vide) : on n'en supprime
+ * aucune — les demandes s'écrivent à partir de la ligne 3 et les lignes suivantes restent telles que le PO les a conçues.
+ */</span>
+<span class="a">@Component</span>
+<span class="k">public</span> <span class="k">class</span> ExportExcelDemandes {
+
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> String CONTENT_TYPE = <span class="s">"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"</span>;
+    <span class="k">static</span> <span class="k">final</span> String TEMPLATE = <span class="s">"export/Template_QlickFlow_GesFond_extraction.xlsx"</span>;
+    <span class="k">static</span> <span class="k">final</span> DateTimeFormatter HORODATAGE = DateTimeFormatter.ofPattern(<span class="s">"yyyyMMdd-HHmmss"</span>);
+    <span class="k">static</span> <span class="k">final</span> DateTimeFormatter DATE_DEMANDE = DateTimeFormatter.ofPattern(<span class="s">"dd/MM/yyyy"</span>);
+
+    <span class="k">static</span> <span class="k">final</span> int ONGLET_MAD = 0, ONGLET_DEVISE = 1;
+    <span class="k">static</span> <span class="k">final</span> int LIGNE_GROUPES = 0, LIGNE_ENTETE = 1, PREMIERE_LIGNE = 2;
+    <span class="k">static</span> <span class="k">final</span> int NB_COLONNES_COMMUNES = 9;
+
+    <span class="c">/** Formats Excel français : milliers séparés par un espace, décimale virgule. */</span>
+    <span class="k">static</span> <span class="k">final</span> String FORMAT_MONTANT = <span class="s">"# ##0,00"</span>;
+    <span class="k">static</span> <span class="k">final</span> String FORMAT_QUANTITE = <span class="s">"# ##0"</span>;
+
+    <span class="k">public</span> <span class="k">static</span> String nomDeFichier(LocalDateTime instant) {
+        <span class="k">return</span> <span class="s">"QlickFlow_GesFond_extraction_"</span> + HORODATAGE.format(instant) + <span class="s">".xlsx"</span>;
+    }
+
+    <span class="k">public</span> byte[] generer(ExportDemandesDTO <span class="k">export</span>) {
+        try (InputStream template = <span class="k">new</span> ClassPathResource(TEMPLATE).getInputStream();
+             Workbook classeur = <span class="k">new</span> XSSFWorkbook(template);
+             ByteArrayOutputStream sortie = <span class="k">new</span> ByteArrayOutputStream()) {
+
+            classeur.setForceFormulaRecalculation(<span class="k">true</span>);   <span class="c">// Excel recalcule V / Y à l'ouverture</span>
+
+            List&lt;CashRequestDTO&gt; demandes = <span class="k">new</span> ArrayList&lt;&gt;(<span class="k">export</span>.demandes());
+            demandes.sort(Comparator.comparing(CashRequestDTO::getUniqueRequestRef, Comparator.nullsLast(Comparator.naturalOrder())));
+
+            Styles styles = <span class="k">new</span> Styles(classeur);
+            remplirMad(classeur.getSheetAt(ONGLET_MAD), demandes, <span class="k">export</span>.faceValuesByCode(), styles);
+            remplirDevise(classeur.getSheetAt(ONGLET_DEVISE), demandes, styles);
+
+            classeur.write(sortie);
+            <span class="k">return</span> sortie.toByteArray();
+        } catch (IOException e) {
+            <span class="k">throw</span> <span class="k">new</span> UncheckedIOException(<span class="s">"Génération de l'extraction Excel impossible"</span>, e);
+        }
+    }
+
+    <span class="c">// ------------------------------------------------------------------ feuille MAD : une ligne par demande</span>
+
+    <span class="k">private</span> <span class="k">void</span> remplirMad(Sheet onglet, List&lt;CashRequestDTO&gt; demandes, Map&lt;String, BigDecimal&gt; faceValues, Styles styles) {
+        ColonnesMad colonnes = ColonnesMad.lire(onglet);
+        Row modele = modeleDeLigne(onglet);
+        int ligne = PREMIERE_LIGNE;
+        for (CashRequestDTO d : demandes) {
+            ExtractionDemande x = <span class="k">new</span> ExtractionDemande(d);
+            <span class="k">if</span> (!x.figureEnMad()) continue;
+            Row r = ligne(onglet, ligne++, modele);
+            ecrireColonnesCommunes(r, x, styles);
+            Map&lt;BigDecimal, Integer&gt; caisse = x.quantitesParFaceValue(ExtractionDemande.Alimentation.CAISSE, faceValues);
+            Map&lt;BigDecimal, Integer&gt; gab = x.quantitesParFaceValue(ExtractionDemande.Alimentation.GAB, faceValues);
+            colonnes.caisse.forEach((col, fv) -&gt; quantite(r, col, caisse.<span class="k">get</span>(fv), styles));
+            colonnes.gab.forEach((col, fv) -&gt; quantite(r, col, gab.<span class="k">get</span>(fv), styles));
+            montant(r, colonnes.ramassageMad, x.ramassageMad(), styles);
+        }
+    }
+
+    <span class="c">/** Colonnes de la feuille MAD lues dans le template : coupures caisse (J-U), coupures GAB (W-X), ramassage (Z). */</span>
+    <span class="k">private</span> <span class="k">record</span> ColonnesMad(Map&lt;Integer, BigDecimal&gt; caisse, Map&lt;Integer, BigDecimal&gt; gab, int ramassageMad) {
+        <span class="k">static</span> ColonnesMad lire(Sheet onglet) {
+            Row groupes = onglet.getRow(LIGNE_GROUPES);
+            Row entete = onglet.getRow(LIGNE_ENTETE);
+            int debutGab = -1, debutRamassage = -1;
+            for (int c = NB_COLONNES_COMMUNES; c &lt; groupes.getLastCellNum(); c++) {
+                String libelle = texteDe(groupes.getCell(c)).toLowerCase();
+                <span class="k">if</span> (debutGab &lt; 0 &amp;&amp; libelle.contains(<span class="s">"gab"</span>)) debutGab = c;
+                <span class="k">if</span> (debutRamassage &lt; 0 &amp;&amp; libelle.contains(<span class="s">"ramassage"</span>)) debutRamassage = c;
+            }
+            <span class="k">if</span> (debutGab &lt; 0 || debutRamassage &lt; 0) {
+                <span class="k">throw</span> <span class="k">new</span> IllegalStateException(<span class="s">"Template Excel : groupes « Alimentation GAB » / « Ramassage » introuvables en ligne 1"</span>);
+            }
+            Map&lt;Integer, BigDecimal&gt; caisse = <span class="k">new</span> HashMap&lt;&gt;(), gab = <span class="k">new</span> HashMap&lt;&gt;();
+            for (int c = NB_COLONNES_COMMUNES; c &lt; debutRamassage; c++) {
+                Cell cellule = entete.getCell(c);
+                <span class="k">if</span> (cellule == <span class="k">null</span> || cellule.getCellType() != CellType.NUMERIC) continue;   <span class="c">// « Total Alim. … » = texte → ignoré</span>
+                BigDecimal fv = BigDecimal.valueOf(cellule.getNumericCellValue()).stripTrailingZeros();
+                (c &lt; debutGab ? caisse : gab).put(c, fv);
+            }
+            <span class="k">return</span> <span class="k">new</span> ColonnesMad(caisse, gab, debutRamassage);
+        }
+    }
+
+    <span class="c">// ------------------------------------------------------------------ feuille Devise : une ligne par devise</span>
+
+    <span class="k">private</span> <span class="k">void</span> remplirDevise(Sheet onglet, List&lt;CashRequestDTO&gt; demandes, Styles styles) {
+        Row modele = modeleDeLigne(onglet);
+        int ligne = PREMIERE_LIGNE;
+        for (CashRequestDTO d : demandes) {
+            ExtractionDemande x = <span class="k">new</span> ExtractionDemande(d);
+            for (ExtractionDemande.LigneDevise ld : x.lignesDevise()) {
+                Row r = ligne(onglet, ligne++, modele);
+                ecrireColonnesCommunes(r, x, styles);
+                <span class="k">if</span> (ld.alimentation() != <span class="k">null</span>) {
+                    texte(r, NB_COLONNES_COMMUNES, ld.devise());
+                    montant(r, NB_COLONNES_COMMUNES + 1, ld.alimentation(), styles);
+                }
+                <span class="k">if</span> (ld.ramassage() != <span class="k">null</span>) {
+                    texte(r, NB_COLONNES_COMMUNES + 2, ld.devise());
+                    montant(r, NB_COLONNES_COMMUNES + 3, ld.ramassage(), styles);
+                }
+            }
+        }
+    }
+
+    <span class="c">// ------------------------------------------------------------------ écriture</span>
+
+    <span class="k">private</span> <span class="k">void</span> ecrireColonnesCommunes(Row r, ExtractionDemande x, Styles styles) {
+        texte(r, 0, x.reference());
+        texte(r, 1, x.urgente() ? <span class="s">"Oui"</span> : <span class="s">"Non"</span>);
+        texte(r, 2, x.codeAgence());
+        texte(r, 3, x.nomAgence());
+        texte(r, 4, x.zone());
+        texte(r, 5, x.transporteur());
+        montant(r, 6, x.coutDeplacement(), styles);
+        texte(r, 7, x.dateDemande() == <span class="k">null</span> ? <span class="s">""</span> : DATE_DEMANDE.format(x.dateDemande()));
+        texte(r, 8, x.libelleStatut());
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">void</span> quantite(Row r, int col, Integer quantite, Styles styles) {
+        <span class="k">if</span> (quantite == <span class="k">null</span> || quantite &lt;= 0) <span class="k">return</span>;
+        Cell c = r.getCell(col, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+        c.setCellValue(quantite);
+        c.setCellStyle(styles.quantite(c.getCellStyle()));
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">void</span> montant(Row r, int col, BigDecimal valeur, Styles styles) {
+        Cell c = r.getCell(col, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+        <span class="k">if</span> (valeur == <span class="k">null</span>) { c.setBlank(); <span class="k">return</span>; }
+        c.setCellValue(valeur.doubleValue());
+        c.setCellStyle(styles.montant(c.getCellStyle()));
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">void</span> texte(Row r, int col, String valeur) {
+        Cell c = r.getCell(col, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+        c.setCellValue(valeur == <span class="k">null</span> ? <span class="s">""</span> : valeur);
+    }
+
+    <span class="k">private</span> <span class="k">static</span> String texteDe(Cell c) {
+        <span class="k">return</span> c != <span class="k">null</span> &amp;&amp; c.getCellType() == CellType.STRING ? c.getStringCellValue() : <span class="s">""</span>;
+    }
+
+    <span class="c">/** La ligne d'exemple du template (ligne 3) sert de modèle de styles et de formules, puis est réécrite par la première demande
+     *  (ses cellules sont vidées par ligne(), y compris le « 1 » de T3). */</span>
+    <span class="k">private</span> <span class="k">static</span> Row modeleDeLigne(Sheet onglet) {
+        Row r = onglet.getRow(PREMIERE_LIGNE);
+        <span class="k">return</span> r != <span class="k">null</span> ? r : onglet.createRow(PREMIERE_LIGNE);
+    }
+
+    <span class="c">/**
+     * Prépare une ligne : styles du modèle sur toutes les cellules, formules du modèle (totaux V / Y) recopiées
+     * avec le numéro de ligne courant, autres cellules vidées.
+     */</span>
+    <span class="k">private</span> <span class="k">static</span> Row ligne(Sheet onglet, int index, Row modele) {
+        Row r = onglet.getRow(index);
+        <span class="k">if</span> (r == <span class="k">null</span>) r = onglet.createRow(index);
+        int ligneModele = modele.getRowNum() + 1, ligneCible = index + 1;
+        for (int c = 0; c &lt; modele.getLastCellNum(); c++) {
+            Cell source = modele.getCell(c);
+            Cell cible = r.getCell(c, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            <span class="k">if</span> (source != <span class="k">null</span> &amp;&amp; source.getCellType() == CellType.FORMULA) {
+                cible.setCellFormula(source.getCellFormula().replaceAll(<span class="s">"(?&lt;=[A-Z])"</span> + ligneModele + <span class="s">"(?![0-9])"</span>, String.valueOf(ligneCible)));
+            } <span class="k">else</span> {
+                cible.setBlank();
+            }
+            CellStyle style = source != <span class="k">null</span> ? source.getCellStyle() : <span class="k">null</span>;
+            <span class="k">if</span> (style != <span class="k">null</span>) cible.setCellStyle(style);
+        }
+        <span class="k">return</span> r;
+    }
+
+
+    <span class="c">// ------------------------------------------------------------------ styles (format français), un par style source</span>
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">class</span> Styles {
+        <span class="k">private</span> <span class="k">final</span> Workbook classeur;
+        <span class="k">private</span> <span class="k">final</span> DataFormat formats;
+        <span class="k">private</span> <span class="k">final</span> Map&lt;CellStyle, CellStyle&gt; montants = <span class="k">new</span> HashMap&lt;&gt;(), quantites = <span class="k">new</span> HashMap&lt;&gt;();
+
+        Styles(Workbook classeur) { <span class="k">this</span>.classeur = classeur; <span class="k">this</span>.formats = classeur.createDataFormat(); }
+
+        CellStyle montant(CellStyle base) { <span class="k">return</span> derive(montants, base, FORMAT_MONTANT); }
+        CellStyle quantite(CellStyle base) { <span class="k">return</span> derive(quantites, base, FORMAT_QUANTITE); }
+
+        <span class="k">private</span> CellStyle derive(Map&lt;CellStyle, CellStyle&gt; cache, CellStyle base, String format) {
+            <span class="k">return</span> cache.computeIfAbsent(base, b -&gt; {
+                CellStyle s = classeur.createCellStyle();
+                <span class="k">if</span> (b != <span class="k">null</span>) s.cloneStyleFrom(b);
+                s.setDataFormat(formats.getFormat(format));
+                <span class="k">return</span> s;
+            });
+        }
+    }
+}</code></pre></div>
+<h2 id="s2">2. Tests</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ExportExcelDemandesTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\test\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandesTest.java</span></div><p class="note">Remplace le test V1 (même emplacement, module container). Builders Lombok des DTO ; si <code>CurrencyDTO</code> / <code>DenominationDTO</code> n'ont pas de builder, reprendre la forme de l'ancien test (Ctrl+F <code>isoCode</code>).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.OperationType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestType;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.*;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Cell;
+<span class="k">import</span> org.apache.poi.ss.usermodel.CellType;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Row;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Sheet;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Workbook;
+<span class="k">import</span> org.apache.poi.xssf.usermodel.XSSFWorkbook;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+
+<span class="k">import</span> java.io.ByteArrayInputStream;
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Map;
+
+<span class="k">import</span> <span class="k">static</span> org.assertj.core.api.Assertions.assertThat;
+
+<span class="k">class</span> ExportExcelDemandesTest {
+
+    <span class="k">private</span> <span class="k">final</span> ExportExcelDemandes <span class="k">export</span> = <span class="k">new</span> ExportExcelDemandes();
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> Map&lt;String, BigDecimal&gt; FACE_VALUES = Map.of(<span class="s">"BILLET_200"</span>, <span class="k">new</span> BigDecimal(<span class="s">"200"</span>), <span class="s">"BILLET_100"</span>, <span class="k">new</span> BigDecimal(<span class="s">"100"</span>),
+            <span class="s">"PIECE_10"</span>, <span class="k">new</span> BigDecimal(<span class="s">"10"</span>), <span class="s">"PIECE_0_05"</span>, <span class="k">new</span> BigDecimal(<span class="s">"0.05"</span>));
+
+    <span class="c">// ---- fixtures</span>
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demande(String ref, CashOperationDTO... ops) {
+        <span class="k">return</span> CashRequestDTO.builder().uniqueRequestRef(ref).branchCode(<span class="s">"1001"</span>).agenceNom(<span class="s">"Nations Unies"</span>).zoneNom(<span class="s">"Zone Casablanca"</span>)
+                .prestataireNom(<span class="s">"Brink's"</span>).coutDeplacement(<span class="k">new</span> BigDecimal(<span class="s">"350.50"</span>)).createdAt(LocalDateTime.of(2026, 10, 26, 9, 0))
+                .requestStatus(<span class="s">"SUBMITTED"</span>).urgent(<span class="k">false</span>).operations(List.of(ops)).build();
+    }
+    <span class="k">private</span> <span class="k">static</span> CashOperationDTO operation(OperationType <span class="k">type</span>, RequestType sens, OperationCurrencyDetailDTO... details) {
+        <span class="k">return</span> CashOperationDTO.builder().operationType(<span class="k">type</span>).operationSens(sens).currencyDetails(List.of(details)).build();
+    }
+    <span class="k">private</span> <span class="k">static</span> OperationCurrencyDetailDTO detail(String iso, String montant, OperationDenominationDTO... denoms) {
+        <span class="k">return</span> OperationCurrencyDetailDTO.builder().currency(CurrencyDTO.builder().isoCode(iso).build())
+                .totalAmountByCurrency(<span class="k">new</span> BigDecimal(montant)).operationDenominations(List.of(denoms)).build();
+    }
+    <span class="k">private</span> <span class="k">static</span> OperationDenominationDTO coupure(String code, int qte) {
+        <span class="k">return</span> OperationDenominationDTO.builder().denomination(DenominationDTO.builder().denominationCode(code).build()).quantity(qte).build();
+    }
+    <span class="k">private</span> <span class="k">static</span> Workbook lire(byte[] fichier) throws Exception { <span class="k">return</span> <span class="k">new</span> XSSFWorkbook(<span class="k">new</span> ByteArrayInputStream(fichier)); }
+    <span class="k">private</span> <span class="k">static</span> double nombre(Row r, int col) { <span class="k">return</span> r.getCell(col).getNumericCellValue(); }
+    <span class="k">private</span> <span class="k">static</span> String texte(Row r, int col) { Cell c = r.getCell(col); <span class="k">return</span> c == <span class="k">null</span> ? <span class="s">""</span> : c.getStringCellValue(); }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"Feuille MAD : une ligne par demande, quantités caisse / GAB dans les colonnes de la coupure, ramassage MAD en Z, formules de total recopiées"</span>)
+    <span class="k">void</span> feuilleMad() throws Exception {
+        CashRequestDTO d = demande(<span class="s">"20261026-1001-02"</span>,
+                operation(OperationType.CASH_DESK, RequestType.SUPPLY, detail(<span class="s">"MAD"</span>, <span class="s">"2100"</span>, coupure(<span class="s">"BILLET_200"</span>, 10), coupure(<span class="s">"PIECE_10"</span>, 10))),
+                operation(OperationType.ATM, RequestType.SUPPLY, detail(<span class="s">"MAD"</span>, <span class="s">"5000"</span>, coupure(<span class="s">"BILLET_100"</span>, 50))),
+                operation(OperationType.CASH_DESK, RequestType.COLLECTION, detail(<span class="s">"MAD"</span>, <span class="s">"12000.50"</span>)));
+
+        byte[] fichier = <span class="k">export</span>.generer(<span class="k">new</span> ExportDemandesDTO(List.of(d), FACE_VALUES));
+
+        Sheet mad = lire(fichier).getSheetAt(ExportExcelDemandes.ONGLET_MAD);
+        Row r = mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE);
+        assertThat(texte(r, 0)).isEqualTo(<span class="s">"20261026-1001-02"</span>);
+        assertThat(texte(r, 7)).isEqualTo(<span class="s">"26/10/2026"</span>);
+        assertThat(nombre(r, 6)).isEqualTo(350.50);
+        assertThat(nombre(r, 9)).isEqualTo(10);                   <span class="c">// J = 200 caisse</span>
+        assertThat(nombre(r, 13)).isEqualTo(10);                  <span class="c">// N = 10 caisse</span>
+        assertThat(r.getCell(21).getCellType()).isEqualTo(CellType.FORMULA);   <span class="c">// V = Total Alim. Caisse</span>
+        assertThat(r.getCell(21).getCellFormula()).contains(<span class="s">"J3"</span>);
+        assertThat(nombre(r, 23)).isEqualTo(50);                  <span class="c">// X = 100 GAB</span>
+        assertThat(r.getCell(24).getCellType()).isEqualTo(CellType.FORMULA);   <span class="c">// Y = Total Alim. GAB</span>
+        assertThat(nombre(r, 25)).isEqualTo(12000.50);            <span class="c">// Z = ramassage MAD</span>
+        assertThat(r.getCell(25).getCellStyle().getDataFormatString()).isEqualTo(ExportExcelDemandes.FORMAT_MONTANT);
+        assertThat(mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 1).getCell(0)).satisfiesAnyOf(   <span class="c">// ligne 4 : vide (formules du PO seules)</span>
+                c -&gt; assertThat(c).isNull(), c -&gt; assertThat(c.getCellType()).isEqualTo(CellType.BLANK));
+        assertThat(r.getCell(19) == <span class="k">null</span> || r.getCell(19).getCellType() == CellType.BLANK).isTrue();   <span class="c">// le « 1 » d'exemple en T3 a été écrasé</span>
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"Feuille Devise : une ligne par devise triée par code, alimentation et ramassage côte à côte, MAD exclu"</span>)
+    <span class="k">void</span> feuilleDevise() throws Exception {
+        CashRequestDTO d = demande(<span class="s">"20261026-1001-03"</span>,
+                operation(OperationType.CURRENCY, RequestType.SUPPLY, detail(<span class="s">"USD"</span>, <span class="s">"1000"</span>), detail(<span class="s">"EUR"</span>, <span class="s">"500"</span>)),
+                operation(OperationType.CURRENCY, RequestType.COLLECTION, detail(<span class="s">"USD"</span>, <span class="s">"300"</span>), detail(<span class="s">"MAD"</span>, <span class="s">"999"</span>)));
+
+        byte[] fichier = <span class="k">export</span>.generer(<span class="k">new</span> ExportDemandesDTO(List.of(d), FACE_VALUES));
+
+        Sheet devise = lire(fichier).getSheetAt(ExportExcelDemandes.ONGLET_DEVISE);
+        Row eur = devise.getRow(ExportExcelDemandes.PREMIERE_LIGNE), usd = devise.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 1);
+        assertThat(texte(eur, 0)).isEqualTo(<span class="s">"20261026-1001-03"</span>);
+        assertThat(texte(eur, 9)).isEqualTo(<span class="s">"EUR"</span>);  assertThat(nombre(eur, 10)).isEqualTo(500);  assertThat(texte(eur, 11)).isEmpty();
+        assertThat(texte(usd, 9)).isEqualTo(<span class="s">"USD"</span>);  assertThat(nombre(usd, 10)).isEqualTo(1000);
+        assertThat(texte(usd, 11)).isEqualTo(<span class="s">"USD"</span>); assertThat(nombre(usd, 12)).isEqualTo(300);
+        Row suivante = devise.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 2);
+        assertThat(suivante == <span class="k">null</span> || suivante.getCell(0) == <span class="k">null</span> || suivante.getCell(0).getCellType() == CellType.BLANK).isTrue();
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"Tri par référence sur les deux feuilles"</span>)
+    <span class="k">void</span> triParReference() throws Exception {
+        CashRequestDTO b = demande(<span class="s">"20261026-1001-02"</span>, operation(OperationType.CASH_DESK, RequestType.SUPPLY, detail(<span class="s">"MAD"</span>, <span class="s">"200"</span>, coupure(<span class="s">"BILLET_200"</span>, 1))));
+        CashRequestDTO a = demande(<span class="s">"20261026-1001-01"</span>, operation(OperationType.CASH_DESK, RequestType.SUPPLY, detail(<span class="s">"MAD"</span>, <span class="s">"200"</span>, coupure(<span class="s">"BILLET_200"</span>, 1))));
+
+        Sheet mad = lire(<span class="k">export</span>.generer(<span class="k">new</span> ExportDemandesDTO(List.of(b, a), FACE_VALUES))).getSheetAt(ExportExcelDemandes.ONGLET_MAD);
+
+        assertThat(texte(mad.getRow(2), 0)).isEqualTo(<span class="s">"20261026-1001-01"</span>);
+        assertThat(texte(mad.getRow(3), 0)).isEqualTo(<span class="s">"20261026-1001-02"</span>);
+    }
+}</code></pre></div>
+<h2 id="s3">3. Recette</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Déroulé</b><br><span class="path">Caisse Centrale (g10003) → Exporter (Excel)</span></div><pre><button class="copy">Copier</button><code>0. Template : copier « Template_QlickFlow_GesFond_extraction.xlsx » (pièce jointe Jira, tel quel, avec sa ligne 3 d'exemple et ses formules V/Y)
+   dans fund-management-application/src/main/resources/<span class="k">export</span>/ ; supprimer l'ancien GesFond-Reporting.xlsx.
+1. mvn clean install (ExportExcelDemandesTest vit dans le container : réacteur complet, sinon jar périmé).
+2. Caisse Centrale → listing avec un filtre (ex. Statut = En Attente, dates) → Exporter (Excel) :
+   - le fichier a 2 feuilles ; seules les demandes du listing filtré y sont (hors brouillons / annulées : règle 279 inchangée) ;
+   - feuille MAD : une ligne par demande, triée par référence ; quantités sous la bonne coupure ; V et Y calculés par Excel ; Z = montant ramassage ;
+   - feuille Devise : une ligne par devise, EUR avant USD pour une même référence, MAD absent ;
+   - montants affichés « 12 000,50 », quantités « 1 250 » ; le « 1 » d<span class="s">'exemple en T3 a disparu ; les lignes sous les demandes restent vides à l'</span>affichage (formules du PO, inchangées).
+3. Export sans filtre → toutes les demandes (hors brouillons / annulées).</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
