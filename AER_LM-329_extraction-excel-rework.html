@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AER_LM-329 — Extraction Excel, rework 2 feuilles</title>
+<title>AER_LM-329 / 297 — Extraction Excel, 3 feuilles</title>
 <style>
 :root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
 *{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
@@ -23,17 +23,19 @@ pre code{background:none;padding:0;color:inherit;font-size:13px}
 table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
 ol,ul{padding-left:22px}li{margin:4px 0}
 </style></head><body>
-<header><h1>AER_LM-329 — Extraction Excel Caisse Centrale : 2 feuilles, nouveau template, format français</h1><p>fund-management-application · export · 26/10/2026</p></header>
+<header><h1>AER_LM-329 / AER_LM-297 — Extraction Excel Caisse Centrale : MAD, Devise, GAB Hors Sites</h1><p>fund-management-application · export · 26/10/2026 · 297 ajoutée le 28/10</p></header>
 <nav><a href="#s0">Périmètre</a><a href="#s1">Code</a><a href="#s2">Tests</a><a href="#s3">Recette</a></nav><main><h2 id="s0">0. Périmètre</h2>
 <div class="card"><p><b>Jira</b> : demandes agence sur 2 feuilles au lieu de 3 ; uniquement les demandes des filtres actifs ; tri par référence ; nouveau template joint.</p>
 <table><tr><th>Feuille</th><th>Colonnes</th><th>Règle</th></tr>
 <tr><td>Appels &amp; Ramassages en MAD</td><td>A-I communes · J-U quantités caisse (200 → 0,05) · V Total caisse (formule) · W-X quantités GAB (200, 100) · Y Total GAB (formule) · Z ramassage MAD</td><td>une ligne par demande portant une alimentation ou un ramassage MAD</td></tr>
 <tr><td>Appels &amp; Ramassages en Devise</td><td>A-I communes · J-K devise / montant alimentation · L-M devise / montant ramassage</td><td>une ligne par devise (hors MAD), alimentation et ramassage de la même devise sur la même ligne ; tri référence puis code devise</td></tr></table>
 <p><b>Décisions</b> : PU = coût de déplacement de l'agence (snapshot sur la demande) ; les totaux V / Y ne sont jamais écrits — la formule de la ligne 3 du template est recopiée sur chaque ligne avec son numéro ; montants au format Excel français <code># ##0,00</code>, quantités <code># ##0</code> (valeurs numériques, pas de texte) ; les colonnes sont lues dans le template (groupes de la ligne 1, coupures de la ligne 2) comme en V1.</p>
+<p><b>AER_LM-297 (28/10) — 3ᵉ feuille « GAB Hors Sites »</b> : les demandes du canal MONETIQUE (Pôle opérations monétique) sont réparties sur cette feuille et retirées des feuilles MAD / Devise ; une ligne par GAB de la demande (<code>CashOperationDTO.gab</code>), quantités par <code>OperationDenominationDTO.cassetteNumber</code> 1..4 en M-P, total Q = formule du template (<code>=SI(somme(Mn*$M$3…)=0;"";…)</code>) recopiée depuis la ligne 4. Colonnes A-L : référence, date, code / libellé agence et ville / transporteur / PU <b>du GAB</b> (repli sur la demande si absents), ID / nom / compte / type GAB (« Hors site » / « Drive »), statut. Même bouton, mêmes filtres, même nommage ; use case et contrôleur inchangés (<code>canal</code> null = les deux canaux).</p>
 <p><b>Inchangé</b> : <code>GET /cash/export</code> et <code>exporterCaisseCentrale</code> — les filtres du listing arrivent déjà en critères, brouillons et annulées exclus (règle 279). <code>ExportDemandesDTO</code> inchangé.</p></div>
+<div class="card"><p><b>Correctif 26/10 — test qui ne se termine jamais.</b> Le template du PO porte volontairement ses formules de total (V, Y) sur ~80 000 lignes ; la version précédente supprimait ces lignes une par une (<code>removeRow</code> sur une formule = mise à jour de la chaîne de calcul POI, 80 000 fois). <b>On ne supprime plus rien</b> : les demandes s'écrivent à partir de la ligne 3 (la ligne d'exemple est écrasée), les lignes suivantes gardent les formules du PO, qui affichent <code>&quot;&quot;</code> tant qu'elles sont vides. Template copié tel quel, aucune manipulation Excel.</p></div>
 <h2 id="s1">1. Code</h2>
-<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Template</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\resources\export\Template_QlickFlow_GesFond_extraction.xlsx</span></div><pre><button class="copy">Copier</button><code>Copier la pièce jointe de la Jira telle quelle (ligne 3 d<span class="s">'exemple et formules V / Y comprises : elles servent de modèle). Supprimer l'</span>ancien GesFond-Reporting.xlsx.</code></pre></div>
-<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ExtractionDemande.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExtractionDemande.java</span></div><p class="note"><code>lignesDevise()</code> fusionne alimentation et ramassage par devise et trie par code ; <code>ramassageMad()</code> somme les détails MAD des opérations COLLECTION ; <code>Sens</code> et <code>aUneAlimentation()</code> de la V1 disparaissent.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Template</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\resources\export\Template_QlickFlow_GesFond_extraction.xlsx</span></div><pre><button class="copy">Copier</button><code>Copier « Template_QlickFlow_GesFond_extraction_with_GAB-Hors-Sites.xlsx » (3 feuilles, pièce jointe AER_LM-297) sous ce nom, tel quel : ligne 3 d<span class="s">'exemple et formules V / Y des feuilles 1-2, formule Q4 de la feuille 3 servent de modèle. Supprimer l'</span>ancien GesFond-Reporting.xlsx.</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ExtractionDemande.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExtractionDemande.java</span></div><p class="note"><code>lignesDevise()</code> fusionne alimentation et ramassage par devise et trie par code ; <code>ramassageMad()</code> somme les détails MAD des opérations COLLECTION ; <code>estMonetique()</code> et <code>lignesGab()</code> (297) lisent <code>canalDemande</code> et les cassettes.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
 
 <span class="k">import</span> com.bmci.q360.domain.retail.enums.OperationType;
 <span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestType;
@@ -41,6 +43,7 @@ ol,ul{padding-left:22px}li{margin:4px 0}
 <span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
 <span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.OperationCurrencyDetailDTO;
 <span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.OperationDenominationDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.OperationGabDTO;
 
 <span class="k">import</span> java.math.BigDecimal;
 <span class="k">import</span> java.time.LocalDateTime;
@@ -54,6 +57,7 @@ ol,ul{padding-left:22px}li{margin:4px 0}
  * Lecture d'une demande pour l'extraction Excel (AER_LM-279, rework AER_LM-329) : tous les accès aux DTO sont isolés ici.
  * Feuille MAD : quantités par coupure (caisse / GAB) + montant du ramassage MAD.
  * Feuille Devise : une ligne par devise (alimentation et ramassage côte à côte), triées par code devise.
+ * Feuille GAB Hors Sites (AER_LM-297) : demandes du canal MONETIQUE, une ligne par GAB avec ses 4 cassettes.
  */</span>
 <span class="k">final</span> <span class="k">class</span> ExtractionDemande {
 
@@ -63,6 +67,11 @@ ol,ul{padding-left:22px}li{margin:4px 0}
     <span class="k">record</span> LigneDevise(String devise, BigDecimal alimentation, BigDecimal ramassage) {}
 
     <span class="k">static</span> <span class="k">final</span> String MAD = <span class="s">"MAD"</span>;
+    <span class="k">static</span> <span class="k">final</span> String CANAL_MONETIQUE = <span class="s">"MONETIQUE"</span>;
+    <span class="k">static</span> <span class="k">final</span> int NB_CASSETTES = 4;
+
+    <span class="c">/** Un GAB d'une demande monétique : identité du GAB + quantités par cassette (index 0 = cassette 1). */</span>
+    <span class="k">record</span> LigneGab(OperationGabDTO gab, Integer[] quantitesCassettes) {}
 
     <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> Map&lt;String, String&gt; LIBELLES_STATUT = Map.of(
             <span class="s">"SUBMITTED"</span>, <span class="s">"En Attente"</span>, <span class="s">"IN_MODIFICATION"</span>, <span class="s">"En modification"</span>,
@@ -154,14 +163,42 @@ ol,ul{padding-left:22px}li{margin:4px 0}
         <span class="k">return</span> lignes;
     }
 
+    <span class="c">/** Demande du Pôle opérations monétique (GAB hors site / drive) : canalDemande = MONETIQUE. */</span>
+    boolean estMonetique() { <span class="k">return</span> CANAL_MONETIQUE.equals(d.getCanalDemande()); }
+
+    <span class="c">/**
+     * Feuille GAB Hors Sites : une ligne par opération GAB de la demande, quantités par numéro de cassette
+     * (OperationDenominationDTO.cassetteNumber 1..4), cumulées si plusieurs lignes portent la même cassette.
+     */</span>
+    List&lt;LigneGab&gt; lignesGab() {
+        List&lt;LigneGab&gt; lignes = <span class="k">new</span> ArrayList&lt;&gt;();
+        for (CashOperationDTO op : operations()) {
+            <span class="k">if</span> (op.getGab() == <span class="k">null</span>) continue;
+            Integer[] quantites = <span class="k">new</span> Integer[NB_CASSETTES];
+            for (OperationCurrencyDetailDTO detail : details(op)) {
+                <span class="k">if</span> (detail.getOperationDenominations() == <span class="k">null</span>) continue;
+                for (OperationDenominationDTO ligne : detail.getOperationDenominations()) {
+                    Integer cassette = ligne.getCassetteNumber();
+                    <span class="k">if</span> (cassette == <span class="k">null</span> || cassette &lt; 1 || cassette &gt; NB_CASSETTES || ligne.getQuantity() == <span class="k">null</span>) continue;
+                    int i = cassette - 1;
+                    quantites[i] = quantites[i] == <span class="k">null</span> ? ligne.getQuantity() : quantites[i] + ligne.getQuantity();
+                }
+            }
+            lignes.add(<span class="k">new</span> LigneGab(op.getGab(), quantites));
+        }
+        lignes.sort(Comparator.comparing(l -&gt; l.gab().getGabId() == <span class="k">null</span> ? <span class="s">""</span> : l.gab().getGabId()));
+        <span class="k">return</span> lignes;
+    }
+
     <span class="k">private</span> <span class="k">static</span> String codeDevise(OperationCurrencyDetailDTO detail) {
         <span class="k">return</span> detail.getCurrency() == <span class="k">null</span> ? <span class="k">null</span> : detail.getCurrency().getIsoCode();
     }
 }</code></pre></div>
-<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ExportExcelDemandes.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><p class="note"><code>ligne()</code> recopie les formules du modèle en remplaçant le numéro de ligne (<code>J3</code> → <code>J7</code>) ; <code>Styles</code> dérive un style par style source pour poser le format français sans perdre bordures et polices du template ; <code>supprimerLignesRestantes</code> conservé.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ExportExcelDemandes.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><p class="note"><code>ligne()</code> recopie les formules du modèle en remplaçant le numéro de ligne (<code>J3</code> → <code>J7</code>) ; <code>Styles</code> dérive un style par style source pour poser le format français sans perdre bordures et polices du template ; plus de suppression de lignes (voir correctif).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
 
 <span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
 <span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.ExportDemandesDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.OperationGabDTO;
 <span class="k">import</span> org.apache.poi.ss.usermodel.Cell;
 <span class="k">import</span> org.apache.poi.ss.usermodel.CellStyle;
 <span class="k">import</span> org.apache.poi.ss.usermodel.CellType;
@@ -193,7 +230,12 @@ ol,ul{padding-left:22px}li{margin:4px 0}
  *                                        V total caisse (formule du template), W-X quantités GAB, Y total GAB (formule), Z ramassage MAD.
  *  - « Appels &amp; Ramassages en Devise »: une ligne par devise de la demande ; A-I communes, J-K devise / montant d'alimentation,
  *                                        L-M devise / montant de ramassage.
+ *  - « GAB Hors Sites » (AER_LM-297)  : demandes MONETIQUE, une ligne par GAB ; A-L (référence, date, agence, ville, transporteur,
+ *                                        PU, ID / nom / compte / type GAB, statut), M-P quantités cassettes 1-4, Q total (formule).
+ *                                        En-têtes en ligne 3, données à partir de la ligne 4 (structure propre à cette feuille).
  * Les colonnes de total sont recopiées depuis la formule du template (jamais calculées ici). Montants au format français.
+ * Le template du PO porte ses formules de total sur ~80 000 lignes (affichent "" tant que la ligne est vide) : on n'en supprime
+ * aucune — les demandes s'écrivent à partir de la ligne 3 et les lignes suivantes restent telles que le PO les a conçues.
  */</span>
 <span class="a">@Component</span>
 <span class="k">public</span> <span class="k">class</span> ExportExcelDemandes {
@@ -203,9 +245,11 @@ ol,ul{padding-left:22px}li{margin:4px 0}
     <span class="k">static</span> <span class="k">final</span> DateTimeFormatter HORODATAGE = DateTimeFormatter.ofPattern(<span class="s">"yyyyMMdd-HHmmss"</span>);
     <span class="k">static</span> <span class="k">final</span> DateTimeFormatter DATE_DEMANDE = DateTimeFormatter.ofPattern(<span class="s">"dd/MM/yyyy"</span>);
 
-    <span class="k">static</span> <span class="k">final</span> int ONGLET_MAD = 0, ONGLET_DEVISE = 1;
+    <span class="k">static</span> <span class="k">final</span> int ONGLET_MAD = 0, ONGLET_DEVISE = 1, ONGLET_GAB = 2;
     <span class="k">static</span> <span class="k">final</span> int LIGNE_GROUPES = 0, LIGNE_ENTETE = 1, PREMIERE_LIGNE = 2;
     <span class="k">static</span> <span class="k">final</span> int NB_COLONNES_COMMUNES = 9;
+    <span class="c">/** Feuille GAB Hors Sites : en-têtes en ligne 3, première donnée en ligne 4 ; 12 colonnes d'identité puis 4 cassettes (M-P). */</span>
+    <span class="k">static</span> <span class="k">final</span> int GAB_PREMIERE_LIGNE = 3, GAB_NB_COLONNES_IDENTITE = 12, GAB_PREMIERE_CASSETTE = 12;
 
     <span class="c">/** Formats Excel français : milliers séparés par un espace, décimale virgule. */</span>
     <span class="k">static</span> <span class="k">final</span> String FORMAT_MONTANT = <span class="s">"# ##0,00"</span>;
@@ -220,12 +264,18 @@ ol,ul{padding-left:22px}li{margin:4px 0}
              Workbook classeur = <span class="k">new</span> XSSFWorkbook(template);
              ByteArrayOutputStream sortie = <span class="k">new</span> ByteArrayOutputStream()) {
 
+            classeur.setForceFormulaRecalculation(<span class="k">true</span>);   <span class="c">// Excel recalcule V / Y à l'ouverture</span>
+
             List&lt;CashRequestDTO&gt; demandes = <span class="k">new</span> ArrayList&lt;&gt;(<span class="k">export</span>.demandes());
             demandes.sort(Comparator.comparing(CashRequestDTO::getUniqueRequestRef, Comparator.nullsLast(Comparator.naturalOrder())));
+            <span class="c">// Répartition par canal : AGENCE → feuilles MAD / Devise, MONETIQUE → feuille GAB Hors Sites (même export, mêmes filtres)</span>
+            List&lt;CashRequestDTO&gt; agence = demandes.stream().filter(d -&gt; !<span class="k">new</span> ExtractionDemande(d).estMonetique()).toList();
+            List&lt;CashRequestDTO&gt; monetique = demandes.stream().filter(d -&gt; <span class="k">new</span> ExtractionDemande(d).estMonetique()).toList();
 
             Styles styles = <span class="k">new</span> Styles(classeur);
-            remplirMad(classeur.getSheetAt(ONGLET_MAD), demandes, <span class="k">export</span>.faceValuesByCode(), styles);
-            remplirDevise(classeur.getSheetAt(ONGLET_DEVISE), demandes, styles);
+            remplirMad(classeur.getSheetAt(ONGLET_MAD), agence, <span class="k">export</span>.faceValuesByCode(), styles);
+            remplirDevise(classeur.getSheetAt(ONGLET_DEVISE), agence, styles);
+            remplirGab(classeur.getSheetAt(ONGLET_GAB), monetique, styles);
 
             classeur.write(sortie);
             <span class="k">return</span> sortie.toByteArray();
@@ -251,7 +301,6 @@ ol,ul{padding-left:22px}li{margin:4px 0}
             colonnes.gab.forEach((col, fv) -&gt; quantite(r, col, gab.<span class="k">get</span>(fv), styles));
             montant(r, colonnes.ramassageMad, x.ramassageMad(), styles);
         }
-        supprimerLignesRestantes(onglet, ligne);
     }
 
     <span class="c">/** Colonnes de la feuille MAD lues dans le template : coupures caisse (J-U), coupures GAB (W-X), ramassage (Z). */</span>
@@ -299,7 +348,45 @@ ol,ul{padding-left:22px}li{margin:4px 0}
                 }
             }
         }
-        supprimerLignesRestantes(onglet, ligne);
+    }
+
+    <span class="c">// ------------------------------------------------------------------ feuille GAB Hors Sites : une ligne par GAB (AER_LM-297)</span>
+
+    <span class="k">private</span> <span class="k">void</span> remplirGab(Sheet onglet, List&lt;CashRequestDTO&gt; demandes, Styles styles) {
+        Row modele = onglet.getRow(GAB_PREMIERE_LIGNE);
+        <span class="k">if</span> (modele == <span class="k">null</span>) modele = onglet.createRow(GAB_PREMIERE_LIGNE);
+        int ligne = GAB_PREMIERE_LIGNE;
+        for (CashRequestDTO d : demandes) {
+            ExtractionDemande x = <span class="k">new</span> ExtractionDemande(d);
+            for (ExtractionDemande.LigneGab lg : x.lignesGab()) {
+                Row r = ligne(onglet, ligne++, modele);
+                OperationGabDTO gab = lg.gab();
+                texte(r, 0, x.reference());
+                texte(r, 1, x.dateDemande() == <span class="k">null</span> ? <span class="s">""</span> : DATE_DEMANDE.format(x.dateDemande()));
+                texte(r, 2, gab.getAgenceCode() != <span class="k">null</span> ? gab.getAgenceCode() : x.codeAgence());
+                texte(r, 3, gab.getAgenceLibelle() != <span class="k">null</span> ? gab.getAgenceLibelle() : x.nomAgence());
+                texte(r, 4, gab.getVille());
+                texte(r, 5, gab.getTransporteur() != <span class="k">null</span> ? gab.getTransporteur() : x.transporteur());
+                montant(r, 6, gab.getTarifTransporteur() != <span class="k">null</span> ? gab.getTarifTransporteur() : x.coutDeplacement(), styles);
+                texte(r, 7, gab.getGabId());
+                texte(r, 8, gab.getGabNom());
+                texte(r, 9, gab.getNumeroCompte());
+                texte(r, 10, gab.getGabType() == <span class="k">null</span> ? <span class="s">""</span> : libelleTypeGab(gab.getGabType().name()));
+                texte(r, 11, x.libelleStatut());
+                for (int i = 0; i &lt; ExtractionDemande.NB_CASSETTES; i++) {
+                    quantite(r, GAB_PREMIERE_CASSETTE + i, lg.quantitesCassettes()[i], styles);
+                }
+            }
+        }
+    }
+
+    <span class="c">/** Libellé Jira : « Hors site » / « Drive ». */</span>
+    <span class="k">private</span> <span class="k">static</span> String libelleTypeGab(String code) {
+        <span class="k">return</span> <span class="k">switch</span> (code) {
+            <span class="k">case</span> <span class="s">"HORS_SITE"</span> -&gt; <span class="s">"Hors site"</span>;
+            <span class="k">case</span> <span class="s">"DRIVE"</span> -&gt; <span class="s">"Drive"</span>;
+            default -&gt; code;
+        };
     }
 
     <span class="c">// ------------------------------------------------------------------ écriture</span>
@@ -339,7 +426,8 @@ ol,ul{padding-left:22px}li{margin:4px 0}
         <span class="k">return</span> c != <span class="k">null</span> &amp;&amp; c.getCellType() == CellType.STRING ? c.getStringCellValue() : <span class="s">""</span>;
     }
 
-    <span class="c">/** La ligne d'exemple du template (ligne 3) sert de modèle de styles et de formules, puis est réécrite par la première demande. */</span>
+    <span class="c">/** La ligne d'exemple du template (ligne 3) sert de modèle de styles et de formules, puis est réécrite par la première demande
+     *  (ses cellules sont vidées par ligne(), y compris le « 1 » de T3). */</span>
     <span class="k">private</span> <span class="k">static</span> Row modeleDeLigne(Sheet onglet) {
         Row r = onglet.getRow(PREMIERE_LIGNE);
         <span class="k">return</span> r != <span class="k">null</span> ? r : onglet.createRow(PREMIERE_LIGNE);
@@ -357,7 +445,8 @@ ol,ul{padding-left:22px}li{margin:4px 0}
             Cell source = modele.getCell(c);
             Cell cible = r.getCell(c, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             <span class="k">if</span> (source != <span class="k">null</span> &amp;&amp; source.getCellType() == CellType.FORMULA) {
-                cible.setCellFormula(source.getCellFormula().replaceAll(<span class="s">"(?&lt;=[A-Z])"</span> + ligneModele + <span class="s">"(?![0-9])"</span>, String.valueOf(ligneCible)));
+                <span class="c">// décale les références relatives (M4 → M7) ; les absolues ($M$3 : valeurs faciales de la feuille GAB) restent intactes</span>
+                cible.setCellFormula(source.getCellFormula().replaceAll(<span class="s">"(?&lt;=[A-Z])(?&lt;!\\$[A-Z])"</span> + ligneModele + <span class="s">"(?![0-9])"</span>, String.valueOf(ligneCible)));
             } <span class="k">else</span> {
                 cible.setBlank();
             }
@@ -367,13 +456,6 @@ ol,ul{padding-left:22px}li{margin:4px 0}
         <span class="k">return</span> r;
     }
 
-    <span class="c">/** Supprime les lignes du template au-delà de la dernière écrite (lignes d'exemple restantes). */</span>
-    <span class="k">private</span> <span class="k">static</span> <span class="k">void</span> supprimerLignesRestantes(Sheet onglet, int premiereLigneVide) {
-        for (int i = onglet.getLastRowNum(); i &gt;= premiereLigneVide; i--) {
-            Row r = onglet.getRow(i);
-            <span class="k">if</span> (r != <span class="k">null</span>) onglet.removeRow(r);
-        }
-    }
 
     <span class="c">// ------------------------------------------------------------------ styles (format français), un par style source</span>
 
@@ -398,10 +480,11 @@ ol,ul{padding-left:22px}li{margin:4px 0}
     }
 }</code></pre></div>
 <h2 id="s2">2. Tests</h2>
-<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ExportExcelDemandesTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\test\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandesTest.java</span></div><p class="note">Remplace le test V1 (même emplacement, module container). Builders Lombok des DTO ; si <code>CurrencyDTO</code> / <code>DenominationDTO</code> n'ont pas de builder, reprendre la forme de l'ancien test (Ctrl+F <code>isoCode</code>).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ExportExcelDemandesTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\test\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandesTest.java</span></div><p class="note">4 cas : feuille MAD, feuille Devise, feuille GAB Hors Sites (297), tri. <code>OperationGabDTO</code> n'a pas de builder (@Getter/@Setter) : construit par setters ; <code>TypeGab</code> = l'enum du domaine référencé par <code>OperationGabDTO.gabType</code> (Ctrl+F l'import dans ce DTO si le package diffère de <code>q360.domain.retail.enums</code>).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
 
 <span class="k">import</span> com.bmci.q360.domain.retail.enums.OperationType;
 <span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.TypeGab;
 <span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.*;
 <span class="k">import</span> org.apache.poi.ss.usermodel.Cell;
 <span class="k">import</span> org.apache.poi.ss.usermodel.CellType;
@@ -443,6 +526,26 @@ ol,ul{padding-left:22px}li{margin:4px 0}
     <span class="k">private</span> <span class="k">static</span> OperationDenominationDTO coupure(String code, int qte) {
         <span class="k">return</span> OperationDenominationDTO.builder().denomination(DenominationDTO.builder().denominationCode(code).build()).quantity(qte).build();
     }
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demandeGab(String ref, CashOperationDTO... ops) {
+        CashRequestDTO d = demande(ref, ops);
+        d.setCanalDemande(<span class="s">"MONETIQUE"</span>);
+        d.setBranchCode(<span class="s">"9000"</span>);
+        <span class="k">return</span> d;
+    }
+    <span class="k">private</span> <span class="k">static</span> CashOperationDTO operationGab(String gabId, String nom, TypeGab <span class="k">type</span>, OperationDenominationDTO... cassettes) {
+        OperationGabDTO gab = <span class="k">new</span> OperationGabDTO();
+        gab.setGabId(gabId); gab.setGabNom(nom); gab.setGabType(<span class="k">type</span>); gab.setVille(<span class="s">"CASABLANCA"</span>);
+        gab.setAgenceCode(<span class="s">"1120"</span>); gab.setAgenceLibelle(<span class="s">"CASA VAL D'ANFA"</span>); gab.setNumeroCompte(<span class="s">"0112081010030370"</span>);
+        gab.setTransporteur(<span class="s">"Brink's"</span>); gab.setTarifTransporteur(<span class="k">new</span> BigDecimal(<span class="s">"450"</span>));
+        CashOperationDTO op = operation(OperationType.ATM, RequestType.SUPPLY, detail(<span class="s">"MAD"</span>, <span class="s">"0"</span>, cassettes));
+        op.setGab(gab);
+        <span class="k">return</span> op;
+    }
+    <span class="k">private</span> <span class="k">static</span> OperationDenominationDTO cassette(int numero, String code, int qte) {
+        OperationDenominationDTO c = coupure(code, qte);
+        c.setCassetteNumber(numero);
+        <span class="k">return</span> c;
+    }
     <span class="k">private</span> <span class="k">static</span> Workbook lire(byte[] fichier) throws Exception { <span class="k">return</span> <span class="k">new</span> XSSFWorkbook(<span class="k">new</span> ByteArrayInputStream(fichier)); }
     <span class="k">private</span> <span class="k">static</span> double nombre(Row r, int col) { <span class="k">return</span> r.getCell(col).getNumericCellValue(); }
     <span class="k">private</span> <span class="k">static</span> String texte(Row r, int col) { Cell c = r.getCell(col); <span class="k">return</span> c == <span class="k">null</span> ? <span class="s">""</span> : c.getStringCellValue(); }
@@ -463,14 +566,16 @@ ol,ul{padding-left:22px}li{margin:4px 0}
         assertThat(texte(r, 7)).isEqualTo(<span class="s">"26/10/2026"</span>);
         assertThat(nombre(r, 6)).isEqualTo(350.50);
         assertThat(nombre(r, 9)).isEqualTo(10);                   <span class="c">// J = 200 caisse</span>
-        assertThat(nombre(r, 14)).isEqualTo(10);                  <span class="c">// O = 10 caisse</span>
+        assertThat(nombre(r, 13)).isEqualTo(10);                  <span class="c">// N = 10 caisse</span>
         assertThat(r.getCell(21).getCellType()).isEqualTo(CellType.FORMULA);   <span class="c">// V = Total Alim. Caisse</span>
         assertThat(r.getCell(21).getCellFormula()).contains(<span class="s">"J3"</span>);
         assertThat(nombre(r, 23)).isEqualTo(50);                  <span class="c">// X = 100 GAB</span>
         assertThat(r.getCell(24).getCellType()).isEqualTo(CellType.FORMULA);   <span class="c">// Y = Total Alim. GAB</span>
         assertThat(nombre(r, 25)).isEqualTo(12000.50);            <span class="c">// Z = ramassage MAD</span>
         assertThat(r.getCell(25).getCellStyle().getDataFormatString()).isEqualTo(ExportExcelDemandes.FORMAT_MONTANT);
-        assertThat(mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 1)).isNull();   <span class="c">// ligne d'exemple du template supprimée</span>
+        assertThat(mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 1).getCell(0)).satisfiesAnyOf(   <span class="c">// ligne 4 : vide (formules du PO seules)</span>
+                c -&gt; assertThat(c).isNull(), c -&gt; assertThat(c.getCellType()).isEqualTo(CellType.BLANK));
+        assertThat(r.getCell(19) == <span class="k">null</span> || r.getCell(19).getCellType() == CellType.BLANK).isTrue();   <span class="c">// le « 1 » d'exemple en T3 a été écrasé</span>
     }
 
     <span class="a">@Test</span>
@@ -488,7 +593,41 @@ ol,ul{padding-left:22px}li{margin:4px 0}
         assertThat(texte(eur, 9)).isEqualTo(<span class="s">"EUR"</span>);  assertThat(nombre(eur, 10)).isEqualTo(500);  assertThat(texte(eur, 11)).isEmpty();
         assertThat(texte(usd, 9)).isEqualTo(<span class="s">"USD"</span>);  assertThat(nombre(usd, 10)).isEqualTo(1000);
         assertThat(texte(usd, 11)).isEqualTo(<span class="s">"USD"</span>); assertThat(nombre(usd, 12)).isEqualTo(300);
-        assertThat(devise.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 2)).isNull();
+        Row suivante = devise.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 2);
+        assertThat(suivante == <span class="k">null</span> || suivante.getCell(0) == <span class="k">null</span> || suivante.getCell(0).getCellType() == CellType.BLANK).isTrue();
+    }
+
+    <span class="a">@Test</span>
+    <span class="a">@DisplayName</span>(<span class="s">"Feuille GAB Hors Sites : demandes MONETIQUE seulement, une ligne par GAB, cassettes M-P, formule Q, absentes des feuilles MAD / Devise"</span>)
+    <span class="k">void</span> feuilleGab() throws Exception {
+        CashRequestDTO gab = demandeGab(<span class="s">"20261028-9000-01"</span>,
+                operationGab(<span class="s">"130120017"</span>, <span class="s">"CASA VAL D'ANFA"</span>, TypeGab.HORS_SITE,
+                        cassette(1, <span class="s">"BILLET_100"</span>, 500), cassette(2, <span class="s">"BILLET_200"</span>, 300), cassette(4, <span class="s">"BILLET_100"</span>, 100)),
+                operationGab(<span class="s">"130092026"</span>, <span class="s">"CASA OASIS DRIVE"</span>, TypeGab.DRIVE, cassette(1, <span class="s">"BILLET_100"</span>, 50)));
+        CashRequestDTO agence = demande(<span class="s">"20261028-1001-01"</span>, operation(OperationType.CASH_DESK, RequestType.SUPPLY, detail(<span class="s">"MAD"</span>, <span class="s">"200"</span>, coupure(<span class="s">"BILLET_200"</span>, 1))));
+
+        Workbook classeur = lire(<span class="k">export</span>.generer(<span class="k">new</span> ExportDemandesDTO(List.of(gab, agence), FACE_VALUES)));
+
+        Sheet feuilleGab = classeur.getSheetAt(ExportExcelDemandes.ONGLET_GAB);
+        Row r1 = feuilleGab.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE), r2 = feuilleGab.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE + 1);
+        assertThat(texte(r1, 0)).isEqualTo(<span class="s">"20261028-9000-01"</span>);
+        assertThat(texte(r1, 7)).isEqualTo(<span class="s">"130092026"</span>);            <span class="c">// tri par ID GAB</span>
+        assertThat(texte(r1, 10)).isEqualTo(<span class="s">"Drive"</span>);
+        assertThat(nombre(r1, 12)).isEqualTo(50);                   <span class="c">// M = cassette 1</span>
+        assertThat(texte(r2, 7)).isEqualTo(<span class="s">"130120017"</span>);
+        assertThat(texte(r2, 10)).isEqualTo(<span class="s">"Hors site"</span>);
+        assertThat(nombre(r2, 6)).isEqualTo(450);                   <span class="c">// PU = tarif transporteur du GAB</span>
+        assertThat(nombre(r2, 12)).isEqualTo(500);
+        assertThat(nombre(r2, 13)).isEqualTo(300);
+        assertThat(r2.getCell(14) == <span class="k">null</span> || r2.getCell(14).getCellType() == CellType.BLANK).isTrue();   <span class="c">// cassette 3 absente</span>
+        assertThat(nombre(r2, 15)).isEqualTo(100);
+        assertThat(r2.getCell(16).getCellType()).isEqualTo(CellType.FORMULA);
+        assertThat(r2.getCell(16).getCellFormula()).contains(<span class="s">"M5"</span>).contains(<span class="s">"$M$3"</span>);
+
+        Sheet mad = classeur.getSheetAt(ExportExcelDemandes.ONGLET_MAD);
+        assertThat(texte(mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE), 0)).isEqualTo(<span class="s">"20261028-1001-01"</span>);
+        Row madSuivante = mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 1);
+        assertThat(madSuivante == <span class="k">null</span> || madSuivante.getCell(0) == <span class="k">null</span> || madSuivante.getCell(0).getCellType() == CellType.BLANK).isTrue();
     }
 
     <span class="a">@Test</span>
@@ -504,12 +643,17 @@ ol,ul{padding-left:22px}li{margin:4px 0}
     }
 }</code></pre></div>
 <h2 id="s3">3. Recette</h2>
-<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Déroulé</b><br><span class="path">Caisse Centrale (g10003) → Exporter (Excel)</span></div><pre><button class="copy">Copier</button><code>0. Template : copier « Template_QlickFlow_GesFond_extraction.xlsx » (pièce jointe Jira, tel quel, avec sa ligne 3 d'exemple et ses formules V/Y)
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>Déroulé</b><br><span class="path">Caisse Centrale (g10003) → Exporter (Excel)</span></div><pre><button class="copy">Copier</button><code>0. Template : copier « Template_QlickFlow_GesFond_extraction_with_GAB-Hors-Sites.xlsx » renommé en « Template_QlickFlow_GesFond_extraction.xlsx » (pièce jointe Jira, tel quel, avec sa ligne 3 d'exemple et ses formules V/Y)
    dans fund-management-application/src/main/resources/<span class="k">export</span>/ ; supprimer l'ancien GesFond-Reporting.xlsx.
 1. mvn clean install (ExportExcelDemandesTest vit dans le container : réacteur complet, sinon jar périmé).
 2. Caisse Centrale → listing avec un filtre (ex. Statut = En Attente, dates) → Exporter (Excel) :
    - le fichier a 2 feuilles ; seules les demandes du listing filtré y sont (hors brouillons / annulées : règle 279 inchangée) ;
    - feuille MAD : une ligne par demande, triée par référence ; quantités sous la bonne coupure ; V et Y calculés par Excel ; Z = montant ramassage ;
    - feuille Devise : une ligne par devise, EUR avant USD pour une même référence, MAD absent ;
-   - montants affichés « 12 000,50 », quantités « 1 250 » ; aucune ligne d'exemple du template ne subsiste.
-3. Export sans filtre → toutes les demandes (hors brouillons / annulées).</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
+   - montants affichés « 12 000,50 », quantités « 1 250 » ; le « 1 » d<span class="s">'exemple en T3 a disparu ; les lignes sous les demandes restent vides à l'</span>affichage (formules du PO, inchangées).
+3. Export sans filtre → toutes les demandes (hors brouillons / annulées).
+
+4. AER_LM-297 — feuille « GAB Hors Sites » : avec au moins une demande du Pôle monétique dans le périmètre des filtres,
+   une ligne par GAB de chaque demande (triées par référence puis ID GAB), colonnes A-L renseignées (Type GAB « Hors site » / « Drive »,
+   PU = tarif transporteur du GAB), quantités en M-P sous la bonne cassette, Q calculé par Excel ; ces demandes n'apparaissent
+   ni en feuille MAD ni en feuille Devise. Filtre Statut / dates : s'applique aux trois feuilles.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
