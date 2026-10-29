@@ -1,0 +1,1038 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-333 — Déclassement de l&#x27;urgence d&#x27;une demande par la Caisse Centrale</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-333 — Déclassement de l&#x27;urgence d&#x27;une demande par la Caisse Centrale</h1><p>fund-management (back) + fund-management-front · V18 · aucun changement BPMN · 29/10/2026</p></header><nav><a href="#s0">Analyse et décisions</a><a href="#s1">Back — fund-management</a><a href="#s2">Front — fund-management-front</a><a href="#s3">Recette</a></nav><main><h2 id="s0">0. Analyse et décisions</h2><div class="card"><p><b>Jira AER_LM-333</b> : la Caisse Centrale peut déclasser l'urgence d'une demande agence <b>En attente</b> (urgent → non urgent, jamais l'inverse), avec confirmation et motif ; la demande reste en attente, l'agence garde la main avant cut-off et voit le déclassement ; traçabilité conservée (soumise urgente, qui / quand / motif) ; email à l'agence.</p>
+<table>
+<tr><th>Sujet</th><th>Décision</th><th>Pourquoi</th></tr>
+<tr><td>Modèle</td><td>4 colonnes sur <code>retail.cash_request</code> (V18 : par / profil / at / motif) ; <code>urgent</code> passe à <b>false</b> sur la demande <b>et</b> ses opérations</td><td>Valeur effective sans régression (listing, KPI, export, variable BPMN) ; « soumise urgente puis déclassée » = <code>urgence_declassee_at IS NOT NULL</code>. <code>update()</code> re-dérive <code>urgent</code> depuis les opérations : sans les passer à false, une modification agence remettrait la demande urgente.</td></tr>
+<tr><td>API</td><td><code>PATCH /cash/{id}/declasser-urgence</code> <code>{ motif }</code>, droit <code>GDF_TRAITER_DEMANDE</code></td><td>Même patron que <code>complete-task</code> (gardes 403 / 422 / 409 / 404, photo de l'acteur). Aucun nouveau droit, aucun script côté utilisateurs-ci.</td></tr>
+<tr><td>BPMN</td><td><b>Aucun changement</b>, aucun appel Camunda</td><td>Le jeton est déjà sur <code>Task_TraitementCaisseCentrale</code> ; <code>urgent</code> n'est lu qu'en amont par <code>Gateway_Urgente</code>, dont les deux branches mènent à la même tâche en MVP. Seule ré-évaluation : une modification agence, où le back reposte <code>urgent</code> depuis la demande (désormais false).</td></tr>
+<tr><td>Email</td><td><code>EvenementDemande.DECLASSEMENT_URGENCE</code> → <b>tous les utilisateurs « gestion demandes » de l'agence</b> (permission <code>GDF_CREER_DEMANDE</code> : DA + Chef de caisse), un email par destinataire ; repli sur le DA si la liste est vide</td><td>C'est la cible de la Jira (≠ 277 qui ne vise que le DA). Canal 277 réutilisé (port email, gabarit, mode mock / SMTP) ; destinataires résolus par deux endpoints internes existants de utilisateurs-ci : <code>/internal/users/{uid}</code> (créateur → id de l'agence) puis <code>/internal/users/by-orga-unit?orgaUnitId=</code>. Zéro changement côté utilisateurs-ci.</td></tr>
+<tr><td>Agence après déclassement</td><td>La case « Demande Urgente » est verrouillée (front) et le PUT refuse une opération urgente (422)</td><td>Sinon le déclassement est vide de sens.</td></tr>
+<tr><td>Export (collègue)</td><td><code>CashRequestDTO</code> expose <code>urgenceDeclassee</code> + par / profil / at / motif</td><td>C'est tout ce dont la 3ᵉ Jira a besoin ; <code>urgent</code> reste la valeur effective.</td></tr>
+</table>
+<div class="warn"><b>À remonter au PO</b> : (1) « rôle gestion demandes » est lu comme la permission <code>GDF_CREER_DEMANDE</code> (rôle GDF Agence : DA et Chef de caisse) ; (2) la popup est dérivée de la modale Traiter / Annuler existante (maquette « Popup en pj » non fournie) ; (3) au listing, une demande déclassée apparaît comme non urgente (pas de marque dédiée).</div>
+<p><b>Ordre</b> : §1 back (V18 → tests verts) → §2 front → §3 recette. Branche <code>feature/AER_LM-333</code> back et front.</p></div><h2 id="s1">1. Back — fund-management</h2><h3>1.1 Schéma, domaine, persistance</h3><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V18__declassement_urgence.sql</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\db\migration\V18__declassement_urgence.sql</span></div><p class="note">V17 (<code>demande_monetique_retail</code>) est le dernier script. Même convention que V10 : un ALTER par colonne, pas de valeur par défaut.</p><pre><button class="copy">Copier</button><code><span class="c">-- AER_LM-333 : déclassement de l&#x27;urgence d&#x27;une demande agence par la Caisse Centrale.</span>
+<span class="c">-- Traçabilité (qui / quand / motif) figée par declasserUrgence, jamais réécrite par le PUT.</span>
+<span class="c">-- « Soumise urgente puis déclassée » = urgence_declassee_at IS NOT NULL ; la valeur effective reste la colonne urgent (passée à false).</span>
+<span class="k">ALTER</span> <span class="k">TABLE</span> retail.cash_request <span class="k">ADD</span> <span class="k">COLUMN</span> urgence_declassee_par    <span class="k">VARCHAR</span>(150);
+<span class="k">ALTER</span> <span class="k">TABLE</span> retail.cash_request <span class="k">ADD</span> <span class="k">COLUMN</span> urgence_declassee_profil <span class="k">VARCHAR</span>(100);
+<span class="k">ALTER</span> <span class="k">TABLE</span> retail.cash_request <span class="k">ADD</span> <span class="k">COLUMN</span> urgence_declassee_at     <span class="k">TIMESTAMP</span>;
+<span class="k">ALTER</span> <span class="k">TABLE</span> retail.cash_request <span class="k">ADD</span> <span class="k">COLUMN</span> urgence_declassee_motif  <span class="k">VARCHAR</span>(500);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequest.java (domaine)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\entity\CashRequest.java  (après decisionAt)</span></div><p class="note">Lombok génère les accesseurs. Si le champ existant est <code>Boolean urgent</code> (objet) et non <code>boolean</code>, la garde 3 du use case s'écrit <code>!Boolean.TRUE.equals(demande.getUrgent())</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-333 — déclassement d&#x27;urgence par la Caisse Centrale (figé par declasserUrgence, jamais touché par le PUT) =====</span>
+    <span class="k">private</span> <span class="k">String</span> urgenceDeclasseePar;       <span class="c">// « Karim EL IDRISSI »</span>
+    <span class="k">private</span> <span class="k">String</span> urgenceDeclasseeProfil;    <span class="c">// « Caisse Centrale Siège »</span>
+    <span class="k">private</span> LocalDateTime urgenceDeclasseeAt;
+    <span class="k">private</span> <span class="k">String</span> urgenceDeclasseeMotif;
+
+    <span class="c">/** La demande a été soumise urgente puis déclassée par la Caisse Centrale (urgent vaut alors false). */</span>
+    <span class="k">public</span> <span class="k">boolean</span> estUrgenceDeclassee() {
+        <span class="k">return</span> urgenceDeclasseeAt != <span class="k">null</span>;
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestEntity.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\entity\CashRequestEntity.java  (après decisionAt)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-333 — déclassement d&#x27;urgence (figé par declasserUrgence, jamais touché par le PUT) =====</span>
+    @Column(name = <span class="s">&quot;urgence_declassee_par&quot;</span>, length = 150)
+    <span class="k">private</span> <span class="k">String</span> urgenceDeclasseePar;
+
+    @Column(name = <span class="s">&quot;urgence_declassee_profil&quot;</span>, length = 100)
+    <span class="k">private</span> <span class="k">String</span> urgenceDeclasseeProfil;
+
+    @Column(name = <span class="s">&quot;urgence_declassee_at&quot;</span>)
+    <span class="k">private</span> LocalDateTime urgenceDeclasseeAt;
+
+    @Column(name = <span class="s">&quot;urgence_declassee_motif&quot;</span>, length = 500)
+    <span class="k">private</span> <span class="k">String</span> urgenceDeclasseeMotif;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestPersistenceMapper.java — updateHeader</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\mapper\CashRequestPersistenceMapper.java  (Ctrl+F : @Mapping(target = &quot;decisionAt&quot;, ignore = true)  — juste après)</span></div><p class="note">Le PUT ne touche jamais ces colonnes. <code>toDomain</code> / <code>toPersistence</code> mappent par nom : rien d'autre.</p><pre><button class="copy">Copier</button><code>    @Mapping(target = <span class="s">&quot;urgenceDeclasseePar&quot;</span>, ignore = <span class="k">true</span>)
+    @Mapping(target = <span class="s">&quot;urgenceDeclasseeProfil&quot;</span>, ignore = <span class="k">true</span>)
+    @Mapping(target = <span class="s">&quot;urgenceDeclasseeAt&quot;</span>, ignore = <span class="k">true</span>)
+    @Mapping(target = <span class="s">&quot;urgenceDeclasseeMotif&quot;</span>, ignore = <span class="k">true</span>)</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepository.java (port)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\repository\CashDemandRepository.java  (après figerDecision)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">/**
+     * AER_LM-333 : déclasse l&#x27;urgence (Caisse Centrale) — fige qui / quand / motif, passe urgent à false
+     * sur la demande ET sur chaque opération (update() re-dérive urgent depuis les opérations).
+     */</span>
+    CashRequest declasserUrgence(UUID id, <span class="k">String</span> par, <span class="k">String</span> profil, LocalDateTime at, <span class="k">String</span> motif);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepositoryImpl.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java  (après figerDecision)</span></div><p class="note"><code>findByIdWithTree</code> charge les opérations (même chargement que <code>figerDecision</code>). Si l'accesseur de l'entité opération est <code>setUrgent</code> plutôt que <code>setIsUrgent</code>, adapte la lambda.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-333 — déclassement d&#x27;urgence (même schéma que figerDecision : une méthode qui écrit exactement ses colonnes) =====</span>
+    @Override
+    @Transactional
+    <span class="k">public</span> CashRequest declasserUrgence(UUID id, <span class="k">String</span> par, <span class="k">String</span> profil, LocalDateTime at, <span class="k">String</span> motif) {
+        CashRequestEntity entity = cashDemandJpaRepository.findByIdWithTree(id)
+                .orElseThrow(() -&gt; <span class="k">new</span> RetailNotFoundException(<span class="s">&quot;La demande &quot;</span> + id + <span class="s">&quot; est introuvable&quot;</span>));
+        entity.setUrgenceDeclasseePar(par);
+        entity.setUrgenceDeclasseeProfil(profil);
+        entity.setUrgenceDeclasseeAt(at);
+        entity.setUrgenceDeclasseeMotif(motif);
+        <span class="c">// Valeur effective : plus urgente, ni la demande ni ses opérations</span>
+        <span class="c">// (update() recalcule urgent = anyMatch(op.isUrgent) : sans cette boucle, une modification agence la remettrait urgente).</span>
+        entity.setUrgent(<span class="k">false</span>);
+        <span class="k">if</span> (entity.getOperations() != <span class="k">null</span>) {
+            entity.getOperations().forEach(op -&gt; op.setIsUrgent(Boolean.FALSE));
+        }
+        <span class="k">return</span> mapper.toDomain(cashDemandJpaRepository.save(entity));
+    }</code></pre></div><h3>1.2 Use case et contrôleur</h3><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>DeclassementUrgenceDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\dto\DeclassementUrgenceDTO.java</span></div><p class="note">Retail uniquement (une demande GAB hors site n'a pas d'urgence) → package <code>retail.dto</code>, pas <code>common</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.dto;
+
+<span class="c">/** AER_LM-333 — corps de PATCH /cash/{id}/declasser-urgence : motif obligatoire (≥ 10 caractères, même règle que l&#x27;annulation). */</span>
+<span class="k">public</span> <span class="k">record</span> DeclassementUrgenceDTO(<span class="k">String</span> motif) {
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashRequestDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\dto\CashRequestDTO.java  (après decisionAt)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-333 — lecture seule : déclassement d&#x27;urgence par la Caisse Centrale =====</span>
+    <span class="k">private</span> <span class="k">String</span> urgenceDeclasseePar;
+    <span class="k">private</span> <span class="k">String</span> urgenceDeclasseeProfil;
+    <span class="k">private</span> LocalDateTime urgenceDeclasseeAt;
+    <span class="k">private</span> <span class="k">String</span> urgenceDeclasseeMotif;
+
+    <span class="c">/** Exposé en JSON sous « urgenceDeclassee » (pas de champ : MapStruct l&#x27;ignore, Jackson le sérialise). Consommé par le front et l&#x27;export. */</span>
+    <span class="k">public</span> <span class="k">boolean</span> isUrgenceDeclassee() {
+        <span class="k">return</span> urgenceDeclasseeAt != <span class="k">null</span>;
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCase.java (port d&#x27;entrée)</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\inputs\service\CashDemandUseCase.java  (après completerTacheCaisseCentrale)</span></div><pre><button class="copy">Copier</button><code>    <span class="c">/**
+     * AER_LM-333 — déclassement de l&#x27;urgence par la Caisse Centrale : demande agence SUBMITTED et urgente,
+     * motif obligatoire ; trace (qui / quand / motif), urgent → false, email à l&#x27;agence. Jamais l&#x27;inverse.
+     */</span>
+    CashRequestDTO declasserUrgence(UUID id, DeclassementUrgenceDTO declassement, ContexteAppelant contexte);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImpl.java — declasserUrgence + garde du PUT</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (après completerTacheCaisseCentrale)</span></div><p class="note">Imports : <code>DeclassementUrgenceDTO</code>, <code>EvenementDemande</code> (déjà importé pour 277), <code>LocalDateTime</code>. <code>enrichir(declassee)</code> prend le domaine, comme <code>return enrichir(decidee)</code> dans <code>completerTacheCaisseCentrale</code>. </p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-333 — déclassement d&#x27;urgence par la Caisse Centrale =====</span>
+    @Override
+    <span class="k">public</span> CashRequestDTO declasserUrgence(UUID id, DeclassementUrgenceDTO declassement, ContexteAppelant contexte) {
+        <span class="c">// Garde 0 (B2) — même périmètre que la décision : un agent d&#x27;agence identifié n&#x27;est pas Caisse Centrale</span>
+        <span class="k">if</span> (contexte.estIdentifie() &amp;&amp; !contexte.toutesAgences()) {
+            <span class="k">throw</span> <span class="k">new</span> RetailForbiddenException(<span class="s">&quot;Le déclassement d&#x27;une urgence est réservé à la Caisse Centrale&quot;</span>);
+        }
+        <span class="c">// Garde 1 — motif obligatoire (même règle que le motif d&#x27;annulation)</span>
+        <span class="k">String</span> motif = declassement == <span class="k">null</span> || declassement.motif() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : declassement.motif().trim();
+        <span class="k">if</span> (motif.length() &lt; 10) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;Le motif du déclassement est obligatoire (10 caractères minimum)&quot;</span>);
+        }
+        CashRequest demande = cashDemandRepository.getCashRequestById(id);   <span class="c">// 404 géré par le repository</span>
+        <span class="c">// Garde 2 — demande agence en attente (la Caisse Centrale a la main)</span>
+        <span class="k">if</span> (demande.estMonetique()) {
+            <span class="k">throw</span> <span class="k">new</span> RetailConflictException(<span class="s">&quot;Une demande GAB hors site ne porte pas d&#x27;urgence&quot;</span>);
+        }
+        <span class="k">if</span> (demande.getRequestStatus() != RequestStatus.SUBMITTED) {
+            <span class="k">throw</span> <span class="k">new</span> RetailConflictException(<span class="s">&quot;Seule une demande en attente peut voir son urgence déclassée&quot;</span>);
+        }
+        <span class="c">// Garde 3 — urgente et jamais déclassée (le sens inverse, non urgent → urgent, n&#x27;existe pas)</span>
+        <span class="k">if</span> (!demande.isUrgent()) {
+            <span class="k">throw</span> <span class="k">new</span> RetailConflictException(demande.estUrgenceDeclassee()
+                    ? <span class="s">&quot;L&#x27;urgence de cette demande a déjà été déclassée&quot;</span>
+                    : <span class="s">&quot;Cette demande n&#x27;est pas urgente&quot;</span>);
+        }
+
+        <span class="c">// Aucun appel Camunda : le jeton est déjà sur Task_TraitementCaisseCentrale, « urgent » n&#x27;est relu</span>
+        <span class="c">// qu&#x27;à une ré-entrée du sous-processus (modification agence), où le back le reposte depuis la demande.</span>
+        CashRequest declassee = cashDemandRepository.declasserUrgence(id,
+                contexte.nomComplet() != <span class="k">null</span> ? contexte.nomComplet() : contexte.uidOu(<span class="k">null</span>),
+                contexte.profilLibelle(),
+                LocalDateTime.now(),
+                motif);
+
+        CashRequestDTO resultat = enrichir(declassee);   <span class="c">// enrichir() prend le domaine, comme completerTacheCaisseCentrale</span>
+        notificationDemandeService.notifier(resultat, EvenementDemande.DECLASSEMENT_URGENCE);
+        <span class="k">return</span> resultat;
+    }
+
+    <span class="c">/** AER_LM-333 : après un déclassement par la Caisse Centrale, l&#x27;agence ne peut plus remettre la demande en urgente. */</span>
+    <span class="k">private</span> <span class="k">void</span> verifierUrgenceNonRetablie(CashRequest existante, CashRequest contenu) {
+        <span class="k">if</span> (!existante.estUrgenceDeclassee()) { <span class="k">return</span>; }
+        <span class="k">if</span> (estUrgente(contenu)) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(
+                    <span class="s">&quot;L&#x27;urgence de cette demande a été déclassée par la Caisse Centrale : elle ne peut plus être remise en urgente&quot;</span>);
+        }
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>CashDemandUseCaseImpl.java — update()</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java  (méthode update, lignes 141-160)</span></div><p class="note">Une seule ligne ajoutée : <code>verifierUrgenceNonRetablie(existante, contenu)</code>, après le recopiage agence / demandeur et avant <code>validateAndCompute</code>. <code>urgent</code> est dérivé des opérations (<code>webMapper.toDomain</code> ignore le champ de tête), d'où le test par <code>estUrgente(contenu)</code> existant.</p><pre><button class="copy">Copier</button><code>    @Override
+    <span class="k">public</span> CashRequestDTO update(UUID id, CashRequestDTO cashRequestDTO, ContexteAppelant contexte) {
+        CashRequest existante = cashDemandRepository.getCashRequestById(id);
+        verifierMemeAgence(existante, contexte);
+        <span class="k">switch</span> (existante.getRequestStatus()) {
+            <span class="k">case</span> INITIATED -&gt; { <span class="c">/* brouillon : libre */</span> }
+            <span class="k">case</span> IN_MODIFICATION -&gt; {
+                verifierDetenteurVerrou(existante, contexte);
+                verifierJourneeOuverte(existante);
+            }
+            <span class="k">default</span> -&gt; <span class="k">throw</span> <span class="k">new</span> RetailConflictException(<span class="s">&quot;Une demande &quot;</span> + existante.getRequestStatus()
+                    + <span class="s">&quot; ne peut pas être modifiée&quot;</span>);
+        }
+        CashRequest contenu = webMapper.toDomain(cashRequestDTO);
+        contenu.setBranchCode(existante.getBranchCode());        <span class="c">// l&#x27;agence et le demandeur ne changent jamais</span>
+        contenu.setUidUser(existante.getUidUser());
+        contenu.setEstablishment(existante.getEstablishment());
+        verifierUrgenceNonRetablie(existante, contenu);           <span class="c">// AER_LM-333</span>
+        contenu.validateAndCompute(faceValuesByCode());
+        <span class="k">return</span> enrichir(cashDemandRepository.update(id, contenu));
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>RetailDemandController.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\RetailDemandController.java  (après complete-task)</span></div><p class="note">Mêmes imports et mêmes champs (<code>cashDemandUseCase</code>, <code>contexteCourant</code>) que <code>complete-task</code>. PATCH est déjà autorisé par le CORS.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-333 — déclassement de l&#x27;urgence par la Caisse Centrale (même droit que la décision). */</span>
+    @PatchMapping(<span class="s">&quot;/{id}/declasser-urgence&quot;</span>)
+    @PreAuthorize(<span class="s">&quot;hasAuthority(&#x27;GDF_TRAITER_DEMANDE&#x27;)&quot;</span>)
+    <span class="k">public</span> ResponseEntity&lt;ApiResponse&lt;CashRequestDTO&gt;&gt; declasserUrgence(@PathVariable UUID id,
+                                                                        @RequestBody DeclassementUrgenceDTO declassement) {
+        <span class="k">return</span> ResponseEntity.ok(ApiResponse.success(
+                cashDemandUseCase.declasserUrgence(id, declassement, contexteCourant.courant())));
+    }</code></pre></div><h3>1.3 Email — destinataires « gestion demandes » de l&#x27;agence (canal 277 réutilisé)</h3><div class="card"><p>Résolution des destinataires pour <code>DECLASSEMENT_URGENCE</code> : (1) <code>GET /internal/users/{créateur}</code> → <code>orgaUnit.id</code> (contrôlé : type AGENCE, code = <code>branchCode</code>) ; (2) <code>GET /internal/users/by-orga-unit?orgaUnitId=</code> → utilisateurs actifs de l'agence ; (3) filtre email renseigné + permission <code>GDF_CREER_DEMANDE</code> dans les rôles du profil. Un email par destinataire, « Bonjour &lt;prénom nom&gt; » personnalisé. Les trois événements 277 gardent le DA.</p></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>UtilisateurAgence.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\valueobjects\referentiel\UtilisateurAgence.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.q360.domain.retail.valueobjects.referentiel;
+
+<span class="c">/** Utilisateur d&#x27;une agence destinataire d&#x27;une notification (AER_LM-333) : identifiant, email, nom complet. */</span>
+<span class="k">public</span> <span class="k">record</span> UtilisateurAgence(<span class="k">String</span> uid, <span class="k">String</span> email, <span class="k">String</span> nomComplet) {
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>UtilisateursGestionDemandesPort.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\ports\output\referentiel\UtilisateursGestionDemandesPort.java</span></div><p class="note">À côté de <code>DirecteurAgencePort</code> (277).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.UtilisateurAgence;
+
+<span class="k">import</span> java.util.List;
+
+<span class="c">/**
+ * AER_LM-333 — port de sortie : les utilisateurs actifs de l&#x27;agence d&#x27;une demande qui gèrent les demandes
+ * (rôle GDF Agence, c&#x27;est-à-dire la permission GDF_CREER_DEMANDE : Directeur d&#x27;agence et Chef de caisse).
+ * uidReference = un utilisateur connu de cette agence (le créateur de la demande) : il sert à retrouver l&#x27;unité d&#x27;organisation.
+ * Tolérant : toute erreur ou incohérence → liste vide.
+ */</span>
+<span class="k">public</span> <span class="k">interface</span> UtilisateursGestionDemandesPort {
+    List&lt;UtilisateurAgence&gt; utilisateursGestionDemandes(<span class="k">String</span> uidReference, <span class="k">String</span> branchCode);
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>OrgaUnitInterneDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\OrgaUnitInterneDTO.java</span></div><p class="note">+ <code>id</code> (clé de by-orga-unit). <code>UtilisateursDirecteurAdapter</code> (277) continue de compiler : il ne lit que code / type.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users.dto;
+
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+<span class="c">/** Unité d&#x27;organisation de l&#x27;utilisateur ; code = code agence quand type = AGENCE. id : clé de GET /internal/users/by-orga-unit. */</span>
+@JsonIgnoreProperties(ignoreUnknown = <span class="k">true</span>)
+<span class="k">public</span> <span class="k">record</span> OrgaUnitInterneDTO(Long id, <span class="k">String</span> code, <span class="k">String</span> <span class="k">type</span>) {
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ProfilInterneDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\ProfilInterneDTO.java</span></div><p class="note">+ <code>roles</code> : <code>InternalUserDTO.profile</code> est le <code>ProfileDTO</code> complet (roles → permissions), on ne lit que les codes.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users.dto;
+
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+<span class="k">import</span> java.util.List;
+
+<span class="c">/** Profil de l&#x27;utilisateur ; code = DA pour un Directeur d&#x27;agence ; roles → permissions (codes GDF_*). */</span>
+@JsonIgnoreProperties(ignoreUnknown = <span class="k">true</span>)
+<span class="k">public</span> <span class="k">record</span> ProfilInterneDTO(<span class="k">String</span> code, List&lt;RoleInterneDTO&gt; roles) {
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>RoleInterneDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\RoleInterneDTO.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users.dto;
+
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+<span class="k">import</span> java.util.List;
+
+<span class="c">/** Rôle d&#x27;un profil (RoleDTO d&#x27;utilisateurs-ci), réduit à ses permissions. */</span>
+@JsonIgnoreProperties(ignoreUnknown = <span class="k">true</span>)
+<span class="k">public</span> <span class="k">record</span> RoleInterneDTO(List&lt;PermissionInterneDTO&gt; permissions) {
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>PermissionInterneDTO.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\PermissionInterneDTO.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users.dto;
+
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+<span class="c">/** Permission d&#x27;un rôle (PermissionDTO d&#x27;utilisateurs-ci) : code = nom de l&#x27;enum Permission (ex. GDF_CREER_DEMANDE). */</span>
+@JsonIgnoreProperties(ignoreUnknown = <span class="k">true</span>)
+<span class="k">public</span> <span class="k">record</span> PermissionInterneDTO(<span class="k">String</span> code) {
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>UtilisateursGestionDemandesAdapter.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\UtilisateursGestionDemandesAdapter.java</span></div><p class="note">Même propriété <code>qf.users.internal-base-url</code> que 277. Tolérant : utilisateurs-ci injoignable ou créateur hors agence → liste vide → repli DA dans le service.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.UtilisateurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.PermissionInterneDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.RoleInterneDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.UtilisateurInterneDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.UtilisateursGestionDemandesPort;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="k">import</span> org.springframework.core.ParameterizedTypeReference;
+<span class="k">import</span> org.springframework.stereotype.Component;
+<span class="k">import</span> org.springframework.web.client.RestClient;
+<span class="k">import</span> org.springframework.web.client.RestClientException;
+
+<span class="k">import</span> java.util.List;
+
+<span class="c">/**
+ * AER_LM-333 — utilisateurs « gestion demandes » d&#x27;une agence, lus chez utilisateurs-ci avec deux endpoints internes existants :
+ *   1. GET /api/v1/internal/users/{uid}            → l&#x27;unité d&#x27;organisation (id) du créateur de la demande, contrôlée = AGENCE de code branchCode
+ *   2. GET /api/v1/internal/users/by-orga-unit?orgaUnitId=  → les utilisateurs actifs de cette agence
+ * puis filtre : enabled, email renseigné, une permission GDF_CREER_DEMANDE dans les rôles du profil (DA, Chef de caisse).
+ * Même style qu&#x27;UtilisateursDirecteurAdapter : RestClient.create (pas un bean), tolérant — toute erreur → liste vide.
+ */</span>
+@Component
+@Slf4j
+<span class="k">public</span> <span class="k">class</span> UtilisateursGestionDemandesAdapter <span class="k">implements</span> UtilisateursGestionDemandesPort {
+
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> PERMISSION_GESTION_DEMANDES = <span class="s">&quot;GDF_CREER_DEMANDE&quot;</span>;
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> TYPE_AGENCE = <span class="s">&quot;AGENCE&quot;</span>;
+
+    <span class="k">private</span> <span class="k">final</span> RestClient client;
+
+    <span class="k">public</span> UtilisateursGestionDemandesAdapter(@Value(<span class="s">&quot;${qf.users.internal-base-url}&quot;</span>) <span class="k">String</span> baseUrl) {
+        <span class="k">this</span>.client = RestClient.create(baseUrl);
+    }
+
+    @Override
+    <span class="k">public</span> List&lt;UtilisateurAgence&gt; utilisateursGestionDemandes(<span class="k">String</span> uidReference, <span class="k">String</span> branchCode) {
+        <span class="k">if</span> (uidReference == <span class="k">null</span> || uidReference.isBlank() || branchCode == <span class="k">null</span> || branchCode.isBlank()) { <span class="k">return</span> List.of(); }
+        <span class="k">try</span> {
+            UtilisateurInterneDTO reference = client.<span class="k">get</span>()
+                    .uri(<span class="s">&quot;/api/v1/internal/users/{uid}&quot;</span>, uidReference)
+                    .retrieve()
+                    .body(UtilisateurInterneDTO.<span class="k">class</span>);
+            <span class="k">if</span> (reference == <span class="k">null</span> || reference.orgaUnit() == <span class="k">null</span> || reference.orgaUnit().id() == <span class="k">null</span>
+                    || !TYPE_AGENCE.equals(reference.orgaUnit().<span class="k">type</span>()) || !branchCode.equals(reference.orgaUnit().code())) {
+                log.warn(<span class="s">&quot;[notification] {} n&#x27;est pas rattaché à l&#x27;agence {} : destinataires non résolus&quot;</span>, uidReference, branchCode);
+                <span class="k">return</span> List.of();
+            }
+            Long orgaUnitId = reference.orgaUnit().id();
+            List&lt;UtilisateurInterneDTO&gt; utilisateurs = client.<span class="k">get</span>()
+                    .uri(b -&gt; b.path(<span class="s">&quot;/api/v1/internal/users/by-orga-unit&quot;</span>).queryParam(<span class="s">&quot;orgaUnitId&quot;</span>, orgaUnitId).build())
+                    .retrieve()
+                    .body(<span class="k">new</span> ParameterizedTypeReference&lt;List&lt;UtilisateurInterneDTO&gt;&gt;() { });
+            <span class="k">if</span> (utilisateurs == <span class="k">null</span>) { <span class="k">return</span> List.of(); }
+            <span class="k">return</span> utilisateurs.stream()
+                    .filter(u -&gt; Boolean.TRUE.equals(u.enabled()))
+                    .filter(u -&gt; u.email() != <span class="k">null</span> &amp;&amp; !u.email().isBlank())
+                    .filter(UtilisateursGestionDemandesAdapter::gereLesDemandes)
+                    .map(u -&gt; <span class="k">new</span> UtilisateurAgence(u.uid(), u.email(), nomComplet(u)))
+                    .toList();
+        } <span class="k">catch</span> (RestClientException e) {
+            log.warn(<span class="s">&quot;[notification] utilisateurs-ci injoignable pour l&#x27;agence {} : {}&quot;</span>, branchCode, e.getMessage());
+            <span class="k">return</span> List.of();
+        }
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">boolean</span> gereLesDemandes(UtilisateurInterneDTO u) {
+        <span class="k">if</span> (u.profile() == <span class="k">null</span> || u.profile().roles() == <span class="k">null</span>) { <span class="k">return</span> <span class="k">false</span>; }
+        <span class="k">return</span> u.profile().roles().stream()
+                .filter(r -&gt; r != <span class="k">null</span> &amp;&amp; r.permissions() != <span class="k">null</span>)
+                .flatMap(r -&gt; r.permissions().stream())
+                .map(PermissionInterneDTO::code)
+                .anyMatch(PERMISSION_GESTION_DEMANDES::equals);
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> nomComplet(UtilisateurInterneDTO u) {
+        <span class="k">String</span> nom = ((u.firstName() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : u.firstName()) + <span class="s">&quot; &quot;</span> + (u.lastName() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : u.lastName())).trim();
+        <span class="k">return</span> nom.isEmpty() ? u.uid() : nom;
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>NotificationDemandeService.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeService.java</span></div><p class="note">Nouveau port injecté (constructeur Lombok) ; comportement 277 inchangé pour SOUMISSION / MISE_A_JOUR / ANNULATION. <code>demande.getUser()</code> = uid du créateur (champ <code>user</code> du DTO).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.UtilisateurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.DirecteurAgencePort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.UtilisateursGestionDemandesPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.repository.UserProfileRepository;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.stereotype.Service;
+
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/**
+ * Notification email d&#x27;une demande agence.
+ * AER_LM-277 — soumission, mise à jour, annulation par l&#x27;agence : le Directeur d&#x27;agence (déduit : uid de profil DA rattaché à l&#x27;agence).
+ * AER_LM-333 — déclassement d&#x27;urgence par la Caisse Centrale : tous les utilisateurs « gestion demandes » de l&#x27;agence
+ *              (rôle GDF Agence : DA et Chef de caisse), un email par destinataire ; repli sur le DA si la liste est vide.
+ * Best effort : aucune exception ne remonte au use case appelant — la demande est déjà enregistrée, l&#x27;email ne doit jamais la faire échouer.
+ */</span>
+@Service
+@RequiredArgsConstructor
+@Slf4j
+<span class="k">public</span> <span class="k">class</span> NotificationDemandeService {
+
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> PROFIL_DA = <span class="s">&quot;DA&quot;</span>;
+
+    <span class="k">private</span> <span class="k">final</span> UserProfileRepository userProfileRepository;
+    <span class="k">private</span> <span class="k">final</span> DirecteurAgencePort directeurAgencePort;
+    <span class="k">private</span> <span class="k">final</span> UtilisateursGestionDemandesPort utilisateursGestionDemandesPort;
+    <span class="k">private</span> <span class="k">final</span> NotificationPort notificationPort;
+    <span class="k">private</span> <span class="k">final</span> GabaritEmailDemande gabarit;
+
+    <span class="k">public</span> <span class="k">void</span> notifier(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">if</span> (demande == <span class="k">null</span>) { <span class="k">return</span>; }
+        <span class="k">try</span> {
+            List&lt;UtilisateurAgence&gt; destinataires = destinatairesDe(demande, evenement);
+            <span class="k">if</span> (destinataires.isEmpty()) {
+                log.warn(<span class="s">&quot;[notification] {} {} : aucun destinataire avec email pour l&#x27;agence {} — email non envoyé&quot;</span>,
+                        evenement, demande.getUniqueRequestRef(), demande.getBranchCode());
+                <span class="k">return</span>;
+            }
+            <span class="k">String</span> sujet = <span class="s">&quot;[QlickFlow] &quot;</span> + evenement.getLibelle() + <span class="s">&quot; &quot;</span> + demande.getUniqueRequestRef()
+                    + <span class="s">&quot; — Agence &quot;</span> + demande.getBranchCode();
+            <span class="k">for</span> (UtilisateurAgence destinataire : destinataires) {
+                <span class="k">String</span> corps = gabarit.construire(demande, evenement, destinataire.nomComplet());
+                notificationPort.envoyer(<span class="k">new</span> EmailNotification(destinataire.email(), sujet, corps));
+                log.info(<span class="s">&quot;[notification] {} {} → {}&quot;</span>, evenement, demande.getUniqueRequestRef(), destinataire.email());
+            }
+        } <span class="k">catch</span> (RuntimeException e) {
+            log.error(<span class="s">&quot;[notification] {} {} : échec de l&#x27;envoi, demande non impactée — {}&quot;</span>,
+                    evenement, demande.getUniqueRequestRef(), e.getMessage());
+        }
+    }
+
+    <span class="c">/** Déclassement : les utilisateurs gestion demandes de l&#x27;agence (repli DA) ; autres événements : le DA. */</span>
+    <span class="k">private</span> List&lt;UtilisateurAgence&gt; destinatairesDe(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">if</span> (evenement == EvenementDemande.DECLASSEMENT_URGENCE) {
+            List&lt;UtilisateurAgence&gt; gestionnaires =
+                    utilisateursGestionDemandesPort.utilisateursGestionDemandes(demande.getUser(), demande.getBranchCode());
+            <span class="k">if</span> (!gestionnaires.isEmpty()) { <span class="k">return</span> gestionnaires; }
+            log.warn(<span class="s">&quot;[notification] {} {} : aucun utilisateur gestion demandes trouvé pour l&#x27;agence {}, repli sur le Directeur d&#x27;agence&quot;</span>,
+                    evenement, demande.getUniqueRequestRef(), demande.getBranchCode());
+        }
+        <span class="k">return</span> directeurDe(demande.getBranchCode())
+                .filter(da -&gt; da.email() != <span class="k">null</span> &amp;&amp; !da.email().isBlank())
+                .map(da -&gt; List.of(<span class="k">new</span> UtilisateurAgence(da.uid(), da.email(), da.nomComplet())))
+                .orElse(List.of());
+    }
+
+    <span class="k">private</span> Optional&lt;DirecteurAgence&gt; directeurDe(<span class="k">String</span> branchCode) {
+        <span class="k">if</span> (branchCode == <span class="k">null</span> || branchCode.isBlank()) { <span class="k">return</span> Optional.empty(); }
+        <span class="k">return</span> userProfileRepository.uidsParProfil(PROFIL_DA).stream()
+                .map(uid -&gt; directeurAgencePort.siDirecteurDe(uid, branchCode))
+                .flatMap(Optional::stream)
+                .findFirst();
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>EvenementDemande.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\enums\EvenementDemande.java</span></div><p class="note">Le « par l'agence » passe dans le verbe des trois événements existants, pour que la phrase du gabarit reste juste avec le quatrième.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.q360.domain.retail.enums;
+
+<span class="c">/**
+ * AER_LM-277 — évènements qui déclenchent une notification email au Directeur d&#x27;agence.
+ * AER_LM-333 — ajout du déclassement d&#x27;urgence (action Caisse Centrale, l&#x27;agence est informée).
+ * Le verbe forme la phrase « La demande REF {verbe}. » du gabarit.
+ */</span>
+<span class="k">public</span> <span class="k">enum</span> EvenementDemande {
+    SOUMISSION(<span class="s">&quot;Création de demande&quot;</span>, <span class="s">&quot;a été soumise par l&#x27;agence&quot;</span>),
+    MISE_A_JOUR(<span class="s">&quot;Mise à jour de demande&quot;</span>, <span class="s">&quot;a été mise à jour par l&#x27;agence&quot;</span>),
+    ANNULATION(<span class="s">&quot;Annulation de demande&quot;</span>, <span class="s">&quot;a été annulée par l&#x27;agence&quot;</span>),
+    DECLASSEMENT_URGENCE(<span class="s">&quot;Déclassement d&#x27;urgence&quot;</span>, <span class="s">&quot;a vu son urgence déclassée par la Caisse Centrale : elle sera traitée comme une demande non urgente&quot;</span>);
+
+    <span class="k">private</span> <span class="k">final</span> <span class="k">String</span> libelle;
+    <span class="k">private</span> <span class="k">final</span> <span class="k">String</span> verbe;
+
+    EvenementDemande(<span class="k">String</span> libelle, <span class="k">String</span> verbe) {
+        <span class="k">this</span>.libelle = libelle;
+        <span class="k">this</span>.verbe = verbe;
+    }
+
+    <span class="k">public</span> <span class="k">String</span> getLibelle() { <span class="k">return</span> libelle; }
+    <span class="k">public</span> <span class="k">String</span> getVerbe() { <span class="k">return</span> verbe; }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>GabaritEmailDemande.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\GabaritEmailDemande.java  (méthode construire)</span></div><p class="note"><code>DATE_HEURE</code>, <code>echapper</code>, <code>vide</code> existent déjà dans la classe.</p><pre><button class="copy">Copier</button><code><span class="c">// ---- 1. Ctrl+F : Map.entry(&quot;urgence&quot;, urgente ? &quot;OUI&quot; : &quot;Non&quot;),   → remplacer par :</span>
+                Map.entry(<span class="s">&quot;urgence&quot;</span>, urgente ? <span class="s">&quot;OUI&quot;</span>
+                        : (d.getUrgenceDeclasseeAt() != <span class="k">null</span> ? <span class="s">&quot;Non — déclassée par la Caisse Centrale&quot;</span> : <span class="s">&quot;Non&quot;</span>)),
+
+<span class="c">// ---- 2. Ctrl+F : Map.entry(&quot;blocAnnulation&quot;, …)   → ajouter l&#x27;entrée suivante juste après (ne pas oublier la virgule) :</span>
+                Map.entry(<span class="s">&quot;blocDeclassement&quot;</span>, evenement == EvenementDemande.DECLASSEMENT_URGENCE
+                        ? <span class="s">&quot;&lt;tr&gt;&lt;th&gt;Urgence déclassée par&lt;/th&gt;&lt;td&gt;&quot;</span> + echapper(vide(d.getUrgenceDeclasseePar()))
+                          + (d.getUrgenceDeclasseeProfil() != <span class="k">null</span> ? <span class="s">&quot; (&quot;</span> + echapper(d.getUrgenceDeclasseeProfil()) + <span class="s">&quot;)&quot;</span> : <span class="s">&quot;&quot;</span>)
+                          + (d.getUrgenceDeclasseeAt() != <span class="k">null</span> ? <span class="s">&quot; le &quot;</span> + DATE_HEURE.format(d.getUrgenceDeclasseeAt()) : <span class="s">&quot;&quot;</span>)
+                          + <span class="s">&quot;&lt;/td&gt;&lt;/tr&gt;&quot;</span>
+                          + <span class="s">&quot;&lt;tr&gt;&lt;th&gt;Motif du déclassement&lt;/th&gt;&lt;td&gt;&quot;</span> + echapper(vide(d.getUrgenceDeclasseeMotif())) + <span class="s">&quot;&lt;/td&gt;&lt;/tr&gt;&quot;</span>
+                        : <span class="s">&quot;&quot;</span>)
+
+<span class="c">// ---- 3. Ctrl+F : boolean brut =   → remplacer la ligne par :</span>
+            <span class="k">boolean</span> brut = e.getKey().startsWith(<span class="s">&quot;lignes&quot;</span>) || e.getKey().startsWith(<span class="s">&quot;bloc&quot;</span>) || e.getKey().equals(<span class="s">&quot;classeUrgence&quot;</span>);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>notification-demande.html</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\resources\templates\notification-demande.html</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- 1. Ctrl+F : Notification automatique au Directeur d&#x27;agence   → le destinataire n&#x27;est plus toujours le DA --&gt;</span>
+    &lt;div <span class="k">class</span>=<span class="s">&quot;sous&quot;</span>&gt;Notification automatique — Gestion des Fonds&lt;/div&gt;
+
+<span class="c">&lt;!-- 2. Ctrl+F : ${verbe} par l&#x27;agence.   → le « par l&#x27;agence » est désormais porté par le verbe de l&#x27;enum : --&gt;</span>
+    &lt;p&gt;La demande &lt;strong&gt;${reference}&lt;/strong&gt; ${verbe}.&lt;/p&gt;
+
+<span class="c">&lt;!-- 3. Ctrl+F : ${blocAnnulation}   → ajouter la ligne suivante juste après : --&gt;</span>
+      ${blocDeclassement}</code></pre></div><h3>1.4 Tests</h3><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImplTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java  (à la suite des tests de completerTacheCaisseCentrale)</span></div><p class="note">Style du fichier respecté : <code>Mockito.when</code> / <code>Mockito.verify</code> / <code>Mockito.eq</code>, fabriques par setters, <code>dtoAvecId</code> et <code>CAISSE_CENTRALE</code> existants ; <code>enrichir()</code> stubbé via <code>webMapper.toResponseDTO</code>. Mockito strict : chaque test ne stubbe que ce qu'il consomme.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-333 — déclassement d&#x27;urgence =====</span>
+    <span class="c">// Même style que le reste du fichier : Mockito.when / Mockito.verify / Mockito.any, aucun import statique.</span>
+    <span class="c">// Imports à ajouter si absents : DeclassementUrgenceDTO, EvenementDemande, CanalDemande, CashRequestId, java.time.LocalDateTime.</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> MOTIF_DECLASSEMENT = <span class="s">&quot;Délai trop court avant passage du transporteur&quot;</span>;
+
+    <span class="c">/** CashRequest n&#x27;a pas de builder : setters, comme initier() dans le use case ; l&#x27;id est le VO CashRequestId. */</span>
+    <span class="k">private</span> <span class="k">static</span> CashRequest soumise(UUID id, <span class="k">boolean</span> urgente, LocalDateTime declasseeLe) {
+        CashRequest d = <span class="k">new</span> CashRequest();
+        d.setId(<span class="k">new</span> CashRequestId(id));          <span class="c">// id = value object (cf. toCashRequestId des mappers)</span>
+        d.setRequestStatus(RequestStatus.SUBMITTED);
+        d.setCanalDemande(CanalDemande.AGENCE);
+        d.setUrgent(urgente);
+        d.setUrgenceDeclasseeAt(declasseeLe);
+        <span class="k">return</span> d;
+    }
+
+    @Test
+    <span class="k">void</span> declasserUrgence_nominal_figeEtNotifie() {
+        UUID id = UUID.randomUUID();
+        CashRequest declassee = soumise(id, <span class="k">false</span>, LocalDateTime.now());
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(soumise(id, <span class="k">true</span>, <span class="k">null</span>));
+        Mockito.when(cashDemandRepository.declasserUrgence(Mockito.eq(id), Mockito.eq(CAISSE_CENTRALE.nomComplet()),
+                Mockito.eq(CAISSE_CENTRALE.profilLibelle()), Mockito.any(LocalDateTime.<span class="k">class</span>), Mockito.eq(MOTIF_DECLASSEMENT)))
+                .thenReturn(declassee);
+        Mockito.when(webMapper.toResponseDTO(declassee)).thenReturn(dtoAvecId(id));   <span class="c">// enrichir()</span>
+
+        CashRequestDTO resultat = useCase.declasserUrgence(id, <span class="k">new</span> DeclassementUrgenceDTO(MOTIF_DECLASSEMENT), CAISSE_CENTRALE);
+
+        assertEquals(id, resultat.getId());
+        Mockito.verify(notificationDemandeService).notifier(Mockito.any(), Mockito.eq(EvenementDemande.DECLASSEMENT_URGENCE));
+        Mockito.verifyNoInteractions(processusWorkflowPort);          <span class="c">// aucun appel Camunda</span>
+    }
+
+    @Test
+    <span class="k">void</span> declasserUrgence_agentAgence_403() {
+        ContexteAppelant agence = <span class="k">new</span> ContexteAppelant(<span class="s">&quot;g10002&quot;</span>, <span class="s">&quot;1422&quot;</span>, <span class="k">false</span>, <span class="s">&quot;Salma EL AMRANI&quot;</span>, <span class="s">&quot;Chef de caisse&quot;</span>);
+
+        assertThrows(RetailForbiddenException.<span class="k">class</span>,
+                () -&gt; useCase.declasserUrgence(UUID.randomUUID(), <span class="k">new</span> DeclassementUrgenceDTO(MOTIF_DECLASSEMENT), agence));
+
+        Mockito.verifyNoInteractions(cashDemandRepository, notificationDemandeService);
+    }
+
+    @Test
+    <span class="k">void</span> declasserUrgence_motifCourt_422() {
+        assertThrows(RetailValidationException.<span class="k">class</span>,
+                () -&gt; useCase.declasserUrgence(UUID.randomUUID(), <span class="k">new</span> DeclassementUrgenceDTO(<span class="s">&quot;trop court&quot;</span>), CAISSE_CENTRALE));
+
+        Mockito.verifyNoInteractions(cashDemandRepository, notificationDemandeService);
+    }
+
+    @Test
+    <span class="k">void</span> declasserUrgence_nonSoumise_409() {
+        UUID id = UUID.randomUUID();
+        CashRequest validee = soumise(id, <span class="k">true</span>, <span class="k">null</span>);
+        validee.setRequestStatus(RequestStatus.VALIDATED);
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(validee);
+
+        assertThrows(RetailConflictException.<span class="k">class</span>,
+                () -&gt; useCase.declasserUrgence(id, <span class="k">new</span> DeclassementUrgenceDTO(MOTIF_DECLASSEMENT), CAISSE_CENTRALE));
+
+        Mockito.verify(cashDemandRepository, Mockito.never())
+                .declasserUrgence(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    <span class="k">void</span> declasserUrgence_nonUrgente_409() {
+        UUID id = UUID.randomUUID();
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(soumise(id, <span class="k">false</span>, <span class="k">null</span>));
+
+        assertThrows(RetailConflictException.<span class="k">class</span>,
+                () -&gt; useCase.declasserUrgence(id, <span class="k">new</span> DeclassementUrgenceDTO(MOTIF_DECLASSEMENT), CAISSE_CENTRALE));
+
+        Mockito.verify(cashDemandRepository, Mockito.never())
+                .declasserUrgence(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    <span class="k">void</span> declasserUrgence_dejaDeclassee_409() {
+        UUID id = UUID.randomUUID();
+        Mockito.when(cashDemandRepository.getCashRequestById(id)).thenReturn(soumise(id, <span class="k">false</span>, LocalDateTime.now()));
+
+        assertThrows(RetailConflictException.<span class="k">class</span>,
+                () -&gt; useCase.declasserUrgence(id, <span class="k">new</span> DeclassementUrgenceDTO(MOTIF_DECLASSEMENT), CAISSE_CENTRALE));
+
+        Mockito.verifyNoInteractions(notificationDemandeService);
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>NotificationDemandeServiceTest.java</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeServiceTest.java</span></div><p class="note">Les 4 tests 277 sont conservés (le constructeur gagne un mock) + 2 tests 333 : un email par gestionnaire, repli DA.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.OperationType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.UtilisateurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.DirecteurAgencePort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.UtilisateursGestionDemandesPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.repository.UserProfileRepository;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashOperationDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CurrencyDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.OperationCurrencyDetailDTO;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.ArgumentCaptor;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertTrue;
+
+@ExtendWith(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> NotificationDemandeServiceTest {
+
+    @Mock UserProfileRepository userProfileRepository;
+    @Mock DirecteurAgencePort directeurAgencePort;
+    @Mock UtilisateursGestionDemandesPort utilisateursGestionDemandesPort;
+    @Mock NotificationPort notificationPort;
+
+    <span class="k">private</span> NotificationDemandeService service() {
+        <span class="k">return</span> <span class="k">new</span> NotificationDemandeService(userProfileRepository, directeurAgencePort, utilisateursGestionDemandesPort,
+                notificationPort, <span class="k">new</span> GabaritEmailDemande());
+    }
+
+    <span class="c">/** Deux DA connus de fund-management : j43709 (autre agence → vide), j61104 (DA de 1104). */</span>
+    <span class="k">private</span> <span class="k">void</span> daDeLAgence1104() {
+        Mockito.when(userProfileRepository.uidsParProfil(<span class="s">&quot;DA&quot;</span>)).thenReturn(List.of(<span class="s">&quot;j43709&quot;</span>, <span class="s">&quot;j61104&quot;</span>));
+        Mockito.when(directeurAgencePort.siDirecteurDe(<span class="s">&quot;j43709&quot;</span>, <span class="s">&quot;1104&quot;</span>)).thenReturn(Optional.empty());
+        Mockito.when(directeurAgencePort.siDirecteurDe(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;1104&quot;</span>))
+                .thenReturn(Optional.of(<span class="k">new</span> DirecteurAgence(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;j61104@bnpparibas.com&quot;</span>, <span class="s">&quot;Marouane MASSOUNE&quot;</span>)));
+    }
+
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demande() {
+        CashRequestDTO d = <span class="k">new</span> CashRequestDTO();
+        d.setUniqueRequestRef(<span class="s">&quot;20261009-1104-03&quot;</span>);
+        d.setBranchCode(<span class="s">&quot;1104&quot;</span>);
+        d.setUser(<span class="s">&quot;g10004&quot;</span>);
+        d.setAgenceNom(<span class="s">&quot;CASA MOHAMED V&quot;</span>);
+        d.setZoneNom(<span class="s">&quot;Zone Casablanca&quot;</span>);
+        d.setPrestataireNom(<span class="s">&quot;Brink&#x27;s&quot;</span>);
+        d.setAgentNom(<span class="s">&quot;Youness BALADI&quot;</span>);
+        d.setAgentProfil(<span class="s">&quot;Chef de caisse&quot;</span>);
+        d.setCreatedAt(LocalDateTime.of(2026, 10, 9, 10, 30));
+        d.setUrgent(<span class="k">true</span>);
+        d.setComment(<span class="s">&quot;Besoin &lt;urgent&gt; de coupures de 200&quot;</span>);
+
+        CashOperationDTO caisse = <span class="k">new</span> CashOperationDTO();
+        caisse.setOperationType(OperationType.CASH_DESK);
+        caisse.setOperationSens(RequestType.SUPPLY);
+        OperationCurrencyDetailDTO mad = <span class="k">new</span> OperationCurrencyDetailDTO();
+        CurrencyDTO devise = <span class="k">new</span> CurrencyDTO(); devise.setIsoCode(<span class="s">&quot;MAD&quot;</span>);
+        mad.setCurrency(devise);
+        mad.setTotalAmountByCurrency(<span class="k">new</span> BigDecimal(<span class="s">&quot;150000&quot;</span>));
+        caisse.setCurrencyDetails(List.of(mad));
+
+        CashOperationDTO ramassage = <span class="k">new</span> CashOperationDTO();
+        ramassage.setOperationType(OperationType.CURRENCY);
+        ramassage.setOperationSens(RequestType.COLLECTION);
+        OperationCurrencyDetailDTO eur = <span class="k">new</span> OperationCurrencyDetailDTO();
+        CurrencyDTO euro = <span class="k">new</span> CurrencyDTO(); euro.setIsoCode(<span class="s">&quot;EUR&quot;</span>);
+        eur.setCurrency(euro);
+        eur.setTotalAmountByCurrency(<span class="k">new</span> BigDecimal(<span class="s">&quot;2500&quot;</span>));
+        ramassage.setCurrencyDetails(List.of(eur));
+
+        d.setOperations(List.of(caisse, ramassage));
+        <span class="k">return</span> d;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demandeDeclassee() {
+        CashRequestDTO d = demande();
+        d.setUrgent(<span class="k">false</span>);
+        d.setUrgenceDeclasseePar(<span class="s">&quot;Karim EL IDRISSI&quot;</span>);
+        d.setUrgenceDeclasseeProfil(<span class="s">&quot;Caisse Centrale Siège&quot;</span>);
+        d.setUrgenceDeclasseeAt(LocalDateTime.of(2026, 8, 5, 18, 25));
+        d.setUrgenceDeclasseeMotif(<span class="s">&quot;Délai trop court avant passage du transporteur&quot;</span>);
+        <span class="k">return</span> d;
+    }
+
+    @Test
+    <span class="k">void</span> soumission_envoieAuDaAvecRecap() {
+        daDeLAgence1104();
+
+        service().notifier(demande(), EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, email.getValue().destinataire());
+        assertEquals(<span class="s">&quot;[QlickFlow] Création de demande 20261009-1104-03 — Agence 1104&quot;</span>, email.getValue().sujet());
+        <span class="k">String</span> html = email.getValue().corpsHtml();
+        assertTrue(html.contains(<span class="s">&quot;Bonjour Marouane MASSOUNE&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;a été soumise par l&#x27;agence&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;1104 - CASA MOHAMED V&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;Youness BALADI (Chef de caisse)&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;09/10/2026 à 10:30&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;150 000,00 MAD&quot;</span>) || html.contains(<span class="s">&quot;150 000,00 MAD&quot;</span>));   <span class="c">// espace insécable selon le JDK</span>
+        assertTrue(html.contains(<span class="s">&quot;&lt;td&gt;EUR&lt;/td&gt;&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;&amp;lt;urgent&amp;gt;&quot;</span>));                                          <span class="c">// échappement HTML du commentaire</span>
+        assertTrue(html.contains(<span class="s">&quot;class=\&quot;bandeau urgent\&quot;&quot;</span>));
+        Mockito.verifyNoInteractions(utilisateursGestionDemandesPort);                      <span class="c">// 277 : le DA seulement</span>
+    }
+
+    @Test
+    <span class="k">void</span> annulation_ajouteLeMotif() {
+        daDeLAgence1104();
+        CashRequestDTO d = demande();
+        d.setCancellationReason(<span class="s">&quot;Erreur de saisie du montant&quot;</span>);
+
+        service().notifier(d, EvenementDemande.ANNULATION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertTrue(email.getValue().sujet().startsWith(<span class="s">&quot;[QlickFlow] Annulation de demande&quot;</span>));
+        assertTrue(email.getValue().corpsHtml().contains(<span class="s">&quot;Erreur de saisie du montant&quot;</span>));
+    }
+
+    @Test
+    <span class="k">void</span> sansDa_nEnvoieRien() {
+        Mockito.when(userProfileRepository.uidsParProfil(<span class="s">&quot;DA&quot;</span>)).thenReturn(List.of(<span class="s">&quot;j43709&quot;</span>));
+        Mockito.when(directeurAgencePort.siDirecteurDe(<span class="s">&quot;j43709&quot;</span>, <span class="s">&quot;1104&quot;</span>)).thenReturn(Optional.empty());
+
+        service().notifier(demande(), EvenementDemande.SOUMISSION);
+
+        Mockito.verifyNoInteractions(notificationPort);
+    }
+
+    @Test
+    <span class="k">void</span> echecEnvoi_neRemontePas() {
+        daDeLAgence1104();
+        Mockito.doThrow(<span class="k">new</span> IllegalStateException(<span class="s">&quot;SMTP down&quot;</span>)).when(notificationPort).envoyer(Mockito.any());
+
+        service().notifier(demande(), EvenementDemande.MISE_A_JOUR);     <span class="c">// ne doit pas lever</span>
+    }
+
+    <span class="c">// ===== AER_LM-333 =====</span>
+
+    @Test
+    <span class="k">void</span> declassementUrgence_unEmailParUtilisateurGestionDemandes() {
+        Mockito.when(utilisateursGestionDemandesPort.utilisateursGestionDemandes(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;1104&quot;</span>)).thenReturn(List.of(
+                <span class="k">new</span> UtilisateurAgence(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;j61104@bnpparibas.com&quot;</span>, <span class="s">&quot;Marouane MASSOUNE&quot;</span>),
+                <span class="k">new</span> UtilisateurAgence(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;g10004@bnpparibas.com&quot;</span>, <span class="s">&quot;Youness BALADI&quot;</span>)));
+
+        service().notifier(demandeDeclassee(), EvenementDemande.DECLASSEMENT_URGENCE);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort, Mockito.times(2)).envoyer(email.capture());
+        List&lt;EmailNotification&gt; envoyes = email.getAllValues();
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, envoyes.<span class="k">get</span>(0).destinataire());
+        assertEquals(<span class="s">&quot;g10004@bnpparibas.com&quot;</span>, envoyes.<span class="k">get</span>(1).destinataire());
+        assertTrue(envoyes.<span class="k">get</span>(1).corpsHtml().contains(<span class="s">&quot;Bonjour Youness BALADI&quot;</span>));
+        assertEquals(<span class="s">&quot;[QlickFlow] Déclassement d&#x27;urgence 20261009-1104-03 — Agence 1104&quot;</span>, envoyes.<span class="k">get</span>(0).sujet());
+        <span class="k">String</span> html = envoyes.<span class="k">get</span>(0).corpsHtml();
+        assertTrue(html.contains(<span class="s">&quot;a vu son urgence déclassée par la Caisse Centrale&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;Karim EL IDRISSI (Caisse Centrale Siège) le 05/08/2026 à 18:25&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;Délai trop court avant passage du transporteur&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;Non — déclassée par la Caisse Centrale&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;class=\&quot;bandeau normal\&quot;&quot;</span>));
+        Mockito.verifyNoInteractions(directeurAgencePort);                                   <span class="c">// pas de repli : la liste est fournie</span>
+    }
+
+    @Test
+    <span class="k">void</span> declassementUrgence_sansGestionnaire_repliSurLeDa() {
+        Mockito.when(utilisateursGestionDemandesPort.utilisateursGestionDemandes(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;1104&quot;</span>)).thenReturn(List.of());
+        daDeLAgence1104();
+
+        service().notifier(demandeDeclassee(), EvenementDemande.DECLASSEMENT_URGENCE);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, email.getValue().destinataire());
+    }
+}</code></pre></div><div class="card"><p><code>mvn clean install</code> (le test contrôleur vit dans le container) → Flyway applique V18 au démarrage. Aucune propriété, aucun pom, aucun déploiement Camunda.</p></div><h2 id="s2">2. Front — fund-management-front</h2><h3>2.1 Modèle et règles</h3><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demande-dossier.model.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\demande-dossier.model.ts</span></div><p class="note"><code>urgent</code> reste calculé comme aujourd'hui (false après déclassement) ; <code>urgenceDeclassee</code> vient du JSON (<code>isUrgenceDeclassee()</code> du DTO).</p><pre><button class="copy">Copier</button><code><span class="c">// ---- 1. interface DemandeDossier — après `decisionAt?: string | null;`</span>
+  <span class="c">// AER_LM-333 — déclassement d&#x27;urgence par la Caisse Centrale (lecture seule, noms = CashRequestDTO)</span>
+  urgenceDeclassee?: <span class="k">boolean</span> | <span class="k">null</span>;
+  urgenceDeclasseePar?: string | <span class="k">null</span>;
+  urgenceDeclasseeProfil?: string | <span class="k">null</span>;
+  urgenceDeclasseeAt?: string | <span class="k">null</span>;
+  urgenceDeclasseeMotif?: string | <span class="k">null</span>;
+
+<span class="c">// ---- 2. interface VueDossier — après `decisionProfil: string | null;`</span>
+  urgenceDeclassee: <span class="k">boolean</span>;                 <span class="c">// soumise urgente puis déclassée (urgent vaut alors false)</span>
+  urgenceDeclasseePar: string | <span class="k">null</span>;
+  urgenceDeclasseeProfil: string | <span class="k">null</span>;
+  urgenceDeclasseeLe: string | <span class="k">null</span>;
+  urgenceDeclasseeMotif: string | <span class="k">null</span>;
+
+<span class="c">// ---- 3. construireVueDossier — dans le littéral `vue`, après `decisionProfil: d.decisionProfil ?? null,`</span>
+    urgenceDeclassee: Boolean(d.urgenceDeclassee ?? d.urgenceDeclasseeAt),
+    urgenceDeclasseePar: d.urgenceDeclasseePar ?? <span class="k">null</span>,
+    urgenceDeclasseeProfil: d.urgenceDeclasseeProfil ?? <span class="k">null</span>,
+    urgenceDeclasseeLe: d.urgenceDeclasseeAt ?? <span class="k">null</span>,
+    urgenceDeclasseeMotif: d.urgenceDeclasseeMotif ?? <span class="k">null</span>,</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demande-detail.model.ts (écran agence)</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\demande-detail.model.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// DemandeFondsDetailBrute (JSON du back) ET DemandeFondsDetail : les 5 champs, à côté de decisionPar / decisionProfil / decisionAt</span>
+  urgenceDeclassee?: <span class="k">boolean</span> | <span class="k">null</span>;
+  urgenceDeclasseePar?: string | <span class="k">null</span>;
+  urgenceDeclasseeProfil?: string | <span class="k">null</span>;
+  urgenceDeclasseeAt?: string | <span class="k">null</span>;
+  urgenceDeclasseeMotif?: string | <span class="k">null</span>;
+
+<span class="c">// versDemandeFondsDetail : si le mapping est un spread ({ ...brute, … }) rien à faire ; sinon recopier les 5 champs comme decisionPar.</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demande-capacites.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\domain\domain-core\entities\demande-capacites.ts  (+ fund-management.component.ts, + spec)</span></div><p class="note">Une demande déclassée reste modifiable par l'agence (montants, coupures) ; seule la case urgente est verrouillée — le back refuse de toute façon (422).</p><pre><button class="copy">Copier</button><code><span class="c">// ---- 1. interface FaitsDemande : après `demandeDeMonAgence: boolean;`</span>
+  urgenceDeclassee: <span class="k">boolean</span>;          <span class="c">// AER_LM-333 : urgence déclassée par la Caisse Centrale → plus modifiable par l&#x27;agence</span>
+
+<span class="c">// ---- 2. calculerCapacites, dans le return : remplacer la ligne peutModifierUrgence par</span>
+    peutModifierUrgence: peutEnregistrer &amp;&amp; !f.cutoffUrgenceDepasse &amp;&amp; !f.urgenceDeclassee,
+
+<span class="c">// ---- 3. fund-management.component.ts, là où le littéral FaitsDemande est construit (à côté de demandeDeMonAgence) :</span>
+      urgenceDeclassee: d?.urgenceDeclassee ?? <span class="k">false</span>,     <span class="c">// d = le détail chargé (même source que decisionPar)</span>
+
+<span class="c">// ---- 4. demande-capacites.spec.ts : ajouter `urgenceDeclassee: false` à la fabrique de FaitsDemande (sinon TS2741),</span>
+<span class="c">//         puis un cas : { …modificationOuverte, urgenceDeclassee: true } → peutModifierUrgence === false.</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demande-entete.regles.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.regles.ts  (fin de fichier)</span></div><p class="note">Règle pure, testable sans Angular, comme <code>bannierLectureCaisseCentrale</code>.</p><pre><button class="copy">Copier</button><code><span class="c">// ===== Déclassement d&#x27;urgence (AER_LM-333) =====</span>
+
+<span class="k">export</span> <span class="k">interface</span> FaitsDeclassement {
+  statut: StatutDemande;
+  urgent: <span class="k">boolean</span>;
+  urgenceDeclassee: <span class="k">boolean</span>;
+  peutTraiter: <span class="k">boolean</span>;             <span class="c">// habilitation GDF_TRAITER_DEMANDE (Caisse Centrale oui, Support non)</span>
+}
+
+<span class="c">/** Caisse Centrale uniquement : demande en attente, urgente, jamais déclassée. Le sens inverse (non urgent → urgent) n&#x27;existe pas. */</span>
+<span class="k">export</span> <span class="k">function</span> peutDeclasserUrgence(f: FaitsDeclassement): <span class="k">boolean</span> {
+  <span class="k">return</span> f.peutTraiter &amp;&amp; f.statut === <span class="s">&#x27;SOUMISE&#x27;</span> &amp;&amp; f.urgent &amp;&amp; !f.urgenceDeclassee;
+}</code></pre></div><h3>2.2 En-tête partagé (badge, bouton, traçabilité)</h3><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demande-entete.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.ts  (après @Output() activerModification)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">// ===== AER_LM-333 — déclassement d&#x27;urgence =====</span>
+  <span class="c">/** Soumise urgente puis déclassée par la Caisse Centrale : badge « Urgence Déclassée » + ligne de traçabilité. */</span>
+  @Input() urgenceDeclassee = <span class="k">false</span>;
+  @Input() urgenceDeclasseePar: string | <span class="k">null</span> = <span class="k">null</span>;
+  @Input() urgenceDeclasseeProfil: string | <span class="k">null</span> = <span class="k">null</span>;
+  @Input() urgenceDeclasseeLe: string | <span class="k">null</span> = <span class="k">null</span>;
+  @Input() urgenceDeclasseeMotif: string | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="c">/** Bouton « Déclasser l&#x27;urgence » : écran Caisse Centrale uniquement (voir peutDeclasserUrgence dans les règles). */</span>
+  @Input() peutDeclasserUrgence = <span class="k">false</span>;
+  @Output() declasserUrgence = <span class="k">new</span> EventEmitter&lt;<span class="k">void</span>&gt;();</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demande-entete.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.html</span></div><p class="note">Le pipe <code>date</code> exige <code>CommonModule</code> (ou <code>DatePipe</code>) dans les <code>imports</code> du composant — déjà le cas si <code>*ngIf</code> y fonctionne via CommonModule ; sinon ajoute <code>DatePipe</code>. En modification agence après déclassement, <code>peutModifierUrgence</code> est false → ce bloc lecture affiche le badge « Urgence Déclassée ».</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- ---- 1. Après le paragraphe du motif d&#x27;annulation :
+            &lt;p class=&quot;entete__motif&quot; *ngIf=&quot;motifAnnulation&quot;&gt; … &lt;/p&gt;
+     ajouter la ligne de traçabilité (visible en agence et en Caisse Centrale) : --&gt;</span>
+      &lt;div <span class="k">class</span>=<span class="s">&quot;declassement&quot;</span> *ngIf=<span class="s">&quot;urgenceDeclassee&quot;</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;material-symbols-outlined declassement__icone&quot;</span>&gt;remove_moderator&lt;/span&gt;
+        &lt;p <span class="k">class</span>=<span class="s">&quot;declassement__texte&quot;</span>&gt;
+          &lt;strong&gt;Urgence déclassée&lt;/strong&gt;
+          &lt;ng-container *ngIf=<span class="s">&quot;urgenceDeclasseeLe&quot;</span>&gt; le {{ urgenceDeclasseeLe | date:<span class="s">&quot;dd/MM/yyyy &#x27;à&#x27; HH:mm&quot;</span> }}&lt;/ng-container&gt;
+          &lt;ng-container *ngIf=<span class="s">&quot;urgenceDeclasseePar&quot;</span>&gt; par
+            &lt;span <span class="k">class</span>=<span class="s">&quot;declassement__auteur&quot;</span>&gt;{{ urgenceDeclasseePar }}&lt;ng-container *ngIf=<span class="s">&quot;urgenceDeclasseeProfil&quot;</span>&gt; ({{ urgenceDeclasseeProfil }})&lt;/ng-container&gt;&lt;/span&gt;
+          &lt;/ng-container&gt;
+          &lt;ng-container *ngIf=<span class="s">&quot;urgenceDeclasseeMotif&quot;</span>&gt; — &lt;span <span class="k">class</span>=<span class="s">&quot;declassement__motif&quot;</span>&gt;Motif : « {{ urgenceDeclasseeMotif }} »&lt;/span&gt;&lt;/ng-container&gt;
+        &lt;/p&gt;
+      &lt;/div&gt;
+
+<span class="c">&lt;!-- ---- 2. Remplacer le bloc lecture seule :
+            &lt;div class=&quot;urgent&quot; *ngIf=&quot;!urgentModifiable &amp;&amp; urgent&quot;&gt; … &lt;/div&gt;
+     par : --&gt;</span>
+    <span class="c">&lt;!-- Lecture : badge urgent (+ Déclasser pour la Caisse Centrale) ou badge « Urgence Déclassée » (AER_LM-333) --&gt;</span>
+    &lt;ng-container *ngIf=<span class="s">&quot;!urgentModifiable&quot;</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;urgent&quot;</span> *ngIf=<span class="s">&quot;urgent&quot;</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;material-symbols-outlined urgent__icone&quot;</span>&gt;warning&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;urgent__texte&quot;</span>&gt;Demande Urgente&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;button <span class="k">type</span>=<span class="s">&quot;button&quot;</span> <span class="k">class</span>=<span class="s">&quot;btn-declasser&quot;</span> *ngIf=<span class="s">&quot;urgent &amp;&amp; peutDeclasserUrgence&quot;</span>
+              (click)=<span class="s">&quot;declasserUrgence.emit()&quot;</span> title=<span class="s">&quot;Déclasser l&#x27;urgence de cette demande&quot;</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;material-symbols-outlined btn-declasser__icone&quot;</span>&gt;do_not_disturb_on&lt;/span&gt;
+        &lt;span&gt;Déclasser l&#x27;urgence&lt;/span&gt;
+      &lt;/button&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;urgent urgent--declassee&quot;</span> *ngIf=<span class="s">&quot;!urgent &amp;&amp; urgenceDeclassee&quot;</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;material-symbols-outlined urgent__icone&quot;</span>&gt;remove_moderator&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;urgent__texte&quot;</span>&gt;Urgence Déclassée&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/ng-container&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demande-entete.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.scss  (fin de fichier)</span></div><p class="note">Jetons des maquettes « avant / après déclassement » : <code>#B13E19</code> sur <code>#FDF3F0</code>, bordure à 30-60 % ; <code>.urgent--declassee</code> ne redéfinit que les couleurs du badge existant.</p><pre><button class="copy">Copier</button><code><span class="c">// ===== AER_LM-333 — déclassement d&#x27;urgence (jetons maquette : brique #B13E19 sur fond #FDF3F0) =====</span>
+$declasse: #B13E19;
+$declasse-fond: #FDF3F0;
+
+.urgent<span class="c">--declassee {</span>
+  background: $declasse-fond;
+  border-color: rgba($declasse, .4);
+  color: $declasse;
+}
+
+.btn-declasser {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .375rem .75rem;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid rgba($declasse, .6);
+  color: $declasse;
+  font: inherit;
+  font-size: .75rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
+  transition: background-color .15s;
+
+  &amp;:hover { background: $declasse-fond; }
+  &amp;__icone { font-size: 1rem; }
+}
+
+.declassement {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  margin-top: .5rem;
+  padding: .625rem;
+  border-radius: 4px;
+  background: $declasse-fond;
+  border: 1px solid rgba($declasse, .3);
+  color: $declasse;
+  font-size: .75rem;
+  line-height: 1.6;
+
+  &amp;__icone { font-size: .875rem; flex-shrink: 0; margin-top: .125rem; }
+  &amp;__texte { margin: 0; }
+  &amp;__auteur { font-weight: 500; color: #1d2b27; }
+  &amp;__motif  { color: #1d2b27; }
+}</code></pre></div><h3>2.3 Popup de confirmation (modale partagée, 3ᵉ type de décision)</h3><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demande-decision-modale.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-decision-modale\demande-decision-modale.component.ts</span></div><p class="note"><code>avecMotif</code> remplace les tests <code>type === 'ANNULEE'</code> : l'annulation garde exactement son comportement.</p><pre><button class="copy">Copier</button><code><span class="c">// ---- 1. Ctrl+F : export type TypeDecision   → la popup de déclassement est un 3e type de décision</span>
+<span class="k">export</span> <span class="k">type</span> TypeDecision = <span class="s">&#x27;TRAITEE&#x27;</span> | <span class="s">&#x27;ANNULEE&#x27;</span> | <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span>;
+
+<span class="c">// ---- 2. Juste après MOTIFS_RAPIDES_CAISSE_CENTRALE</span>
+<span class="c">/** AER_LM-333 — motifs fréquents de déclassement d&#x27;une urgence. */</span>
+<span class="k">export</span> <span class="k">const</span> MOTIFS_RAPIDES_DECLASSEMENT: <span class="k">readonly</span> string[] = [
+  <span class="s">&#x27;Délai trop court avant passage du transporteur, traitement basculé en fin de journée&#x27;</span>,
+  <span class="s">&#x27;Stock disponible en agence suffisant pour la journée&#x27;</span>,
+  <span class="s">&#x27;Urgence non justifiée au regard des montants demandés&#x27;</span>
+];
+
+<span class="c">// ---- 3. Dans la classe, après @Output() fermer : un seul endroit qui sait quels types exigent un motif</span>
+  <span class="c">/** ANNULEE et DECLASSER_URGENCE exigent un motif (≥ 10 caractères) ; TRAITEE est une confirmation simple. */</span>
+  <span class="k">get</span> avecMotif(): <span class="k">boolean</span> { <span class="k">return</span> <span class="k">this</span>.<span class="k">type</span> !== <span class="s">&#x27;TRAITEE&#x27;</span>; }
+
+  <span class="k">get</span> icone(): string {
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">&#x27;ANNULEE&#x27;</span>) { <span class="k">return</span> <span class="s">&#x27;warning_amber&#x27;</span>; }
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span>) { <span class="k">return</span> <span class="s">&#x27;remove_moderator&#x27;</span>; }
+    <span class="k">return</span> <span class="s">&#x27;task_alt&#x27;</span>;
+  }
+
+  <span class="k">get</span> libelleMotif(): string {
+    <span class="k">return</span> <span class="k">this</span>.<span class="k">type</span> === <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span>
+      ? <span class="s">&#x27;Motif du déclassement (obligatoire, communiqué à l\&#x27;agence)&#x27;</span>
+      : <span class="s">&#x27;Justification détaillée (obligatoire pour audit bancaire)&#x27;</span>;
+  }
+
+  <span class="k">get</span> iconeInfo(): string {
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">&#x27;ANNULEE&#x27;</span>) { <span class="k">return</span> <span class="s">&#x27;info&#x27;</span>; }
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span>) { <span class="k">return</span> <span class="s">&#x27;low_priority&#x27;</span>; }
+    <span class="k">return</span> <span class="s">&#x27;local_shipping&#x27;</span>;
+  }
+
+  <span class="k">get</span> iconeConfirmer(): string {
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">&#x27;ANNULEE&#x27;</span>) { <span class="k">return</span> <span class="s">&#x27;block&#x27;</span>; }
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span>) { <span class="k">return</span> <span class="s">&#x27;do_not_disturb_on&#x27;</span>; }
+    <span class="k">return</span> <span class="s">&#x27;check&#x27;</span>;
+  }
+
+<span class="c">// ---- 4. ngOnChanges : remplacer `if (this.type === &#x27;TRAITEE&#x27;)` par</span>
+    <span class="k">if</span> (!<span class="k">this</span>.avecMotif) { <span class="k">this</span>.motif.reset(<span class="s">&#x27;&#x27;</span>); }
+
+<span class="c">// ---- 5. get titre() : première ligne du corps</span>
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span>) { <span class="k">return</span> <span class="s">&#x27;Déclasser l\&#x27;urgence de la demande&#x27;</span>; }
+
+<span class="c">// ---- 6. get information() : première ligne du corps</span>
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span>) {
+      <span class="k">return</span> <span class="s">&#x27;La demande reste « En attente » et conserve sa date d\&#x27;effet ; elle sera traitée comme une demande non urgente. &#x27;</span>
+        + <span class="s">&#x27;L\&#x27;agence en sera informée par email et ne pourra plus la repasser en urgente.&#x27;</span>;
+    }
+
+<span class="c">// ---- 7. get libelleConfirmer() : après la ligne `if (this.enCours) …`</span>
+    <span class="k">if</span> (<span class="k">this</span>.<span class="k">type</span> === <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span>) { <span class="k">return</span> <span class="s">&#x27;Confirmer le déclassement&#x27;</span>; }
+
+<span class="c">// ---- 8. valider() : remplacer `if (this.type === &#x27;ANNULEE&#x27;)` par</span>
+    <span class="k">if</span> (<span class="k">this</span>.avecMotif) {</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>demande-decision-modale.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-decision-modale\demande-decision-modale.component.html</span></div><p class="note">Même structure que l'actuel ; seules les expressions <code>type === 'ANNULEE'</code> passent par les getters.</p><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">&quot;modale&quot;</span> role=<span class="s">&quot;dialog&quot;</span> aria-modal=<span class="s">&quot;true&quot;</span> aria-labelledby=<span class="s">&quot;modale-titre&quot;</span>&gt;
+  &lt;div <span class="k">class</span>=<span class="s">&quot;modale__fond&quot;</span> (click)=<span class="s">&quot;fermer.emit()&quot;</span>&gt;&lt;/div&gt;
+  &lt;div <span class="k">class</span>=<span class="s">&quot;modale__boite&quot;</span> [<span class="k">class</span>.modale__boite<span class="c">--rejet]=&quot;type === &#x27;ANNULEE&#x27;&quot; [class.modale__boite--declassement]=&quot;type === &#x27;DECLASSER_URGENCE&#x27;&quot;&gt;</span>
+    &lt;div <span class="k">class</span>=<span class="s">&quot;modale__entete&quot;</span>&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;modale__pastille&quot;</span>&gt;&lt;mat-icon&gt;{{ icone }}&lt;/mat-icon&gt;&lt;/div&gt;
+      &lt;div&gt;
+        &lt;h2 id=<span class="s">&quot;modale-titre&quot;</span> <span class="k">class</span>=<span class="s">&quot;modale__titre&quot;</span>&gt;{{ titre }}&lt;/h2&gt;
+        &lt;p <span class="k">class</span>=<span class="s">&quot;modale__ref&quot;</span>&gt;Réf : &lt;strong&gt;{{ reference || <span class="s">&#x27;—&#x27;</span> }}&lt;/strong&gt;&lt;ng-container *ngIf=<span class="s">&quot;agence&quot;</span>&gt; · Agence : {{ agence }}&lt;/ng-container&gt;&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;button <span class="k">type</span>=<span class="s">&quot;button&quot;</span> <span class="k">class</span>=<span class="s">&quot;icone modale__fermer&quot;</span> title=<span class="s">&quot;Fermer&quot;</span> (click)=<span class="s">&quot;fermer.emit()&quot;</span>&gt;&lt;mat-icon&gt;close&lt;/mat-icon&gt;&lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">&quot;modale__corps&quot;</span>&gt;
+      &lt;ng-container *ngIf=<span class="s">&quot;avecMotif&quot;</span>&gt;
+        &lt;ng-container *ngIf=<span class="s">&quot;motifsRapides.length&quot;</span>&gt;
+          &lt;p <span class="k">class</span>=<span class="s">&quot;modale__etiquette&quot;</span>&gt;Motifs fréquents (sélection rapide) :&lt;/p&gt;
+          &lt;div <span class="k">class</span>=<span class="s">&quot;modale__motifs&quot;</span>&gt;
+            &lt;button <span class="k">type</span>=<span class="s">&quot;button&quot;</span> <span class="k">class</span>=<span class="s">&quot;motif&quot;</span> *ngFor=<span class="s">&quot;let m of motifsRapides&quot;</span> (click)=<span class="s">&quot;choisirMotif(m)&quot;</span>&gt;{{ m }}&lt;/button&gt;
+          &lt;/div&gt;
+        &lt;/ng-container&gt;
+        &lt;label <span class="k">class</span>=<span class="s">&quot;champ&quot;</span>&gt;
+          &lt;span <span class="k">class</span>=<span class="s">&quot;champ__libelle&quot;</span>&gt;{{ libelleMotif }} &lt;em&gt;*&lt;/em&gt;&lt;/span&gt;
+          &lt;textarea <span class="k">class</span>=<span class="s">&quot;champ__saisie&quot;</span> rows=<span class="s">&quot;3&quot;</span> [formControl]=<span class="s">&quot;motif&quot;</span> placeholder=<span class="s">&quot;Précisez le motif (10 caractères minimum)…&quot;</span>&gt;&lt;/textarea&gt;
+        &lt;/label&gt;
+        &lt;p <span class="k">class</span>=<span class="s">&quot;champ__erreur&quot;</span> *ngIf=<span class="s">&quot;motif.touched &amp;&amp; motif.invalid&quot;</span>&gt;Le motif est obligatoire (10 caractères minimum).&lt;/p&gt;
+      &lt;/ng-container&gt;
+
+      &lt;p <span class="k">class</span>=<span class="s">&quot;modale__info&quot;</span>&gt;&lt;mat-icon&gt;{{ iconeInfo }}&lt;/mat-icon&gt; {{ information }}&lt;/p&gt;
+      &lt;p <span class="k">class</span>=<span class="s">&quot;champ__erreur&quot;</span> *ngIf=<span class="s">&quot;erreur&quot;</span>&gt;&lt;mat-icon&gt;error_outline&lt;/mat-icon&gt; {{ erreur }}&lt;/p&gt;
+    &lt;/div&gt;
+
+    &lt;div <span class="k">class</span>=<span class="s">&quot;modale__pied&quot;</span>&gt;
+      &lt;button <span class="k">type</span>=<span class="s">&quot;button&quot;</span> <span class="k">class</span>=<span class="s">&quot;bouton bouton--secondaire&quot;</span> (click)=<span class="s">&quot;fermer.emit()&quot;</span> [disabled]=<span class="s">&quot;enCours&quot;</span>&gt;Abandonner&lt;/button&gt;
+      &lt;button <span class="k">type</span>=<span class="s">&quot;button&quot;</span> <span class="k">class</span>=<span class="s">&quot;bouton&quot;</span> [<span class="k">class</span>.bouton<span class="c">--primaire]=&quot;type === &#x27;TRAITEE&#x27;&quot; [class.bouton--rejet]=&quot;type === &#x27;ANNULEE&#x27;&quot;</span>
+              [<span class="k">class</span>.bouton<span class="c">--declasser]=&quot;type === &#x27;DECLASSER_URGENCE&#x27;&quot;</span>
+              [disabled]=<span class="s">&quot;enCours || (avecMotif &amp;&amp; motif.invalid)&quot;</span> (click)=<span class="s">&quot;valider()&quot;</span>&gt;
+        &lt;mat-icon&gt;{{ iconeConfirmer }}&lt;/mat-icon&gt; {{ libelleConfirmer }}
+      &lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demande-decision-modale.component.scss</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\components\demande-decision-modale\demande-decision-modale.component.scss  (fin de fichier)</span></div><pre><button class="copy">Copier</button><code><span class="c">// ===== AER_LM-333 — déclassement d&#x27;urgence (brique #B13E19 / fond #FDF3F0) =====</span>
+.modale__boite<span class="c">--declassement .modale__pastille {</span>
+  background: #FDF3F0;
+  color: #B13E19;
+}
+
+.bouton<span class="c">--declasser {</span>
+  background: #B13E19;
+  border-color: #B13E19;
+  color: #fff;
+
+  &amp;:hover:not(:disabled) { background: #8f3214; }
+  &amp;:disabled { opacity: .5; cursor: not-allowed; }
+}</code></pre></div><h3>2.4 Écran Caisse Centrale et écran agence</h3><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demande-traitement.component.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demande-traitement\demande-traitement.component.ts</span></div><p class="note"><code>ouvrir('DECLASSER_URGENCE')</code> réutilise le signal <code>decision</code> existant : pas de nouvel état.</p><pre><button class="copy">Copier</button><code><span class="c">// ---- 1. Imports (compléter les lignes existantes)</span>
+<span class="k">import</span> { bannierLectureCaisseCentrale, peutDeclasserUrgence } <span class="k">from</span> <span class="s">&#x27;../../components/demande-entete/demande-entete.regles&#x27;</span>;
+<span class="k">import</span> { DemandeDecisionModaleComponent, MOTIFS_RAPIDES_CAISSE_CENTRALE, MOTIFS_RAPIDES_DECLASSEMENT, TypeDecision }
+  <span class="k">from</span> <span class="s">&#x27;../../components/demande-decision-modale/demande-decision-modale.component&#x27;</span>;
+
+<span class="c">// ---- 2. Après `readonly peutDecider = computed(…)`</span>
+  <span class="c">/** AER_LM-333 : Caisse Centrale, demande en attente, urgente et jamais déclassée. */</span>
+  <span class="k">readonly</span> peutDeclasserUrgence = computed(() =&gt; {
+    <span class="k">const</span> v = <span class="k">this</span>.vue();
+    <span class="k">return</span> !!v &amp;&amp; peutDeclasserUrgence({
+      statut: v.statut, urgent: v.urgent, urgenceDeclassee: v.urgenceDeclassee,
+      peutTraiter: <span class="k">this</span>.contexteUtilisateur.habilitations().traiter
+    });
+  });
+
+  motifsRapidesPour(<span class="k">type</span>: TypeDecision): <span class="k">readonly</span> string[] {
+    <span class="k">if</span> (<span class="k">type</span> === <span class="s">&#x27;ANNULEE&#x27;</span>) { <span class="k">return</span> <span class="k">this</span>.motifsRapides; }
+    <span class="k">if</span> (<span class="k">type</span> === <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span>) { <span class="k">return</span> MOTIFS_RAPIDES_DECLASSEMENT; }
+    <span class="k">return</span> [];
+  }
+
+<span class="c">// ---- 3. Dans confirmer(motif) : remplacer l&#x27;appel `await this.actions.decider(v.id, type, motif)` par</span>
+    <span class="k">const</span> resultat = <span class="k">type</span> === <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span>
+      ? <span class="k">await</span> <span class="k">this</span>.actions.declasserUrgence(v.id, motif ?? <span class="s">&#x27;&#x27;</span>)
+      : <span class="k">await</span> <span class="k">this</span>.actions.decider(v.id, <span class="k">type</span>, motif);
+<span class="c">//    (le reste est inchangé : si resultat est null l&#x27;erreur reste dans la modale, sinon fermeture + snackbar + rechargement)</span>
+
+<span class="c">// ---- 4. Message du snackbar : ajouter le cas</span>
+    <span class="k">type</span> === <span class="s">&#x27;DECLASSER_URGENCE&#x27;</span> ? <span class="s">&#x27;Urgence déclassée : la demande reste en attente, l\&#x27;agence est informée.&#x27;</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demande-traitement.component.html</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\demande-traitement\demande-traitement.component.html</span></div><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- ---- 1. &lt;app-demande-entete …&gt; : ajouter les bindings (après [motifAnnulation]) --&gt;</span>
+  [urgenceDeclassee]=<span class="s">&quot;v.urgenceDeclassee&quot;</span>
+  [urgenceDeclasseePar]=<span class="s">&quot;v.urgenceDeclasseePar&quot;</span>
+  [urgenceDeclasseeProfil]=<span class="s">&quot;v.urgenceDeclasseeProfil&quot;</span>
+  [urgenceDeclasseeLe]=<span class="s">&quot;v.urgenceDeclasseeLe&quot;</span>
+  [urgenceDeclasseeMotif]=<span class="s">&quot;v.urgenceDeclasseeMotif&quot;</span>
+  [peutDeclasserUrgence]=<span class="s">&quot;peutDeclasserUrgence()&quot;</span>
+  (declasserUrgence)=<span class="s">&quot;ouvrir(&#x27;DECLASSER_URGENCE&#x27;)&quot;</span>
+
+<span class="c">&lt;!-- ---- 2. &lt;app-demande-decision-modale …&gt; : remplacer
+       [motifsRapides]=&quot;type === &#x27;ANNULEE&#x27; ? motifsRapides : []&quot;
+     par --&gt;</span>
+  [motifsRapides]=<span class="s">&quot;motifsRapidesPour(type)&quot;</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fund-management.component.html (agence)</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.component.html  (&lt;app-demande-entete&gt;)</span></div><p class="note">Consultation et modification : ligne de traçabilité + badge « Urgence Déclassée », sans bouton.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- &lt;app-demande-entete …&gt; de l&#x27;écran agence : après [motifAnnulation] (même source `d` que [decisionPar]) ; pas de bouton côté agence --&gt;</span>
+  [urgenceDeclassee]=<span class="s">&quot;d?.urgenceDeclassee ?? false&quot;</span>
+  [urgenceDeclasseePar]=<span class="s">&quot;d?.urgenceDeclasseePar ?? null&quot;</span>
+  [urgenceDeclasseeProfil]=<span class="s">&quot;d?.urgenceDeclasseeProfil ?? null&quot;</span>
+  [urgenceDeclasseeLe]=<span class="s">&quot;d?.urgenceDeclasseeAt ?? null&quot;</span>
+  [urgenceDeclasseeMotif]=<span class="s">&quot;d?.urgenceDeclasseeMotif ?? null&quot;</span></code></pre></div><h3>2.5 Adapter HTTP et façade</h3><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>fundManagement-http.service.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\adapters\apiAdapters\fundManagement-http.service.ts  (après deciderCaisseCentrale)</span></div><p class="note">Si l'interface <code>FundService</code> déclare <code>deciderCaisseCentrale</code>, déclare <code>declasserUrgence</code> à côté ; sinon rien.</p><pre><button class="copy">Copier</button><code>  <span class="c">/** AER_LM-333 : déclassement de l&#x27;urgence par la Caisse Centrale (motif ≥ 10 caractères). */</span>
+  declasserUrgence(id: string, motif: string): Promise&lt;DemandeFondsDetail&gt; {
+    <span class="k">return</span> <span class="k">this</span>.detail(<span class="k">this</span>.http.patch&lt;ApiResponse&lt;DemandeFondsDetailBrute&gt;&gt;(<span class="s">`${this.apiUrl}/${id}/declasser-urgence`</span>, { motif }));
+  }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demande-actions.facade.ts</b><br><span class="path">C:\dev\fund-management-front\src\app\features\fund-management\adapters\localState\demande-actions.facade.ts  (après decider)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">/** AER_LM-333 : déclassement d&#x27;urgence (Caisse Centrale). Synchrone côté back : le détail renvoyé est déjà à jour. */</span>
+  declasserUrgence(id: string, motif: string): Promise&lt;DemandeFondsDetail | <span class="k">null</span>&gt; {
+    <span class="k">return</span> <span class="k">this</span>.executer(() =&gt; <span class="k">this</span>.service.declasserUrgence(id, motif));
+  }</code></pre></div><h2 id="s3">3. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Postman / SQL</b><br><span class="path">AER_LM-333_declasser-urgence (requêtes)</span></div><pre><button class="copy">Copier</button><code># Via la gateway (cookie de session), persona Caisse Centrale. {{id}} = demande agence SUBMITTED et urgente.
+PATCH {{gateway}}/api/v1/<span class="k">public</span>/fund-management/cash/{{id}}/declasser-urgence
+Content-Type: application/json
+{ <span class="s">&quot;motif&quot;</span>: <span class="s">&quot;Délai trop court avant passage du transporteur&quot;</span> }
+
+# Attendu 200 : data.urgent = <span class="k">false</span>, data.urgenceDeclassee = <span class="k">true</span>, urgenceDeclasseePar / Profil / At / Motif renseignés.
+# Rejouer la même requête            → 409 « déjà été déclassée »
+# Motif <span class="s">&quot;court&quot;</span>                       → 422
+# Persona agence (g10002)             → 403
+# Demande VALIDATED ou INITIATED      → 409
+# Demande non urgente                 → 409
+
+# Contrôle base :
+select unique_request_ref, request_status, urgent, urgence_declassee_par, urgence_declassee_profil, urgence_declassee_at, urgence_declassee_motif
+<span class="k">from</span> retail.cash_request where id = <span class="s">&#x27;{{id}}&#x27;</span>;
+select id, is_urgent <span class="k">from</span> retail.cash_operation where cash_request_id = <span class="s">&#x27;{{id}}&#x27;</span>;   <span class="c">-- tous false</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Email — contrôle des destinataires</b><br><span class="path">AER_LM-333_destinataires (requêtes)</span></div><pre><button class="copy">Copier</button><code># Contrôle préalable (utilisateurs-ci, port 8091, sans auth : /internal n&#x27;est pas routé par la gateway)
+GET http:<span class="c">//localhost:8091/api/v1/internal/users/g10002</span>
+#   → orgaUnit.id (ex. 42), orgaUnit.<span class="k">type</span> = AGENCE, orgaUnit.code = 1422
+GET http:<span class="c">//localhost:8091/api/v1/internal/users/by-orga-unit?orgaUnitId=42</span>
+#   → les utilisateurs actifs de l&#x27;agence ; chaque destinataire attendu a profile.roles[].permissions[].code contenant GDF_CREER_DEMANDE
+#     et un email renseigné (sinon : renseigner l&#x27;email en console, ou V-script de recette).
+
+# Après un déclassement (mode mock) : un email par destinataire dans le journal des notifications,
+# sujet « [QlickFlow] Déclassement d&#x27;urgence &lt;ref&gt; — Agence &lt;code&gt; », « Bonjour &lt;prénom nom&gt; » propre à chacun.
+# Logs fund-management : une ligne « [notification] DECLASSEMENT_URGENCE &lt;ref&gt; → &lt;email&gt; » par destinataire ;
+# si « repli sur le Directeur d<span class="s">&#x27;agence » apparaît : le créateur de la demande n&#x27;</span>est pas rattaché à l<span class="s">&#x27;agence ou personne n&#x27;</span>a GDF_CREER_DEMANDE.</code></pre></div><div class="card"><ol>
+<li><b>Agence</b> (g10002) : soumettre une demande <b>urgente</b>.</li>
+<li><b>Caisse Centrale</b> : ouvrir la demande → badge rouge « Demande Urgente » + bouton « Déclasser l'urgence » ; Support / h11111 : badge seul, pas de bouton.</li>
+<li>Clic → popup brique « Déclasser l'urgence de la demande », motif &lt; 10 caractères = bouton inactif, motif rapide = rempli ; confirmer → snackbar, rechargement : badge « Urgence Déclassée », ligne « Urgence déclassée le … par … (Caisse Centrale Siège) — Motif : « … » », plus de bouton, Traiter / Annuler toujours proposés.</li>
+<li><b>Agence</b> : consultation → même ligne de traçabilité, badge « Urgence Déclassée » ; Mode Modification → case urgente absente ; enregistrer puis soumettre → la demande revient en attente <b>non urgente</b> (Caisse Centrale : pas de badge rouge). Forcer <code>isUrgent: true</code> dans le PUT (Postman) → 422.</li>
+<li>Email : mode mock → journal des notifications, <b>un email par utilisateur gestion demandes de l'agence</b> (DA + Chef de caisse, « Bonjour … » personnalisé), sujet « [QlickFlow] Déclassement d'urgence 2026…-… — Agence … », bloc « Urgence déclassée par … le … » + motif, « Demande urgente : Non — déclassée par la Caisse Centrale ».</li>
+<li>Listing Caisse Centrale : la demande n'apparaît plus avec le filtre « urgentes » ; KPI « urgentes » décrémenté ; export : <code>urgenceDeclassee = true</code> dans le DTO (pour la Jira export du collègue).</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
