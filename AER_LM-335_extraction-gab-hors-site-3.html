@@ -1,0 +1,296 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-335 — Extraction Excel des demandes GAB Hors Site (Pôle Opérations Monétiques)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-335 — Extraction Excel des demandes GAB Hors Site (Pôle Opérations Monétiques)</h1><p>fund-management (back) + fund-management-front · nouveau template 1 feuille · réutilise remplirGab de 297 · v2 (MonetiqueDemandController) 30/10/2026</p></header><nav><a href="#analyse">Analyse</a><a href="#back">Back — fund-management</a><a href="#front">Front — fund-management-front</a><a href="#recette">Recette</a></nav><main><h2 id="analyse">0. Analyse</h2><div class="card"><b>Besoin</b> : depuis l'écran « Historique des Demandes GAB Hors-Site », le Pôle exporte en Excel <b>les demandes du périmètre filtré</b> (dates, ville, nom GAB, agence, vidage, statut — toutes les pages), fichier <code>QlickFlow_GesFond_GAB-Hors-Site_AAAAMMJJ.xlsx</code>.
+<ul>
+<li><b>Template 335</b> = la feuille « GAB Hors Sites » de l'extraction Caisse Centrale (297), seule : en-têtes ligne 3, ligne 4 = modèle (styles + formule « Total Alim. GAB »), 12 colonnes d'identité A–L, cassettes M–P, total Q. ⇒ <code>remplirGab</code>, <code>ligne()</code>, <code>Styles</code> sont <b>réutilisés tels quels</b> ; seule une méthode <code>genererGabHorsSite</code> (template à 1 feuille) est ajoutée.</li>
+<li><b>Périmètre</b> = exactement les filtres du listing (327) : même record <code>DemandeMonetiqueSearchCriteria</code>, même <code>DemandeMonetiqueSpecifications</code>, nouvelle méthode repository <b>sans pagination</b> (<code>findAll(spec, sort)</code>). Le fichier = ce que l'écran affiche, <b>annulées comprises</b> si le filtre statut les inclut (contrairement à l'export Caisse Centrale qui les masque).</li>
+<li><b>Endpoint</b> : <code>GET /cash/monetique/export</code> dans <code>MonetiqueDemandController</code> (327), droit <code>DroitsMonetique.CONSULTER</code> comme le listing, mêmes query params que <code>rechercher</code> ; use case <code>DemandeMonetiqueUseCase.exporter</code> à côté de <code>rechercher</code>. Pas de BPMN, pas de Flyway, pas de mail.</li>
+<li><b>Front</b> : bouton « Exporter Excel » entre « Actualiser le flux » et « Nouvelle Demande », appel avec <code>derniersCriteres</code> (les filtres courants), téléchargement blob, nom de fichier calculé côté front (identique au Content-Disposition).</li>
+</ul>
+<p><b>Prérequis</b> : copier le template de la Jira dans <code>fund-management-application\src\main\resources\export\Template_QlickFlow_GesFond_GAB-Hors-Site.xlsx</code> (même dossier que celui de 279).</p></div><h2 id="back">1. Back — fund-management</h2><h3>1.1 Port repository + implémentation (mêmes filtres que searchMonetique, sans pagination)</h3><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepository.java</b><br><span class="path">fund-management-microservice\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\repository\CashDemandRepository.java</span></div><p class="note">Sous <code>searchMonetique</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-335 : toutes les demandes Monétique répondant aux filtres du listing (sans pagination), pour l&#x27;extraction. */</span>
+    List&lt;CashRequest&gt; rechercherTousMonetique(DemandeMonetiqueSearchCriteria criteria);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandRepositoryImpl.java</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java</span></div><p class="note">Sous <code>searchMonetique</code>. Aucun import nouveau : <code>Sort</code>, <code>Collectors</code>, <code>Function</code>, <code>DemandeMonetiqueSpecifications</code> sont déjà utilisés par <code>searchMonetique</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ----- AER_LM-335 : extraction Monétique (mêmes filtres que searchMonetique, sans pagination)</span>
+    @Override
+    @Transactional(readOnly = <span class="k">true</span>)
+    <span class="k">public</span> List&lt;CashRequest&gt; rechercherTousMonetique(DemandeMonetiqueSearchCriteria criteria) {
+        List&lt;CashRequestEntity&gt; entites = cashDemandJpaRepository.findAll(
+                DemandeMonetiqueSpecifications.of(criteria), Sort.by(Sort.Direction.DESC, <span class="s">&quot;creationDate&quot;</span>));
+        <span class="k">if</span> (entites.isEmpty()) {
+            <span class="k">return</span> List.of();
+        }
+        List&lt;UUID&gt; ids = entites.stream().map(CashRequestEntity::getId).toList();
+        Map&lt;UUID, CashRequestEntity&gt; arbre = cashDemandJpaRepository.findAllWithTreeByIdIn(ids).stream()
+                .collect(Collectors.toMap(CashRequestEntity::getId, Function.identity()));
+        <span class="k">return</span> ids.stream().map(arbre::<span class="k">get</span>).map(mapper::toDomain).toList();
+    }</code></pre></div><h3>1.2 Use case Monétique</h3><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>DemandeMonetiqueUseCase.java</b><br><span class="path">fund-management-microservice\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\inputs\service\DemandeMonetiqueUseCase.java</span></div><p class="note">Après <code>rechercher</code> (ligne 41). Import <code>java.util.List</code> si absent.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-335 : extraction Excel GAB Hors Site — même périmètre que rechercher() (filtres), sans pagination. */</span>
+    List&lt;CashRequestDTO&gt; exporter(DemandeMonetiqueSearchCriteria criteria, ContexteAppelant contexte);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>DemandeMonetiqueUseCaseImpl.java</b><br><span class="path">fund-management-microservice\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\DemandeMonetiqueUseCaseImpl.java</span></div><p class="note">Entre la section « Listing (AER_LM-327) » et « Helpers » ; réutilise <code>enrichir</code> (ligne 202). Import <code>java.util.List</code> si absent.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ------------------------------------------------------------------</span>
+    <span class="c">// Extraction Excel (AER_LM-335)</span>
+    <span class="c">// ------------------------------------------------------------------</span>
+
+    @Override
+    <span class="k">public</span> List&lt;CashRequestDTO&gt; exporter(DemandeMonetiqueSearchCriteria criteria, ContexteAppelant contexte) {
+        <span class="c">// Même règle que le listing : tout le Pôle voit l&#x27;historique ; le fichier = exactement ce que l&#x27;écran filtre (annulées comprises).</span>
+        <span class="k">return</span> cashDemandRepository.rechercherTousMonetique(criteria).stream().map(<span class="k">this</span>::enrichir).toList();
+    }</code></pre></div><h3>1.3 Générateur Excel — template à 1 feuille</h3><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>ExportExcelDemandes.java — import</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><p class="note">Avec les imports <code>java.time</code> existants.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> java.time.LocalDate;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>ExportExcelDemandes.java — méthodes</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><p class="note">Constantes sous <code>FORMAT_QUANTITE</code>, méthodes sous <code>nomDeFichier</code>. <code>remplirGab</code>, <code>ligne</code>, <code>Styles</code> : inchangés.</p><pre><button class="copy">Copier</button><code>    <span class="c">// --- AER_LM-335 : extraction Pôle Opérations Monétiques (feuille unique « GAB Hors Sites ») ---------------------</span>
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> TEMPLATE_GAB_HORS_SITE = <span class="s">&quot;export/Template_QlickFlow_GesFond_GAB-Hors-Site.xlsx&quot;</span>;
+    <span class="k">static</span> <span class="k">final</span> DateTimeFormatter JOUR = DateTimeFormatter.ofPattern(<span class="s">&quot;yyyyMMdd&quot;</span>);
+
+    <span class="c">/** Nom imposé par la Jira : QlickFlow_GesFond_GAB-Hors-Site_AAAAMMJJ.xlsx (sans heure). */</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">String</span> nomDeFichierGabHorsSite(LocalDate jour) {
+        <span class="k">return</span> <span class="s">&quot;QlickFlow_GesFond_GAB-Hors-Site_&quot;</span> + JOUR.format(jour) + <span class="s">&quot;.xlsx&quot;</span>;
+    }
+
+    <span class="c">/**
+     * AER_LM-335 : même périmètre que le listing Monétique (filtres), une ligne par GAB.
+     * Le template n&#x27;a qu&#x27;une feuille, structurée comme la feuille GAB de l&#x27;extraction Caisse Centrale
+     * (en-têtes ligne 3, ligne 4 = modèle de styles / formule « Total Alim. GAB ») : remplirGab est réutilisé tel quel.
+     */</span>
+    <span class="k">public</span> byte[] genererGabHorsSite(List&lt;CashRequestDTO&gt; demandes) {
+        <span class="k">try</span> (InputStream template = <span class="k">new</span> ClassPathResource(TEMPLATE_GAB_HORS_SITE).getInputStream();
+             Workbook classeur = <span class="k">new</span> XSSFWorkbook(template);
+             ByteArrayOutputStream sortie = <span class="k">new</span> ByteArrayOutputStream()) {
+
+            classeur.setForceFormulaRecalculation(<span class="k">true</span>);
+
+            List&lt;CashRequestDTO&gt; monetique = <span class="k">new</span> ArrayList&lt;&gt;(demandes.stream()
+                    .filter(d -&gt; <span class="k">new</span> ExtractionDemande(d).estMonetique()).toList());
+            monetique.sort(Comparator.comparing(CashRequestDTO::getUniqueRequestRef, Comparator.nullsLast(Comparator.naturalOrder())));
+
+            Sheet onglet = classeur.getSheetAt(0);
+            <span class="k">if</span> (monetique.isEmpty()) {
+                viderLigneModele(onglet);   <span class="c">// aucune demande : on ne laisse pas la ligne d&#x27;exemple du template</span>
+            } <span class="k">else</span> {
+                remplirGab(onglet, monetique, <span class="k">new</span> Styles(classeur));
+            }
+
+            classeur.write(sortie);
+            <span class="k">return</span> sortie.toByteArray();
+        } <span class="k">catch</span> (IOException e) {
+            <span class="k">throw</span> <span class="k">new</span> UncheckedIOException(<span class="s">&quot;Génération de l&#x27;extraction GAB Hors Site impossible&quot;</span>, e);
+        }
+    }
+
+    <span class="c">/** Vide la ligne d&#x27;exemple (styles et formule conservés) — ligne() appliquée sur elle-même. */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">void</span> viderLigneModele(Sheet onglet) {
+        Row modele = onglet.getRow(GAB_PREMIERE_LIGNE);
+        <span class="k">if</span> (modele != <span class="k">null</span>) ligne(onglet, GAB_PREMIERE_LIGNE, modele);
+    }</code></pre></div><h3>1.4 Ressource</h3><div class="card"><code>fund-management-application\src\main\resources\export\Template_QlickFlow_GesFond_GAB-Hors-Site.xlsx</code> : le fichier joint à la Jira, tel quel (la ligne d'exemple 100/200/100/100 sert de modèle et est réécrite / vidée).</div><h3>1.5 Endpoint — MonetiqueDemandController</h3><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>MonetiqueDemandController.java — imports</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\MonetiqueDemandController.java</span></div><p class="note"><code>LocalDate</code> et <code>DateTimeFormat</code> sont déjà importés (utilisés par <code>rechercher</code>).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>.ExportExcelDemandes;
+<span class="k">import</span> org.springframework.http.HttpHeaders;
+<span class="k">import</span> org.springframework.http.MediaType;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>MonetiqueDemandController.java — champs</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\MonetiqueDemandController.java</span></div><p class="note">Lignes 31-32 : ajout du générateur (injecté par <code>@RequiredArgsConstructor</code>).</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">final</span> DemandeMonetiqueUseCase demandeMonetiqueUseCase;
+    <span class="k">private</span> <span class="k">final</span> ContexteAppelantCourant contexteCourant;
+    <span class="k">private</span> <span class="k">final</span> ExportExcelDemandes exportExcelDemandes;   <span class="c">// AER_LM-335</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>MonetiqueDemandController.java — GET /cash/monetique/export</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\MonetiqueDemandController.java</span></div><p class="note">Après <code>rechercher</code> (ligne 97). Même droit que le listing : <code>DroitsMonetique.CONSULTER</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">/**
+     * AER_LM-335 : extraction Excel du listing (mêmes filtres que rechercher(), toutes les pages).
+     * « /export » est littéral : prioritaire sur « /{id} ». Le produces de la méthode remplace celui de la classe (fichier xlsx).
+     */</span>
+    @GetMapping(value = <span class="s">&quot;/export&quot;</span>, produces = ExportExcelDemandes.CONTENT_TYPE)
+    @PreAuthorize(<span class="s">&quot;hasAuthority(&#x27;&quot;</span> + DroitsMonetique.CONSULTER + <span class="s">&quot;&#x27;)&quot;</span>)
+    <span class="k">public</span> ResponseEntity&lt;byte[]&gt; exporter(
+            @RequestParam(required = <span class="k">false</span>) <span class="k">String</span> statut,
+            @RequestParam(required = <span class="k">false</span>) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
+            @RequestParam(required = <span class="k">false</span>) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin,
+            @RequestParam(required = <span class="k">false</span>) <span class="k">String</span> ville,
+            @RequestParam(required = <span class="k">false</span>) <span class="k">String</span> agence,
+            @RequestParam(required = <span class="k">false</span>) <span class="k">String</span> nomGab,
+            @RequestParam(required = <span class="k">false</span>) Boolean vidage,
+            @RequestParam(required = <span class="k">false</span>) Boolean vidageSeul,
+            @RequestParam(required = <span class="k">false</span>) <span class="k">String</span> recherche) {
+
+        DemandeMonetiqueSearchCriteria criteria = <span class="k">new</span> DemandeMonetiqueSearchCriteria(
+                statut, dateDebut, dateFin, ville, agence, nomGab, vidage, vidageSeul, recherche,
+                0, DemandeMonetiqueSearchCriteria.SIZE_MAX);
+        byte[] fichier = exportExcelDemandes.genererGabHorsSite(
+                demandeMonetiqueUseCase.exporter(criteria, contexteCourant.courant()));
+        <span class="k">String</span> nom = ExportExcelDemandes.nomDeFichierGabHorsSite(LocalDate.now());
+        <span class="k">return</span> ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, <span class="s">&quot;attachment; filename=\&quot;&quot;</span> + nom + <span class="s">&quot;\&quot;&quot;</span>)
+                .contentType(MediaType.parseMediaType(ExportExcelDemandes.CONTENT_TYPE))
+                .body(fichier);
+    }</code></pre></div><h3>1.6 Tests</h3><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>ExportExcelGabHorsSiteTest.java</b><br><span class="path">fund-management-microservice\fund-management-application\src\test\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelGabHorsSiteTest.java</span></div><p class="note">Lit le vrai template du classpath : nommage Jira + périmètre vide (en-têtes conservés, ligne d'exemple vidée). Le use case (3 lignes, pas de garde) est couvert par la recette ; test unitaire à ajouter dans la classe de test de <code>DemandeMonetiqueUseCaseImpl</code> si tu me l'envoies.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
+
+<span class="k">import</span> org.apache.poi.ss.usermodel.CellType;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Row;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Sheet;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Workbook;
+<span class="k">import</span> org.apache.poi.xssf.usermodel.XSSFWorkbook;
+<span class="k">import</span> org.junit.jupiter.api.Assertions;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+
+<span class="k">import</span> java.io.ByteArrayInputStream;
+<span class="k">import</span> java.io.IOException;
+<span class="k">import</span> java.time.LocalDate;
+<span class="k">import</span> java.util.List;
+
+<span class="c">/** AER_LM-335 : template GAB Hors Site (feuille unique) + nommage imposé par la Jira. */</span>
+<span class="k">class</span> ExportExcelGabHorsSiteTest {
+
+    <span class="k">private</span> <span class="k">final</span> ExportExcelDemandes <span class="k">export</span> = <span class="k">new</span> ExportExcelDemandes();
+
+    @Test
+    <span class="k">void</span> nomDeFichier_respecteLeFormatDeLaJira() {
+        Assertions.assertEquals(<span class="s">&quot;QlickFlow_GesFond_GAB-Hors-Site_20261030.xlsx&quot;</span>,
+                ExportExcelDemandes.nomDeFichierGabHorsSite(LocalDate.of(2026, 10, 30)));
+    }
+
+    @Test
+    <span class="k">void</span> sansDemande_leClasseurGardeSesEntetesEtLaLigneExempleEstVidee() <span class="k">throws</span> IOException {
+        byte[] fichier = <span class="k">export</span>.genererGabHorsSite(List.of());
+
+        <span class="k">try</span> (Workbook classeur = <span class="k">new</span> XSSFWorkbook(<span class="k">new</span> ByteArrayInputStream(fichier))) {
+            Assertions.assertEquals(1, classeur.getNumberOfSheets());
+            Sheet onglet = classeur.getSheetAt(0);
+
+            Row entetes = onglet.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE - 1);
+            Assertions.assertEquals(<span class="s">&quot;Référence&quot;</span>, entetes.getCell(0).getStringCellValue());
+
+            Row modele = onglet.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE);
+            Assertions.assertEquals(CellType.BLANK, modele.getCell(0).getCellType());
+            Assertions.assertEquals(CellType.BLANK, modele.getCell(ExportExcelDemandes.GAB_PREMIERE_CASSETTE).getCellType());
+        }
+    }
+}</code></pre></div><h2 id="front">2. Front — fund-management-front</h2><h3>2.1 Port + client HTTP</h3><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>monetique.service.ts</b><br><span class="path">fund-management-front\src\app\features\fund-management\domain\domain-application-services\output\monetique.service.ts</span></div><p class="note">Dans l'interface <code>MonetiqueService</code>, après <code>rechercher</code>.</p><pre><button class="copy">Copier</button><code>  <span class="c">/** AER_LM-335 : extraction Excel GAB Hors Site du périmètre filtré (page / size ignorés). */</span>
+  exporter(criteres: CriteresMonetique): Promise&lt;Blob&gt;;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>monetique-http.service.ts — ancien rechercher</b><br><span class="path">fund-management-front\src\app\features\fund-management\adapters\apiAdapters\monetique-http.service.ts</span></div><p class="note">Lignes 27-38 : supprimer entièrement cette méthode (elle est réécrite ci-dessous ; la garder provoque TS2393 Duplicate function implementation).</p><pre><button class="copy">Copier</button><code>  rechercher(criteres: CriteresMonetique): Promise&lt;PageMonetique&gt; {
+    <span class="k">let</span> params = <span class="k">new</span> HttpParams().<span class="k">set</span>(<span class="s">&#x27;page&#x27;</span>, criteres.page).<span class="k">set</span>(<span class="s">&#x27;size&#x27;</span>, criteres.size);
+    <span class="k">const</span> optionnels: (keyof CriteresMonetique)[] =
+      [<span class="s">&#x27;statut&#x27;</span>, <span class="s">&#x27;dateDebut&#x27;</span>, <span class="s">&#x27;dateFin&#x27;</span>, <span class="s">&#x27;ville&#x27;</span>, <span class="s">&#x27;agence&#x27;</span>, <span class="s">&#x27;nomGab&#x27;</span>, <span class="s">&#x27;vidage&#x27;</span>, <span class="s">&#x27;vidageSeul&#x27;</span>, <span class="s">&#x27;recherche&#x27;</span>];
+    <span class="k">for</span> (<span class="k">const</span> cle of optionnels) {
+      <span class="k">const</span> v = criteres[cle];
+      <span class="k">if</span> (v !== undefined &amp;&amp; v !== <span class="k">null</span> &amp;&amp; <span class="k">String</span>(v).trim() !== <span class="s">&#x27;&#x27;</span>) {
+        params = params.<span class="k">set</span>(cle, <span class="k">String</span>(v).trim());
+      }
+    }
+    <span class="k">return</span> <span class="k">this</span>.appel(<span class="k">this</span>.http.<span class="k">get</span>&lt;ApiResponse&lt;PageMonetique&gt;&gt;(<span class="k">this</span>.apiUrl, { params }));
+  }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>monetique-http.service.ts — rechercher + exporter + parametres</b><br><span class="path">fund-management-front\src\app\features\fund-management\adapters\apiAdapters\monetique-http.service.ts</span></div><p class="note">À la place de l'ancien <code>rechercher</code> (ou après <code>annuler</code>, peu importe). Aucun import nouveau.</p><pre><button class="copy">Copier</button><code>  rechercher(criteres: CriteresMonetique): Promise&lt;PageMonetique&gt; {
+    <span class="k">const</span> params = <span class="k">this</span>.parametres(criteres).<span class="k">set</span>(<span class="s">&#x27;page&#x27;</span>, criteres.page).<span class="k">set</span>(<span class="s">&#x27;size&#x27;</span>, criteres.size);
+    <span class="k">return</span> <span class="k">this</span>.appel(<span class="k">this</span>.http.<span class="k">get</span>&lt;ApiResponse&lt;PageMonetique&gt;&gt;(<span class="k">this</span>.apiUrl, { params }));
+  }
+
+  <span class="c">/** AER_LM-335 : GET /cash/monetique/export — mêmes filtres que le listing, sans pagination ; réponse binaire (xlsx). */</span>
+  exporter(criteres: CriteresMonetique): Promise&lt;Blob&gt; {
+    <span class="k">return</span> firstValueFrom(<span class="k">this</span>.http.<span class="k">get</span>(<span class="s">`${this.apiUrl}/export`</span>, { params: <span class="k">this</span>.parametres(criteres), responseType: <span class="s">&#x27;blob&#x27;</span> }).pipe(
+      catchError(err =&gt; throwError(() =&gt; <span class="k">this</span>.versErreurApi(err))),
+    ));
+  }
+
+  <span class="c">/** Filtres du listing → query string (valeurs vides ignorées) ; partagé par rechercher() et exporter(). */</span>
+  <span class="k">private</span> parametres(criteres: CriteresMonetique): HttpParams {
+    <span class="k">let</span> params = <span class="k">new</span> HttpParams();
+    <span class="k">const</span> optionnels: (keyof CriteresMonetique)[] =
+      [<span class="s">&#x27;statut&#x27;</span>, <span class="s">&#x27;dateDebut&#x27;</span>, <span class="s">&#x27;dateFin&#x27;</span>, <span class="s">&#x27;ville&#x27;</span>, <span class="s">&#x27;agence&#x27;</span>, <span class="s">&#x27;nomGab&#x27;</span>, <span class="s">&#x27;vidage&#x27;</span>, <span class="s">&#x27;vidageSeul&#x27;</span>, <span class="s">&#x27;recherche&#x27;</span>];
+    <span class="k">for</span> (<span class="k">const</span> cle of optionnels) {
+      <span class="k">const</span> v = criteres[cle];
+      <span class="k">if</span> (v !== undefined &amp;&amp; v !== <span class="k">null</span> &amp;&amp; <span class="k">String</span>(v).trim() !== <span class="s">&#x27;&#x27;</span>) {
+        params = params.<span class="k">set</span>(cle, <span class="k">String</span>(v).trim());
+      }
+    }
+    <span class="k">return</span> params;
+  }</code></pre></div><h3>2.2 État + façade</h3><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>monetique.store.ts</b><br><span class="path">fund-management-front\src\app\features\fund-management\adapters\localState\monetique.store.ts</span></div><p class="note">Après <code>erreurListe</code>.</p><pre><button class="copy">Copier</button><code>  <span class="c">// ----- extraction Excel (335)</span>
+  <span class="k">readonly</span> exportEnCours = signal(<span class="k">false</span>);
+  <span class="k">readonly</span> erreurExport = signal&lt;string | <span class="k">null</span>&gt;(<span class="k">null</span>);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>monetique.facade.ts</b><br><span class="path">fund-management-front\src\app\features\fund-management\adapters\localState\monetique.facade.ts</span></div><p class="note">Signaux après <code>erreur</code> (ligne 25) ; méthode après <code>chargerListe</code>. <code>messageErreur</code> est la constante du fichier.</p><pre><button class="copy">Copier</button><code>  <span class="k">readonly</span> exportEnCours = <span class="k">this</span>.store.exportEnCours.asReadonly();
+  <span class="k">readonly</span> erreurExport = <span class="k">this</span>.store.erreurExport.asReadonly();
+
+  <span class="c">/** AER_LM-335 : fichier Excel du périmètre filtré, ou null (erreur dans erreurExport()). */</span>
+  <span class="k">async</span> exporter(criteres: CriteresMonetique): Promise&lt;Blob | <span class="k">null</span>&gt; {
+    <span class="k">this</span>.store.exportEnCours.<span class="k">set</span>(<span class="k">true</span>);
+    <span class="k">this</span>.store.erreurExport.<span class="k">set</span>(<span class="k">null</span>);
+    <span class="k">try</span> {
+      <span class="k">return</span> <span class="k">await</span> <span class="k">this</span>.service.exporter(criteres);
+    } <span class="k">catch</span> (e) {
+      <span class="k">this</span>.store.erreurExport.<span class="k">set</span>(messageErreur(e));
+      <span class="k">return</span> <span class="k">null</span>;
+    } <span class="k">finally</span> {
+      <span class="k">this</span>.store.exportEnCours.<span class="k">set</span>(<span class="k">false</span>);
+    }
+  }</code></pre></div><h3>2.3 Écran listing</h3><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demandes-monetique-list.component.ts — fonctions</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.ts</span></div><p class="note">Au niveau module, entre les imports et <code>@Component</code>.</p><pre><button class="copy">Copier</button><code><span class="c">/** Nom imposé par la Jira (identique à celui du Content-Disposition du back) : QlickFlow_GesFond_GAB-Hors-Site_AAAAMMJJ.xlsx */</span>
+<span class="k">export</span> <span class="k">function</span> nomFichierExportGabHorsSite(jour: Date): string {
+  <span class="k">const</span> aaaammjj = <span class="s">`${jour.getFullYear()}${String(jour.getMonth() + 1).padStart(2, &#x27;0&#x27;)}${String(jour.getDate()).padStart(2, &#x27;0&#x27;)}`</span>;
+  <span class="k">return</span> <span class="s">`QlickFlow_GesFond_GAB-Hors-Site_${aaaammjj}.xlsx`</span>;
+}
+
+<span class="c">/** Téléchargement navigateur d&#x27;un Blob (lien temporaire, révoqué après le clic). */</span>
+<span class="k">function</span> telechargerFichier(contenu: Blob, nom: string): <span class="k">void</span> {
+  <span class="k">const</span> url = URL.createObjectURL(contenu);
+  <span class="k">const</span> lien = document.createElement(<span class="s">&#x27;a&#x27;</span>);
+  lien.href = url;
+  lien.download = nom;
+  lien.click();
+  URL.revokeObjectURL(url);
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demandes-monetique-list.component.ts — méthode</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.ts</span></div><p class="note">Dans la section « Barre d'outils », après <code>actualiser()</code>.</p><pre><button class="copy">Copier</button><code>  <span class="c">/** AER_LM-335 : extraction Excel du périmètre affiché (filtres courants, toutes pages). */</span>
+  <span class="k">async</span> exporter(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">const</span> fichier = <span class="k">await</span> <span class="k">this</span>.facade.exporter(<span class="k">this</span>.derniersCriteres);
+    <span class="k">if</span> (!fichier) { <span class="k">return</span>; }
+    telechargerFichier(fichier, nomFichierExportGabHorsSite(<span class="k">new</span> Date()));
+  }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-monetique-list.component.html</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.html</span></div><p class="note">Remplace le bloc <code>&lt;div class="entete__actions"&gt;…&lt;/div&gt;</code>.</p><pre><button class="copy">Copier</button><code>    &lt;div <span class="k">class</span>=<span class="s">&quot;entete__actions&quot;</span>&gt;
+      &lt;span <span class="k">class</span>=<span class="s">&quot;entete__erreur&quot;</span> *ngIf=<span class="s">&quot;facade.erreurExport() as erreur&quot;</span>&gt;
+        &lt;mat-icon fontSet=<span class="s">&quot;material-symbols-outlined&quot;</span>&gt;error_outline&lt;/mat-icon&gt; {{ erreur }}
+      &lt;/span&gt;
+      &lt;button <span class="k">type</span>=<span class="s">&quot;button&quot;</span> <span class="k">class</span>=<span class="s">&quot;bouton bouton--clair&quot;</span> (click)=<span class="s">&quot;actualiser()&quot;</span> [disabled]=<span class="s">&quot;facade.chargementListe()&quot;</span>&gt;
+        &lt;mat-icon fontSet=<span class="s">&quot;material-symbols-outlined&quot;</span> <span class="k">class</span>=<span class="s">&quot;icone-tourne&quot;</span> [<span class="k">class</span>.icone-tourne<span class="c">--actif]=&quot;facade.chargementListe()&quot;&gt;sync&lt;/mat-icon&gt;</span>
+        &lt;span&gt;Actualiser le flux&lt;/span&gt;
+      &lt;/button&gt;
+      &lt;button <span class="k">type</span>=<span class="s">&quot;button&quot;</span> <span class="k">class</span>=<span class="s">&quot;bouton bouton--clair&quot;</span> (click)=<span class="s">&quot;exporter()&quot;</span>
+              [disabled]=<span class="s">&quot;facade.exportEnCours() || facade.chargementListe()&quot;</span> title=<span class="s">&quot;Extraction Excel des demandes filtrées&quot;</span>&gt;
+        &lt;mat-icon fontSet=<span class="s">&quot;material-symbols-outlined&quot;</span> <span class="k">class</span>=<span class="s">&quot;icone-export&quot;</span>&gt;download&lt;/mat-icon&gt;
+        &lt;span&gt;{{ facade.exportEnCours() ? <span class="s">&#x27;Export en cours…&#x27;</span> : <span class="s">&#x27;Exporter Excel&#x27;</span> }}&lt;/span&gt;
+      &lt;/button&gt;
+      &lt;button <span class="k">type</span>=<span class="s">&quot;button&quot;</span> <span class="k">class</span>=<span class="s">&quot;bouton bouton--primaire&quot;</span> (click)=<span class="s">&quot;nouvelleDemande()&quot;</span>&gt;
+        &lt;mat-icon fontSet=<span class="s">&quot;material-symbols-outlined&quot;</span>&gt;add_circle&lt;/mat-icon&gt;
+        &lt;span&gt;Nouvelle Demande&lt;/span&gt;
+      &lt;/button&gt;
+    &lt;/div&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-monetique-list.component.scss — en-tête</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.scss</span></div><p class="note">Remplace les lignes <code>.entete { … flex-wrap: wrap; … }</code> et <code>.entete__textes { … }</code> du bloc « en-tête » : sans ça, le 3ᵉ bouton fait passer les actions sous le titre.</p><pre><button class="copy">Copier</button><code><span class="c">// ---------------------------------------------------------------- en-tête (section … gap-4 pb-6)</span>
+<span class="c">// AER_LM-335 : 3 boutons → plus de wrap sur desktop (les textes se rétrécissent, les actions restent sur la ligne du titre) ;</span>
+<span class="c">// le passage en colonne reste géré par la media query 767 px.</span>
+.entete { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 24px; }
+.entete__textes { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0; }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demandes-monetique-list.component.scss</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.scss</span></div><p class="note">Après le bloc « boutons » (sous <code>@keyframes tourne</code>).</p><pre><button class="copy">Copier</button><code><span class="c">// ---- AER_LM-335 : bouton Exporter Excel (même style que « Actualiser le flux ») + message d&#x27;erreur d&#x27;export</span>
+.icone-<span class="k">export</span> { color: <span class="k">var</span>(<span class="c">--primary); }</span>
+.entete__actions { flex-shrink: 0; }
+.entete__erreur { @include body-sm; display: inline-flex; align-items: center; gap: 6px; color: <span class="k">var</span>(<span class="c">--error);</span>
+  mat-icon { font-size: 16px; width: 16px; height: 16px; } }</code></pre></div><h2 id="recette">3. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Postman + écran</b><br><span class="path">recette\AER_LM-335.txt</span></div><pre><button class="copy">Copier</button><code># Collection « AER_LM-335 — Export GAB Hors Site » — variables : {{gateway}} = http:<span class="c">//localhost:9090, {{jwt}} = token d&#x27;un profil Pôle Monétique</span>
+# 1. Export sans filtre
+GET {{gateway}}/api/fund-management/cash/monetique/<span class="k">export</span>
+Authorization: Bearer {{jwt}}
+# Tests :
+pm.test(<span class="s">&quot;200 + xlsx&quot;</span>, () =&gt; { pm.response.to.have.status(200);
+  pm.expect(pm.response.headers.<span class="k">get</span>(<span class="s">&quot;Content-Type&quot;</span>)).to.include(<span class="s">&quot;spreadsheetml&quot;</span>); });
+pm.test(<span class="s">&quot;nom de fichier Jira&quot;</span>, () =&gt; {
+  <span class="k">const</span> cd = pm.response.headers.<span class="k">get</span>(<span class="s">&quot;Content-Disposition&quot;</span>);
+  pm.expect(cd).to.match(/attachment; filename=<span class="s">&quot;QlickFlow_GesFond_GAB-Hors-Site_\d{8}\.xlsx&quot;</span>/); });
+# → « Save response to file » : ouvrir dans Excel, 1 feuille « GAB Hors Sites », 1 ligne par GAB, Q = total des cassettes.
+
+# 2. Export filtré (mêmes paramètres que l&#x27;écran : date, ville, statut, vidage)
+GET {{gateway}}/api/fund-management/cash/monetique/<span class="k">export</span>?dateDebut=2026-10-01&amp;dateFin=2026-10-30&amp;ville=Casablanca&amp;statut=VALIDATED&amp;vidage=<span class="k">true</span>
+# → seules les lignes du périmètre ; comparer le nombre de références distinctes avec « Affichage de … sur N demandes » de l&#x27;écran (même filtres, total N).
+
+# 3. Périmètre vide
+GET {{gateway}}/api/fund-management/cash/monetique/<span class="k">export</span>?nomGab=ZZZ-inexistant
+# → 200, fichier avec les en-têtes seuls (ligne 4 vide, pas la ligne d&#x27;exemple 100/200/100/100 du template).
+
+# 4. Sans droit (jwt d&#x27;un profil agence, sans DroitsMonetique.CONSULTER)
+# → 403 (ApiResponse d&#x27;erreur du handler), aucun fichier.
+
+# 5. Filtre statut annulé
+GET {{gateway}}/api/fund-management/cash/monetique/<span class="k">export</span>?statut=CANCELLED
+# → les annulées sont bien dans le fichier (le périmètre = l&#x27;écran, annulées comprises).
+
+# Écran : bouton « Exporter Excel » entre « Actualiser le flux » et « Nouvelle Demande » ; libellé « Export en cours… » pendant l&#x27;appel ;
+# le fichier téléchargé porte le nom du jour ; en cas d&#x27;erreur, message rouge à gauche des boutons, le tableau reste affiché.</code></pre></div><div class="card"><b>Checklist</b> : <code>mvn clean install</code> (2 tests nouveaux + suite existante inchangée) · template copié dans <code>resources/export</code> · <code>ng build</code> · export depuis l'écran avec et sans filtres, fichier du jour, ouverture Excel (formule Q recalculée à l'ouverture).</div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
