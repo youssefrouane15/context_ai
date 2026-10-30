@@ -1,0 +1,75 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>portail-ci — Merge develop → develop-omega (préparation prod DMZR)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>portail-ci — Merge develop → develop-omega (préparation prod DMZR)</h1><p>Même flux que utilisateurs-ci : branche chore/merge-develop, merge --no-ff, règles de résolution par fichier, build + specs, MR · 30/10/2026</p></header><nav><a href="#diff">Différences avec utilisateurs-ci</a><a href="#cmd">Commandes</a><a href="#regles">Règles de résolution</a><a href="#recette">Recette</a></nav><main><h2 id="diff">0. Différences avec utilisateurs-ci</h2><div class="card"><ul>
+<li><b>Pas de Flyway</b> : rien à renuméroter. Les conflits sont du code Angular + <code>package-lock.json</code>.</li>
+<li><b>Risque n°1 : la montée Angular 15 → 17</b> (MR !42, Module Federation host). Si develop est resté en Angular 15, tout fichier develop touché (composants, modules, specs) doit être relu pour la syntaxe/API 17 — le build le dira.</li>
+<li><b>Risque n°2 : <code>package-lock.json</code></b> — ne se résout jamais à la main : on prend le nôtre (Angular 17), on réapplique les dépendances ajoutées par develop dans <code>package.json</code>, puis <code>npm install</code> régénère le lock.</li>
+<li>Le flux git est identique : branche <code>chore/merge-develop</code> depuis develop-omega → merge develop → MR vers develop-omega → plus tard MR develop-omega → develop.</li>
+</ul></div><h2 id="cmd">1. Commandes</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Git Bash — état des lieux, merge, build</b><br><span class="path">C:\dev\portail-ci (Git Bash)</span></div><p class="note">La commande <code>comm</code> de l'étape 1 donne la liste des fichiers modifiés des deux côtés : c'est ta liste de conflits avant même de merger.</p><pre><button class="copy">Copier</button><code># Git Bash — portail-ci
+cd /c/dev/portail-ci
+git fetch origin <span class="c">--prune</span>
+git checkout develop-omega &amp;&amp; git pull origin develop-omega
+git checkout -b chore/merge-develop
+
+# 1) état des lieux AVANT de merger : ce que develop a changé depuis la divergence
+git log <span class="c">--oneline --no-merges develop-omega..origin/develop            # commits develop absents chez nous</span>
+git diff <span class="c">--stat $(git merge-base develop-omega origin/develop) origin/develop | tail -40</span>
+git diff <span class="c">--name-only $(git merge-base develop-omega origin/develop) origin/develop &gt; /tmp/develop-files.txt</span>
+git diff <span class="c">--name-only $(git merge-base develop-omega origin/develop) develop-omega  &gt; /tmp/omega-files.txt</span>
+comm -12 &lt;(sort /tmp/develop-files.txt) &lt;(sort /tmp/omega-files.txt)   # fichiers touchés des DEUX côtés = conflits probables
+
+# 2) merge
+git merge <span class="c">--no-ff origin/develop -m &quot;merge develop into develop-omega (portail-ci)&quot;</span>
+git status <span class="c">--short | grep -E &#x27;^(UU|AA|DU|UD)&#x27;                            # liste des conflits → règles §2</span>
+
+# 3) après résolution
+git add -A &amp;&amp; git commit <span class="c">--no-edit</span>
+rm -rf node_modules &amp;&amp; npm ci                                            # <span class="k">package</span>-lock résolu → réinstall propre
+npx ng build <span class="c">--configuration development                                 # build shell</span>
+npx ng test <span class="c">--watch=false --browsers=ChromeHeadless                      # specs (karma)</span>
+git push -u origin chore/merge-develop
+# GitLab : MR chore/merge-develop -&gt; develop-omega ; puis develop-omega -&gt; develop quand validé en staging</code></pre></div><h2 id="regles">2. Règles de résolution</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Principe</b><br><span class="path">mémo</span></div><pre><button class="copy">Copier</button><code>Résolution d&#x27;un fichier en conflit (IntelliJ : Git &gt; Resolve conflicts, ou à la main) :
+  - <span class="s">&quot;ours&quot;</span>   = develop-omega (nos devs : console agences/zones/GAB, dashboard GDF, Angular 17 + MF host)
+  - <span class="s">&quot;theirs&quot;</span> = origin/develop (les autres équipes : DC, Mainlevée, recherche users)
+Jamais <span class="s">&quot;accept ours/theirs&quot;</span> en bloc sur un fichier partagé : on garde les deux apports.
+Après chaque fichier : npx ng build jusqu&#x27;à vert, puis git add &lt;fichier&gt;.</code></pre></div><div class="card"><table><tr><th>Fichier</th><th>Résolution</th></tr>
+<tr><td><code>package.json</code></td><td>Garder <b>nos versions</b> Angular / ngx-build-plus / module-federation 17 ; <b>ajouter</b> les dépendances nouvelles de develop (librairies DC / Mainlevée). Si develop a monté une lib qu'on a aussi, prendre la plus haute compatible 17.</td></tr>
+<tr><td><code>package-lock.json</code></td><td><code>git checkout --ours package-lock.json</code> puis, après <code>package.json</code> résolu : <code>npm install</code> → commit du lock régénéré. Jamais d'édition manuelle.</td></tr>
+<tr><td><code>angular.json</code>, <code>webpack.config.js</code>, <code>tsconfig*.json</code></td><td>Garder notre config (builder ngx-build-plus, <code>extraWebpackConfig</code>, MF). Reprendre de develop uniquement un nouvel asset / style / projet déclaré.</td></tr>
+<tr><td><code>src/app/app.module.ts</code>, <code>app-routing.module.ts</code></td><td>Garder les deux : nos routes <code>/admin/**</code> (console) et <code>/portail</code> (remote MF, guard) + les nouvelles routes/modules develop (DC, Mainlevée). Vérifier qu'aucun module n'est importé deux fois et l'ordre des routes (wildcard <code>**</code> en dernier).</td></tr>
+<tr><td><code>src/app/console/**</code></td><td>Normalement à nous seuls. Si develop a touché <code>console.module.ts</code> / <code>console-routing.module.ts</code>, garder nos routes <code>agence</code>, <code>parametres/gab-hors-site</code> + les leurs.</td></tr>
+<tr><td><code>shared/interfaces/*.interface.ts</code>, enum TS <code>Permission</code></td><td>Garder les deux : nos <code>GDF_*</code>, <code>AgenceDTO</code> étendu (zoneDistribution, prestataire, coutDeplacement), <code>GabHorsSite*</code> + leurs <code>DC_*</code> / <code>MLCHAB_*</code>. Aucune valeur en double (le build TS le refuse).</td></tr>
+<tr><td><code>core/services/**</code> (auth, organization, distributor, gab)</td><td>Garder les deux. Sur <code>AuthService</code> / <code>CredentialsInterceptor</code> : base develop, réappliquer notre logique MF (contexte porté par le shell, <code>LoginGuard</code> du remote désactivé).</td></tr>
+<tr><td><code>layouts/side-menu</code>, <code>dashboard.component.*</code></td><td>Garder les deux entrées de menu / cartes : nos cartes Dérogation + Gestion des fonds conditionnées par permission (<code>checkCardPermissions</code>), leurs cartes DC / Mainlevée. Même pattern <code>*ngIf hasPermission([...])</code>.</td></tr>
+<tr><td><code>environments/*.ts</code>, <code>proxy.config.json</code></td><td>Garder les nôtres (gateway 9090, <code>consoleApiV1</code>, <code>/cash</code> → 8300, <code>mockAuthEnabled</code>) + ajouter les clés nouvelles de develop. Les URLs DMZR (prod/staging) viennent du tech lead, pas de ce merge.</td></tr>
+<tr><td><code>src/assets/mf.manifest.json</code>, <code>main.ts</code>, <code>bootstrap.ts</code></td><td>Nôtres (MF host). Develop ne doit pas les avoir.</td></tr>
+<tr><td><code>.gitlab-ci.yml</code>, <code>sonar-project.properties</code>, <code>Dockerfile</code>, <code>nginx.conf</code></td><td>Version develop (pipeline du tech lead).</td></tr>
+<tr><td><code>*.spec.ts</code></td><td>Garder les deux ; une spec develop qui casse sur Angular 17 → adapter (TestBed, <code>HttpClientTestingModule</code> → <code>provideHttpClientTesting</code> si déjà migré chez nous).</td></tr></table></div><h2 id="recette">3. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Smoke test shell + MFE</b><br><span class="path">recette\portail-ci_merge.txt</span></div><pre><button class="copy">Copier</button><code># Recette shell après merge (mode mock, dev-sso 9001 + utilisateurs-ci 8091 + gateway 9090 + fund-management 8300 + remote 4201)
+1. npm start → http:<span class="c">//localhost:4200, login mock h11111 (SA)</span>
+2. Dashboard : cartes « Dérogation » + « Gestion des fonds » visibles ; cartes DC / Mainlevée (develop) visibles si le profil a les permissions
+3. Console /admin : onglets Agences (zone transporteur / prestataire / coût), Zones, Zone Transporteur ; Paramètres &gt; GAB hors site (sous-menu au survol)
+4. Carte « Gestion des fonds » → /portail → remote fund-management chargé (mf.manifest.json), listing agence / CC / monétique selon profil
+5. Profil DA : menu Mainlevée (develop V16) ET accès gestion des fonds (rôle GDF Agence) — preuve que les deux lots cohabitent
+6. ng test vert, pipeline GitLab (lint + build + quality) verte sur la MR</code></pre></div><div class="card">Si le merge sort des conflits hors de ce tableau ou un fichier develop incompréhensible (DC/Mainlevée), envoie-moi la sortie de <code>git status --short | grep -E '^(UU|AA)'</code> et la portion <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; … &gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> du fichier : je tranche fichier par fichier.</div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
