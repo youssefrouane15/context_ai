@@ -1,0 +1,238 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>utilisateurs-ci — Merge develop → develop-omega · Partie 2 : scripts de seed sans ids en dur</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>utilisateurs-ci — Merge develop → develop-omega · Partie 2 : scripts de seed sans ids en dur</h1><p>V19 · V21 · V25 · V26 réécrits en nextval() + résolution par name / code (idempotents, aucun setval) · 30/10/2026</p></header><nav><a href="#chg">Ce qui change</a><a href="#sql">Scripts</a><a href="#verif">Vérification après boot sur base vide</a></nav><main><h2 id="chg">0. Ce qui change</h2><div class="card"><ul>
+<li><b>Aucun id en dur, aucun <code>setval</code></b> : ids par <code>nextval()</code> (comme develop), rôles résolus par <code>name</code>, profils par <code>code</code>, rattachements par jointure. Seule exception : le rôle 8 « Super Admin » (V6, commun à develop).</li>
+<li><b>V19</b> : ton bloc CHECK (DO $$ + 5 plateformes + DROP permission) conservé tel quel ; sections 2-4 réécrites ; section 5 (setval) supprimée.</li>
+<li><b>V21</b> : rôle « GDF Export » sans id 13.</li>
+<li><b>V25</b> : rôles existants 11/12 → par name ; <code>max(id)+1</code> → <code>nextval</code> ; setval supprimés.</li>
+<li><b>V26</b> : <code>r.id = 11</code> → <code>r.name = 'GDF Caisse Centrale'</code> ; idem nextval / setval.</li>
+<li>Non touchés : V17, V18, V20 (rôle 8), V22, V23, V24 — pas de hab_* ou id V6/V8 stable.</li>
+</ul>
+<div class="warn">Point ouvert, hors merge : <code>GDF_CONSULTER_DEMANDE_MONETIQUE</code> (décision du 22/10 : Pôle + CC + Support) n'apparaît dans aucun des 4 scripts — il n'y a pas de script omega pour ça dans la branche. À traiter en V27 après le merge si l'enum Java la porte déjà.</div></div><h2 id="sql">1. Scripts</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>V19__create_gdf_habilitations.sql</b><br><span class="path">utilisateurs-ci\src\main\resources\db\migration\V19__create_gdf_habilitations.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- =====================================================================================</span>
+<span class="c">-- V19 (ex-V16, AER_LM-261) : plateforme GESTION_FONDS — rôles, profils et permissions GDF</span>
+<span class="c">-- Merge develop 30/10 : plus aucun id en dur (develop insère par nextval, incrément 1 sur</span>
+<span class="c">-- hab_profiles_seq → collision garantie sur les ids 9-11). Rôles et profils sont résolus</span>
+<span class="c">-- par name / code, inserts idempotents (NOT EXISTS), aucun setval.</span>
+<span class="c">-- =====================================================================================</span>
+
+<span class="c">-- -------------------------------------------------------------</span>
+<span class="c">-- 1. CHECK hérités de V1 (noms générés par Hibernate, on ne les suppose pas :</span>
+<span class="c">--    on supprime tout CHECK portant sur platform / permission, quel que soit son nom)</span>
+<span class="c">--    - platform   : recréé avec les 5 plateformes (DC vient de develop V14)</span>
+<span class="c">--    - permission : supprimé, l&#x27;enum Java Permission est la seule source de vérité</span>
+<span class="c">-- -------------------------------------------------------------</span>
+do $$
+declare
+r <span class="k">record</span>;
+begin
+<span class="k">for</span> r in
+select t.relname, c.conname
+<span class="k">from</span> pg_constraint c
+         join pg_class     t on t.oid = c.conrelid
+         join pg_namespace n on n.oid = t.relnamespace
+where c.contype = <span class="s">&#x27;c&#x27;</span>
+  and n.nspname = current_schema()
+  and (
+        (t.relname in (<span class="s">&#x27;hab_roles&#x27;</span>, <span class="s">&#x27;hab_roles_aud&#x27;</span>)
+            and pg_get_constraintdef(c.oid) ilike <span class="s">&#x27;%platform%&#x27;</span>)
+     or (t.relname in (<span class="s">&#x27;hab_role_permission&#x27;</span>, <span class="s">&#x27;hab_role_permission_aud&#x27;</span>)
+            and pg_get_constraintdef(c.oid) ilike <span class="s">&#x27;%permission%&#x27;</span>)
+    )
+    loop
+        execute format(<span class="s">&#x27;alter table %I drop constraint %I&#x27;</span>, r.relname, r.conname);
+end loop;
+end $$;
+
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_roles DROP CONSTRAINT <span class="k">IF</span> <span class="k">EXISTS</span> hab_roles_platform_check;
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_roles
+    <span class="k">ADD</span> CONSTRAINT hab_roles_platform_check
+        CHECK (platform IN (<span class="s">&#x27;CONSOLE_ADMIN&#x27;</span>, <span class="s">&#x27;DTRP&#x27;</span>, <span class="s">&#x27;ML_CHAB&#x27;</span>, <span class="s">&#x27;DC&#x27;</span>, <span class="s">&#x27;GESTION_FONDS&#x27;</span>));
+
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_roles_aud DROP CONSTRAINT <span class="k">IF</span> <span class="k">EXISTS</span> hab_roles_aud_platform_check;
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_roles_aud
+    <span class="k">ADD</span> CONSTRAINT hab_roles_aud_platform_check
+        CHECK (platform IN (<span class="s">&#x27;CONSOLE_ADMIN&#x27;</span>, <span class="s">&#x27;DTRP&#x27;</span>, <span class="s">&#x27;ML_CHAB&#x27;</span>, <span class="s">&#x27;DC&#x27;</span>, <span class="s">&#x27;GESTION_FONDS&#x27;</span>));
+
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_role_permission     DROP CONSTRAINT <span class="k">IF</span> <span class="k">EXISTS</span> hab_role_permission_permission_check;
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_role_permission_aud DROP CONSTRAINT <span class="k">IF</span> <span class="k">EXISTS</span> hab_role_permission_aud_permission_check;
+
+<span class="c">-- -------------------------------------------------------------</span>
+<span class="c">-- 2. Rôles GDF (plateforme GESTION_FONDS)</span>
+<span class="c">-- -------------------------------------------------------------</span>
+INSERT INTO hab_roles (id, name, description, actif, created_at, updated_at, platform)
+<span class="k">SELECT</span> nextval(<span class="s">&#x27;hab_roles_seq&#x27;</span>), r.name, r.description, TRUE, NOW(), NOW(), <span class="s">&#x27;GESTION_FONDS&#x27;</span>
+<span class="k">FROM</span> (VALUES
+          (<span class="s">&#x27;GDF Agence&#x27;</span>,          <span class="s">&#x27;Rôle Gestion des Fonds - demandes de l&#x27;</span><span class="s">&#x27;agence (DA, Chef de caisse)&#x27;</span>),
+          (<span class="s">&#x27;GDF Caisse Centrale&#x27;</span>, <span class="s">&#x27;Rôle Gestion des Fonds - traitement des demandes de toutes les agences&#x27;</span>),
+          (<span class="s">&#x27;GDF Support&#x27;</span>,         <span class="s">&#x27;Rôle Gestion des Fonds - consultation de toutes les agences&#x27;</span>)
+     ) AS r(name, description)
+<span class="k">WHERE</span> <span class="k">NOT</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> hab_roles x <span class="k">WHERE</span> x.name = r.name);
+
+INSERT INTO hab_role_permission (role_id, permission)
+<span class="k">SELECT</span> r.id, p.permission
+<span class="k">FROM</span> hab_roles r
+         JOIN (VALUES
+                   (<span class="s">&#x27;GDF Agence&#x27;</span>,          <span class="s">&#x27;GDF_CONSULTER_DEMANDE&#x27;</span>),
+                   (<span class="s">&#x27;GDF Agence&#x27;</span>,          <span class="s">&#x27;GDF_CREER_DEMANDE&#x27;</span>),
+                   (<span class="s">&#x27;GDF Agence&#x27;</span>,          <span class="s">&#x27;GDF_MODIFIER_DEMANDE&#x27;</span>),
+                   (<span class="s">&#x27;GDF Agence&#x27;</span>,          <span class="s">&#x27;GDF_ANNULER_DEMANDE&#x27;</span>),
+                   (<span class="s">&#x27;GDF Caisse Centrale&#x27;</span>, <span class="s">&#x27;GDF_CONSULTER_DEMANDE&#x27;</span>),
+                   (<span class="s">&#x27;GDF Caisse Centrale&#x27;</span>, <span class="s">&#x27;GDF_TRAITER_DEMANDE&#x27;</span>),
+                   (<span class="s">&#x27;GDF Caisse Centrale&#x27;</span>, <span class="s">&#x27;GDF_ANNULER_DEMANDE&#x27;</span>),
+                   (<span class="s">&#x27;GDF Caisse Centrale&#x27;</span>, <span class="s">&#x27;GDF_TOUTES_AGENCES&#x27;</span>),
+                   (<span class="s">&#x27;GDF Support&#x27;</span>,         <span class="s">&#x27;GDF_CONSULTER_DEMANDE&#x27;</span>),
+                   (<span class="s">&#x27;GDF Support&#x27;</span>,         <span class="s">&#x27;GDF_TOUTES_AGENCES&#x27;</span>)
+              ) AS p(role_name, permission) <span class="k">ON</span> p.role_name = r.name
+<span class="k">WHERE</span> r.platform = <span class="s">&#x27;GESTION_FONDS&#x27;</span>
+  <span class="k">AND</span> <span class="k">NOT</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> hab_role_permission x <span class="k">WHERE</span> x.role_id = r.id <span class="k">AND</span> x.permission = p.permission);
+
+<span class="c">-- -------------------------------------------------------------</span>
+<span class="c">-- 3. Profils GDF - STANDARD_USER comme DA / CONSEILLER (mêmes colonnes et même ordre que V8)</span>
+<span class="c">-- -------------------------------------------------------------</span>
+INSERT INTO hab_profiles (id, profile_type, name, code, description, actif, created_at, updated_at)
+<span class="k">SELECT</span> nextval(<span class="s">&#x27;hab_profiles_seq&#x27;</span>), <span class="s">&#x27;STANDARD_USER&#x27;</span>, p.name, p.code, p.description, TRUE, NOW(), NOW()
+<span class="k">FROM</span> (VALUES
+          (<span class="s">&#x27;CHEF DE CAISSE&#x27;</span>,  <span class="s">&#x27;CHEF_CAISSE&#x27;</span>,     <span class="s">&#x27;Profil Chef de caisse&#x27;</span>),
+          (<span class="s">&#x27;CAISSE CENTRALE&#x27;</span>, <span class="s">&#x27;CAISSE_CENTRALE&#x27;</span>, <span class="s">&#x27;Profil Caisse Centrale&#x27;</span>),
+          (<span class="s">&#x27;SUPPORT&#x27;</span>,         <span class="s">&#x27;SUPPORT&#x27;</span>,         <span class="s">&#x27;Profil Support&#x27;</span>)
+     ) AS p(name, code, description)
+<span class="k">WHERE</span> <span class="k">NOT</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> hab_profiles x <span class="k">WHERE</span> x.code = p.code);
+
+<span class="c">-- -------------------------------------------------------------</span>
+<span class="c">-- 4. Rattachement profil -&gt; rôle (le profil DA existant reçoit le rôle GDF Agence)</span>
+<span class="c">-- -------------------------------------------------------------</span>
+INSERT INTO hab_profile_role (profile_id, role_id)
+<span class="k">SELECT</span> p.id, r.id
+<span class="k">FROM</span> (VALUES
+          (<span class="s">&#x27;DA&#x27;</span>,              <span class="s">&#x27;GDF Agence&#x27;</span>),
+          (<span class="s">&#x27;CHEF_CAISSE&#x27;</span>,     <span class="s">&#x27;GDF Agence&#x27;</span>),
+          (<span class="s">&#x27;CAISSE_CENTRALE&#x27;</span>, <span class="s">&#x27;GDF Caisse Centrale&#x27;</span>),
+          (<span class="s">&#x27;SUPPORT&#x27;</span>,         <span class="s">&#x27;GDF Support&#x27;</span>)
+     ) AS m(profile_code, role_name)
+         JOIN hab_profiles p <span class="k">ON</span> p.code = m.profile_code
+         JOIN hab_roles    r <span class="k">ON</span> r.name = m.role_name <span class="k">AND</span> r.platform = <span class="s">&#x27;GESTION_FONDS&#x27;</span>
+<span class="k">WHERE</span> <span class="k">NOT</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> hab_profile_role x <span class="k">WHERE</span> x.profile_id = p.id <span class="k">AND</span> x.role_id = r.id);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>V21__role_gdf_export.sql</b><br><span class="path">utilisateurs-ci\src\main\resources\db\migration\V21__role_gdf_export.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- rôle « GDF Export » (permission GDF_EXPORTER_DEMANDE) rattaché aux profils Caisse Centrale et Support.</span>
+<span class="c">-- Idempotent (NOT EXISTS) ; id par nextval, résolution par name / code (merge develop 30/10).</span>
+
+INSERT INTO hab_roles (id, name, description, actif, created_at, updated_at, platform)
+<span class="k">SELECT</span> nextval(<span class="s">&#x27;hab_roles_seq&#x27;</span>), <span class="s">&#x27;GDF Export&#x27;</span>, <span class="s">&#x27;Gestion des fonds - Export Excel des demandes&#x27;</span>, TRUE, NOW(), NOW(), <span class="s">&#x27;GESTION_FONDS&#x27;</span>
+<span class="k">WHERE</span> <span class="k">NOT</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> hab_roles <span class="k">WHERE</span> name = <span class="s">&#x27;GDF Export&#x27;</span>);
+
+INSERT INTO hab_role_permission (role_id, permission)
+<span class="k">SELECT</span> r.id, <span class="s">&#x27;GDF_EXPORTER_DEMANDE&#x27;</span>
+<span class="k">FROM</span> hab_roles r
+<span class="k">WHERE</span> r.name = <span class="s">&#x27;GDF Export&#x27;</span>
+  <span class="k">AND</span> <span class="k">NOT</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> hab_role_permission x <span class="k">WHERE</span> x.role_id = r.id <span class="k">AND</span> x.permission = <span class="s">&#x27;GDF_EXPORTER_DEMANDE&#x27;</span>);
+
+INSERT INTO hab_profile_role (profile_id, role_id)
+<span class="k">SELECT</span> p.id, r.id
+<span class="k">FROM</span> hab_profiles p, hab_roles r
+<span class="k">WHERE</span> p.code IN (<span class="s">&#x27;CAISSE_CENTRALE&#x27;</span>, <span class="s">&#x27;SUPPORT&#x27;</span>)
+  <span class="k">AND</span> r.name = <span class="s">&#x27;GDF Export&#x27;</span>
+  <span class="k">AND</span> <span class="k">NOT</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> hab_profile_role x <span class="k">WHERE</span> x.profile_id = p.id <span class="k">AND</span> x.role_id = r.id);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>V25__habilitations_gab_hors_site.sql</b><br><span class="path">utilisateurs-ci\src\main\resources\db\migration\V25__habilitations_gab_hors_site.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- V25 (ex-V22) – AER_LM-300 : habilitations GAB hors site (plateforme GESTION_FONDS).</span>
+<span class="c">-- Permissions (enum Java Permission, seule source de vérité – pas de CHECK) : GDF_CONSULTER_GAB, GDF_GERER_GAB, GDF_TRAITER_DEMANDE_MONETIQUE.</span>
+<span class="c">-- Nouveau rôle « GDF Opérations monétique » + nouveau profil « Pôle opérations monétique » (code OPERATIONS_MONETIQUE).</span>
+<span class="c">-- Merge develop 30/10 : ids par nextval, rôles existants résolus par name (plus d&#x27;ids 11 / 12 en dur).</span>
+
+<span class="c">-- 1. Rôle</span>
+insert into hab_roles (id, name, description, actif, created_at, updated_at, platform)
+select nextval(<span class="s">&#x27;hab_roles_seq&#x27;</span>),
+       <span class="s">&#x27;GDF Opérations monétique&#x27;</span>, <span class="s">&#x27;Gestion des GAB hors site et traitement des demandes monétique&#x27;</span>, <span class="k">true</span>, now(), now(), <span class="s">&#x27;GESTION_FONDS&#x27;</span>
+    where not exists (select 1 <span class="k">from</span> hab_roles where name = <span class="s">&#x27;GDF Opérations monétique&#x27;</span>);
+
+insert into hab_role_permission (role_id, permission)
+select r.id, p.permission
+<span class="k">from</span> hab_roles r,
+     (values (<span class="s">&#x27;GDF_CONSULTER_DEMANDE&#x27;</span>), (<span class="s">&#x27;GDF_TOUTES_AGENCES&#x27;</span>),
+             (<span class="s">&#x27;GDF_CONSULTER_GAB&#x27;</span>), (<span class="s">&#x27;GDF_GERER_GAB&#x27;</span>), (<span class="s">&#x27;GDF_TRAITER_DEMANDE_MONETIQUE&#x27;</span>)) as p (permission)
+where r.name = <span class="s">&#x27;GDF Opérations monétique&#x27;</span>
+  and not exists (select 1 <span class="k">from</span> hab_role_permission x where x.role_id = r.id and x.permission = p.permission);
+
+<span class="c">-- 2. Rôles existants (GDF Caisse Centrale / GDF Support = V19, par name ; Super Admin = id 8 fixé par V6, commun à develop)</span>
+insert into hab_role_permission (role_id, permission)
+select r.id, v.permission
+<span class="k">from</span> (values (<span class="s">&#x27;GDF Caisse Centrale&#x27;</span>, <span class="s">&#x27;GDF_CONSULTER_GAB&#x27;</span>), (<span class="s">&#x27;GDF Caisse Centrale&#x27;</span>, <span class="s">&#x27;GDF_TRAITER_DEMANDE_MONETIQUE&#x27;</span>),
+             (<span class="s">&#x27;GDF Support&#x27;</span>,         <span class="s">&#x27;GDF_CONSULTER_GAB&#x27;</span>)) as v (role_name, permission)
+         join hab_roles r on r.name = v.role_name and r.platform = <span class="s">&#x27;GESTION_FONDS&#x27;</span>
+where not exists (select 1 <span class="k">from</span> hab_role_permission x where x.role_id = r.id and x.permission = v.permission);
+
+insert into hab_role_permission (role_id, permission)
+select 8, v.permission                                                           <span class="c">-- Super Admin (recette)</span>
+<span class="k">from</span> (values (<span class="s">&#x27;GDF_CONSULTER_GAB&#x27;</span>), (<span class="s">&#x27;GDF_GERER_GAB&#x27;</span>)) as v (permission)
+where exists (select 1 <span class="k">from</span> hab_roles r where r.id = 8)
+  and not exists (select 1 <span class="k">from</span> hab_role_permission x where x.role_id = 8 and x.permission = v.permission);
+
+<span class="c">-- 3. Profil</span>
+insert into hab_profiles (id, profile_type, name, code, description, actif, created_at, updated_at)
+select nextval(<span class="s">&#x27;hab_profiles_seq&#x27;</span>),
+       <span class="s">&#x27;STANDARD_USER&#x27;</span>, <span class="s">&#x27;Pôle opérations monétique&#x27;</span>, <span class="s">&#x27;OPERATIONS_MONETIQUE&#x27;</span>, <span class="s">&#x27;Administrateur monétique – GAB hors site&#x27;</span>, <span class="k">true</span>, now(), now()
+    where not exists (select 1 <span class="k">from</span> hab_profiles where code = <span class="s">&#x27;OPERATIONS_MONETIQUE&#x27;</span>);
+
+insert into hab_profile_role (profile_id, role_id)
+select p.id, r.id
+<span class="k">from</span> hab_profiles p, hab_roles r
+where p.code = <span class="s">&#x27;OPERATIONS_MONETIQUE&#x27;</span> and r.name = <span class="s">&#x27;GDF Opérations monétique&#x27;</span>
+  and not exists (select 1 <span class="k">from</span> hab_profile_role x where x.profile_id = p.id and x.role_id = r.id);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>V26__profil_caisse_centrale_admin.sql</b><br><span class="path">utilisateurs-ci\src\main\resources\db\migration\V26__profil_caisse_centrale_admin.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- profil « Caisse Centrale Admin » = droits Caisse Centrale + administration des heures de cut-off.</span>
+<span class="c">-- Permission GDF_ADMINISTRER_CUTOFF (enum Java Permission, seule source de vérité – pas de CHECK).</span>
+<span class="c">-- Nouveau rôle « GDF Administration cut-off » (la seule permission) + nouveau profil CAISSE_CENTRALE_ADMIN</span>
+<span class="c">-- rattaché au rôle « GDF Caisse Centrale » existant ET au nouveau rôle. Rôle GDF Caisse Centrale et profil CAISSE_CENTRALE inchangés.</span>
+<span class="c">-- Merge develop 30/10 : ids par nextval, rôle existant résolu par name (plus d&#x27;id 11 en dur).</span>
+
+<span class="c">-- 1. Rôle</span>
+insert into hab_roles (id, name, description, actif, created_at, updated_at, platform)
+select nextval(<span class="s">&#x27;hab_roles_seq&#x27;</span>),
+       <span class="s">&#x27;GDF Administration cut-off&#x27;</span>, <span class="s">&#x27;Administration des heures de cut-off (Caisse Centrale)&#x27;</span>, <span class="k">true</span>, now(), now(), <span class="s">&#x27;GESTION_FONDS&#x27;</span>
+    where not exists (select 1 <span class="k">from</span> hab_roles where name = <span class="s">&#x27;GDF Administration cut-off&#x27;</span>);
+
+insert into hab_role_permission (role_id, permission)
+select r.id, <span class="s">&#x27;GDF_ADMINISTRER_CUTOFF&#x27;</span>
+<span class="k">from</span> hab_roles r
+where r.name = <span class="s">&#x27;GDF Administration cut-off&#x27;</span>
+  and not exists (select 1 <span class="k">from</span> hab_role_permission x where x.role_id = r.id and x.permission = <span class="s">&#x27;GDF_ADMINISTRER_CUTOFF&#x27;</span>);
+
+<span class="c">-- 2. Profil</span>
+insert into hab_profiles (id, profile_type, name, code, description, actif, created_at, updated_at)
+select nextval(<span class="s">&#x27;hab_profiles_seq&#x27;</span>),
+       <span class="s">&#x27;STANDARD_USER&#x27;</span>, <span class="s">&#x27;Caisse Centrale Admin&#x27;</span>, <span class="s">&#x27;CAISSE_CENTRALE_ADMIN&#x27;</span>, <span class="s">&#x27;Caisse Centrale avec administration du cut-off&#x27;</span>, <span class="k">true</span>, now(), now()
+    where not exists (select 1 <span class="k">from</span> hab_profiles where code = <span class="s">&#x27;CAISSE_CENTRALE_ADMIN&#x27;</span>);
+
+<span class="c">-- 3. Rattachements : rôle « GDF Caisse Centrale » (existant) + rôle « GDF Administration cut-off »</span>
+insert into hab_profile_role (profile_id, role_id)
+select p.id, r.id
+<span class="k">from</span> hab_profiles p, hab_roles r
+where p.code = <span class="s">&#x27;CAISSE_CENTRALE_ADMIN&#x27;</span>
+  and r.name in (<span class="s">&#x27;GDF Caisse Centrale&#x27;</span>, <span class="s">&#x27;GDF Administration cut-off&#x27;</span>) and r.platform = <span class="s">&#x27;GESTION_FONDS&#x27;</span>
+  and not exists (select 1 <span class="k">from</span> hab_profile_role x where x.profile_id = p.id and x.role_id = r.id);</code></pre></div><h2 id="verif">2. Vérification après boot sur base vide</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>pgAdmin</b><br><span class="path">pgAdmin — qf_admin</span></div><p class="note">À dérouler après le <code>DROP SCHEMA</code> + démarrage de la partie 1 (§4).</p><pre><button class="copy">Copier</button><code><span class="k">SET</span> search_path TO qf_admin;
+<span class="c">-- 0 ligne attendue : aucun doublon de nom / code</span>
+<span class="k">SELECT</span> name, count(*) <span class="k">FROM</span> hab_roles GROUP BY name HAVING count(*) &gt; 1;
+<span class="k">SELECT</span> code, count(*) <span class="k">FROM</span> hab_profiles GROUP BY code HAVING count(*) &gt; 1;
+<span class="c">-- Rôles GDF et leurs permissions</span>
+<span class="k">SELECT</span> r.id, r.name, string_agg(rp.permission, <span class="s">&#x27;, &#x27;</span> ORDER BY rp.permission)
+<span class="k">FROM</span> hab_roles r LEFT JOIN hab_role_permission rp <span class="k">ON</span> rp.role_id = r.id
+<span class="k">WHERE</span> r.platform = <span class="s">&#x27;GESTION_FONDS&#x27;</span> GROUP BY r.id, r.name ORDER BY r.id;
+<span class="c">-- Profils GDF et leurs rôles (DA doit avoir GDF Agence + Initiation Mainlevée + Validation agence Mainlevée)</span>
+<span class="k">SELECT</span> p.code, string_agg(r.name, <span class="s">&#x27;, &#x27;</span> ORDER BY r.name)
+<span class="k">FROM</span> hab_profiles p JOIN hab_profile_role pr <span class="k">ON</span> pr.profile_id = p.id JOIN hab_roles r <span class="k">ON</span> r.id = pr.role_id
+<span class="k">WHERE</span> p.code IN (<span class="s">&#x27;DA&#x27;</span>,<span class="s">&#x27;CHEF_CAISSE&#x27;</span>,<span class="s">&#x27;CAISSE_CENTRALE&#x27;</span>,<span class="s">&#x27;SUPPORT&#x27;</span>,<span class="s">&#x27;OPERATIONS_MONETIQUE&#x27;</span>,<span class="s">&#x27;CAISSE_CENTRALE_ADMIN&#x27;</span>) GROUP BY p.code ORDER BY p.code;</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
