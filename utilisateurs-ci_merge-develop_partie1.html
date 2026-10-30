@@ -1,0 +1,117 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>utilisateurs-ci — Merge develop → develop-omega (préparation prod DMZR)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>utilisateurs-ci — Merge develop → develop-omega (préparation prod DMZR)</h1><p>Partie 1 : renumérotation Flyway V14-V23 → V17-V26, adaptation des CHECK, procédure git, remise à zéro locale · 30/10/2026</p></header><nav><a href="#diag">Diagnostic</a><a href="#renum">Renumérotation Flyway</a><a href="#sql">Adaptation des scripts omega</a><a href="#merge">Merge</a><a href="#local">Base locale et validation</a><a href="#suite">Suite</a></nav><main><h2 id="diag">0. Diagnostic</h2><div class="card"><b>Ce que develop a ajouté pendant qu'on travaillait sur develop-omega</b> (pull du 30/10, 31 fichiers) :
+<table><tr><th>develop</th><th>Contenu</th><th>Même numéro chez nous (develop-omega)</th></tr>
+<tr><td><code>V14__add_profil_role_dc.sql</code></td><td>Plateforme <b>DC</b> : CHECK <code>platform</code> recréé avec <code>('CONSOLE_ADMIN','DTRP','ML_CHAB','DC')</code>, CHECK <code>permission</code> (+ <code>_aud</code>) recréé avec DTRP_*/MLCHAB_RE_AFFECTATION/DC_*/CONSOLE_ADMIN_* ; rôles « Agent » et « Team Lead » (DC) et 2 profils <code>APAC_FIN_POLE_SUCCESSION_PETIT_CONTENTIEUX_*</code> — <b>ids par <code>nextval()</code></b></td><td><code>V14__create_zone_distribution.sql</code></td></tr>
+<tr><td><code>V15__add_profil_role_apac_financement.sql</code></td><td>CHECK permission recréé (+ 4 MLCHAB_*), rôle « Validation APAC FINANCEMENT » (ML_CHAB), profil <code>APAC_FINANCEMENT</code> — <code>nextval()</code>, idempotent</td><td><code>V15__update_orga_unit_agence_config.sql</code></td></tr>
+<tr><td><code>V16__add_mainlevee_roles_permissions.sql</code></td><td>CHECK permission recréé (liste MLCHAB_* complète), 3 rôles Mainlevée (<code>nextval()</code>), permissions, rattachement CONSEILLER / DA / DIE</td><td><code>V16__create_gdf_habilitations.sql</code></td></tr></table>
+<p><b>Conséquences</b> :</p>
+<ol>
+<li><b>Doublons de version</b> V14/V15/V16 → Flyway refuse de démarrer. Develop est la branche de référence : <b>develop-omega s'adapte</b>, nos 10 scripts deviennent V17 → V26, ordre inchangé.</li>
+<li><b>CHECK <code>platform</code></b> : après renumérotation, notre ex-V16 (→ V19) s'exécute <i>après</i> develop V14 et recrée le CHECK avec <code>GESTION_FONDS</code> mais <b>sans <code>DC</code></b> → <code>ADD CONSTRAINT</code> échoue sur les rôles Agent / Team Lead. À corriger (§2.1).</li>
+<li><b>CHECK <code>permission</code></b> : develop le recrée 3 fois, jamais avec les <code>GDF_*</code>. Notre V19 doit le <b>supprimer (les 2 tables) avant tout INSERT GDF_*</b> — c'était déjà la décision de 261 (enum Java seule source de vérité), à vérifier dans le script (§2.1).</li>
+<li><b>Collision d'ids</b> : develop insère rôles et profils par <code>nextval()</code>, nos scripts par <b>ids en dur</b> (rôles 10-12, profils 9-11, puis export / monétique / CC admin). Si <code>hab_profiles_seq</code> est à increment 1, develop prend les profils 9, 10, 11 <b>avant</b> notre V19 → <code>duplicate key</code>. À mesurer avant de toucher quoi que ce soit (§2.2).</li>
+<li><b>Bases déjà migrées</b> (local, staging omega) : l'historique Flyway contient V14-V23 « omega » → incompatible. DMZR = infra neuve = base vide, donc on ne gère pas d'out-of-order : <b>local = schéma recréé</b> (§4).</li>
+<li><b>Java</b> : conflits attendus sur <code>Permission.java</code> (develop +30 lignes DC_*/MLCHAB_*, nous +GDF_*), <code>Platform.java</code> (develop +DC, nous +GESTION_FONDS), <code>ProfileEnum.java</code>, <code>QfSimplifiedAuthFilter</code>, <code>application-local.yaml</code>, <code>pom.xml</code>, <code>sonar-project.properties</code> → règles §3.2.</li>
+</ol></div><h2 id="renum">1. Renumérotation Flyway</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Git Bash — branche de travail + git mv</b><br><span class="path">C:\dev\utilisateurs-ci (Git Bash)</span></div><p class="note">Branche dédiée <code>chore/merge-develop-flyway</code> depuis develop-omega : le merge passe par une MR comme le reste (pipeline quality). <code>git mv</code> conserve l'historique des fichiers.</p><pre><button class="copy">Copier</button><code># Git Bash — sur develop-omega à jour. Ordre DÉCROISSANT obligatoire : V17 → V20 écraserait sinon notre V20 existant.
+cd /c/dev/utilisateurs-ci
+git fetch origin
+git checkout develop-omega &amp;&amp; git pull origin develop-omega
+git checkout -b chore/merge-develop-flyway
+cd src/main/resources/db/migration
+git mv V23__profil_caisse_centrale_admin.sql             V26__profil_caisse_centrale_admin.sql
+git mv V22__habilitations_gab_hors_site.sql              V25__habilitations_gab_hors_site.sql
+git mv V21__seed_gab_hors_site.sql                       V24__seed_gab_hors_site.sql
+git mv V20__create_gab_hors_site.sql                     V23__create_gab_hors_site.sql
+git mv V19__referentiel_agences_zones_prestataires.sql   V22__referentiel_agences_zones_prestataires.sql
+git mv V18__role_gdf_export.sql                          V21__role_gdf_export.sql
+git mv V17__grant_gdf_consultation_super_admin.sql       V20__grant_gdf_consultation_super_admin.sql
+git mv V16__create_gdf_habilitations.sql                 V19__create_gdf_habilitations.sql
+git mv V15__update_orga_unit_agence_config.sql           V18__update_orga_unit_agence_config.sql
+git mv V14__create_zone_distribution.sql                 V17__create_zone_distribution.sql
+ls V*.sql          # V1..V13 + V17..V26, aucun V14-V16 : ils arriveront de develop
+cd /c/dev/utilisateurs-ci
+git commit -am <span class="s">&quot;chore(flyway): renumérotation V14-V23 -&gt; V17-V26 pour le merge de develop (V14-V16 pris par DC / Mainlevée)&quot;</span></code></pre></div><div class="card">Références croisées à mettre à jour dans le même commit : les commentaires d'en-tête de nos scripts qui citent leur propre numéro (« V16 : … », « base V19 appliquée »), et la <b>fiche mémoire / docs</b> (V17 grant SA, V18 export, V22 habilitations GAB, V23 CC admin → V20, V21, V25, V26). Aucun code Java ne référence un numéro de migration.</div><h2 id="sql">2. Adaptation des scripts omega</h2><h3>2.1 V19__create_gdf_habilitations.sql (ex-V16) — les deux CHECK</h3><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Bloc CHECK à remplacer dans V19</b><br><span class="path">utilisateurs-ci\src\main\resources\db\migration\V19__create_gdf_habilitations.sql</span></div><p class="note">Remplace le bloc « CHECK platform » existant du script (4 valeurs) par celui-ci (5 valeurs), et vérifie que les deux <code>DROP CONSTRAINT … permission_check</code> sont bien présents <b>avant</b> le premier INSERT dans <code>hab_role_permission</code>. Les DROP sont idempotents (<code>IF EXISTS</code>).</p><pre><button class="copy">Copier</button><code><span class="c">-- V19__create_gdf_habilitations.sql (ex-V16) — bloc CHECK platform : ajouter &#x27;DC&#x27; (rôles Agent / Team Lead créés par develop V14,</span>
+<span class="c">-- sinon ADD CONSTRAINT échoue : « check constraint hab_roles_platform_check is violated by some row »)</span>
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_roles DROP CONSTRAINT <span class="k">IF</span> <span class="k">EXISTS</span> hab_roles_platform_check;
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_roles
+    <span class="k">ADD</span> CONSTRAINT hab_roles_platform_check
+        CHECK (platform IN (<span class="s">&#x27;CONSOLE_ADMIN&#x27;</span>, <span class="s">&#x27;DTRP&#x27;</span>, <span class="s">&#x27;ML_CHAB&#x27;</span>, <span class="s">&#x27;DC&#x27;</span>, <span class="s">&#x27;GESTION_FONDS&#x27;</span>));
+
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_roles_aud DROP CONSTRAINT <span class="k">IF</span> <span class="k">EXISTS</span> hab_roles_aud_platform_check;
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_roles_aud
+    <span class="k">ADD</span> CONSTRAINT hab_roles_aud_platform_check
+        CHECK (platform IN (<span class="s">&#x27;CONSOLE_ADMIN&#x27;</span>, <span class="s">&#x27;DTRP&#x27;</span>, <span class="s">&#x27;ML_CHAB&#x27;</span>, <span class="s">&#x27;DC&#x27;</span>, <span class="s">&#x27;GESTION_FONDS&#x27;</span>));
+
+<span class="c">-- CHECK permission : develop (V14/V15/V16) le recrée 3 fois avec sa liste (DTRP/MLCHAB/DC/CONSOLE_ADMIN), sans aucun GDF_*.</span>
+<span class="c">-- Notre V19 doit donc le SUPPRIMER (les deux tables) AVANT le premier INSERT de permission GDF_* ; l&#x27;enum Java reste la seule source de vérité.</span>
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_role_permission     DROP CONSTRAINT <span class="k">IF</span> <span class="k">EXISTS</span> hab_role_permission_permission_check;
+<span class="k">ALTER</span> <span class="k">TABLE</span> hab_role_permission_aud DROP CONSTRAINT <span class="k">IF</span> <span class="k">EXISTS</span> hab_role_permission_aud_permission_check;</code></pre></div><div class="card"><div class="warn"><b>Pourquoi pas l'inverse (ajouter les GDF_* au CHECK) ?</b> Develop réécrit ce CHECK à chaque nouvelle plateforme sans connaître nos permissions ; chaque merge futur casserait. Sans CHECK, l'enum <code>Permission</code> (validée au chargement par JPA / Envers) reste la seule liste — décision prise en 261, on la maintient. À signaler au tech lead pour que develop arrête de recréer ce CHECK.</div></div><h3>2.2 Collision d&#x27;ids — mesure avant action</h3><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Vérification des séquences (pgAdmin, base locale AVANT reset)</b><br><span class="path">pgAdmin — qf_admin</span></div><p class="note">La 2ᵉ requête simule les ids que develop V14-V16 prendront. Compare-les aux ids en dur de V19, V21, V25, V26.</p><pre><button class="copy">Copier</button><code><span class="c">-- pgAdmin, schéma qf_admin — AVANT de toucher nos scripts : develop insère rôles et profils par nextval(), nous par id en dur.</span>
+<span class="c">-- Si une séquence est à increment 1, les ids que develop va prendre (V14: 2 rôles DC + 2 profils ; V15: 1 rôle + 1 profil ; V16: 3 rôles)</span>
+<span class="c">-- entrent en collision avec nos ids en dur (rôles 10-12…, profils 9-11…) → duplicate key au boot.</span>
+<span class="k">SET</span> search_path TO qf_admin;
+<span class="k">SELECT</span> sequencename, increment_by, last_value <span class="k">FROM</span> pg_sequences <span class="k">WHERE</span> schemaname = <span class="s">&#x27;qf_admin&#x27;</span>;
+
+<span class="c">-- Simulation des ids que develop obtiendra (sans consommer la séquence) :</span>
+<span class="k">SELECT</span> <span class="s">&#x27;hab_roles&#x27;</span>    AS t, last_value + increment_by * g AS id_develop <span class="k">FROM</span> pg_sequences, generate_series(1, 6) g <span class="k">WHERE</span> sequencename = <span class="s">&#x27;hab_roles_seq&#x27;</span>
+UNION ALL
+<span class="k">SELECT</span> <span class="s">&#x27;hab_profiles&#x27;</span>, last_value + increment_by * g <span class="k">FROM</span> pg_sequences, generate_series(1, 3) g <span class="k">WHERE</span> sequencename = <span class="s">&#x27;hab_profiles_seq&#x27;</span>
+ORDER BY 1, 2;
+<span class="c">-- → comparer avec les ids en dur de V19 / V21 / V25 / V26. Toute égalité = script à adapter (voir §2.3).</span></code></pre></div><h3>2.3 Si collision</h3><div class="card">Deux options, <b>je tranche pour la A</b> :
+<ul>
+<li><b>A — nos scripts passent par les codes, plus par les ids</b> : <code>INSERT … SELECT nextval('hab_roles_seq'), …</code> et rattachements <code>hab_profile_role</code> / <code>hab_role_permission</code> par <code>JOIN hab_roles r ON r.name = '…'</code> / <code>hab_profiles p ON p.code = '…'</code> — exactement le style de develop V15/V16, idempotent (<code>NOT EXISTS</code>). Plus de <code>setval</code>. Robuste à tous les merges suivants.</li>
+<li>B — décaler nos ids en dur (ex. 100+) : rapide mais fragile (prochaine plateforme sur develop = même problème).</li>
+</ul>
+Les rattachements inter-scripts (V20 ajoute au rôle 8, V21 rattache l'export aux profils CC/Support, V25/V26 monétique et CC admin) suivent la même règle : par <code>name</code> / <code>code</code>. <b>Envoie-moi V19, V21, V25, V26 (ex-V16, V18, V22, V23) en entier</b> : je rends les 4 versions adaptées (A) dans la partie 2, avec le CHECK de 2.1 déjà intégré. Sans collision mesurée en 2.2, seul 2.1 est obligatoire — mais A reste recommandé avant la prod.</div><h2 id="merge">3. Merge</h2><h3>3.1 Commandes</h3><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Git Bash — merge de develop</b><br><span class="path">C:\dev\utilisateurs-ci (Git Bash)</span></div><p class="note"><code>merge</code>, pas <code>rebase</code> : develop-omega est partagée. <code>--no-ff</code> garde un commit de merge lisible dans l'historique.</p><pre><button class="copy">Copier</button><code># Toujours sur chore/merge-develop-flyway (renumérotation commitée)
+git merge <span class="c">--no-ff origin/develop -m &quot;merge develop into develop-omega (DC, Mainlevée, recherche users)&quot;</span>
+git status <span class="c">--short | grep -E &#x27;^(UU|AA|DU|UD)&#x27;      # fichiers en conflit — liste attendue §3.2</span>
+# ... résolution fichier par fichier (IntelliJ : Git &gt; Resolve conflicts), puis :
+git add -A
+git commit <span class="c">--no-edit</span>
+mvn clean verify                                    # compile + tests (develop a ajouté 5 classes *SearchTest, elles doivent rester vertes)
+# base locale : les numéros ont changé → repartir de zéro (voir §4), puis démarrer QlickflowAdminApplication et dérouler verif-apres.sql
+git push -u origin chore/merge-develop-flyway
+# GitLab : MR chore/merge-develop-flyway -&gt; develop-omega (pipeline quality). Quand develop-omega est validée : MR develop-omega -&gt; develop.</code></pre></div><h3>3.2 Règles de résolution des conflits</h3><div class="card"><table><tr><th>Fichier</th><th>Résolution</th></tr>
+<tr><td><code>entities/habilitations/Permission.java</code></td><td><b>Garder les deux</b> : constantes DC_* et MLCHAB_* de develop + nos GDF_* (consultation, création, modification, annulation, traitement, toutes agences, export, GAB, monétique). Vérifier qu'aucun code n'est en double et que chaque GDF_* pointe sur <code>Platform.GESTION_FONDS</code>.</td></tr>
+<tr><td><code>entities/habilitations/Platform.java</code></td><td>Garder <code>DC</code> (develop) et <code>GESTION_FONDS</code> (nous). Le CHECK SQL de 2.1 doit lister exactement ces 5 valeurs.</td></tr>
+<tr><td><code>enums/ProfileEnum.java</code></td><td>Garder les entrées develop (profils APAC_*) et les nôtres (CHEF_CAISSE, CAISSE_CENTRALE, SUPPORT, monétique, CC admin). Vérifier le test <code>ProfileEnumTest</code> (modifié par develop).</td></tr>
+<tr><td><code>security/simpleauth/QfSimplifiedAuthFilter.java</code></td><td>Version develop (+51/-) comme base, réappliquer nos ajouts s'il y en a (à vérifier par diff <code>git diff origin/develop...develop-omega -- <fichier></code>).</td></tr>
+<tr><td><code>controller/internal/InternalUserController.java</code>, <code>InternalUserFacade(Impl)</code></td><td>Garder les deux : develop a ajouté la recherche users ; nous l'endpoint <code>by-orga-unit</code> (333) si déjà mergé dans develop-omega.</td></tr>
+<tr><td><code>application-local.yaml</code></td><td>Garder les deux blocs de propriétés ; conserver notre <code>auth-mode</code> et nos propriétés <code>qf.*</code>.</td></tr>
+<tr><td><code>pom.xml</code>, <code>lombok.config</code>, <code>sonar-project.properties</code>, <code>logback-cloud.xml</code></td><td>Version develop (c'est la pipeline GitLab CI du tech lead qui les consomme), réintégrer uniquement une dépendance ajoutée par nous si le build la réclame.</td></tr>
+<tr><td><code>db/migration/*</code></td><td>Aucun conflit attendu après §1 (noms distincts). S'il y en a un, c'est qu'un <code>git mv</code> a été oublié.</td></tr></table>
+Après résolution : <code>mvn clean verify</code> doit être vert, y compris les 5 nouvelles classes <code>*SearchTest</code> de develop et nos tests (GabHorsSite*, Referentiel*, …).</div><h2 id="local">4. Base locale et validation</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Remise à zéro du schéma local</b><br><span class="path">pgAdmin — base locale</span></div><pre><button class="copy">Copier</button><code><span class="c">-- pgAdmin — base locale utilisateurs-ci. Les scripts appliqués en local s&#x27;appelaient V14..V23 (omega) : Flyway refuserait le boot</span>
+<span class="c">-- (« Detected applied migration not resolved locally » + « resolved migration not applied »). On repart propre.</span>
+<span class="c">-- 1) si tu as des utilisateurs de test créés à la main (hors h11111 de V10), sauvegarde-les avant :</span>
+<span class="c">--    pg_dump -h localhost -U &lt;user&gt; -d &lt;db&gt; --data-only --column-inserts -t qf_admin.users &gt; users_local.sql</span>
+DROP SCHEMA qf_admin CASCADE;
+CREATE SCHEMA qf_admin;
+<span class="c">-- 2) démarrer QlickflowAdminApplication : Flyway rejoue V1..V26 ; 3) rejouer users_local.sql si besoin (les profile_id ont pu changer : vérifier avant).</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contrôles après boot</b><br><span class="path">pgAdmin — qf_admin</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Après démarrage sur base vide : tout doit être là, une seule fois.</span>
+<span class="k">SET</span> search_path TO qf_admin;
+<span class="k">SELECT</span> version, script, success <span class="k">FROM</span> flyway_schema_history ORDER BY installed_rank;   <span class="c">-- 1..13, 14,15,16 (develop), 17..26 (omega), tous success = true</span>
+<span class="k">SELECT</span> id, name, platform <span class="k">FROM</span> hab_roles ORDER BY id;                                   <span class="c">-- DTRP 1-7, CONSOLE_ADMIN 8-9, GESTION_FONDS 10-12 (+ export, monétique), DC Agent/Team Lead, ML_CHAB ×4</span>
+<span class="k">SELECT</span> id, code <span class="k">FROM</span> hab_profiles ORDER BY id;                                          <span class="c">-- 1-8, CHEF_CAISSE, CAISSE_CENTRALE, SUPPORT, APAC_*_AGENT/TEAM_LEAD, APAC_FINANCEMENT, (monétique, CC admin)</span>
+<span class="k">SELECT</span> conname, pg_get_constraintdef(oid) <span class="k">FROM</span> pg_constraint <span class="k">WHERE</span> conname LIKE <span class="s">&#x27;hab_%check&#x27;</span>;   <span class="c">-- platform : 5 valeurs ; aucun *_permission_check</span>
+<span class="k">SELECT</span> r.name, count(*) <span class="k">FROM</span> hab_role_permission rp JOIN hab_roles r <span class="k">ON</span> r.id = rp.role_id GROUP BY r.name ORDER BY 1;</code></pre></div><div class="card"><b>Recette fonctionnelle</b> (mode mock, gateway + fund-management) : login <code>h11111</code> (SA) → console OK ; un profil CAISSE_CENTRALE → dashboard CC ; un profil monétique → listing GAB ; <code>GET /api/v1/public/users/me</code> renvoie bien les permissions GDF_* ET, pour un profil DA, les rôles Mainlevée ajoutés par develop V16 (preuve que les deux lots cohabitent).</div><h2 id="suite">5. Suite</h2><div class="card">Partie 2 (dès réception des 4 scripts) : versions adaptées de V19 / V21 / V25 / V26 (option A). Ensuite : même exercice sur <b>portail-ci</b> (MR !42 Angular 17 + console, pas de Flyway mais <code>package-lock</code>, routing, enum TS <code>Permission</code>) puis <b>fund-management</b> (Flyway en V0 : à cadrer avant DMZR).</div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
