@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V17 — retail.user_profile : utilisateurs de démo</title>
+<style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+</style></head><body>
+<header><h1>V17 — retail.user_profile : miroir des utilisateurs de démo (équivalent fund-management de V20)</h1><p>fund-management-microservice · schéma retail · 09/10/2026</p></header>
+<nav><a href="#s0">Pourquoi</a><a href="#s1">Fichiers</a><a href="#s2">Vérification</a></nav><main><h2 id="s0">0. Pourquoi</h2>
+<div class="card"><p>Côté fund-management, chaque demande référence son créateur dans <code>retail.user_profile</code> (<code>id, uid, profile_code, profile_label, profile_type, creation_date, modification_date</code>). Le seed V5 ne contient que <code>j43709</code> et <code>j08221</code> : un uid absent ne peut pas créer de demande. V17 ajoute les 8 comptes de démo de V20 (utilisateurs-ci) <b>plus <code>g10002</code></b> (Salma CAISSE, le chef de caisse que tu utilises déjà et qui a dû être inséré à la main).</p>
+<p>Les valeurs <code>profile_type</code> du seed V5 ne sont pas connues ici : le script les recopie depuis la ligne existante du même profil (DA ← j43709, CHEF_CAISSE ← j08221) et, faute de modèle pour Caisse Centrale / Support, prend celle de j43709. Le contrôle « avant » montre la convention réelle — si <code>profile_code</code> y est autre chose que <code>DA</code> / <code>CHEF_CAISSE</code>, aligne les codes de V17 dessus.</p></div>
+<h2 id="s1">1. Fichiers</h2>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V17-controle.sql</b><br><span class="path">pgAdmin → base qlickflow, schéma retail</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Avant : la convention du seed V5 (profile_code / profile_label / profile_type réels pour j43709 et j08221).</span>
+<span class="c">-- Si profile_code n'est pas 'DA' / 'CHEF_CAISSE' (ex. 'DIRECTEUR_AGENCE'), aligner les codes de V17 dessus avant de poser le fichier.</span>
+select uid, profile_code, profile_label, profile_type <span class="k">from</span> retail.user_profile order by uid;
+<span class="c">
+-- Après redémarrage : 11 lignes (2 du seed + 9)</span>
+select uid, profile_code, profile_label, profile_type <span class="k">from</span> retail.user_profile order by profile_code, uid;</code></pre></div>
+<div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V17__user_profile_demo.sql</b><br><span class="path">C:\dev\fund-management-microservice\fund-management-container\src\main\resources\db\migration\V17__user_profile_demo.sql</span></div><p class="note">V15 = pièce 2 DH, V16 = devises. Numéro à adapter si develop a avancé. Idempotent : les uid déjà présents (dont g10002 si tu l'avais inséré) sont ignorés.</p><pre><button class="copy">Copier</button><code><span class="c">-- V17 — retail.user_profile : miroir des utilisateurs de démo créés dans utilisateurs-ci (V20) + g10002 (chef de caisse déjà utilisé en local).</span>
+<span class="c">-- Le seed V5 ne contient que j43709 et j08221 ; tout uid créateur de demande doit avoir sa ligne ici (FK cash_request → user_profile).</span>
+<span class="c">-- Idempotent (NOT EXISTS sur uid). profile_type recopié depuis la ligne V5 du même profil (DA ← j43709, CHEF_CAISSE ← j08221) ;</span>
+<span class="c">-- pour CAISSE_CENTRALE / SUPPORT, valeur de j43709 faute de modèle — à ajuster si le contrôle montre une autre convention.</span>
+<span class="c">-- PostgreSQL 12 : md5()::uuid à la place de gen_random_uuid().</span>
+insert into retail.user_profile (id, uid, profile_code, profile_label, profile_type, creation_date, modification_date)
+select md5(random()::text || clock_timestamp()::text || d.uid)::uuid,
+       d.uid, d.profile_code, d.profile_label,
+       coalesce((select p.profile_type <span class="k">from</span> retail.user_profile p where p.profile_code = d.profile_code limit 1),
+                (select p.profile_type <span class="k">from</span> retail.user_profile p where p.uid = <span class="s">'j43709'</span>)),
+       now(), now()
+<span class="k">from</span> (values
+    (<span class="s">'j51204'</span>, <span class="s">'DA'</span>, <span class="s">'Directeur d'</span><span class="s">'agence'</span>),
+    (<span class="s">'j52317'</span>, <span class="s">'CHEF_CAISSE'</span>, <span class="s">'Chef de caisse'</span>),
+    (<span class="s">'j53488'</span>, <span class="s">'DA'</span>, <span class="s">'Directeur d'</span><span class="s">'agence'</span>),
+    (<span class="s">'j54061'</span>, <span class="s">'CHEF_CAISSE'</span>, <span class="s">'Chef de caisse'</span>),
+    (<span class="s">'j55729'</span>, <span class="s">'DA'</span>, <span class="s">'Directeur d'</span><span class="s">'agence'</span>),
+    (<span class="s">'c60010'</span>, <span class="s">'CAISSE_CENTRALE'</span>, <span class="s">'Caisse Centrale'</span>),
+    (<span class="s">'c60011'</span>, <span class="s">'CAISSE_CENTRALE'</span>, <span class="s">'Caisse Centrale'</span>),
+    (<span class="s">'s70005'</span>, <span class="s">'SUPPORT'</span>, <span class="s">'Support'</span>),
+    (<span class="s">'g10002'</span>, <span class="s">'CHEF_CAISSE'</span>, <span class="s">'Chef de caisse'</span>)
+) as d (uid, profile_code, profile_label)
+where not exists (select 1 <span class="k">from</span> retail.user_profile u where u.uid = d.uid);</code></pre></div>
+<h2 id="s2">2. Vérification</h2>
+<div class="card"><ol>
+<li>Démarrer fund-management : « Migrating schema "retail" to version "17 - user profile demo" ».</li>
+<li>Contrôle après : 11 lignes.</li>
+<li>Connexion <code>j51204</code> (Karim BENNANI, DA 1405) → Nouvelle demande → Soumettre : la demande apparaît avec « Karim BENNANI / Directeur d'agence » en colonne Agent (photo <code>agentNom</code> / <code>agentProfil</code> figée au POST /init depuis le contexte) et agence 1405 - CASA ERRAHMA / Zone Casablanca / G4S.</li>
+<li><code>c60010</code> → Caisse Centrale → Traiter : « Traité par Hicham OUAZZANI ».</li>
+</ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
