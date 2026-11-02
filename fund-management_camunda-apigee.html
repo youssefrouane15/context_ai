@@ -1,0 +1,441 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>fund-management — Camunda derrière Apigee (DMZR) : Bearer OAuth2 client_credentials sur RestClient + worker</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>fund-management — Camunda derrière Apigee (DMZR) : Bearer OAuth2 client_credentials sur RestClient + worker</h1><p>Token 10 min en cache, renouvelé avant expiration et après 401 · activable par propriété (local inchangé) · 02/11/2026</p></header><nav><a href="#analyse">Analyse</a><a href="#conf">Configuration</a><a href="#auth">Authentification Apigee</a><a href="#yaml">YAML et variables</a><a href="#tests">Tests et recette</a></nav><main><h2 id="analyse">0. Analyse</h2><div class="card"><b>Flux</b> : fund-management → Apigee (Bearer) → Camunda. Le token vient de <code>POST …/auth/oauth/v2/token</code> en <code>client_credentials</code> (Basic client/secret, form-urlencoded, scope non envoyé comme dans Postman), dure <b>599 s</b>.
+<p>Fund-management appelle le moteur par <b>deux canaux</b>, les deux sont équipés :</p>
+<ol>
+<li><code>camundaRestClient</code> (start, correlate, complete-task, history) → <code>ApigeeBearerInterceptor</code> : pose le Bearer, <b>un</b> rejeu sur 401 avec token renouvelé.</li>
+<li><code>ExternalTaskClient</code> du worker (fetchAndLock / complete / failure) → <code>ApigeeWorkerInterceptor</code> via <code>addInterceptor</code> du builder Camunda.</li>
+</ol>
+Au milieu, <code>ApigeeTokenProvider</code> : un token en cache, thread-safe, renouvelé quand il reste moins de 60 s (marge configurable) ou après un 401. Aligné sur <code>Oauth2TokenRefreshInterceptor</code> d'utilisateurs-ci (Basic, form, 401 → refresh) mais en RestClient, sans OkHttp ni Gson : fund-management n'a pas ces dépendances.
+<p><b>Activation par propriété</b> <code>camunda.apigee.enabled</code> (défaut <code>false</code>) : en local rien ne change (aucun bean Apigee créé, <code>ObjectProvider</code> vide). Aucun BPMN, aucun Flyway, aucune exception nouvelle : un échec de l'appel token est une <code>RestClientException</code> → 502 par le handler existant.</p>
+<div class="warn"><b>2 points à confirmer avec le tech lead avant déploiement</b> (le code ne les suppose pas) :<br>
+1. Le <b>chemin</b> de Camunda derrière Apigee (<code>QF_CAMUNDA_BASE_URL</code>) — requête de contrôle en §4.<br>
+2. L'hôte s'appelle <code>morocco-<b>mtls</b>.apigee…</code> : si Apigee exige un <b>certificat client</b> (mTLS) en plus du Bearer, il faudra un keystore monté sur le RestClient et sur le client worker — hors de ce doc tant que ce n'est pas confirmé (le test Postman de §4 le dira : 200 = pas de mTLS côté client).</div></div><h2 id="conf">1. Configuration</h2><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CamundaProperties.java</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\config\CamundaProperties.java</span></div><p class="note">Après <code>tenantId</code>, avant la classe <code>Worker</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** DMZR : moteur exposé derrière Apigee (OAuth2 client_credentials, token ~10 min). Désactivé par défaut = moteur direct (local). */</span>
+    <span class="k">private</span> Apigee apigee = <span class="k">new</span> Apigee();
+
+    @Getter @Setter
+    <span class="k">public</span> <span class="k">static</span> <span class="k">class</span> Apigee {
+        <span class="c">/** true : chaque appel au moteur (RestClient + worker) porte un Bearer Apigee. */</span>
+        <span class="k">private</span> <span class="k">boolean</span> enabled = <span class="k">false</span>;
+        <span class="c">/** POST …/auth/oauth/v2/token */</span>
+        <span class="k">private</span> <span class="k">String</span> tokenUrl;
+        <span class="c">/** Identifiants du client Apigee (Basic sur l&#x27;appel token) — Vault en prod, jamais en clair dans git. */</span>
+        <span class="k">private</span> <span class="k">String</span> clientId;
+        <span class="k">private</span> <span class="k">String</span> clientSecret;
+        <span class="c">/** Marge avant expiration : le token est renouvelé dès qu&#x27;il lui reste moins que ça (599 s côté Apigee). */</span>
+        <span class="k">private</span> <span class="k">long</span> refreshMarginSeconds = 60;
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>CamundaRestClientConfig.java</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\config\CamundaRestClientConfig.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.camunda.config;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.external.camunda.auth.ApigeeBearerInterceptor;
+<span class="k">import</span> org.springframework.beans.factory.ObjectProvider;
+<span class="k">import</span> org.springframework.context.annotation.Bean;
+<span class="k">import</span> org.springframework.context.annotation.Configuration;
+<span class="k">import</span> org.springframework.web.client.RestClient;
+
+<span class="c">/**
+ * @author Youssef ROUANE
+ * @date 24/08/2026
+ */</span>
+@Configuration
+<span class="k">public</span> <span class="k">class</span> CamundaRestClientConfig {
+
+    <span class="c">/**
+     * RestClient pré-réglé sur l&#x27;URL du moteur : le client n&#x27;écrit que des chemins relatifs.
+     * DMZR : l&#x27;intercepteur Apigee n&#x27;existe que si camunda.apigee.enabled=true (ObjectProvider → rien en local).
+     */</span>
+    @Bean
+    <span class="k">public</span> RestClient camundaRestClient(CamundaProperties properties, ObjectProvider&lt;ApigeeBearerInterceptor&gt; apigee) {
+        RestClient.Builder builder = RestClient.builder().baseUrl(properties.getBaseUrl());
+        apigee.ifAvailable(builder::requestInterceptor);
+        <span class="k">return</span> builder.build();
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>GdfWorkerConfig.java — imports</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> com.bmci.workflow.fund.management.external.camunda.auth.ApigeeTokenProvider;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.camunda.auth.ApigeeWorkerInterceptor;
+<span class="k">import</span> org.camunda.bpm.client.ExternalTaskClientBuilder;
+<span class="k">import</span> org.springframework.beans.factory.ObjectProvider;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>GdfWorkerConfig.java — champs</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java</span></div><p class="note">Lignes 34-35 : le champ <code>ObjectProvider</code> s'insère entre <code>eclaterBesoinsGabHandler</code> et <code>client</code> (injecté par <code>@RequiredArgsConstructor</code>).</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">final</span> EclaterBesoinsGabHandler eclaterBesoinsGabHandler;
+    <span class="c">/** DMZR : présent seulement si camunda.apigee.enabled=true (sinon ObjectProvider vide → moteur direct). */</span>
+    <span class="k">private</span> <span class="k">final</span> ObjectProvider&lt;ApigeeTokenProvider&gt; apigeeTokenProvider;
+    <span class="k">private</span> ExternalTaskClient client;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>GdfWorkerConfig.java — construction du client</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java</span></div><p class="note">Remplace les lignes 45-51 (<code>client = ExternalTaskClient.create() … .build();</code>) dans <code>demarrerAbonnements()</code>.</p><pre><button class="copy">Copier</button><code>            ExternalTaskClientBuilder builder = ExternalTaskClient.create()
+                    .baseUrl(properties.getBaseUrl())
+                    .workerId(properties.getWorker().getWorkerId())
+                    .lockDuration(properties.getWorker().getLockDurationMs())
+                    .asyncResponseTimeout(properties.getWorker().getAsyncResponseTimeoutMs())
+                    .disableBackoffStrategy();
+            <span class="c">// DMZR : Bearer Apigee sur fetchAndLock / complete / failure</span>
+            apigeeTokenProvider.ifAvailable(tokens -&gt; builder.addInterceptor(<span class="k">new</span> ApigeeWorkerInterceptor(tokens)));
+            client = builder.build();</code></pre></div><h2 id="auth">2. Authentification Apigee</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>ApigeeTokenProvider.java</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\auth\ApigeeTokenProvider.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.camunda.auth;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.external.camunda.config.CamundaProperties;
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+<span class="k">import</span> com.fasterxml.jackson.annotation.JsonProperty;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+<span class="k">import</span> org.springframework.http.MediaType;
+<span class="k">import</span> org.springframework.stereotype.Component;
+<span class="k">import</span> org.springframework.util.LinkedMultiValueMap;
+<span class="k">import</span> org.springframework.util.MultiValueMap;
+<span class="k">import</span> org.springframework.web.client.RestClient;
+<span class="k">import</span> org.springframework.web.client.RestClientException;
+
+<span class="k">import</span> java.time.Clock;
+<span class="k">import</span> java.time.Instant;
+
+<span class="c">/**
+ * Fournit le Bearer Apigee pour tous les appels au moteur Camunda (RestClient + worker).
+ * Un seul token en cache, partagé par tous les threads ; renouvelé avant expiration (marge configurable)
+ * ou après un 401 (token révoqué côté Apigee). Même contrat que Oauth2TokenRefreshInterceptor d&#x27;utilisateurs-ci,
+ * sans OkHttp : fund-management parle RestClient.
+ * Les erreurs de l&#x27;appel token sont des RestClientException → 502 via le handler existant (moteur injoignable).
+ */</span>
+@Slf4j
+@Component
+@ConditionalOnProperty(prefix = <span class="s">&quot;camunda.apigee&quot;</span>, name = <span class="s">&quot;enabled&quot;</span>, havingValue = <span class="s">&quot;true&quot;</span>)
+<span class="k">public</span> <span class="k">class</span> ApigeeTokenProvider {
+
+    <span class="k">private</span> <span class="k">final</span> CamundaProperties.Apigee apigee;
+    <span class="k">private</span> <span class="k">final</span> RestClient tokenClient;
+    <span class="k">private</span> <span class="k">final</span> Clock clock;
+    <span class="k">private</span> volatile Jeton jeton;
+
+    <span class="k">public</span> ApigeeTokenProvider(CamundaProperties properties) {
+        <span class="k">this</span>(properties.getApigee(), RestClient.builder().build(), Clock.systemUTC());
+    }
+
+    <span class="c">/** Constructeur de test (serveur mock + horloge pilotée). */</span>
+    ApigeeTokenProvider(CamundaProperties.Apigee apigee, RestClient tokenClient, Clock clock) {
+        <span class="k">this</span>.apigee = apigee;
+        <span class="k">this</span>.tokenClient = tokenClient;
+        <span class="k">this</span>.clock = clock;
+    }
+
+    <span class="c">/** Token valide : celui du cache s&#x27;il lui reste plus que la marge, sinon un nouveau. */</span>
+    <span class="k">public</span> <span class="k">String</span> token() {
+        Jeton courant = jeton;
+        <span class="k">if</span> (courant != <span class="k">null</span> &amp;&amp; courant.valide(clock.instant(), apigee.getRefreshMarginSeconds())) {
+            <span class="k">return</span> courant.accessToken();
+        }
+        <span class="k">return</span> renouveler();
+    }
+
+    <span class="c">/** Après un 401 : on n&#x27;invalide le cache que s&#x27;il porte encore le token rejeté (un autre thread a pu le renouveler). */</span>
+    <span class="k">public</span> <span class="k">String</span> renouvelerApresRejet(<span class="k">String</span> tokenRejete) {
+        synchronized (<span class="k">this</span>) {
+            Jeton courant = jeton;
+            <span class="k">if</span> (courant != <span class="k">null</span> &amp;&amp; courant.accessToken().equals(tokenRejete)) {
+                jeton = <span class="k">null</span>;
+            }
+        }
+        <span class="k">return</span> token();
+    }
+
+    <span class="k">private</span> synchronized <span class="k">String</span> renouveler() {
+        Jeton courant = jeton;
+        <span class="k">if</span> (courant != <span class="k">null</span> &amp;&amp; courant.valide(clock.instant(), apigee.getRefreshMarginSeconds())) {
+            <span class="k">return</span> courant.accessToken();          <span class="c">// renouvelé par un autre thread pendant l&#x27;attente du verrou</span>
+        }
+        MultiValueMap&lt;<span class="k">String</span>, <span class="k">String</span>&gt; formulaire = <span class="k">new</span> LinkedMultiValueMap&lt;&gt;();
+        formulaire.add(<span class="s">&quot;grant_type&quot;</span>, <span class="s">&quot;client_credentials&quot;</span>);
+
+        ReponseToken reponse = tokenClient.post()
+                .uri(apigee.getTokenUrl())
+                .headers(h -&gt; h.setBasicAuth(apigee.getClientId(), apigee.getClientSecret()))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .accept(MediaType.APPLICATION_JSON)
+                .body(formulaire)
+                .retrieve()
+                .body(ReponseToken.<span class="k">class</span>);
+
+        <span class="k">if</span> (reponse == <span class="k">null</span> || reponse.accessToken() == <span class="k">null</span> || reponse.accessToken().isBlank()) {
+            <span class="k">throw</span> <span class="k">new</span> RestClientException(<span class="s">&quot;Apigee : réponse token sans access_token&quot;</span>);
+        }
+        <span class="k">long</span> dureeSecondes = Long.parseLong(reponse.expiresIn().trim());      <span class="c">// Apigee renvoie &quot;599&quot; (chaîne)</span>
+        jeton = <span class="k">new</span> Jeton(reponse.accessToken(), clock.instant().plusSeconds(dureeSecondes));
+        log.info(<span class="s">&quot;Token Apigee renouvelé (valide {} s)&quot;</span>, dureeSecondes);
+        <span class="k">return</span> jeton.accessToken();
+    }
+
+    <span class="k">record</span> Jeton(<span class="k">String</span> accessToken, Instant expireA) {
+        <span class="k">boolean</span> valide(Instant maintenant, <span class="k">long</span> margeSecondes) {
+            <span class="k">return</span> maintenant.plusSeconds(margeSecondes).isBefore(expireA);
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = <span class="k">true</span>)
+    <span class="k">record</span> ReponseToken(@JsonProperty(<span class="s">&quot;access_token&quot;</span>) <span class="k">String</span> accessToken,
+                        @JsonProperty(<span class="s">&quot;expires_in&quot;</span>) <span class="k">String</span> expiresIn) {
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>ApigeeBearerInterceptor.java</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\auth\ApigeeBearerInterceptor.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.camunda.auth;
+
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+<span class="k">import</span> org.springframework.http.HttpRequest;
+<span class="k">import</span> org.springframework.http.client.ClientHttpRequestExecution;
+<span class="k">import</span> org.springframework.http.client.ClientHttpRequestInterceptor;
+<span class="k">import</span> org.springframework.http.client.ClientHttpResponse;
+<span class="k">import</span> org.springframework.stereotype.Component;
+
+<span class="k">import</span> java.io.IOException;
+
+<span class="c">/**
+ * Pose le Bearer Apigee sur chaque appel du RestClient Camunda (start, correlate, task complete, history…).
+ * Sur 401 : un seul rejeu avec un token renouvelé — au-delà, la réponse remonte telle quelle.
+ */</span>
+@Component
+@ConditionalOnProperty(prefix = <span class="s">&quot;camunda.apigee&quot;</span>, name = <span class="s">&quot;enabled&quot;</span>, havingValue = <span class="s">&quot;true&quot;</span>)
+@RequiredArgsConstructor
+<span class="k">public</span> <span class="k">class</span> ApigeeBearerInterceptor <span class="k">implements</span> ClientHttpRequestInterceptor {
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">int</span> NON_AUTORISE = 401;
+
+    <span class="k">private</span> <span class="k">final</span> ApigeeTokenProvider tokens;
+
+    @Override
+    <span class="k">public</span> ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) <span class="k">throws</span> IOException {
+        <span class="k">String</span> token = tokens.token();
+        ClientHttpResponse reponse = executer(request, body, execution, token);
+        <span class="k">if</span> (reponse.getStatusCode().value() != NON_AUTORISE) {
+            <span class="k">return</span> reponse;
+        }
+        reponse.close();
+        <span class="k">return</span> executer(request, body, execution, tokens.renouvelerApresRejet(token));
+    }
+
+    <span class="k">private</span> <span class="k">static</span> ClientHttpResponse executer(HttpRequest request, byte[] body, ClientHttpRequestExecution execution, <span class="k">String</span> token) <span class="k">throws</span> IOException {
+        request.getHeaders().setBearerAuth(token);
+        <span class="k">return</span> execution.execute(request, body);
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>ApigeeWorkerInterceptor.java</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\auth\ApigeeWorkerInterceptor.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.camunda.auth;
+
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> org.camunda.bpm.client.interceptor.ClientRequestContext;
+<span class="k">import</span> org.camunda.bpm.client.interceptor.ClientRequestInterceptor;
+
+<span class="c">/**
+ * Pose le Bearer Apigee sur chaque requête du worker (fetchAndLock, complete, failure, extendLock).
+ * Pas de bean : construit dans GdfWorkerConfig uniquement quand ApigeeTokenProvider est présent.
+ * Pas de rejeu sur 401 ici (le client Camunda ne l&#x27;expose pas) : le renouvellement anticipé (marge) couvre le cas nominal,
+ * et le long polling repart de lui-même à l&#x27;itération suivante avec un token neuf.
+ */</span>
+@RequiredArgsConstructor
+<span class="k">public</span> <span class="k">class</span> ApigeeWorkerInterceptor <span class="k">implements</span> ClientRequestInterceptor {
+
+    <span class="k">private</span> <span class="k">final</span> ApigeeTokenProvider tokens;
+
+    @Override
+    <span class="k">public</span> <span class="k">void</span> intercept(ClientRequestContext requestContext) {
+        requestContext.addHeader(<span class="s">&quot;Authorization&quot;</span>, <span class="s">&quot;Bearer &quot;</span> + tokens.token());
+    }
+}</code></pre></div><h2 id="yaml">3. YAML et variables</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>application.yaml — bloc camunda</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\application.yaml</span></div><p class="note">Remplace le bloc <code>camunda:</code> (lignes 34-42). Valeurs locales inchangées ; tout est surchargeable par variable d'environnement.</p><pre><button class="copy">Copier</button><code>camunda:
+  base-url: ${QF_CAMUNDA_BASE_URL:http:<span class="c">//localhost:3030/engine-rest}</span>
+  tenant-id: QLICKFLOW
+  process-definition-key: gestion-des-fonds
+  worker:
+    worker-id: ${QF_CAMUNDA_WORKER_ID:fund-management-local}
+    lock-duration-ms: 30000
+    <span class="k">async</span>-response-timeout-ms: 20000
+    enabled: <span class="k">true</span>
+  apigee:                                   # DMZR : moteur derrière Apigee — <span class="k">false</span> en local (moteur direct)
+    enabled: ${QF_APIGEE_ENABLED:<span class="k">false</span>}
+    token-url: ${QF_APIGEE_TOKEN_URL:}
+    client-id: ${QF_APIGEE_CLIENT_ID:}        # Vault
+    client-secret: ${QF_APIGEE_CLIENT_SECRET:} # Vault
+    refresh-margin-seconds: 60</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Variables du pod DMZR</b><br><span class="path">Helm / Vault (tech lead)</span></div><p class="note">Les identifiants sont ceux de l'environnement Postman « APIGEE MAROC - DEV » : à mettre dans Vault, <b>pas</b> dans le repo ni dans le values.yaml.</p><pre><button class="copy">Copier</button><code># Variables d&#x27;environnement du pod fund-management (staging / prod DMZR) — valeurs secrètes via Vault, jamais dans git
+QF_CAMUNDA_BASE_URL=https:<span class="c">//morocco-mtls.apigee.dev.echonet/&lt;chemin-camunda&gt;/engine-rest   # chemin exact : tech lead (dossier « Camunda » de la collection)</span>
+QF_CAMUNDA_WORKER_ID=fund-management-staging
+QF_APIGEE_ENABLED=<span class="k">true</span>
+QF_APIGEE_TOKEN_URL=https:<span class="c">//morocco.apigee.dev.echonet/auth/oauth/v2/token</span>
+QF_APIGEE_CLIENT_ID=&lt;username de l&#x27;environnement Postman « APIGEE MAROC - DEV »&gt;
+QF_APIGEE_CLIENT_SECRET=&lt;password de ce même environnement&gt;</code></pre></div><h2 id="tests">4. Tests et recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>ApigeeTokenProviderTest.java</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\test\java\com\bmci\workflow\fund\management\external\camunda\auth\ApigeeTokenProviderTest.java</span></div><p class="note"><code>MockRestServiceServer.bindTo(RestClient.Builder)</code> (spring-test 6.1, fourni par spring-boot-starter-test ; si le module external-services n'a pas ce starter en scope test, l'ajouter dans son pom).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.camunda.auth;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.external.camunda.config.CamundaProperties;
+<span class="k">import</span> org.junit.jupiter.api.BeforeEach;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.springframework.http.HttpHeaders;
+<span class="k">import</span> org.springframework.http.HttpMethod;
+<span class="k">import</span> org.springframework.http.MediaType;
+<span class="k">import</span> org.springframework.test.web.client.ExpectedCount;
+<span class="k">import</span> org.springframework.test.web.client.MockRestServiceServer;
+<span class="k">import</span> org.springframework.test.web.client.match.MockRestRequestMatchers;
+<span class="k">import</span> org.springframework.test.web.client.response.MockRestResponseCreators;
+<span class="k">import</span> org.springframework.web.client.RestClient;
+
+<span class="k">import</span> java.time.Clock;
+<span class="k">import</span> java.time.Instant;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+
+<span class="c">/** Token Apigee : client_credentials en Basic, cache, renouvellement avant expiration et après 401. */</span>
+<span class="k">class</span> ApigeeTokenProviderTest {
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> TOKEN_URL = <span class="s">&quot;https://apigee.test/auth/oauth/v2/token&quot;</span>;
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> Instant T0 = Instant.parse(<span class="s">&quot;2026-11-02T10:00:00Z&quot;</span>);
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> REPONSE_ABC = <span class="s">&quot;{\&quot;access_token\&quot;:\&quot;abc\&quot;,\&quot;token_type\&quot;:\&quot;Bearer\&quot;,\&quot;expires_in\&quot;:\&quot;599\&quot;,\&quot;scope\&quot;:\&quot;task-readwrite\&quot;}&quot;</span>;
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> REPONSE_DEF = <span class="s">&quot;{\&quot;access_token\&quot;:\&quot;def\&quot;,\&quot;token_type\&quot;:\&quot;Bearer\&quot;,\&quot;expires_in\&quot;:\&quot;599\&quot;,\&quot;scope\&quot;:\&quot;task-readwrite\&quot;}&quot;</span>;
+
+    <span class="k">private</span> MockRestServiceServer serveur;
+    <span class="k">private</span> Clock horloge;
+    <span class="k">private</span> ApigeeTokenProvider provider;
+
+    @BeforeEach
+    <span class="k">void</span> setUp() {
+        CamundaProperties.Apigee apigee = <span class="k">new</span> CamundaProperties.Apigee();
+        apigee.setTokenUrl(TOKEN_URL);
+        apigee.setClientId(<span class="s">&quot;client&quot;</span>);
+        apigee.setClientSecret(<span class="s">&quot;secret&quot;</span>);
+        RestClient.Builder builder = RestClient.builder();
+        serveur = MockRestServiceServer.bindTo(builder).build();
+        horloge = Mockito.mock(Clock.<span class="k">class</span>);
+        provider = <span class="k">new</span> ApigeeTokenProvider(apigee, builder.build(), horloge);
+    }
+
+    @Test
+    <span class="k">void</span> token_appelleApigeeEnClientCredentialsPuisSertLeCache() {
+        Mockito.when(horloge.instant()).thenReturn(T0);
+        serveur.expect(ExpectedCount.once(), MockRestRequestMatchers.requestTo(TOKEN_URL))
+                .andExpect(MockRestRequestMatchers.method(HttpMethod.POST))
+                .andExpect(MockRestRequestMatchers.header(HttpHeaders.AUTHORIZATION, <span class="s">&quot;Basic Y2xpZW50OnNlY3JldA==&quot;</span>))   <span class="c">// client:secret</span>
+                .andExpect(MockRestRequestMatchers.content().contentTypeCompatibleWith(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(MockRestRequestMatchers.content().string(<span class="s">&quot;grant_type=client_credentials&quot;</span>))
+                .andRespond(MockRestResponseCreators.withSuccess(REPONSE_ABC, MediaType.APPLICATION_JSON));
+
+        assertEquals(<span class="s">&quot;abc&quot;</span>, provider.token());
+        assertEquals(<span class="s">&quot;abc&quot;</span>, provider.token());      <span class="c">// 2e appel : cache, aucune requête supplémentaire</span>
+        serveur.verify();
+    }
+
+    @Test
+    <span class="k">void</span> token_renouvelleAvantExpiration() {
+        Mockito.when(horloge.instant()).thenReturn(T0, T0, T0.plusSeconds(560));   <span class="c">// 599 - 60 de marge = 539 s : à 560 s il faut renouveler</span>
+        serveur.expect(ExpectedCount.times(2), MockRestRequestMatchers.requestTo(TOKEN_URL))
+                .andRespond(MockRestResponseCreators.withSuccess(REPONSE_ABC, MediaType.APPLICATION_JSON));
+
+        provider.token();
+        provider.token();
+        serveur.verify();
+    }
+
+    @Test
+    <span class="k">void</span> renouvelerApresRejet_remplaceLeTokenRejete() {
+        Mockito.when(horloge.instant()).thenReturn(T0);
+        serveur.expect(MockRestRequestMatchers.requestTo(TOKEN_URL))
+                .andRespond(MockRestResponseCreators.withSuccess(REPONSE_ABC, MediaType.APPLICATION_JSON));
+        serveur.expect(MockRestRequestMatchers.requestTo(TOKEN_URL))
+                .andRespond(MockRestResponseCreators.withSuccess(REPONSE_DEF, MediaType.APPLICATION_JSON));
+
+        assertEquals(<span class="s">&quot;abc&quot;</span>, provider.token());
+        assertEquals(<span class="s">&quot;def&quot;</span>, provider.renouvelerApresRejet(<span class="s">&quot;abc&quot;</span>));
+        assertEquals(<span class="s">&quot;def&quot;</span>, provider.renouvelerApresRejet(<span class="s">&quot;abc&quot;</span>));   <span class="c">// rejet d&#x27;un token déjà remplacé : pas de 3e appel</span>
+        serveur.verify();
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>ApigeeBearerInterceptorTest.java</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\test\java\com\bmci\workflow\fund\management\external\camunda\auth\ApigeeBearerInterceptorTest.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.camunda.auth;
+
+<span class="k">import</span> org.junit.jupiter.api.BeforeEach;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.springframework.http.HttpHeaders;
+<span class="k">import</span> org.springframework.http.HttpMethod;
+<span class="k">import</span> org.springframework.http.HttpStatus;
+<span class="k">import</span> org.springframework.http.client.ClientHttpRequestExecution;
+<span class="k">import</span> org.springframework.http.client.ClientHttpResponse;
+<span class="k">import</span> org.springframework.mock.http.client.MockClientHttpRequest;
+<span class="k">import</span> org.springframework.mock.http.client.MockClientHttpResponse;
+
+<span class="k">import</span> java.io.IOException;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertSame;
+
+<span class="k">class</span> ApigeeBearerInterceptorTest {
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> byte[] CORPS = <span class="s">&quot;{}&quot;</span>.getBytes();
+
+    <span class="k">private</span> ApigeeTokenProvider tokens;
+    <span class="k">private</span> ClientHttpRequestExecution execution;
+    <span class="k">private</span> MockClientHttpRequest requete;
+    <span class="k">private</span> ApigeeBearerInterceptor interceptor;
+
+    @BeforeEach
+    <span class="k">void</span> setUp() {
+        tokens = Mockito.mock(ApigeeTokenProvider.<span class="k">class</span>);
+        execution = Mockito.mock(ClientHttpRequestExecution.<span class="k">class</span>);
+        requete = <span class="k">new</span> MockClientHttpRequest(HttpMethod.POST, <span class="s">&quot;/process-definition/key/gestion-des-fonds/start&quot;</span>);
+        interceptor = <span class="k">new</span> ApigeeBearerInterceptor(tokens);
+    }
+
+    @Test
+    <span class="k">void</span> poseLeBearerEtRendLaReponseSur200() <span class="k">throws</span> IOException {
+        Mockito.when(tokens.token()).thenReturn(<span class="s">&quot;abc&quot;</span>);
+        ClientHttpResponse ok = <span class="k">new</span> MockClientHttpResponse(<span class="k">new</span> byte[0], HttpStatus.OK);
+        Mockito.when(execution.execute(requete, CORPS)).thenReturn(ok);
+
+        ClientHttpResponse resultat = interceptor.intercept(requete, CORPS, execution);
+
+        assertSame(ok, resultat);
+        assertEquals(<span class="s">&quot;Bearer abc&quot;</span>, requete.getHeaders().getFirst(HttpHeaders.AUTHORIZATION));
+        Mockito.verify(tokens, Mockito.never()).renouvelerApresRejet(Mockito.anyString());
+    }
+
+    @Test
+    <span class="k">void</span> rejoueUneSeuleFoisAvecUnNouveauTokenSur401() <span class="k">throws</span> IOException {
+        Mockito.when(tokens.token()).thenReturn(<span class="s">&quot;abc&quot;</span>);
+        Mockito.when(tokens.renouvelerApresRejet(<span class="s">&quot;abc&quot;</span>)).thenReturn(<span class="s">&quot;def&quot;</span>);
+        ClientHttpResponse nonAutorise = <span class="k">new</span> MockClientHttpResponse(<span class="k">new</span> byte[0], HttpStatus.UNAUTHORIZED);
+        ClientHttpResponse ok = <span class="k">new</span> MockClientHttpResponse(<span class="k">new</span> byte[0], HttpStatus.OK);
+        Mockito.when(execution.execute(requete, CORPS)).thenReturn(nonAutorise, ok);
+
+        ClientHttpResponse resultat = interceptor.intercept(requete, CORPS, execution);
+
+        assertSame(ok, resultat);
+        assertEquals(<span class="s">&quot;Bearer def&quot;</span>, requete.getHeaders().getFirst(HttpHeaders.AUTHORIZATION));
+        Mockito.verify(execution, Mockito.times(2)).execute(requete, CORPS);
+    }
+
+    @Test
+    <span class="k">void</span> deux401DeSuite_rendLaSecondeReponseSansBoucler() <span class="k">throws</span> IOException {
+        Mockito.when(tokens.token()).thenReturn(<span class="s">&quot;abc&quot;</span>);
+        Mockito.when(tokens.renouvelerApresRejet(<span class="s">&quot;abc&quot;</span>)).thenReturn(<span class="s">&quot;def&quot;</span>);
+        ClientHttpResponse premier = <span class="k">new</span> MockClientHttpResponse(<span class="k">new</span> byte[0], HttpStatus.UNAUTHORIZED);
+        ClientHttpResponse second = <span class="k">new</span> MockClientHttpResponse(<span class="k">new</span> byte[0], HttpStatus.UNAUTHORIZED);
+        Mockito.when(execution.execute(requete, CORPS)).thenReturn(premier, second);
+
+        assertSame(second, interceptor.intercept(requete, CORPS, execution));
+        Mockito.verify(execution, Mockito.times(2)).execute(requete, CORPS);
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Recette</b><br><span class="path">recette\camunda-apigee.txt</span></div><pre><button class="copy">Copier</button><code># 1. Unitaire : mvn -pl fund-management-external-services test → ApigeeTokenProviderTest (3) + ApigeeBearerInterceptorTest (3) verts ;
+#    suite existante inchangée (local : camunda.apigee.enabled=<span class="k">false</span> → aucun bean Apigee, aucun interceptor).
+
+# 2. Postman (collection APIGEE MAROC, env « APIGEE MAROC - DEV ») — vérifier le chemin Camunda derrière Apigee AVANT de déployer :
+GET {{baseUrl}}/&lt;chemin-camunda&gt;/engine-rest/engine
+Authorization: Bearer {{access_token}}
+pm.test(<span class="s">&quot;200 + moteur&quot;</span>, () =&gt; { pm.response.to.have.status(200); pm.expect(pm.response.json()[0].name).to.eql(<span class="s">&quot;default&quot;</span>); });
+# → c&#x27;est cette valeur (sans « /engine ») qui devient QF_CAMUNDA_BASE_URL.
+
+# 3. Staging DMZR (variables env-dmzr) :
+#    - boot : log « Token Apigee renouvelé (valide 599 s) » puis « Worker Camunda abonné aux 9 topics gdf-* sur https:<span class="c">//morocco-mtls… »</span>
+#    - soumettre une demande depuis l&#x27;écran agence → instance visible dans le Cockpit DMZR, statut SUBMITTED, handler gdf-initialiser-demande exécuté
+#    - attendre &gt; 10 min sans activité, soumettre une 2e demande → 2e log « Token Apigee renouvelé », aucun 401 dans les logs, pas de 502 côté écran
+#    - traiter une demande (Caisse Centrale) → complete-task OK, workers cloturer/annuler OK
+#    - couper le secret (QF_APIGEE_CLIENT_SECRET faux) → 502 « moteur injoignable » à la soumission, log 401 sur l&#x27;appel token : comportement attendu, pas de boucle</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
