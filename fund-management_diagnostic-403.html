@@ -1,0 +1,143 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>fund-management — 403 local après feature/dmzr + base recréée : feuille de route de diagnostic</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>fund-management — 403 local après feature/dmzr + base recréée : feuille de route de diagnostic</h1><p>Du plus rapide au plus lourd : corps de la réponse → checks SQL → alignement user_profile → sonde → Postman par étage → plan B « repartir du point de Yassine » · 02/11/2026</p></header><nav><a href="#etat">Ce qu&#x27;on sait</a><a href="#corps">La piste à 10 secondes : le corps du 403</a><a href="#sql">Checks SQL de la base recréée</a><a href="#profil">Alignement user_profile ↔ users</a><a href="#sonde">Sonde : voir la requête entrer et sortir</a><a href="#postman">Postman par étage</a><a href="#planb">Plan B — repartir du point de Yassine</a></nav><main><h2 id="etat">0. Ce qu&#x27;on sait</h2><div class="card"><ul>
+<li>Users OK : <code>/me</code> renvoie g10002 CHEF_CAISSE avec <code>GDF_CONSULTER_DEMANDE</code>. Gateway OK : route <code>qf-fund-management</code>, CORS 4200/4201, log « routed → localhost, 403 ».</li>
+<li>Fund-management : un seul process sur 8300, boot propre, Apigee + worker OK, <code>QfSimplifiedAuthFilter</code> ne produit que des 401 loggués (donc il passe), <code>IdentiteAppelantResolver</code> correct.</li>
+<li>Le 403 est <b>silencieux</b> et touche <code>develop</code> comme <code>feature/dmzr</code> → le point commun est <b>la base recréée</b> (+ le yaml fusionné), pas le code.</li>
+<li>Un endpoint cutoff répond 200 en direct → l'auth de base fonctionne ; c'est un garde spécifique au listing/agence qui refuse, ou un référentiel manquant.</li>
+</ul></div><h2 id="corps">1. La piste à 10 secondes : le corps du 403</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Où regarder</b><br><span class="path">Edge &gt; Network &gt; Response</span></div><pre><button class="copy">Copier</button><code># Edge &gt; F12 &gt; Network &gt; cash?page=0&amp;size=20 &gt; onglet <span class="s">&quot;Response&quot;</span> (pas Headers).
+# Un 403 produit par fund-management a TOUJOURS un corps JSON ApiResponse (GlobalExceptionHandler) :
+#   {<span class="s">&quot;success&quot;</span>:<span class="k">false</span>,<span class="s">&quot;message&quot;</span>:<span class="s">&quot;&lt;motif exact de la RetailForbiddenException ou &#x27;Accès refusé&#x27;&gt;&quot;</span>, ...}
+# → ce message dit quel garde refuse (agence, profil, permission). C&#x27;est la piste n°1, elle coûte 10 secondes.
+# Corps vide / HTML / <span class="s">&quot;Forbidden&quot;</span> nu → le 403 vient de Spring Security avant le contrôleur (authorities), pas du use <span class="k">case</span>.</code></pre></div><h2 id="sql">2. Checks SQL de la base recréée</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>2-check-base.sql</b><br><span class="path">pgAdmin — fund_management</span></div><p class="note">Envoie-moi les 5 résultats. Une migration en échec, un référentiel à 0 ou un <code>cash_request</code> présent dans deux schémas = cause.</p><pre><button class="copy">Copier</button><code><span class="k">SET</span> search_path TO <span class="s">&quot;qf-fund-management&quot;</span>;
+
+<span class="c">-- A. Flyway : toutes les migrations passées ? (toute ligne success=false bloque tout)</span>
+<span class="k">SELECT</span> installed_rank, version, description, success <span class="k">FROM</span> flyway_schema_history ORDER BY installed_rank;
+
+<span class="c">-- B. Référentiels de seed indispensables au listing / à la création (V1/V2 ont été modifiés par Yassine : vérifier qu&#x27;ils ont rejoué)</span>
+<span class="k">SELECT</span> <span class="s">&#x27;establishment&#x27;</span> AS t, count(*) <span class="k">FROM</span> establishment
+UNION ALL <span class="k">SELECT</span> <span class="s">&#x27;denomination&#x27;</span>,  count(*) <span class="k">FROM</span> denomination
+UNION ALL <span class="k">SELECT</span> <span class="s">&#x27;currency&#x27;</span>,      count(*) <span class="k">FROM</span> currency
+UNION ALL <span class="k">SELECT</span> <span class="s">&#x27;cutoff_config&#x27;</span>, count(*) <span class="k">FROM</span> cutoff_config
+UNION ALL <span class="k">SELECT</span> <span class="s">&#x27;user_profile&#x27;</span>,  count(*) <span class="k">FROM</span> user_profile
+UNION ALL <span class="k">SELECT</span> <span class="s">&#x27;cash_request&#x27;</span>,  count(*) <span class="k">FROM</span> cash_request;
+<span class="c">-- attendu : establishment &gt;= 1, denomination &gt;= 10, currency &gt;= 1, cutoff_config &gt;= 1, user_profile 15 (voir §3), cash_request 0 (base neuve)</span>
+
+<span class="c">-- C. Tables existantes : le schéma de Yassine est-il complet ?</span>
+<span class="k">SELECT</span> table_name <span class="k">FROM</span> information_schema.tables <span class="k">WHERE</span> table_schema = <span class="s">&#x27;qf-fund-management&#x27;</span> ORDER BY 1;
+<span class="c">-- attendu (au moins) : cash_request, cash_operation, cash_operation_gab, operation_currency_detail, operation_denomination,</span>
+<span class="c">-- request_denomination, denomination, currency, establishment, user_profile, cutoff_config, outbox_event, shedlock,</span>
+<span class="c">-- request_ref_counter, flyway_schema_history</span>
+
+<span class="c">-- D. Le compteur de référence (V8) et la séquence : une demande ne peut pas être créée sans</span>
+<span class="k">SELECT</span> * <span class="k">FROM</span> request_ref_counter LIMIT 5;
+
+<span class="c">-- E. Un seul schéma applicatif ? (si &quot;retail&quot; ou &quot;public&quot; contient aussi cash_request, l&#x27;appli lit peut-être le mauvais)</span>
+<span class="k">SELECT</span> table_schema, count(*) <span class="k">FROM</span> information_schema.tables
+<span class="k">WHERE</span> table_name = <span class="s">&#x27;cash_request&#x27;</span> GROUP BY 1;</code></pre></div><h2 id="profil">3. Alignement user_profile ↔ users</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>3-user-profile.sql</b><br><span class="path">pgAdmin — fund_management</span></div><p class="note">Ta capture : anciens uids en codes courts (C, CC, SUP, AGT, RSP), nouveaux en codes longs. Si un garde compare <code>profile_code</code> à <code>CAISSE_CENTRALE</code>/<code>CHEF_CAISSE</code>, les anciens sont refusés. Ce script aligne tout sur users. <b>c60011 / c60010</b> (sur ta capture) vs <b>c63005</b> (liste PO) : vérifier lequel existe dans users et garder le même.</p><pre><button class="copy">Copier</button><code><span class="k">SET</span> search_path TO <span class="s">&quot;qf-fund-management&quot;</span>;
+<span class="c">-- Alignement user_profile (fund-management) &lt;-&gt; users (qf_admin). Ce que fund-management lit : uid + profile_code.</span>
+<span class="c">-- Référence users (recette) : g10001 DA, g10002 CHEF_CAISSE, g10003 CAISSE_CENTRALE, g10004 SUPPORT, h11111 SA,</span>
+<span class="c">--   j61104 DA, j62211 CHEF_CAISSE, j62318 CHEF_CAISSE, c63005 CAISSE_CENTRALE (liste PO 09/10) + j43709, j08221.</span>
+<span class="c">-- Ta capture montre pour les anciens uids des codes COURTS (g10002 = &#x27;C&#x27;, g10003 = &#x27;CC&#x27;, g10004 = &#x27;SUP&#x27;, j43709 = &#x27;AGT&#x27;, j08221 = &#x27;RSP&#x27;)</span>
+<span class="c">-- alors que les nouveaux ont les codes LONGS (CHEF_CAISSE, CAISSE_CENTRALE, DA, SUPPORT). Si un garde compare profile_code au profil users</span>
+<span class="c">-- (ex. &quot;CAISSE_CENTRALE&quot;), g10003 (&#x27;CC&#x27;) est refusé. On aligne tout sur les codes de users :</span>
+<span class="k">UPDATE</span> user_profile <span class="k">SET</span> profile_code = <span class="s">&#x27;CHEF_CAISSE&#x27;</span>,     profile_label = <span class="s">&#x27;Chef de caisse&#x27;</span>,       profile_type = <span class="s">&#x27;AGENT&#x27;</span> <span class="k">WHERE</span> uid = <span class="s">&#x27;g10002&#x27;</span>;
+<span class="k">UPDATE</span> user_profile <span class="k">SET</span> profile_code = <span class="s">&#x27;CAISSE_CENTRALE&#x27;</span>, profile_label = <span class="s">&#x27;Caisse Centrale&#x27;</span>,      profile_type = <span class="s">&#x27;AGENT&#x27;</span> <span class="k">WHERE</span> uid = <span class="s">&#x27;g10003&#x27;</span>;
+<span class="k">UPDATE</span> user_profile <span class="k">SET</span> profile_code = <span class="s">&#x27;SUPPORT&#x27;</span>,         profile_label = <span class="s">&#x27;Support&#x27;</span>,              profile_type = <span class="s">&#x27;AGENT&#x27;</span> <span class="k">WHERE</span> uid = <span class="s">&#x27;g10004&#x27;</span>;
+<span class="k">UPDATE</span> user_profile <span class="k">SET</span> profile_code = <span class="s">&#x27;DA&#x27;</span>,              profile_label = <span class="s">&#x27;Directeur d&#x27;</span><span class="s">&#x27;agence&#x27;</span>,  profile_type = <span class="s">&#x27;DA&#x27;</span>    <span class="k">WHERE</span> uid = <span class="s">&#x27;g10001&#x27;</span>;
+<span class="c">-- uids de la liste PO absents de la table ? (c63005 Smatou n&#x27;apparaît pas sur ta capture : c60011 / c60010 y sont — à aligner avec users)</span>
+INSERT INTO user_profile (id, creation_date, modification_date, uid, profile_code, profile_label, profile_type)
+<span class="k">SELECT</span> gen_random_uuid(), now(), now(), v.uid, v.code, v.label, v.<span class="k">type</span>
+<span class="k">FROM</span> (VALUES (<span class="s">&#x27;c63005&#x27;</span>,<span class="s">&#x27;CAISSE_CENTRALE&#x27;</span>,<span class="s">&#x27;Caisse Centrale&#x27;</span>,<span class="s">&#x27;AGENT&#x27;</span>),
+             (<span class="s">&#x27;j61104&#x27;</span>,<span class="s">&#x27;DA&#x27;</span>,<span class="s">&#x27;Directeur d&#x27;</span><span class="s">&#x27;agence&#x27;</span>,<span class="s">&#x27;DA&#x27;</span>),
+             (<span class="s">&#x27;j62211&#x27;</span>,<span class="s">&#x27;CHEF_CAISSE&#x27;</span>,<span class="s">&#x27;Chef de caisse&#x27;</span>,<span class="s">&#x27;AGENT&#x27;</span>),
+             (<span class="s">&#x27;j62318&#x27;</span>,<span class="s">&#x27;CHEF_CAISSE&#x27;</span>,<span class="s">&#x27;Chef de caisse&#x27;</span>,<span class="s">&#x27;AGENT&#x27;</span>)) AS v(uid, code, label, <span class="k">type</span>)
+<span class="k">WHERE</span> <span class="k">NOT</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> user_profile p <span class="k">WHERE</span> p.uid = v.uid);
+
+<span class="c">-- Contrôle : chaque uid de users doit avoir une ligne ici avec le même code</span>
+<span class="k">SELECT</span> uid, profile_code, profile_type <span class="k">FROM</span> user_profile ORDER BY uid;</code></pre></div><h2 id="sonde">4. Sonde : voir la requête entrer et sortir</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>SondeRequeteFilter.java — TEMPORAIRE</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\security\SondeRequeteFilter.java</span></div><p class="note">Un filtre WARN en tête de chaîne : aucune config logback à toucher. À supprimer avant commit.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.security;
+
+<span class="k">import</span> jakarta.servlet.FilterChain;
+<span class="k">import</span> jakarta.servlet.ServletException;
+<span class="k">import</span> jakarta.servlet.http.HttpServletRequest;
+<span class="k">import</span> jakarta.servlet.http.HttpServletResponse;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.core.Ordered;
+<span class="k">import</span> org.springframework.core.annotation.Order;
+<span class="k">import</span> org.springframework.security.core.Authentication;
+<span class="k">import</span> org.springframework.security.core.context.SecurityContextHolder;
+<span class="k">import</span> org.springframework.stereotype.Component;
+<span class="k">import</span> org.springframework.web.filter.OncePerRequestFilter;
+
+<span class="k">import</span> java.io.IOException;
+
+<span class="c">/**
+ * SONDE TEMPORAIRE (diagnostic 403 local, 02/11) — à SUPPRIMER avant commit.
+ * Loggue en WARN (jamais filtré par logback) : la requête arrive-t-elle ? avec quelles authorities ? quel statut sort ?
+ * Ordre HIGHEST_PRECEDENCE : premier filtre de la chaîne, avant Spring Security.
+ */</span>
+@Slf4j
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
+<span class="k">public</span> <span class="k">class</span> SondeRequeteFilter <span class="k">extends</span> OncePerRequestFilter {
+
+    @Override
+    <span class="k">protected</span> <span class="k">void</span> doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            <span class="k">throws</span> ServletException, IOException {
+        log.warn(<span class="s">&quot;SONDE &gt;&gt; {} {} origin={} auth={}&quot;</span>, request.getMethod(), request.getRequestURI(),
+                request.getHeader(<span class="s">&quot;Origin&quot;</span>), request.getHeader(<span class="s">&quot;Authorization&quot;</span>) != <span class="k">null</span> ? <span class="s">&quot;Bearer présent&quot;</span> : <span class="s">&quot;ABSENT&quot;</span>);
+        <span class="k">try</span> {
+            chain.doFilter(request, response);
+        } <span class="k">finally</span> {
+            Authentication a = SecurityContextHolder.getContext().getAuthentication();
+            log.warn(<span class="s">&quot;SONDE &lt;&lt; {} {} status={} principal={} authorities={}&quot;</span>, request.getMethod(), request.getRequestURI(),
+                    response.getStatus(), a == <span class="k">null</span> ? <span class="s">&quot;null&quot;</span> : a.getName(), a == <span class="k">null</span> ? <span class="s">&quot;[]&quot;</span> : a.getAuthorities());
+        }
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Lecture</b><br><span class="path">logs fund-management</span></div><pre><button class="copy">Copier</button><code>Lecture des deux lignes SONDE pour GET /cash :
+  - aucune ligne <span class="s">&quot;SONDE &gt;&gt;&quot;</span>              → la requête n&#x27;entre pas dans Tomcat : gateway → autre port / autre process / autre hôte (vérifier QF_MS_FUND_MANAGEMENT_URL)
+  - <span class="s">&quot;&gt;&gt;&quot;</span> avec auth=ABSENT                → la gateway ne relaie pas le Bearer (QfMockTokenRelayFilter / cookie) ; mais le filtre répondrait 401, pas 403
+  - <span class="s">&quot;&lt;&lt;&quot;</span> status=403 authorities=[]       → filtre passé mais résolution users vide → GET http:<span class="c">//localhost:8091/api/v1/internal/users/g10002 en Postman</span>
+  - <span class="s">&quot;&lt;&lt;&quot;</span> status=403 authorities=[GDF_…]  → @PreAuthorize OK, c&#x27;est un garde du use <span class="k">case</span> (RetailForbiddenException) → le corps JSON de la réponse (§1) donne le motif
+  - <span class="s">&quot;&lt;&lt;&quot;</span> status=200                      → fund-management est bon, le 403 est fabriqué par la gateway après coup (CORS/DedupeResponseHeader) → logs gateway</code></pre></div><h2 id="postman">5. Postman par étage</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>5 requêtes, dans l&#x27;ordre</b><br><span class="path">Postman</span></div><pre><button class="copy">Copier</button><code># Même cookie que le navigateur (copier QF_MOCK_SESSION) — tests par étage, dans l<span class="s">&#x27;ordre. Dès qu&#x27;</span>une étape échoue, c&#x27;est là.
+1. GET http:<span class="c">//localhost:8091/api/v1/internal/users/g10002                       → 200, profile.roles[0].permissions contient GDF_CONSULTER_DEMANDE</span>
+2. GET http:<span class="c">//localhost:8300/actuator/health                                     → 200 UP (public-endpoints)</span>
+3. GET http:<span class="c">//localhost:8300/cash/referentiels/cutoff   (ou l&#x27;endpoint cutoff déjà testé) avec Authorization: Bearer &lt;JWT du cookie&gt;  → 200 (déjà OK chez toi)</span>
+4. GET http:<span class="c">//localhost:8300/cash?page=0&amp;size=20        Authorization: Bearer &lt;même JWT&gt;                                            → 200 attendu</span>
+5. GET http:<span class="c">//localhost:9090/api/v1/public/fund-management/cash?page=0&amp;size=20   Cookie: QF_MOCK_SESSION=&lt;valeur&gt;                   → 200 attendu</span>
+   Si 4 = 200 et 5 = 403 → gateway. Si 4 = 403 → corps JSON (§1) + SONDE (§4).
+# Le JWT du cookie : valeur de QF_MOCK_SESSION telle quelle (c&#x27;est le JWT), à coller derrière <span class="s">&quot;Bearer &quot;</span>.</code></pre></div><h2 id="planb">6. Plan B — repartir du point de Yassine</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Procédure git</b><br><span class="path">Git Bash</span></div><p class="note">À faire si §1-§5 ne concluent pas en 30 min. Principe : son état fonctionne → on le reproduit à l'identique (branche, base, yaml), on vérifie, puis on ajoute <b>seulement</b> le code Apigee et 6 lignes de yaml. Ton ancien yaml local ne revient pas.</p><pre><button class="copy">Copier</button><code># Plan B — repartir du point de Yassine, propre (si §1-§5 ne donnent rien en 30 min) :
+cd /c/dev/fund-management-microservice
+git stash push -u -m <span class="s">&quot;mes-devs-apigee-02-11&quot;</span>          # tout ce qui n&#x27;est pas commité (code Apigee + yaml)
+git checkout feature/dmzr &amp;&amp; git pull origin feature/dmzr
+# base : exactement comme Yassine (son yaml dit quel schéma) — DROP SCHEMA &lt;schema de son yaml&gt; CASCADE; CREATE SCHEMA ...;
+# config de run : AUCUNE variable d&#x27;env perso, son application-local.yaml tel quel
+# → démarrer, login g10002, GET /cash.  Doit marcher (c&#x27;est son état). Sinon : lui demander ses variables de run / son yaml exact.
+git checkout -b feature/apigee-camunda
+git checkout stash@{0} <span class="c">-- fund-management-external-services/            # SEULEMENT le code Apigee (provider, interceptors, config, tests)</span>
+git checkout stash@{0} <span class="c">-- fund-management-container/src/main/resources/application.yaml   # bloc camunda.apigee avec ${QF_…:défaut}</span>
+# NE PAS reprendre application-local.yaml du stash : ajouter à la main dans le sien, uniquement :
+#   camunda.base-url: https:<span class="c">//morocco.apigee.dev.echonet/bpm/v1   +  camunda.apigee.{enabled,token-url,client-id,client-secret,refresh-margin-seconds}</span>
+# → démarrer, GET /cash (doit rester 200), puis test Apigee (token + worker). Commit, MR vers feature/dmzr.</code></pre></div><div class="card"><b>Ordre conseillé</b> : §1 (10 s) → §4 (5 min, c'est ce qui remplace les logs absents) → §2/§3 → §5 → §6. Envoie-moi le corps du 403 et les 2 lignes SONDE : avec ça, la cause est nommée.</div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
