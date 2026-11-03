@@ -1,0 +1,69 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>api-gateway-ci — Merge develop → develop-omega (préparation prod DMZR)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>api-gateway-ci — Merge develop → develop-omega (préparation prod DMZR)</h1><p>Même flux que utilisateurs-ci / portail-ci : branche chore/merge-develop, merge --no-ff, règles de résolution par fichier, recette des routes · 03/11/2026</p></header><nav><a href="#spec">Spécificités gateway</a><a href="#cmd">Commandes</a><a href="#regles">Règles de résolution</a><a href="#recette">Recette</a></nav><main><h2 id="spec">0. Spécificités gateway</h2><div class="card"><ul>
+<li>Pas de Flyway, pas de front : les conflits seront dans <b>3 zones</b> — les YAML (routes, CORS, variables), la sécurité (<code>SecurityConfig</code>, filtres mock/oauth/relay), le <code>pom.xml</code>.</li>
+<li>Ce que develop-omega a ajouté (261+) : route <code>qf-fund-management</code> (<code>Path=/api/v1/public/fund-management/**</code> + <code>RewritePath</code> + <code>PreserveHostHeader</code>), variable <code>QF_MS_FUND_MANAGEMENT_URL</code>, origin CORS <code>QF_MS_FUND_MANAGEMENT_FRONT_PORTAL_URL</code> (4201), mode <code>mock</code> (<code>MockAuthController</code>, <code>MockJwtService</code>, <code>QfMockTokenRelayFilter</code>, cookie <code>QF_MOCK_SESSION</code>), <code>DedupeResponseHeader</code> CORS.</li>
+<li>Règle : on garde <b>les deux</b> apports partout ; en cas de doute sur un fichier develop (DC / Mainlevée / autre équipe), version develop + réapplication de notre delta.</li>
+<li>Pas de rebase, pas de <code>--ours/--theirs</code> en bloc sur les YAML.</li>
+</ul></div><h2 id="cmd">1. Commandes</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Git Bash — état des lieux, merge, build, MR</b><br><span class="path">C:\dev\api-gateway-ci (Git Bash)</span></div><p class="note">La commande <code>comm</code> donne la liste des fichiers modifiés des deux côtés avant même de merger.</p><pre><button class="copy">Copier</button><code># Git Bash — api-gateway-ci
+cd /c/dev/api-gateway-ci
+git fetch origin <span class="c">--prune</span>
+git checkout develop-omega &amp;&amp; git pull origin develop-omega
+git checkout -b chore/merge-develop
+
+# 1) état des lieux : ce que develop a changé depuis la divergence, et les fichiers touchés des DEUX côtés (= conflits à venir)
+git log <span class="c">--oneline --no-merges develop-omega..origin/develop</span>
+git diff <span class="c">--name-only $(git merge-base develop-omega origin/develop) origin/develop &gt; /tmp/develop-files.txt</span>
+git diff <span class="c">--name-only $(git merge-base develop-omega origin/develop) develop-omega  &gt; /tmp/omega-files.txt</span>
+comm -12 &lt;(sort /tmp/develop-files.txt) &lt;(sort /tmp/omega-files.txt)
+
+# 2) merge (jamais rebase : branche partagée)
+git merge <span class="c">--no-ff origin/develop -m &quot;merge develop into develop-omega (api-gateway)&quot;</span>
+git status <span class="c">--short | grep -E &#x27;^(UU|AA|DU|UD)&#x27;</span>
+
+# 3) après résolution
+git add -A &amp;&amp; git commit <span class="c">--no-edit</span>
+mvn clean verify
+# test local : dev-sso 9001 → users 8091 → gateway 9090 → fund-management 8300 ; login mock h11111 et g10002 ; /me, /cash, console
+git push -u origin chore/merge-develop
+# GitLab : MR chore/merge-develop -&gt; develop-omega ; puis develop-omega -&gt; develop (n&#x27;apporte que nos commits, sans conflit)</code></pre></div><h2 id="regles">2. Règles de résolution</h2><div class="card"><table><tr><th>Fichier</th><th>Résolution</th></tr>
+<tr><td><code>application.yml</code> — <code>routes:</code></td><td>Garder <b>toutes</b> les routes : celles de develop (nouvelles cibles d'autres équipes) + <code>qf-fund-management</code>. Vérifier qu'aucun <code>id</code> n'est en double et que l'ordre n'avale pas la nôtre (<code>/api/v1/public/fund-management/**</code> doit rester distinct de <code>/api/v1/public/users/**</code>). Garder le <code>RewritePath</code> et <code>PreserveHostHeader</code> de la nôtre.</td></tr>
+<tr><td><code>application.yml</code> — <code>globalcors</code> / <code>default-filters</code></td><td>Garder la liste <code>allowedOrigins</code> complète (develop + 4201) et notre <code>DedupeResponseHeader</code>. Si develop a changé <code>allowedHeaders</code>/<code>exposedHeaders</code>, union des deux.</td></tr>
+<tr><td><code>application.yml</code> — <code>security.oauth2</code></td><td>Version develop (client, provider, scopes = plateforme). Rien de nôtre dedans.</td></tr>
+<tr><td><code>application-local.yml</code></td><td>Garder nos variables locales (<code>QF_MS_FUND_MANAGEMENT_URL: 8300</code>, <code>QF_MS_FUND_MANAGEMENT_FRONT_PORTAL_URL: 4201</code>, <code>auth-mode: mock</code>) + ajouter les nouvelles variables develop. Ne jamais commiter de secret.</td></tr>
+<tr><td><code>QfUrlsProperties</code>, <code>QfSecurityProperties</code></td><td>Garder les deux : champs develop + nos champs (fund-management, auth-mode). Vérifier les getters utilisés par les filtres.</td></tr>
+<tr><td><code>config/SecurityConfig</code></td><td>Base develop ; réappliquer notre delta : la chaîne <code>mock</code> conditionnée par <code>qlickflow.security.auth-mode</code>, <code>permitAll</code> sur <code>/mock-auth/**</code>, <code>/oauth2/**, /login/**, /logout, /error, /actuator/**</code> en oauth. Diff utile : <code>git diff $(git merge-base develop-omega origin/develop) develop-omega -- src/main/java/.../config/SecurityConfig.java</code>.</td></tr>
+<tr><td><code>security/mock/**</code>, <code>security/relay/QfTokenRelayFilter</code></td><td>Nôtres (develop ne devrait pas les avoir). Si develop a modifié <code>QfTokenRelayFilter</code> (ordre, chemins relayés), garder sa version et vérifier que <code>/api/**</code> reste relayé.</td></tr>
+<tr><td><code>security/oauth/**</code> (<code>QfOAuth2LoginSuccessHandler</code>, <code>MsUsersOAuthSessionClient</code>, cache)</td><td>Version develop, sauf si on y a touché (diff ci-dessus) — alors réappliquer.</td></tr>
+<tr><td><code>pom.xml</code>, <code>.gitlab-ci.yml</code>, <code>Dockerfile</code>, <code>sonar-project.properties</code>, <code>tls/</code></td><td>Version develop (pipeline et image du tech lead). Réintégrer une dépendance à nous seulement si le build la réclame.</td></tr>
+<tr><td><code>*Test.java</code></td><td>Garder les deux ; adapter nos tests si develop a changé une signature (<code>QfUrlsProperties</code> par ex.).</td></tr></table></div><h2 id="recette">3. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Smoke test des routes</b><br><span class="path">recette\api-gateway_merge.txt</span></div><pre><button class="copy">Copier</button><code># Recette gateway après merge (mode mock)
+1. Boot gateway : aucune erreur de binding (QfUrlsProperties / routes) ; log des routes chargées contient qf-admin, qf-documents, qf-wf-derog-tarif-ret_pack, qf-fund-management (+ celles ajoutées par develop)
+2. POST http:<span class="c">//localhost:9090/mock-auth/login?uid=g10002 → cookie QF_MOCK_SESSION posé</span>
+3. GET  http:<span class="c">//localhost:9090/api/v1/public/users/me                        → 200 (route qf-admin)</span>
+4. GET  http:<span class="c">//localhost:9090/api/v1/public/fund-management/cash?page=0&amp;size=20 → 200 (route qf-fund-management, RewritePath, Bearer relayé)</span>
+5. GET  http:<span class="c">//localhost:9090/api/v1/public/users/distributor/fund-provider  → 200 (routes console omega par préfixe /users/**)</span>
+6. Depuis le shell 4200 et le remote 4201 : pas d&#x27;erreur CORS (allowedOrigins = QF_FRONTEND_URL + QF_MS_FUND_MANAGEMENT_FRONT_PORTAL_URL)
+7. Une route develop (ex. documents / derog) répond toujours — pas de régression pour les autres équipes
+8. Mode oauth (si dev-sso dispo) : /oauth2/authorization/qlickflow → login → retour frontendBaseUrl, puis 3-4 en 200</code></pre></div><div class="card">Point 1 est le plus parlant : au boot, Spring Cloud Gateway loggue chaque <code>RouteDefinition</code> chargée — si <code>qf-fund-management</code> manque, un conflit YAML a été mal résolu. Envoie-moi la sortie de <code>comm</code> (§1) ou un bloc <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> qui résiste : je tranche fichier par fichier.</div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
