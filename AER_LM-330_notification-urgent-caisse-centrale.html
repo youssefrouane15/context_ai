@@ -1,0 +1,344 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-330 — Email de notification Caisse Centrale pour les demandes au statut Urgent</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-330 — Email de notification Caisse Centrale pour les demandes au statut Urgent</h1><p>fund-management (back) · réutilise l&#x27;infra 277/333 (NotificationPort mock/SMTP, GabaritEmailDemande) · aucun BPMN, Flyway ni front · 03/11/2026</p></header><nav><a href="#analyse">Analyse</a><a href="#back">Back</a><a href="#conf">Configuration</a><a href="#tests">Tests</a><a href="#recette">Recette</a></nav><main><h2 id="analyse">0. Analyse</h2><div class="card"><b>Règle</b> : à chaque <code>SOUMISSION</code> et <code>MISE_A_JOUR</code> (modification confirmée) d'une demande <b>agence</b> dont l'état <i>après</i> l'action est <b>urgent</b>, un email part vers l'adresse générique de la Caisse Centrale, en plus de l'email agence existant. Couvre les 2 CA : date d'effet lendemain (on ne regarde pas la date), et « passe en urgente à la mise à jour » (on lit <code>urgent</code> après mise à jour). <b>Exclus</b> : annulation (Jira), déclassement (la CC en est l'auteur), canal MONETIQUE (pas d'urgence).
+<ul>
+<li><b>Aucun nouveau point d'appel</b> : les use cases appellent déjà <code>notificationDemandeService.notifier(resultat, SOUMISSION | MISE_A_JOUR)</code> avec le DTO enrichi (<code>urgent</code> dérivé des opérations par <code>CashDemandRepositoryImpl.update</code>). Tout se passe dans <code>NotificationDemandeService</code>.</li>
+<li><b>Destinataire = configuration</b> <code>gdf.notification.caisse-centrale.destinataires</code> (liste) : devs/Yassine/Omar/Hicham en local, boîte générique en prod via <code>QF_NOTIF_CAISSE_CENTRALE</code> → « modification rapide » sans redéploiement.</li>
+<li><b>Même gabarit</b> : nouvel <code>EvenementDemande.URGENCE_CAISSE_CENTRALE</code> (bandeau rouge, « Bonjour Caisse Centrale »), les 4 infos Jira sont déjà dans le template (référence, agence, initiateur) + <b>ligne « Date d'effet » ajoutée</b> (<code>dateEffet</code> du DTO). Maquette PO « en cours » : quand elle arrivera, seul le HTML bougera.</li>
+<li>Même canal mock / SMTP, même best-effort (jamais d'exception vers le use case). Un échec de l'email agence n'empêche pas l'email CC et inversement.</li>
+</ul></div><h2 id="back">1. Back</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>EvenementDemande.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\enums\EvenementDemande.java</span></div><p class="note">Ajout de <code>URGENCE_CAISSE_CENTRALE</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.q360.domain.retail.enums;
+
+<span class="c">/**
+ * AER_LM-277 — évènements qui déclenchent une notification email au Directeur d&#x27;agence.
+ * AER_LM-333 — ajout du déclassement d&#x27;urgence (action Caisse Centrale, l&#x27;agence est informée).
+ * AER_LM-330 — URGENCE_CAISSE_CENTRALE : demande agence urgente soumise ou mise à jour → adresse générique de la Caisse Centrale.
+ * Le verbe forme la phrase « La demande REF {verbe}. » du gabarit.
+ */</span>
+<span class="k">public</span> <span class="k">enum</span> EvenementDemande {
+    SOUMISSION(<span class="s">&quot;Création de demande&quot;</span>, <span class="s">&quot;a été soumise par l&#x27;agence&quot;</span>),
+    MISE_A_JOUR(<span class="s">&quot;Mise à jour de demande&quot;</span>, <span class="s">&quot;a été mise à jour par l&#x27;agence&quot;</span>),
+    ANNULATION(<span class="s">&quot;Annulation de demande&quot;</span>, <span class="s">&quot;a été annulée par l&#x27;agence&quot;</span>),
+    DECLASSEMENT_URGENCE(<span class="s">&quot;Déclassement d&#x27;urgence&quot;</span>, <span class="s">&quot;a vu son urgence déclassée par la Caisse Centrale : elle sera traitée comme une demande non urgente&quot;</span>),
+    URGENCE_CAISSE_CENTRALE(<span class="s">&quot;Demande URGENTE&quot;</span>, <span class="s">&quot;est en attente de traitement et a été marquée URGENTE par l&#x27;agence&quot;</span>);
+
+    <span class="k">private</span> <span class="k">final</span> <span class="k">String</span> libelle;
+    <span class="k">private</span> <span class="k">final</span> <span class="k">String</span> verbe;
+
+    EvenementDemande(<span class="k">String</span> libelle, <span class="k">String</span> verbe) {
+        <span class="k">this</span>.libelle = libelle;
+        <span class="k">this</span>.verbe = verbe;
+    }
+
+    <span class="k">public</span> <span class="k">String</span> getLibelle() { <span class="k">return</span> libelle; }
+    <span class="k">public</span> <span class="k">String</span> getVerbe() { <span class="k">return</span> verbe; }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>NotificationDemandeService.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeService.java</span></div><p class="note">Constructeur explicite (remplace <code>@RequiredArgsConstructor</code>) pour injecter la liste <code>@Value</code> ; logique 277/333 inchangée, déplacée dans <code>notifierAgence</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.DirecteurAgence;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.UtilisateurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.notification.NotificationPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.DirecteurAgencePort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.referentiel.UtilisateursGestionDemandesPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.ports.output.repository.UserProfileRepository;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="k">import</span> org.springframework.stereotype.Service;
+
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;
+
+<span class="c">/**
+ * Notification email d&#x27;une demande agence.
+ * AER_LM-277 — soumission, mise à jour, annulation par l&#x27;agence : le Directeur d&#x27;agence (déduit : uid de profil DA rattaché à l&#x27;agence).
+ * AER_LM-333 — déclassement d&#x27;urgence par la Caisse Centrale : tous les utilisateurs « gestion demandes » de l&#x27;agence
+ *              (rôle GDF Agence : DA et Chef de caisse), un email par destinataire ; repli sur le DA si la liste est vide.
+ * AER_LM-330 — demande agence URGENTE soumise ou mise à jour (y compris passée en urgente à la mise à jour) : un email
+ *              supplémentaire vers l&#x27;adresse générique de la Caisse Centrale (gdf.notification.caisse-centrale.destinataires).
+ *              Jamais sur annulation ni sur déclassement (Jira).
+ * Best effort : aucune exception ne remonte au use case appelant — la demande est déjà enregistrée, l&#x27;email ne doit jamais la faire échouer.
+ */</span>
+@Service
+@Slf4j
+<span class="k">public</span> <span class="k">class</span> NotificationDemandeService {
+
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> PROFIL_DA = <span class="s">&quot;DA&quot;</span>;
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> NOM_CAISSE_CENTRALE = <span class="s">&quot;Caisse Centrale&quot;</span>;
+
+    <span class="k">private</span> <span class="k">final</span> UserProfileRepository userProfileRepository;
+    <span class="k">private</span> <span class="k">final</span> DirecteurAgencePort directeurAgencePort;
+    <span class="k">private</span> <span class="k">final</span> UtilisateursGestionDemandesPort utilisateursGestionDemandesPort;
+    <span class="k">private</span> <span class="k">final</span> NotificationPort notificationPort;
+    <span class="k">private</span> <span class="k">final</span> GabaritEmailDemande gabarit;
+    <span class="c">/** AER_LM-330 : adresses de la Caisse Centrale (liste, vide = pas d&#x27;envoi). Test : devs ; prod : la boîte générique. */</span>
+    <span class="k">private</span> <span class="k">final</span> List&lt;<span class="k">String</span>&gt; destinatairesCaisseCentrale;
+
+    <span class="k">public</span> NotificationDemandeService(UserProfileRepository userProfileRepository,
+                                      DirecteurAgencePort directeurAgencePort,
+                                      UtilisateursGestionDemandesPort utilisateursGestionDemandesPort,
+                                      NotificationPort notificationPort,
+                                      GabaritEmailDemande gabarit,
+                                      @Value(<span class="s">&quot;${gdf.notification.caisse-centrale.destinataires:}&quot;</span>) List&lt;<span class="k">String</span>&gt; destinatairesCaisseCentrale) {
+        <span class="k">this</span>.userProfileRepository = userProfileRepository;
+        <span class="k">this</span>.directeurAgencePort = directeurAgencePort;
+        <span class="k">this</span>.utilisateursGestionDemandesPort = utilisateursGestionDemandesPort;
+        <span class="k">this</span>.notificationPort = notificationPort;
+        <span class="k">this</span>.gabarit = gabarit;
+        <span class="k">this</span>.destinatairesCaisseCentrale = destinatairesCaisseCentrale == <span class="k">null</span> ? List.of()
+                : destinatairesCaisseCentrale.stream().map(<span class="k">String</span>::trim).filter(s -&gt; !s.isEmpty()).toList();
+    }
+
+    <span class="k">public</span> <span class="k">void</span> notifier(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">if</span> (demande == <span class="k">null</span>) { <span class="k">return</span>; }
+        notifierAgence(demande, evenement);
+        <span class="k">if</span> (concerneLaCaisseCentrale(demande, evenement)) {
+            notifierCaisseCentrale(demande);
+        }
+    }
+
+    <span class="c">// ------------------------------------------------------------------ Agence (277 / 333)</span>
+
+    <span class="k">private</span> <span class="k">void</span> notifierAgence(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">try</span> {
+            List&lt;UtilisateurAgence&gt; destinataires = destinatairesDe(demande, evenement);
+            <span class="k">if</span> (destinataires.isEmpty()) {
+                log.warn(<span class="s">&quot;[notification] {} {} : aucun destinataire avec email pour l&#x27;agence {} — email non envoyé&quot;</span>,
+                        evenement, demande.getUniqueRequestRef(), demande.getBranchCode());
+                <span class="k">return</span>;
+            }
+            <span class="k">String</span> sujet = <span class="s">&quot;[QlickFlow] &quot;</span> + evenement.getLibelle() + <span class="s">&quot; &quot;</span> + demande.getUniqueRequestRef()
+                    + <span class="s">&quot; — Agence &quot;</span> + demande.getBranchCode();
+            <span class="k">for</span> (UtilisateurAgence destinataire : destinataires) {
+                <span class="k">String</span> corps = gabarit.construire(demande, evenement, destinataire.nomComplet());
+                notificationPort.envoyer(<span class="k">new</span> EmailNotification(destinataire.email(), sujet, corps));
+                log.info(<span class="s">&quot;[notification] {} {} → {}&quot;</span>, evenement, demande.getUniqueRequestRef(), destinataire.email());
+            }
+        } <span class="k">catch</span> (RuntimeException e) {
+            log.error(<span class="s">&quot;[notification] {} {} : échec de l&#x27;envoi, demande non impactée — {}&quot;</span>,
+                    evenement, demande.getUniqueRequestRef(), e.getMessage());
+        }
+    }
+
+    <span class="c">/** Déclassement : les utilisateurs gestion demandes de l&#x27;agence (repli DA) ; autres événements : le DA. */</span>
+    <span class="k">private</span> List&lt;UtilisateurAgence&gt; destinatairesDe(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">if</span> (evenement == EvenementDemande.DECLASSEMENT_URGENCE) {
+            List&lt;UtilisateurAgence&gt; gestionnaires =
+                    utilisateursGestionDemandesPort.utilisateursGestionDemandes(demande.getUser(), demande.getBranchCode());
+            <span class="k">if</span> (!gestionnaires.isEmpty()) { <span class="k">return</span> gestionnaires; }
+            log.warn(<span class="s">&quot;[notification] {} {} : aucun utilisateur gestion demandes trouvé pour l&#x27;agence {}, repli sur le Directeur d&#x27;agence&quot;</span>,
+                    evenement, demande.getUniqueRequestRef(), demande.getBranchCode());
+        }
+        <span class="k">return</span> directeurDe(demande.getBranchCode())
+                .filter(da -&gt; da.email() != <span class="k">null</span> &amp;&amp; !da.email().isBlank())
+                .map(da -&gt; List.of(<span class="k">new</span> UtilisateurAgence(da.uid(), da.email(), da.nomComplet())))
+                .orElse(List.of());
+    }
+
+    <span class="k">private</span> Optional&lt;DirecteurAgence&gt; directeurDe(<span class="k">String</span> branchCode) {
+        <span class="k">if</span> (branchCode == <span class="k">null</span> || branchCode.isBlank()) { <span class="k">return</span> Optional.empty(); }
+        <span class="k">return</span> userProfileRepository.uidsParProfil(PROFIL_DA).stream()
+                .map(uid -&gt; directeurAgencePort.siDirecteurDe(uid, branchCode))
+                .flatMap(Optional::stream)
+                .findFirst();
+    }
+
+    <span class="c">// ------------------------------------------------------------------ Caisse Centrale (330)</span>
+
+    <span class="c">/** Soumission ou mise à jour d&#x27;une demande agence urgente (état APRÈS l&#x27;action : couvre « passe en urgente à la mise à jour »). */</span>
+    <span class="k">static</span> <span class="k">boolean</span> concerneLaCaisseCentrale(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">boolean</span> evenementEligible = evenement == EvenementDemande.SOUMISSION || evenement == EvenementDemande.MISE_A_JOUR;
+        <span class="k">boolean</span> monetique = demande.getCanalDemande() != <span class="k">null</span> &amp;&amp; <span class="s">&quot;MONETIQUE&quot;</span>.equals(demande.getCanalDemande().name());
+        <span class="k">return</span> evenementEligible &amp;&amp; !monetique &amp;&amp; Boolean.TRUE.equals(demande.getUrgent());
+    }
+
+    <span class="k">private</span> <span class="k">void</span> notifierCaisseCentrale(CashRequestDTO demande) {
+        <span class="k">if</span> (destinatairesCaisseCentrale.isEmpty()) {
+            log.warn(<span class="s">&quot;[notification] URGENCE {} : gdf.notification.caisse-centrale.destinataires vide — email Caisse Centrale non envoyé&quot;</span>,
+                    demande.getUniqueRequestRef());
+            <span class="k">return</span>;
+        }
+        <span class="k">try</span> {
+            EvenementDemande evenement = EvenementDemande.URGENCE_CAISSE_CENTRALE;
+            <span class="k">String</span> sujet = <span class="s">&quot;[QlickFlow] URGENT — &quot;</span> + evenement.getLibelle() + <span class="s">&quot; &quot;</span> + demande.getUniqueRequestRef()
+                    + <span class="s">&quot; — Agence &quot;</span> + demande.getBranchCode();
+            <span class="k">String</span> corps = gabarit.construire(demande, evenement, NOM_CAISSE_CENTRALE);
+            <span class="k">for</span> (<span class="k">String</span> destinataire : destinatairesCaisseCentrale) {
+                notificationPort.envoyer(<span class="k">new</span> EmailNotification(destinataire, sujet, corps));
+                log.info(<span class="s">&quot;[notification] {} {} → {}&quot;</span>, evenement, demande.getUniqueRequestRef(), destinataire);
+            }
+        } <span class="k">catch</span> (RuntimeException e) {
+            log.error(<span class="s">&quot;[notification] URGENCE {} : échec de l&#x27;envoi Caisse Centrale, demande non impactée — {}&quot;</span>,
+                    demande.getUniqueRequestRef(), e.getMessage());
+        }
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>GabaritEmailDemande.java — constante</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\GabaritEmailDemande.java</span></div><p class="note">Sous <code>DATE_HEURE</code> (ligne 29).</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> DateTimeFormatter DATE_EFFET = DateTimeFormatter.ofPattern(<span class="s">&quot;dd/MM/yyyy&quot;</span>);   <span class="c">// AER_LM-330</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>GabaritEmailDemande.java — entrée dateEffet</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\GabaritEmailDemande.java</span></div><p class="note">Dans <code>Map.ofEntries(…)</code>, après l'entrée <code>"date"</code> (ligne 55). <code>CashRequestDTO.getDateEffet()</code> est un <code>LocalDate</code> (champ existant depuis le dev date d'effet du 05/10).</p><pre><button class="copy">Copier</button><code>                Map.entry(<span class="s">&quot;dateEffet&quot;</span>, d.getDateEffet() != <span class="k">null</span> ? DATE_EFFET.format(d.getDateEffet()) : <span class="s">&quot;—&quot;</span>),   <span class="c">// AER_LM-330</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>notification-demande.html</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\resources\templates\notification-demande.html</span></div><p class="note">Remplace la ligne 38 (<code>Date</code>) par ces deux lignes : la date d'effet apparaît dans tous les emails (agence et CC).</p><pre><button class="copy">Copier</button><code>            &lt;tr&gt;&lt;th&gt;Date&lt;/th&gt;&lt;td&gt;${date}&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;th&gt;Date d&#x27;effet&lt;/th&gt;&lt;td&gt;${dateEffet}&lt;/td&gt;&lt;/tr&gt;</code></pre></div><h2 id="conf">2. Configuration</h2><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>application.yaml — bloc gdf.notification</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\application.yaml</span></div><p class="note">Sous <code>gdf.notification</code> existant (ne recopie que <code>caisse-centrale:</code>). Valeur prod par défaut, surchargée par <code>QF_NOTIF_CAISSE_CENTRALE</code> (Helm) — même mécanique que <code>QF_…</code>.</p><pre><button class="copy">Copier</button><code>gdf:
+  notification:
+    mode: mock
+    caisse-centrale:
+      # AER_LM-330 : adresse(s) notifiée(s) pour toute demande agence urgente soumise / mise à jour. Liste séparée par des virgules.
+      # Test : développeur + Yassine + Omar + Hicham ; prod : CASABLANCA IRS BMCI CAISSE CENTRALE — modifiable sans redéploiement (variable d&#x27;env).
+      destinataires: ${QF_NOTIF_CAISSE_CENTRALE:casablanca_irs_bmci_caisse_centrale@bnpparibas.com}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>application-local.yaml</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\application-local.yaml</span></div><p class="note">Sous <code>gdf.notification</code> (mode mock : les emails tombent dans <code>./notifications-mock</code>). Remplace les uids par ceux de Yassine, Omar, Hicham.</p><pre><button class="copy">Copier</button><code>    caisse-centrale:
+      destinataires: j43709@bnpparibas.com,&lt;yassine&gt;@bnpparibas.com,&lt;omar&gt;@bnpparibas.com,&lt;hicham&gt;@bnpparibas.com</code></pre></div><h2 id="tests">3. Tests</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>NotificationDemandeServiceTest.java — fabrique</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeServiceTest.java</span></div><p class="note">Remplace la méthode <code>service()</code> (6ᵉ argument du constructeur). Import <code>java.time.LocalDate</code> à ajouter.</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> NotificationDemandeService service() {
+        <span class="k">return</span> service(List.of(<span class="s">&quot;casablanca_irs_bmci_caisse_centrale@bnpparibas.com&quot;</span>));
+    }
+
+    <span class="k">private</span> NotificationDemandeService service(List&lt;<span class="k">String</span>&gt; caisseCentrale) {
+        <span class="k">return</span> <span class="k">new</span> NotificationDemandeService(userProfileRepository, directeurAgencePort, utilisateursGestionDemandesPort,
+                notificationPort, <span class="k">new</span> GabaritEmailDemande(), caisseCentrale);
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>NotificationDemandeServiceTest.java — 2 tests existants ajustés</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeServiceTest.java</span></div><p class="note">La fabrique <code>demande()</code> est urgente → ces deux tests reçoivent désormais 2 emails. <code>annulation_ajouteLeMotif</code>, <code>sansDa_nEnvoieRien</code> et les 2 tests 333 restent verts tels quels.</p><pre><button class="copy">Copier</button><code>    @Test
+    <span class="k">void</span> soumission_envoieAuDaAvecRecap() {
+        daDeLAgence1104();
+
+        service().notifier(demande(), EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort, Mockito.times(2)).envoyer(email.capture());   <span class="c">// 330 : la demande() est urgente → DA + Caisse Centrale</span>
+        EmailNotification auDa = email.getAllValues().<span class="k">get</span>(0);
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, auDa.destinataire());
+        assertEquals(<span class="s">&quot;[QlickFlow] Création de demande 20261009-1104-03 — Agence 1104&quot;</span>, auDa.sujet());
+        <span class="k">String</span> html = auDa.corpsHtml();
+        assertTrue(html.contains(<span class="s">&quot;Bonjour Marouane MASSOUNE&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;a été soumise&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;1104 - CASA MOHAMED V&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;Youness BALADI (Chef de caisse)&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;09/10/2026 à 10:30&quot;</span>));
+        assertTrue(html.replace(<span class="s">&#x27; &#x27;</span>, <span class="s">&#x27; &#x27;</span>).replace(<span class="s">&#x27; &#x27;</span>, <span class="s">&#x27; &#x27;</span>).contains(<span class="s">&quot;150 000,00 MAD&quot;</span>));   <span class="c">// séparateur de milliers = espace (fine) insécable selon le JDK</span>
+        assertTrue(html.contains(<span class="s">&quot;&lt;td&gt;EUR&lt;/td&gt;&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;&amp;lt;urgent&amp;gt;&quot;</span>));                                          <span class="c">// échappement HTML du commentaire</span>
+        assertTrue(html.contains(<span class="s">&quot;class=\&quot;bandeau urgent\&quot;&quot;</span>));
+        Mockito.verifyNoInteractions(utilisateursGestionDemandesPort);                      <span class="c">// 277 : le DA seulement</span>
+    }
+
+    @Test
+    <span class="k">void</span> echecEnvoi_neRemontePas() {
+        daDeLAgence1104();
+        Mockito.doThrow(<span class="k">new</span> IllegalStateException(<span class="s">&quot;SMTP down&quot;</span>)).when(notificationPort).envoyer(Mockito.any());
+
+        service().notifier(demande(), EvenementDemande.MISE_A_JOUR);     <span class="c">// ne doit pas lever (ni pour le DA, ni pour la Caisse Centrale)</span>
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>NotificationDemandeServiceTest.java — 7 tests 330</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeServiceTest.java</span></div><p class="note">En fin de classe.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ===== AER_LM-330 — notification Caisse Centrale des demandes urgentes =====</span>
+
+    @Test
+    <span class="k">void</span> soumissionUrgente_notifieAussiLaCaisseCentrale() {
+        daDeLAgence1104();
+        CashRequestDTO d = demande();
+        d.setDateEffet(LocalDate.of(2026, 10, 10));
+
+        service().notifier(d, EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort, Mockito.times(2)).envoyer(email.capture());
+        EmailNotification cc = email.getAllValues().<span class="k">get</span>(1);
+        assertEquals(<span class="s">&quot;casablanca_irs_bmci_caisse_centrale@bnpparibas.com&quot;</span>, cc.destinataire());
+        assertEquals(<span class="s">&quot;[QlickFlow] URGENT — Demande URGENTE 20261009-1104-03 — Agence 1104&quot;</span>, cc.sujet());
+        <span class="k">String</span> html = cc.corpsHtml();
+        assertTrue(html.contains(<span class="s">&quot;Bonjour Caisse Centrale&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;a été marquée URGENTE par l&#x27;agence&quot;</span>));
+        assertTrue(html.contains(<span class="s">&quot;20261009-1104-03&quot;</span>));                       <span class="c">// référence</span>
+        assertTrue(html.contains(<span class="s">&quot;10/10/2026&quot;</span>));                             <span class="c">// date d&#x27;effet (lendemain : notifiée quand même)</span>
+        assertTrue(html.contains(<span class="s">&quot;1104 - CASA MOHAMED V&quot;</span>));                  <span class="c">// code + agence</span>
+        assertTrue(html.contains(<span class="s">&quot;Youness BALADI (Chef de caisse)&quot;</span>));        <span class="c">// agent créateur</span>
+        assertTrue(html.contains(<span class="s">&quot;class=\&quot;bandeau urgent\&quot;&quot;</span>));
+    }
+
+    @Test
+    <span class="k">void</span> miseAJourPasseeEnUrgente_notifieLaCaisseCentrale() {
+        daDeLAgence1104();
+
+        service().notifier(demande(), EvenementDemande.MISE_A_JOUR);   <span class="c">// demande() est urgente après la mise à jour</span>
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort, Mockito.times(2)).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;casablanca_irs_bmci_caisse_centrale@bnpparibas.com&quot;</span>, email.getAllValues().<span class="k">get</span>(1).destinataire());
+    }
+
+    @Test
+    <span class="k">void</span> soumissionNonUrgente_nenvoieQuAuDa() {
+        daDeLAgence1104();
+        CashRequestDTO d = demande();
+        d.setUrgent(<span class="k">false</span>);
+
+        service().notifier(d, EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, email.getValue().destinataire());
+    }
+
+    @Test
+    <span class="k">void</span> annulationUrgente_neNotifiePasLaCaisseCentrale() {
+        daDeLAgence1104();
+        CashRequestDTO d = demande();
+        d.setCancellationReason(<span class="s">&quot;Erreur de saisie du montant&quot;</span>);
+
+        service().notifier(d, EvenementDemande.ANNULATION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, email.getValue().destinataire());
+    }
+
+    @Test
+    <span class="k">void</span> declassement_neNotifiePasLaCaisseCentrale() {
+        Mockito.when(utilisateursGestionDemandesPort.utilisateursGestionDemandes(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;1104&quot;</span>)).thenReturn(List.of(
+                <span class="k">new</span> UtilisateurAgence(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;j61104@bnpparibas.com&quot;</span>, <span class="s">&quot;Marouane MASSOUNE&quot;</span>)));
+
+        service().notifier(demandeDeclassee(), EvenementDemande.DECLASSEMENT_URGENCE);
+
+        Mockito.verify(notificationPort, Mockito.times(1)).envoyer(Mockito.any());
+    }
+
+    @Test
+    <span class="k">void</span> sansAdresseCaisseCentrale_nenvoieQuAuDa() {
+        daDeLAgence1104();
+
+        service(List.of()).notifier(demande(), EvenementDemande.SOUMISSION);
+
+        Mockito.verify(notificationPort, Mockito.times(1)).envoyer(Mockito.any());
+    }
+
+    @Test
+    <span class="k">void</span> plusieursAdressesCaisseCentrale_unEmailChacune() {
+        daDeLAgence1104();
+
+        service(List.of(<span class="s">&quot;a@bnpparibas.com&quot;</span>, <span class="s">&quot;b@bnpparibas.com&quot;</span>)).notifier(demande(), EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort, Mockito.times(3)).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;a@bnpparibas.com&quot;</span>, email.getAllValues().<span class="k">get</span>(1).destinataire());
+        assertEquals(<span class="s">&quot;b@bnpparibas.com&quot;</span>, email.getAllValues().<span class="k">get</span>(2).destinataire());
+    }</code></pre></div><h2 id="recette">4. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Scénarios (mode mock)</b><br><span class="path">recette\AER_LM-330.txt</span></div><pre><button class="copy">Copier</button><code># Mode mock (gdf.notification.mode: mock) : un .html par email dans ./notifications-mock — on compte les fichiers.
+1. Agence (g10002, 1422) : créer + soumettre une demande URGENTE                 → 2 fichiers : DA de l&#x27;agence + chaque adresse caisse-centrale
+   (vérifier dans le fichier CC : bandeau rouge « Demande URGENTE – &lt;ref&gt; », Date d&#x27;effet, 1422 - &lt;agence&gt;, agent créateur)
+2. Même demande, soumise après 16h (date d&#x27;effet = lendemain)                   → email CC quand même (CA 1)
+3. Demande NON urgente soumise                                                   → 1 fichier (DA seul)
+4. Demande non urgente soumise, puis Modifier → cocher urgent → Confirmer        → MISE_A_JOUR : DA + CC (CA 2 « passe en urgente à la mise à jour »)
+5. Demande urgente, Modifier sans changer l<span class="s">&#x27;urgence → Confirmer                  → DA + CC (CA 2 « mise à jour d&#x27;</span>une demande urgente »)
+6. Annuler une demande urgente depuis l&#x27;agence                                   → 1 fichier (DA seul), aucun email CC (Jira)
+7. Caisse Centrale : déclasser l&#x27;urgence                                         → emails agence (333) seulement, aucun email CC
+8. Demande GAB hors site (monétique) soumise                                     → aucun email CC (canal MONETIQUE exclu)
+9. Supprimer la propriété caisse-centrale.destinataires (ou la vider)            → log WARN « destinataires vide », DA seul, pas d&#x27;erreur
+10. mvn -pl fund-management-domain/fund-management-application-service test     → NotificationDemandeServiceTest : 13 tests verts (6 existants dont 2 ajustés + 7 nouveaux)</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
