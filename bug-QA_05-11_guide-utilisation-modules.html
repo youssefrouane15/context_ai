@@ -1,0 +1,74 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bug QA 05/11 — Guide d&#x27;utilisation absent tant qu&#x27;on n&#x27;est pas passé par Gestion des fonds</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Bug QA 05/11 — Guide d&#x27;utilisation absent tant qu&#x27;on n&#x27;est pas passé par Gestion des fonds</h1><p>portail-ci · side-menu : un guide par module natif (assets du shell), GesFond garde le sien (remote) · 05/11/2026</p></header><nav><a href="#cause">Cause</a><a href="#fix">portail-ci</a><a href="#recette">Recette</a></nav><main><h2 id="cause">0. Cause</h2><div class="card">Les 4 liens « Guide d'utilisation » de <code>side-menu.component.html</code> (lignes 93-124) sont tous conditionnés par <code>aideGesfond</code>. Or <code>aideGesfond</code> n'est alimenté que par <code>menuModule.menu$</code>, et <code>menuModule.charger()</code> n'est appelé qu'à l'entrée dans <code>/portail</code> (<code>if (dansGesfond && !estModuleGesfond)</code>). Tant qu'on n'est pas passé par Gestion des fonds, <code>aideGesfond</code> vaut <code>null</code> → aucun guide, même sur Dérogation. Après un passage par GesFond, les 3 autres modules affichent… <b>le guide GesFond</b> (même objet) — c'est aussi un bug.
+<p><b>Fix</b> : l'aide des modules natifs (Dérogation, Mainlevée, Droit de com) est définie dans le shell (<code>AIDES_MODULES</code>, PDF dans <code>assets/guides/</code>), indépendante du remote ; GesFond garde son guide fourni par le MFE. Un seul <code>ng-template</code> pour les 4 liens.</p></div><h2 id="fix">1. portail-ci</h2><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>menu-module.service.ts</b><br><span class="path">portail-ci\src\app\core\services\menu-module.service.ts</span></div><p class="note">Après les constantes <code>PREFIXE_*</code> (ligne 24). Les URL/noms de fichiers sont à aligner sur les PDF réels.</p><pre><button class="copy">Copier</button><code><span class="c">/** Guide d&#x27;utilisation d&#x27;un module (même forme que MenuModule[&#x27;aide&#x27;] du contrat ./Menu). */</span>
+<span class="k">export</span> <span class="k">type</span> AideModule = NonNullable&lt;MenuModule[<span class="s">&#x27;aide&#x27;</span>]&gt;;
+
+<span class="c">/**
+ * Guides des modules natifs du portail (Dérogation, Mainlevée, Droit de communication) : servis depuis les assets du shell,
+ * indépendants du micro-frontend GesFond — le guide GesFond, lui, vient du remote (menu$.aide).
+ * Fichiers à déposer dans src/assets/guides/ (noms à aligner avec les PDF fournis par les PO).
+ */</span>
+<span class="k">export</span> <span class="k">const</span> AIDES_MODULES: Record&lt;<span class="s">&#x27;derogTarif&#x27;</span> | <span class="s">&#x27;mainLevee&#x27;</span> | <span class="s">&#x27;droitDeCom&#x27;</span>, AideModule&gt; = {
+  derogTarif: { libelle: <span class="s">&#x27;Guide Dérogation tarifaire&#x27;</span>,      icone: <span class="s">&#x27;help&#x27;</span>, url: <span class="s">&#x27;assets/guides/guide-derogation-tarifaire.pdf&#x27;</span>,  nomFichier: <span class="s">&#x27;Guide_Derogation_tarifaire.pdf&#x27;</span> },
+  mainLevee:  { libelle: <span class="s">&#x27;Guide Mainlevée Crédit Habitat&#x27;</span>,  icone: <span class="s">&#x27;help&#x27;</span>, url: <span class="s">&#x27;assets/guides/guide-mainlevee.pdf&#x27;</span>,             nomFichier: <span class="s">&#x27;Guide_Mainlevee.pdf&#x27;</span> },
+  droitDeCom: { libelle: <span class="s">&#x27;Guide Droits de communication&#x27;</span>,   icone: <span class="s">&#x27;help&#x27;</span>, url: <span class="s">&#x27;assets/guides/guide-droit-communication.pdf&#x27;</span>,   nomFichier: <span class="s">&#x27;Guide_Droit_communication.pdf&#x27;</span> },
+};</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>side-menu.component.ts — champs</b><br><span class="path">portail-ci\src\app\shared\layout\side-menu\side-menu.component.ts</span></div><p class="note">Remplace les lignes 36-42 ; ajouter <code>AIDES_MODULES</code> à l'import depuis <code>core/services/menu-module.service</code>.</p><pre><button class="copy">Copier</button><code>  <span class="c">// AER_LM-336 : menu du module Gestion des fonds (fourni par le micro-frontend)</span>
+  estModuleGesfond = <span class="k">false</span>;
+  estModuleDerogTarif = <span class="k">false</span>;
+  estModuleDroitDeCompte = <span class="k">false</span>;
+  estModuleMainLevee = <span class="k">false</span>;
+  entreesGesfond: EntreeMenuModule[] = [];
+  aideGesfond: MenuModule[<span class="s">&#x27;aide&#x27;</span>] | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="c">/** Guides des modules natifs : toujours disponibles, sans passer par GesFond. */</span>
+  <span class="k">readonly</span> aides = AIDES_MODULES;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>side-menu.component.html — bloc Aide</b><br><span class="path">portail-ci\src\app\shared\layout\side-menu\side-menu.component.html</span></div><p class="note">Remplace les lignes 92-124 (les 4 <code>&lt;a class="rail__aide"&gt;</code>).</p><pre><button class="copy">Copier</button><code>    <span class="c">&lt;!-- Aide : un guide par module. GesFond = fourni par le remote (menu$), les autres = assets du shell --&gt;</span>
+    &lt;ng-container *ngIf=<span class="s">&quot;estModuleGesfond &amp;&amp; aideGesfond as aide&quot;</span>&gt;
+      &lt;ng-container *ngTemplateOutlet=<span class="s">&quot;lienAide; context: { aide: aide }&quot;</span>&gt;&lt;/ng-container&gt;
+    &lt;/ng-container&gt;
+    &lt;ng-container *ngIf=<span class="s">&quot;estModuleDerogTarif&quot;</span>&gt;
+      &lt;ng-container *ngTemplateOutlet=<span class="s">&quot;lienAide; context: { aide: aides.derogTarif }&quot;</span>&gt;&lt;/ng-container&gt;
+    &lt;/ng-container&gt;
+    &lt;ng-container *ngIf=<span class="s">&quot;estModuleMainLevee&quot;</span>&gt;
+      &lt;ng-container *ngTemplateOutlet=<span class="s">&quot;lienAide; context: { aide: aides.mainLevee }&quot;</span>&gt;&lt;/ng-container&gt;
+    &lt;/ng-container&gt;
+    &lt;ng-container *ngIf=<span class="s">&quot;estModuleDroitDeCompte&quot;</span>&gt;
+      &lt;ng-container *ngTemplateOutlet=<span class="s">&quot;lienAide; context: { aide: aides.droitDeCom }&quot;</span>&gt;&lt;/ng-container&gt;
+    &lt;/ng-container&gt;
+
+    &lt;ng-template #lienAide <span class="k">let</span>-aide=<span class="s">&quot;aide&quot;</span>&gt;
+      &lt;a <span class="k">class</span>=<span class="s">&quot;rail__aide&quot;</span> [href]=<span class="s">&quot;aide.url&quot;</span> [attr.download]=<span class="s">&quot;aide.nomFichier&quot;</span> target=<span class="s">&quot;_blank&quot;</span> rel=<span class="s">&quot;noopener&quot;</span> title=<span class="s">&quot;Guide d&#x27;utilisation&quot;</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;rail__aide-ligne&quot;</span>&gt;
+          &lt;span <span class="k">class</span>=<span class="s">&quot;rail__aide-pastille&quot;</span>&gt;?&lt;/span&gt;
+          &lt;span <span class="k">class</span>=<span class="s">&quot;rail__aide-texte&quot;</span>&gt;Besoin d&#x27;aide ?&lt;/span&gt;
+        &lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;rail__aide-bouton&quot;</span>&gt;GUIDE D&#x27;UTILISATION&lt;/span&gt;
+      &lt;/a&gt;
+    &lt;/ng-template&gt;</code></pre></div><div class="card"><b>Fichiers</b> : <code>portail-ci\src\assets\guides\guide-derogation-tarifaire.pdf</code>, <code>guide-mainlevee.pdf</code>, <code>guide-droit-communication.pdf</code> — à obtenir des PO de ces modules (ce ne sont pas nos modules). Tant qu'ils manquent, le lien existe mais tombe en 404 : si tu préfères ne pas afficher un lien cassé, retire temporairement l'entrée correspondante de <code>AIDES_MODULES</code> et ajoute <code>*ngIf="aides.xxx"</code>.</div><h2 id="recette">2. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours</b><br><span class="path">recette\guides.txt</span></div><pre><button class="copy">Copier</button><code>Ctrl+F5 puis login (Baladi Youness, Chef de caisse) — SANS passer par Gestion des fonds :
+1. Dérogation → guide visible, téléchargement = Guide_Derogation_tarifaire.pdf
+2. Mainlevée → guide visible (Guide_Mainlevee.pdf)
+3. Droits de communication → guide visible
+4. Gestion des fonds → guide GesFond (celui du remote), puis retour Dérogation → toujours le guide Dérogation (pas celui de GesFond)
+5. Dashboard → aucun guide
+Pré-requis : les 3 PDF déposés dans portail-ci/src/assets/guides/ (sinon lien en 404 — demander les fichiers aux PO de chaque module ou mettre un placeholder).</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
