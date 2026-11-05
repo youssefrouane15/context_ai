@@ -1,0 +1,47 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bug QA 05/11 — NG04002 « Cannot match any routes: &#x27;monetique&#x27; » sous le portail</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Bug QA 05/11 — NG04002 « Cannot match any routes: &#x27;monetique&#x27; » sous le portail</h1><p>fund-management-front · demandes-monetique-list : navigation relative au parent au lieu de « /monetique » absolu · 05/11/2026</p></header><nav><a href="#cause">Cause</a><a href="#fix">demandes-monetique-list.component.ts</a><a href="#grep">Même défaut ailleurs</a><a href="#recette">Recette</a></nav><main><h2 id="cause">0. Cause</h2><div class="card">Le MFE est monté sous <code>/portail</code> dans le shell. <code>demandes-monetique-list.component.ts</code> navigue en <b>absolu</b> : <code>navigate(['/monetique'])</code> et <code>navigate(['/monetique', 'consultation', id])</code> → le routeur du shell cherche <code>/monetique</code> à la racine → <code>NG04002</code>. En standalone (4201) ça passait, d'où le bug découvert seulement sous le portail. <code>demandes-list</code> fait déjà bien : <code>navigate(chemin, { relativeTo: this.route.parent })</code> — on aligne.</div><h2 id="fix">1. demandes-monetique-list.component.ts</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>import</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.ts</span></div><p class="note">Remplace <code>import { Router } from '@angular/router';</code>.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { ActivatedRoute, Router } <span class="k">from</span> <span class="s">&#x27;@angular/router&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>champs</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.ts</span></div><p class="note">Remplace la ligne <code>private readonly router = inject(Router);</code> par ces deux lignes.</p><pre><button class="copy">Copier</button><code>  <span class="k">private</span> <span class="k">readonly</span> router = inject(Router);
+  <span class="k">private</span> <span class="k">readonly</span> route = inject(ActivatedRoute);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>nouvelleDemande / voirDetail</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-monetique-list\demandes-monetique-list.component.ts</span></div><p class="note">Remplace le bloc de <code>nouvelleDemande()</code> à <code>voirDetail()</code> inclus (<code>allerPage</code> inchangé, recopié pour le repère).</p><pre><button class="copy">Copier</button><code>  <span class="c">// Navigation relative au parent (« /portail » sous le shell, « / » en standalone) : plus de chemin absolu « /monetique ».</span>
+  nouvelleDemande(): <span class="k">void</span> { <span class="k">this</span>.router.navigate([<span class="s">&#x27;monetique&#x27;</span>], { relativeTo: <span class="k">this</span>.route.parent }); }
+
+  <span class="c">// ------------------------------------------------------------------ Pagination / ligne</span>
+
+  allerPage(page: number): <span class="k">void</span> {
+    <span class="k">if</span> (page &gt;= 0 &amp;&amp; page &lt; <span class="k">this</span>.nombrePages() &amp;&amp; page !== <span class="k">this</span>.pageCourante()) { <span class="k">this</span>.page$.next(page); }
+  }
+
+  voirDetail(l: LigneMonetique): <span class="k">void</span> {
+    <span class="k">this</span>.router.navigate([<span class="s">&#x27;monetique&#x27;</span>, <span class="s">&#x27;consultation&#x27;</span>, l.id], { relativeTo: <span class="k">this</span>.route.parent });
+  }</code></pre></div><h2 id="grep">2. Même défaut ailleurs</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Recherche des navigations absolues</b><br><span class="path">Git Bash</span></div><pre><button class="copy">Copier</button><code># Git Bash — tout navigate() absolu restant dans le MFE casse sous le portail (NG04002)
+cd /c/dev/fund-management-front
+grep -rn <span class="s">&quot;navigate(\[&#x27;/&quot;</span> src/app/features/fund-management/ <span class="c">--include=*.ts</span>
+# attendu après correction : aucune ligne. Chaque occurrence → même forme : navigate([<span class="s">&#x27;segment&#x27;</span>, …], { relativeTo: <span class="k">this</span>.route.parent })
+# (inject(ActivatedRoute) si le composant ne l&#x27;a pas déjà). Candidats probables : demande-monetique.component.ts (retour liste après
+# création / annulation / « Historique GAB »), fund-management.component.ts, demande-traitement.component.ts, sidebar.</code></pre></div><h2 id="recette">3. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours</b><br><span class="path">recette\navigation-monetique.txt</span></div><pre><button class="copy">Copier</button><code>Sous le portail (http:<span class="c">//localhost:4200/portail/…), user Pôle monétique (Smatou) :</span>
+1. /portail/monetique/list → « Nouvelle Demande » → /portail/monetique (écran de saisie), aucune erreur console
+2. œil sur une ligne → /portail/monetique/consultation/&lt;id&gt; (récap GAB)
+3. depuis l&#x27;écran de saisie / consultation : retour à la liste → /portail/monetique/list
+4. grep du §2 vide ; ng test vert
+En standalone (http:<span class="c">//localhost:4201/…) : mêmes parcours sans le préfixe — relativeTo: route.parent donne « / ».</span></code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
