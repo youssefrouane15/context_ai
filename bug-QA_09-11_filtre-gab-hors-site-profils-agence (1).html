@@ -1,0 +1,117 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bug QA 09/11 — « GAB hors site » visible et inopérant pour les profils agence</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Bug QA 09/11 — « GAB hors site » visible et inopérant pour les profils agence</h1><p>fund-management (back) · CashDemandUseCaseImpl.search : canal perdu pour les profils agence → page vide · fund-management-front · option du filtre conditionnée par consulterMonetique · 09/11/2026</p></header><nav><a href="#cause">Cause</a><a href="#back">Back — fund-management-application-service</a><a href="#front">Front — fund-management-front</a><a href="#recette">Recette</a></nav><main><h2 id="cause">0. Cause</h2><div class="card">Ta capture : <code>GET /cash?page=0&amp;size=20&amp;canal=MONETIQUE</code> → 200 avec <b>toutes les demandes de l'agence</b>. Le filtre n'est pas ignoré par la spec : il est <b>perdu avant</b>. Dans <code>CashDemandUseCaseImpl.search</code>, pour un profil non « toutes agences », les critères sont reconstruits pour forcer <code>branchCode</code> — avec l'ancien constructeur à <b>12 arguments, sans <code>canal</code></b> (le champ a été ajouté en 13ᵉ position pour la CC/322). Résultat : <code>canal = null</code> → liste complète. Pour la CC (<code>toutesAgences</code>) les critères passent tels quels, d'où « ça marche chez eux ».<br><br>
+<b>Fix, les deux couches</b> : (1) <b>back</b>, règle métier dans le use case : le Monétique est le périmètre des profils toutes agences (même règle que l'export et la décision CC) → pour un profil agence, <code>canal=MONETIQUE</code> renvoie une <b>page vide</b> sans requête, et le canal est désormais transmis ; (2) <b>front</b>, l'option « GAB hors site » n'est proposée que si <code>habilitations().consulterMonetique</code> (même droit que la garde de l'écran Monétique, <code>GDF_CONSULTER_DEMANDE_MONETIQUE</code>, donné à CC/Support par V27). Le back reste la vraie barrière (URL forgée, autre client).</div><h2 id="back">1. Back — fund-management-application-service</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.java — search()</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java</span></div><p class="note">Remplace la méthode <code>search</code> (constante à poser avec les autres <code>static final</code>). <code>PageResult.empty(page, size)</code> existe déjà (utilisé par <code>searchMonetique</code>). Le constructeur 13 args est celui de <code>RetailDemandController.exporter</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** Canal des demandes GAB hors site (Monétique) : périmètre des profils toutes agences (Caisse Centrale, Support). */</span>
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> CANAL_MONETIQUE = <span class="s">&quot;MONETIQUE&quot;</span>;
+
+    @Override
+    <span class="k">public</span> PageResult&lt;CashRequestDTO&gt; search(DemandeSearchCriteria criteria, ContexteAppelant contexte) {
+        <span class="k">if</span> (contexte.toutesAgences()) {
+            <span class="k">return</span> cashDemandRepository.search(criteria.enMasquantLesBrouillons()).map(<span class="k">this</span>::enrichir);
+        }
+        <span class="c">// Profil agence : les demandes Monétique sont hors périmètre → page vide, et surtout pas « toutes les demandes</span>
+        <span class="c">// de l&#x27;agence » (bug QA 09/11 : le canal était perdu en reconstruisant les critères → le filtre semblait ignoré).</span>
+        <span class="k">if</span> (CANAL_MONETIQUE.equals(criteria.canal())) {
+            <span class="k">return</span> PageResult.empty(criteria.page(), criteria.size());
+        }
+        DemandeSearchCriteria effectifs = <span class="k">new</span> DemandeSearchCriteria(criteria.statut(), contexte.branchCode(),
+                criteria.operationType(), criteria.operationSens(), criteria.recherche(), criteria.dateDebut(), criteria.dateFin(),
+                criteria.zone(), criteria.prestataire(), criteria.urgent(), criteria.page(), criteria.size(), criteria.canal());
+        <span class="k">return</span> cashDemandRepository.search(effectifs.enMasquantLesBrouillons()).map(<span class="k">this</span>::enrichir);
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImplTest.java — 3 tests</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java</span></div><p class="note"><code>useCase</code>, mock <code>cashDemandRepository</code> et <code>CAISSE_CENTRALE</code> existent dans la classe. Le <code>assertThat</code> importé dans la classe ne couvre pas <code>long</code> (erreur « Required type List ») : pas d'assertion sur <code>totalElements()</code> — <code>content()</code> vide + aucun appel repository suffisent. <code>when</code> / <code>verifyNoInteractions</code> qualifiés <code>Mockito.</code> comme dans le reste de la classe.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ----- search : périmètre Monétique (bug QA 09/11) -----</span>
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> ContexteAppelant AGENCE_1405 = <span class="k">new</span> ContexteAppelant(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;1405&quot;</span>, <span class="k">false</span>, <span class="s">&quot;Karim BENNANI&quot;</span>, <span class="s">&quot;Directeur d&#x27;agence&quot;</span>);
+
+    <span class="k">private</span> <span class="k">static</span> DemandeSearchCriteria criteres(<span class="k">String</span> canal) {
+        <span class="k">return</span> <span class="k">new</span> DemandeSearchCriteria(<span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, 0, 20, canal);
+    }
+
+    @Test
+    <span class="k">void</span> search_agence_canalMonetique_retournePageVideSansInterrogerLeRepository() {
+        PageResult&lt;CashRequestDTO&gt; page = useCase.search(criteres(<span class="s">&quot;MONETIQUE&quot;</span>), AGENCE_1405);
+
+        assertThat(page.content()).isEmpty();           <span class="c">// page vide (totalElements = 0 par construction de PageResult.empty)</span>
+        Mockito.verifyNoInteractions(cashDemandRepository);
+    }
+
+    @Test
+    <span class="k">void</span> search_agence_sansCanal_forceLAgenceDuContexte() {
+        Mockito.when(cashDemandRepository.search(any())).thenReturn(PageResult.empty(0, 20));
+
+        useCase.search(criteres(<span class="k">null</span>), AGENCE_1405);
+
+        ArgumentCaptor&lt;DemandeSearchCriteria&gt; captor = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="k">class</span>);
+        verify(cashDemandRepository).search(captor.capture());
+        assertThat(captor.getValue().agence()).isEqualTo(<span class="s">&quot;1405&quot;</span>);
+        assertThat(captor.getValue().canal()).isNull();
+    }
+
+    @Test
+    <span class="k">void</span> search_caisseCentrale_canalMonetique_transmisAuRepository() {
+        Mockito.when(cashDemandRepository.search(any())).thenReturn(PageResult.empty(0, 20));
+
+        useCase.search(criteres(<span class="s">&quot;MONETIQUE&quot;</span>), CAISSE_CENTRALE);
+
+        ArgumentCaptor&lt;DemandeSearchCriteria&gt; captor = ArgumentCaptor.forClass(DemandeSearchCriteria.<span class="k">class</span>);
+        verify(cashDemandRepository).search(captor.capture());
+        assertThat(captor.getValue().canal()).isEqualTo(<span class="s">&quot;MONETIQUE&quot;</span>);
+    }</code></pre></div><h2 id="front">2. Front — fund-management-front</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.regles.ts — TYPES_DEMANDE + typesDemandePour</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.ts</span></div><p class="note">Remplace le bloc <code>TYPES_DEMANDE</code> livré le 05/11. Import <code>HabilitationsGdf</code> depuis <code>domain/.../demande-capacites</code>.</p><pre><button class="copy">Copier</button><code><span class="c">/** Filtre « Type de demande » : les 4 types agence, plus « GAB hors site » (canal MONETIQUE) réservé aux profils habilités. */</span>
+<span class="k">export</span> <span class="k">const</span> TYPE_MONETIQUE = <span class="s">&#x27;MONETIQUE&#x27;</span>;
+
+<span class="k">export</span> <span class="k">const</span> TYPES_DEMANDE: <span class="k">readonly</span> OptionFiltre[] = [
+  { code: TOUS,           libelle: <span class="s">&#x27;Tous les types&#x27;</span> },
+  { code: <span class="s">&#x27;CAISSE&#x27;</span>,       libelle: <span class="s">&#x27;Alimentation caisse&#x27;</span> },
+  { code: <span class="s">&#x27;GAB&#x27;</span>,          libelle: <span class="s">&#x27;Alimentation GAB&#x27;</span> },
+  { code: <span class="s">&#x27;DEVISES&#x27;</span>,      libelle: <span class="s">&#x27;Commande devises&#x27;</span> },
+  { code: <span class="s">&#x27;RAMASSAGE&#x27;</span>,    libelle: <span class="s">&#x27;Ramassage&#x27;</span> },
+  { code: TYPE_MONETIQUE, libelle: <span class="s">&#x27;GAB hors site&#x27;</span> }
+];
+
+<span class="c">/** Options visibles pour l&#x27;utilisateur : « GAB hors site » seulement s&#x27;il peut consulter le Monétique (CC, Support). */</span>
+<span class="k">export</span> <span class="k">function</span> typesDemandePour(habilitations: HabilitationsGdf): <span class="k">readonly</span> OptionFiltre[] {
+  <span class="k">return</span> habilitations.consulterMonetique ? TYPES_DEMANDE : TYPES_DEMANDE.filter(t =&gt; t.code !== TYPE_MONETIQUE);
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demandes-list.component.ts — typesDemande</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts</span></div><p class="note">Ajouter <code>typesDemandePour</code> à l'import existant depuis <code>./demandes-list.regles</code>, <code>computed</code>/<code>inject</code> depuis <code>@angular/core</code> s'ils manquent.</p><pre><button class="copy">Copier</button><code>  <span class="c">// À AJOUTER parmi les champs du composant (le service est celui de /me : adapters/apiAdapters/contexte-utilisateur.service.ts ;</span>
+  <span class="c">// si le composant l&#x27;injecte déjà sous un autre nom, réutiliser cette instance).</span>
+  <span class="k">private</span> <span class="k">readonly</span> contexteUtilisateur = inject(ContexteUtilisateurService);
+
+  <span class="c">/** Options du filtre « Type de demande » selon les habilitations (bug QA 09/11). */</span>
+  <span class="k">readonly</span> typesDemande = computed(() =&gt; typesDemandePour(<span class="k">this</span>.contexteUtilisateur.habilitations()));</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html — select Type de demande</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html</span></div><p class="note">Seule la source du <code>*ngFor</code> change ; si le template référence <code>TYPES_DEMANDE</code> via un champ du composant (ex. <code>types = TYPES_DEMANDE</code>), supprimer ce champ.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- select « Type de demande » : itérer typesDemande() au lieu de la constante TYPES_DEMANDE --&gt;</span>
+&lt;option *ngFor=<span class="s">&quot;let t of typesDemande()&quot;</span> [value]=<span class="s">&quot;t.code&quot;</span>&gt;{{ t.libelle }}&lt;/option&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demandes-list.regles.spec.ts</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.spec.ts</span></div><p class="note"><code>HABILITATIONS_AUCUNE</code> vient de <code>demande-capacites</code>.</p><pre><button class="copy">Copier</button><code>  describe(<span class="s">&#x27;typesDemandePour&#x27;</span>, () =&gt; {
+    it(<span class="s">&#x27;masque « GAB hors site » sans le droit consulterMonetique&#x27;</span>, () =&gt; {
+      <span class="k">const</span> types = typesDemandePour({ ...HABILITATIONS_AUCUNE, consulter: <span class="k">true</span> });
+      expect(types.map(t =&gt; t.code)).not.toContain(TYPE_MONETIQUE);
+      expect(types.length).toBe(TYPES_DEMANDE.length - 1);
+    });
+
+    it(<span class="s">&#x27;propose « GAB hors site » avec le droit consulterMonetique&#x27;</span>, () =&gt; {
+      <span class="k">const</span> types = typesDemandePour({ ...HABILITATIONS_AUCUNE, consulter: <span class="k">true</span>, consulterMonetique: <span class="k">true</span> });
+      expect(types).toEqual(TYPES_DEMANDE);
+    });
+  });</code></pre></div><div class="card">Pourquoi pas « filtrer par <code>estCaisseCentrale</code> » : l'écran <code>/list</code> est aussi utilisé par CC/Support (c'est là que le bug du 05/11 a été corrigé) — le discriminant est l'habilitation de l'utilisateur, pas le mode de l'écran.</div><h2 id="recette">3. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Scénarios</b><br><span class="path">recette\bug-QA_09-11.txt</span></div><pre><button class="copy">Copier</button><code>1. DA / Chef de caisse (ex. j61104, agence 1405) → Historique : le select « Type de demande » n&#x27;a plus « GAB hors site » (5 options).
+2. Même profil, requête forcée : GET /api/v1/<span class="k">public</span>/fund-management/cash?page=0&amp;size=20&amp;canal=MONETIQUE → 200, content = [], totalElements = 0
+   (avant : toutes les demandes de l&#x27;agence).
+3. Même profil, sans canal : liste de l&#x27;agence inchangée (agence forcée = 1405 par le contexte).
+4. Caisse Centrale / Support (après V27) → Historique : « GAB hors site » présent → seules les demandes MONÉTIQUE ; Zones « GAB-Hors-Site » côté listing CC inchangé.
+5. mvn test fund-management-application-service : 3 nouveaux tests search verts ; front : ng test demandes-list.regles.spec.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
