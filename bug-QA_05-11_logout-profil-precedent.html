@@ -1,4 +1,4 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bug QA 05/11 — profil précédent conservé après déconnexion (shell + MFE)</title><style>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bug QA 05/11 — profil précédent conservé après déconnexion : fix gateway + portail</title><style>
 :root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
 *{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
 header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
@@ -22,26 +22,107 @@ pre code{background:none;padding:0;color:inherit;font-size:13px}
 table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
 ol,ul{padding-left:22px}li{margin:4px 0}
 .warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
-</style></head><body><header><h1>Bug QA 05/11 — profil précédent conservé après déconnexion (shell + MFE)</h1><p>portail-ci · AuthService.logout / HeaderComponent.logout : rechargement complet forcé (hash routing DMZR) · v3 06/11/2026</p></header><nav><a href="#cause">Cause (v3 : pourquoi le fix v2 marche en local et pas en DMZR)</a><a href="#fix">portail-ci</a><a href="#recette">Recette</a></nav><main><h2 id="cause">0. Cause (v3 : pourquoi le fix v2 marche en local et pas en DMZR)</h2><div class="card">Oui, c'est lié à la Module Federation — pas au mécanisme, à <b>l'état en mémoire</b>. Shell et remote fund-management tournent dans la même page (même runtime JS). Le remote a <code>ContexteUtilisateurService</code> en <code>providedIn: 'root'</code> : <code>/me</code> est mis en cache dans un signal et <code>charger()</code> ne rappelle pas l'API tant que <code>contexte()</code> est rempli. Au logout, le shell vide cookie et storages (ta capture le confirme : cookies et storage vides) mais fait un <code>router.navigate(['/login'])</code> — navigation SPA, la page vit toujours, le singleton aussi → au login suivant, le remote sert l'ancien profil. <b>Ctrl+F5</b> vide la mémoire JS, d'où le « fix ». Même cause que l'erreur attrapée par le <code>catch</code> actuel, qui fait déjà <code>window.location.assign</code> : on généralise.<br><br><b>v3 — DMZR</b> : le portail y est en <b>hash routing</b> (<code>/#/login</code>). Le commit <code>38257ccd</code> a mis <code>assign('#/login')</code> : changer seulement le fragment <code>#…</code> est une navigation intra-page, <b>pas un rechargement</b> — le singleton du remote survit, comme avant. En local (path routing, <code>/login</code>) <code>assign</code> recharge vraiment, d'où la différence. Fix : cible selon le mode de routing + <code>reload()</code> forcé.</div><h2 id="fix">1. portail-ci</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>auth.service.ts — logout()</b><br><span class="path">portail-ci\src\app\core\services\auth\auth.service.ts</span></div><p class="note">v3 : remplace la méthode <code>logout()</code> actuelle (commit 38257ccd). Import <code>environment</code> si absent.</p><pre><button class="copy">Copier</button><code>  logout(): <span class="k">void</span> {
+</style></head><body><header><h1>Bug QA 05/11 — profil précédent conservé après déconnexion : fix gateway + portail</h1><p>api-gateway-ci · MockAuthController POST /mock-auth/logout (cookie QF_MOCK_SESSION expiré) · portail-ci · AuthService.logout() attend la gateway puis recharge · v5 09/11/2026</p></header><nav><a href="#cause">Cause réelle et principe du fix</a><a href="#gateway">api-gateway-ci</a><a href="#portail">portail-ci</a><a href="#recette">Recette</a></nav><main><h2 id="cause">0. Cause réelle et principe du fix</h2><div class="card"><b>Ce que montrent tes captures.</b> En mode mock, la « session » n'est pas en base : <code>login()</code> construit la map <code>request</code> (l.56-64) mais ne l'envoie jamais (<code>webClient</code> et <code>urlsProperties</code> : 1 usage chacun = le constructeur). La session, c'est le <b>JWT dans le cookie</b> <code>QF_MOCK_SESSION</code> (<code>HttpOnly</code>, <code>Path=/</code>, <code>SameSite=Lax</code>, 1 h) que <code>QfTokenRelayFilter</code> relaie en Bearer. Et il n'existe <b>aucun endpoint de logout en mock</b> : seul <code>QfLogoutHandler</code> (oauth) existe.<br><br>
+<b>Pourquoi /login → dashboard en DMZR.</b> Le portail v4 recharge bien la page, mais le cookie est <code>HttpOnly</code> : le JS ne peut pas le supprimer, et en DMZR portail et gateway sont sur le même hôte → le navigateur le renvoie au <code>/me</code> du rechargement → 200 → le shell se croit connecté → dashboard. En local (4200 ≠ 9090) le cookie posé par 9090 n'était simplement pas partagé de la même façon, d'où le « ça marchait ».<br><br>
+<b>Fix.</b> La session s'invalide <b>là où elle vit</b> : (1) la gateway expose <code>POST /mock-auth/logout</code> qui renvoie le même cookie avec <code>Max-Age=0</code> (le navigateur ne remplace un cookie que si nom + path correspondent, d'où la copie exacte des attributs du login) ; (2) le portail <b>attend</b> cette réponse, puis nettoie et recharge. Pas d'appel à utilisateurs-ci en mock : il n'y a rien à supprimer côté serveur. <code>/mock-auth/**</code> est déjà <code>permitAll</code> et le controller a déjà <code>@CrossOrigin(allowCredentials)</code> : aucune config sécurité/CORS à toucher.</div><h2 id="gateway">1. api-gateway-ci</h2><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>MockAuthController.java — endpoint /logout</b><br><span class="path">api-gateway-ci\src\main\java\com\bnpparibas\irb\qlickflow\apigateway\security\mock\MockAuthController.java</span></div><p class="note">Insérer entre <code>login()</code> et <code>ping()</code>. Les attributs sont volontairement identiques à ceux du cookie posé par <code>login()</code> (l.66-73). Si un jour <code>login()</code> passe <code>secure(true)</code> ou un <code>domain</code>, reporter la même valeur ici.</p><pre><button class="copy">Copier</button><code>    <span class="c">// À AJOUTER après login() (ligne 76), avant /ping. Aucun import nouveau : PostMapping, ServerWebExchange,</span>
+    <span class="c">// ResponseCookie, ResponseEntity et Mono sont déjà importés pour login().</span>
+    @PostMapping(<span class="s">&quot;/logout&quot;</span>)
+    <span class="k">public</span> Mono&lt;ResponseEntity&lt;Void&gt;&gt; logout(ServerWebExchange exchange) {
+        <span class="c">// Le navigateur ne remplace un cookie que si (nom, domaine, path) sont identiques à ceux du login :</span>
+        <span class="c">// même nom (sessionCookieName) et même path(&quot;/&quot;). Max-Age=0 → suppression immédiate.</span>
+        <span class="k">var</span> expire = ResponseCookie.<span class="k">from</span>(sessionCookieName, <span class="s">&quot;&quot;</span>)
+                .httpOnly(<span class="k">true</span>)
+                .secure(<span class="k">false</span>)
+                .path(<span class="s">&quot;/&quot;</span>)
+                .sameSite(<span class="s">&quot;Lax&quot;</span>)
+                .maxAge(0)
+                .build();
+        exchange.getResponse().addCookie(expire);
+        <span class="k">return</span> Mono.just(ResponseEntity.noContent().build());
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>MockAuthControllerLogoutTest.java</b><br><span class="path">api-gateway-ci\src\test\java\com\bnpparibas\irb\qlickflow\apigateway\security\mock\MockAuthControllerLogoutTest.java</span></div><p class="note"><code>MockServerWebExchange</code> vient de <code>spring-test</code> (déjà dans <code>spring-boot-starter-test</code>). Les 3 premiers paramètres du constructeur ne sont pas utilisés par <code>logout()</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bnpparibas.irb.qlickflow.apigateway.security.mock;
+
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.springframework.http.HttpStatus;
+<span class="k">import</span> org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+<span class="k">import</span> org.springframework.mock.web.server.MockServerWebExchange;
+
+<span class="k">import</span> java.time.Duration;
+
+<span class="k">import</span> <span class="k">static</span> org.assertj.core.api.Assertions.assertThat;
+
+<span class="k">class</span> MockAuthControllerLogoutTest {
+
+    @Test
+    <span class="k">void</span> logout_expireLeCookieDeSessionAvecLesAttributsDuLogin() {
+        <span class="k">var</span> controller = <span class="k">new</span> MockAuthController(<span class="k">null</span>, <span class="k">null</span>, <span class="k">null</span>, <span class="s">&quot;QF_MOCK_SESSION&quot;</span>);
+        <span class="k">var</span> exchange = MockServerWebExchange.<span class="k">from</span>(MockServerHttpRequest.post(<span class="s">&quot;/mock-auth/logout&quot;</span>));
+
+        <span class="k">var</span> reponse = controller.logout(exchange).block();
+
+        assertThat(reponse).isNotNull();
+        assertThat(reponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        <span class="k">var</span> cookie = exchange.getResponse().getCookies().getFirst(<span class="s">&quot;QF_MOCK_SESSION&quot;</span>);
+        assertThat(cookie).isNotNull();
+        assertThat(cookie.getValue()).isEmpty();
+        assertThat(cookie.getMaxAge()).isEqualTo(Duration.ZERO);
+        assertThat(cookie.getPath()).isEqualTo(<span class="s">&quot;/&quot;</span>);
+        assertThat(cookie.isHttpOnly()).isTrue();
+        assertThat(cookie.getSameSite()).isEqualTo(<span class="s">&quot;Lax&quot;</span>);
+    }
+}</code></pre></div><h2 id="portail">2. portail-ci</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>auth.service.ts — logout() devient asynchrone</b><br><span class="path">portail-ci\src\app\core\services\auth\auth.service.ts</span></div><p class="note">Remplace la méthode <code>logout()</code> v4. <code>this.http</code> et <code>environment.gatewayUrl</code> = le <code>HttpClient</code> et la base d'URL <b>déjà utilisés par <code>login()</code></b> pour <code>/mock-auth/login</code> ; <code>environment.mockAuthEnabled</code> = le flag mock existant du portail. Garde les identifiants réels du fichier si les noms diffèrent — rien d'autre n'est à inventer.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { firstValueFrom } <span class="k">from</span> <span class="s">&#x27;rxjs&#x27;</span>;   <span class="c">// à ajouter aux imports si absent</span>
+
+  <span class="c">/** Déconnexion : 1) la gateway expire le cookie de session, 2) nettoyage local, 3) rechargement complet. */</span>
+  <span class="k">async</span> logout(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">await</span> <span class="k">this</span>.deconnecterGateway();
+    <span class="k">this</span>.nettoyerEtatLocal();
+    <span class="c">// Une seule navigation « document » (hash routing DMZR : la query ?_= force le rechargement, puis Angular lit #/login).</span>
+    window.location.replace(environment.useHash
+      ? <span class="s">`${window.location.origin}/?_=${Date.now()}#/login`</span>
+      : <span class="s">`${window.location.origin}/login`</span>);
+  }
+
+  <span class="c">/**
+   * La session vit dans la gateway (cookie HttpOnly QF_MOCK_SESSION, invisible au JS) : seule la gateway peut l&#x27;expirer.
+   * On ATTEND sa réponse avant de recharger, sinon le /me du rechargement repart avec l&#x27;ancien cookie → dashboard.
+   * mock  : POST /mock-auth/logout (MockAuthController)
+   * oauth : POST /logout (Spring Security → QfLogoutHandler supprime la session dans utilisateurs-ci)
+   */</span>
+  <span class="k">private</span> <span class="k">async</span> deconnecterGateway(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">const</span> chemin = environment.mockAuthEnabled ? <span class="s">&#x27;/mock-auth/logout&#x27;</span> : <span class="s">&#x27;/logout&#x27;</span>;
+    <span class="k">try</span> {
+      <span class="k">await</span> firstValueFrom(<span class="k">this</span>.http.post&lt;<span class="k">void</span>&gt;(<span class="s">`${environment.gatewayUrl}${chemin}`</span>, <span class="k">null</span>, { withCredentials: <span class="k">true</span> }));
+    } <span class="k">catch</span> (e) {
+      <span class="c">// Gateway injoignable (ou 302 oauth non suivi) : la session est de toute façon à expirer côté serveur,</span>
+      <span class="c">// on repart quand même de zéro côté client.</span>
+      console.warn(<span class="s">&#x27;Déconnexion gateway impossible, rechargement quand même&#x27;</span>, e);
+    }
+  }
+
+  <span class="k">private</span> nettoyerEtatLocal(): <span class="k">void</span> {
     <span class="k">try</span> {
       <span class="k">this</span>.menuModule.reinitialiser();   <span class="c">// AER_LM-336 : plus d&#x27;entrées de menu de l&#x27;utilisateur précédent</span>
       sessionStorage.clear();
       Object.keys(localStorage).filter(k =&gt; k.startsWith(<span class="s">&#x27;qf.&#x27;</span>)).forEach(k =&gt; localStorage.removeItem(k));
-    } <span class="k">finally</span> {
-      <span class="c">// Rechargement COMPLET obligatoire : le MFE fund-management vit dans la même page et garde /me en mémoire.</span>
-      <span class="c">// En hash routing (DMZR : /#/login), assign(&#x27;#/login&#x27;) ne change que le fragment → aucun rechargement, l&#x27;ancien</span>
-      <span class="c">// profil survit. On pose la cible puis on force reload() : sans effet si assign a déjà rechargé (path routing local).</span>
-      window.location.assign(environment.useHash ? <span class="s">&#x27;#/login&#x27;</span> : <span class="s">&#x27;/login&#x27;</span>);
-      window.location.reload();
+    } <span class="k">catch</span> (e) {
+      console.warn(<span class="s">&#x27;Nettoyage local partiel&#x27;</span>, e);
     }
-  }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>environment — flag useHash</b><br><span class="path">portail-ci\src\environments\environment.ts · environment.prod.ts</span></div><p class="note">Un booléen aligné sur <code>useHash</code> du routing. Si <code>app-routing.module.ts</code> a <code>useHash: true</code> en dur partout, remplace la condition par <code>'#/login'</code> seul — le <code>reload()</code> fait le travail.</p><pre><button class="copy">Copier</button><code><span class="c">// Le flag doit être le MÊME que celui de app-routing.module.ts : RouterModule.forRoot(routes, { useHash: environment.useHash })</span>
-<span class="c">// environment.ts (local)        : useHash: false     → URL /login</span>
-<span class="c">// environment.prod.ts (DMZR)    : useHash: true      → URL /#/login</span>
-<span class="c">// Si le routing utilise déjà une constante dédiée, réutiliser celle-là plutôt qu&#x27;en créer une.</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>header.component.ts — logout()</b><br><span class="path">portail-ci\src\app\layouts\header\header.component.ts</span></div><p class="note">Remplace la méthode <code>logout()</code> (lignes 139-144) : plus de <code>router.navigate</code> (il court-circuiterait le rechargement) ni de test <code>mockAuthEnabled</code> (le nettoyage est le même dans les deux modes). Retirer les imports <code>environment</code> / injection <code>router</code> s'ils ne servent plus ailleurs.</p><pre><button class="copy">Copier</button><code>  logout() {
-    <span class="c">// mock ou oauth : même nettoyage, AuthService.logout() recharge la page sur /login</span>
-    <span class="k">this</span>.authService.logout();
-  }</code></pre></div><div class="card">Alternative sans rechargement (exposer un <code>reinitialiser()</code> sur <code>ContexteUtilisateurService</code> et le déclencher depuis le shell par évènement) : plus de code, plus de couplage, pour le même résultat — le rechargement au logout est le comportement standard d'un shell MF.</div><h2 id="recette">2. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours</b><br><span class="path">recette\logout.txt</span></div><pre><button class="copy">Copier</button><code>Local (path routing) ET DMZR (hash routing) :
-1. login c60010 (Ouazzani Hicham, CC) → Gestion des fonds → dashboard CC
-2. Déconnexion → Network : requête document (/login ou /#/login) rechargée, pas une navigation SPA ; console vide
-3. login g10002 (Chef de caisse) → Gestion des fonds → écran agence 1422, /me rappelé (uid g10002), plus de dashboard CC
-4. Sans Ctrl+F5 à aucune étape.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
+  }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>header.component.ts — logout()</b><br><span class="path">portail-ci\src\app\layouts\header\header.component.ts</span></div><p class="note"><code>void</code> explicite : on ne veut pas attendre dans le composant, <code>AuthService</code> gère la suite (y compris le rechargement).</p><pre><button class="copy">Copier</button><code>  logout() {
+    <span class="c">// asynchrone : AuthService attend la gateway puis recharge la page sur /login</span>
+    <span class="k">void</span> <span class="k">this</span>.authService.logout();
+  }</code></pre></div><div class="card"><b>Ordre, et pourquoi il compte</b> : <code>await</code> gateway → nettoyage local → <code>replace</code>. Si on recharge avant la réponse, le navigateur annule la requête logout en vol et le cookie survit. Si la gateway est injoignable, on recharge quand même (le <code>catch</code>) : l'utilisateur retombe sur le login avec un cookie encore valide 1 h max — comportement dégradé assumé, tracé en <code>console.warn</code>.<br>
+<b>Mode oauth</b> : même méthode, chemin <code>/logout</code> → Spring Security enchaîne <code>QfLogoutHandler</code> (DELETE <code>/api/v1/internal/oauth-sessions/{uid}</code>) et invalide la session ; la réponse (302 vers la page de fin de session) tombe dans le <code>catch</code> — sans importance, la session est déjà détruite. À recetter quand le dev-sso sera disponible.</div><h2 id="recette">3. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours gateway seule puis portail</b><br><span class="path">recette\logout.txt</span></div><pre><button class="copy">Copier</button><code># Gateway seule (Postman ou curl, mode mock)
+1. POST http:<span class="c">//localhost:9090/mock-auth/login?uid=c60010      → 204, Set-Cookie: QF_MOCK_SESSION=&lt;jwt&gt;; Path=/; Max-Age=3600; HttpOnly; SameSite=Lax</span>
+2. GET  http:<span class="c">//localhost:9090/api/v1/public/users/me           → 200 (cookie envoyé)</span>
+3. POST http:<span class="c">//localhost:9090/mock-auth/logout                 → 204, Set-Cookie: QF_MOCK_SESSION=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax</span>
+4. GET  http:<span class="c">//localhost:9090/api/v1/public/users/me           → 401 (plus de cookie)</span>
+   curl : curl -i -c c.txt -X POST <span class="s">&quot;http://localhost:9090/mock-auth/login?uid=c60010&quot;</span>
+          curl -i -b c.txt -c c.txt -X POST  http:<span class="c">//localhost:9090/mock-auth/logout</span>
+          curl -i -b c.txt http:<span class="c">//localhost:9090/api/v1/public/users/me</span>
+
+# Portail DMZR (hash routing)
+1. login c60010 (CC) → Gestion des fonds → dashboard CC
+2. Déconnexion. DevTools &gt; Network : POST /mock-auth/logout = 204 avec Set-Cookie Max-Age=0, PUIS le document /?_=...#/login rechargé
+   DevTools &gt; Application &gt; Cookies : QF_MOCK_SESSION absent
+3. La page de login RESTE affichée (le /me du rechargement répond 401, plus de redirection dashboard)
+4. login g10002 → Gestion des fonds → écran agence 1422, /me = g10002
+Local (path routing, 4200 ↔ 9090) : même parcours, URL /login ; la requête logout part en CORS avec credentials (@CrossOrigin allowCredentials déjà sur le controller).</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
