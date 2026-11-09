@@ -1,0 +1,168 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Écran demande Caisse Centrale — en-tête : timeline des évènements (soumission, déclassement, décision)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Écran demande Caisse Centrale — en-tête : timeline des évènements (soumission, déclassement, décision)</h1><p>fund-management-front · demande-entete : suppression du doublon « Traitée », bloc annulation rouge (évènement + motif), icônes sur l&#x27;axe, jour affiché seulement s&#x27;il change · v3 09/11/2026 (retours PO : date à droite, flag en haut)</p></header><nav><a href="#quoi">Ce qui change</a><a href="#html">demande-entete.component.html</a><a href="#ts">demande-entete.component.ts</a><a href="#scss">demande-entete.component.scss</a><a href="#recette">Recette</a></nav><main><h2 id="quoi">0. Ce qui change</h2><div class="card"><table><tr><th>Évènement</th><th>Avant</th><th>Après (demande PO)</th></tr>
+<tr><td>Soumission</td><td><code>&lt;p *ngIf="soumiseLe"&gt;</code></td><td>Inchangé (même code couleur), 1ᵉʳ nœud de la timeline.</td></tr>
+<tr><td>Traitée</td><td><b>Deux</b> blocs : <code>entete__decision</code> avec icône (332, l. 36-45) + l'ancien <code>&lt;p class="entete__decision" *ngIf="decisionLe"&gt;</code> (l. 50-54) → doublon à l'écran.</td><td>Un seul : le texte du bloc 332 ; l'icône <code>check_circle</code> passe sur l'axe.</td></tr>
+<tr><td>Annulée</td><td>Ligne « Annulée par … » + <code>entete__motif</code> en italique, style improvisé.</td><td>Bloc <code>.annulation</code> : ligne 1 évènement, ligne 2 motif ; gabarit du déclassement, palette rouge (texte <code>--erreur</code>, fond <code>--erreur-fond-survol</code>, bordure gauche 4 px). Icône <code>cancel</code> sur l'axe.</td></tr>
+<tr><td>Déclassement</td><td>Bloc <code>.declassement</code></td><td>Évènement sur une ligne, <b>motif sur la ligne suivante</b> (comme l'annulation) ; icône <code>remove_moderator</code> sur l'axe.</td></tr></table>
+<b>Timeline</b> (v3, retours PO) : 3 colonnes <b>axe · contenu pleine largeur · date/heure à droite</b> — les blocs déclassement/annulation occupent tout le blanc de la carte ; le flag « Urgence déclassée » remonte sur la ligne du titre, ordre chronologique soumission → déclassement → décision, axe interrompu après le dernier nœud. <b>Date intelligente</b> : jour + heure sur le 1ᵉʳ évènement ; les suivants n'affichent que l'heure quand ils tombent le même jour que le précédent (<code>memeJour</code>). Aucune nouvelle donnée : tous les bindings (<code>soumiseLe</code>, <code>decisionVisible</code>, <code>libelleDecision</code>, <code>urgenceDeclassee*</code>…) sont ceux déjà exposés par le composant.</div><h2 id="html">1. demande-entete.component.html</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Bloc entete__meta complet</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.html</span></div><p class="note">Remplace les lignes 41 à 66 (du <code>&lt;div class="entete__meta"&gt;</code> à sa fermeture, juste avant le <code>&lt;/div&gt;</code> de <code>entete__principal</code> l. 67). Les badges (l. 69+) ne bougent pas.</p><pre><button class="copy">Copier</button><code>&lt;div <span class="k">class</span>=<span class="s">&quot;entete__meta&quot;</span>&gt;
+  <span class="c">&lt;!-- Timeline des évènements : soumission → déclassement (si) → décision (traitée / annulée). Icône sur l&#x27;axe, contenu pleine largeur, date · heure à droite (jour affiché seulement s&#x27;il change). --&gt;</span>
+  &lt;ol <span class="k">class</span>=<span class="s">&quot;timeline&quot;</span>&gt;
+
+    <span class="c">&lt;!-- 1. Soumission (code couleur inchangé) --&gt;</span>
+    &lt;li <span class="k">class</span>=<span class="s">&quot;timeline__item timeline__item--soumission&quot;</span> *ngIf=<span class="s">&quot;soumiseLe&quot;</span>&gt;
+      &lt;span <span class="k">class</span>=<span class="s">&quot;timeline__puce&quot;</span>&gt;&lt;span <span class="k">class</span>=<span class="s">&quot;material-symbols-outlined&quot;</span>&gt;send&lt;/span&gt;&lt;/span&gt;
+      &lt;p <span class="k">class</span>=<span class="s">&quot;timeline__contenu&quot;</span>&gt;
+        Soumise par &lt;span <span class="k">class</span>=<span class="s">&quot;entete__auteur&quot;</span>&gt;{{ soumisePar || <span class="s">&#x27;—&#x27;</span> }}&lt;/span&gt;&lt;ng-container *ngIf=<span class="s">&quot;soumiseParDetail&quot;</span>&gt; ({{ soumiseParDetail }})&lt;/ng-container&gt;
+      &lt;/p&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;timeline__date&quot;</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;timeline__jour&quot;</span>&gt;{{ soumiseLe | date: <span class="s">&#x27;dd/MM/yyyy&#x27;</span> }}&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;timeline__heure&quot;</span>&gt;{{ soumiseLe | date: <span class="s">&#x27;HH:mm&#x27;</span> }}&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/li&gt;
+
+    <span class="c">&lt;!-- 2. Déclassement d&#x27;urgence (AER_LM-333) — bloc inchangé, icône déplacée sur l&#x27;axe --&gt;</span>
+    &lt;li <span class="k">class</span>=<span class="s">&quot;timeline__item timeline__item--declassement&quot;</span> *ngIf=<span class="s">&quot;urgenceDeclassee&quot;</span>&gt;
+      &lt;span <span class="k">class</span>=<span class="s">&quot;timeline__puce&quot;</span>&gt;&lt;span <span class="k">class</span>=<span class="s">&quot;material-symbols-outlined&quot;</span>&gt;remove_moderator&lt;/span&gt;&lt;/span&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;timeline__contenu declassement&quot;</span>&gt;
+        &lt;p <span class="k">class</span>=<span class="s">&quot;declassement__texte&quot;</span>&gt;
+          &lt;strong&gt;Urgence déclassée&lt;/strong&gt;
+          &lt;ng-container *ngIf=<span class="s">&quot;urgenceDeclasseePar&quot;</span>&gt; par
+            &lt;span <span class="k">class</span>=<span class="s">&quot;declassement__auteur&quot;</span>&gt;{{ urgenceDeclasseePar }}&lt;ng-container *ngIf=<span class="s">&quot;urgenceDeclasseeProfil&quot;</span>&gt; ({{ urgenceDeclasseeProfil }})&lt;/ng-container&gt;&lt;/span&gt;
+          &lt;/ng-container&gt;
+        &lt;/p&gt;
+        &lt;p <span class="k">class</span>=<span class="s">&quot;declassement__motif&quot;</span> *ngIf=<span class="s">&quot;urgenceDeclasseeMotif&quot;</span>&gt;Motif : « {{ urgenceDeclasseeMotif }} »&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;timeline__date&quot;</span>&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;timeline__jour&quot;</span> *ngIf=<span class="s">&quot;!memeJour(urgenceDeclasseeLe, soumiseLe)&quot;</span>&gt;{{ urgenceDeclasseeLe | date: <span class="s">&#x27;dd/MM/yyyy&#x27;</span> }}&lt;/span&gt;
+        &lt;span <span class="k">class</span>=<span class="s">&quot;timeline__heure&quot;</span>&gt;{{ urgenceDeclasseeLe | date: <span class="s">&#x27;HH:mm&#x27;</span> }}&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/li&gt;
+
+    <span class="c">&lt;!-- 3. Décision (AER_LM-332) : traitée = texte existant ; annulée = évènement + motif sur la ligne suivante, style « déclassement » en rouge --&gt;</span>
+    &lt;li <span class="k">class</span>=<span class="s">&quot;timeline__item&quot;</span> *ngIf=<span class="s">&quot;decisionVisible&quot;</span>
+        [<span class="k">class</span>.timeline__item<span class="c">--traitee]=&quot;!decisionAnnulee&quot; [class.timeline__item--annulee]=&quot;decisionAnnulee&quot;&gt;</span>
+      &lt;span <span class="k">class</span>=<span class="s">&quot;timeline__puce&quot;</span>&gt;&lt;span <span class="k">class</span>=<span class="s">&quot;material-symbols-outlined&quot;</span>&gt;{{ decisionAnnulee ? <span class="s">&#x27;cancel&#x27;</span> : <span class="s">&#x27;check_circle&#x27;</span> }}&lt;/span&gt;&lt;/span&gt;
+
+      &lt;p <span class="k">class</span>=<span class="s">&quot;timeline__contenu entete__decision&quot;</span> *ngIf=<span class="s">&quot;!decisionAnnulee&quot;</span>&gt;
+        {{ libelleDecision }} par &lt;strong&gt;{{ decisionPar || decisionParDefaut }}&lt;/strong&gt;&lt;ng-container *ngIf=<span class="s">&quot;decisionPar &amp;&amp; decisionParDetail&quot;</span>&gt; · {{ decisionParDetail }}&lt;/ng-container&gt;
+      &lt;/p&gt;
+
+      &lt;div <span class="k">class</span>=<span class="s">&quot;timeline__contenu annulation&quot;</span> *ngIf=<span class="s">&quot;decisionAnnulee&quot;</span>&gt;
+        &lt;p <span class="k">class</span>=<span class="s">&quot;annulation__evenement&quot;</span>&gt;
+          &lt;strong&gt;{{ libelleDecision }}&lt;/strong&gt; par &lt;span <span class="k">class</span>=<span class="s">&quot;annulation__auteur&quot;</span>&gt;{{ decisionPar || decisionParDefaut }}&lt;/span&gt;&lt;ng-container *ngIf=<span class="s">&quot;decisionPar &amp;&amp; decisionParDetail&quot;</span>&gt; ({{ decisionParDetail }})&lt;/ng-container&gt;
+        &lt;/p&gt;
+        &lt;p <span class="k">class</span>=<span class="s">&quot;annulation__motif&quot;</span> *ngIf=<span class="s">&quot;motifAnnulation&quot;</span>&gt;Motif : « {{ motifAnnulation }} »&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;timeline__date&quot;</span>&gt;
+        &lt;ng-container *ngIf=<span class="s">&quot;decisionLe&quot;</span>&gt;
+          &lt;span <span class="k">class</span>=<span class="s">&quot;timeline__jour&quot;</span> *ngIf=<span class="s">&quot;!memeJour(decisionLe, urgenceDeclassee ? urgenceDeclasseeLe : soumiseLe)&quot;</span>&gt;{{ decisionLe | date: <span class="s">&#x27;dd/MM/yyyy&#x27;</span> }}&lt;/span&gt;
+          &lt;span <span class="k">class</span>=<span class="s">&quot;timeline__heure&quot;</span>&gt;{{ decisionLe | date: <span class="s">&#x27;HH:mm&#x27;</span> }}&lt;/span&gt;
+        &lt;/ng-container&gt;
+      &lt;/div&gt;
+    &lt;/li&gt;
+
+  &lt;/ol&gt;
+&lt;/div&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Flag « Urgence déclassée » sur la ligne du titre</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.html</span></div><p class="note">Couper le bloc du badge « Urgence déclassée » dans <code>entete__badges</code> (l. 69+) et le coller dans <code>entete__ligne</code> après le <code>&lt;h2&gt;</code> — markup et <code>*ngIf</code> inchangés ; <code>.entete__ligne</code> est déjà <code>flex / wrap / gap .75rem</code>, rien à styler.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- Ligne titre : statut · référence · flag « Urgence déclassée » (déplacé depuis entete__badges, markup inchangé) --&gt;</span>
+&lt;div <span class="k">class</span>=<span class="s">&quot;entete__ligne&quot;</span>&gt;
+  …badge statut existant…
+  &lt;h2 <span class="k">class</span>=<span class="s">&quot;entete__titre&quot;</span>&gt;Demande Réf: {{ reference }}&lt;/h2&gt;
+  …ici : le bloc du badge « Urgence déclassée » (icône remove_moderator) tel qu<span class="s">&#x27;il est aujourd&#x27;</span>hui dans entete__badges, *ngIf inchangé…
+&lt;/div&gt;</code></pre></div><div class="card"><b>Date et profil absents sur « Annulée / Traitée par la Caisse Centrale »</b> : ce n'est pas l'écran. Les trois champs viennent du back (<code>decisionPar</code>, <code>decisionProfil</code>, <code>decisionAt</code>, figés par <code>figerDecision</code> dans <code>completerTacheCaisseCentrale</code>). Sur tes captures ils sont vides pour une demande annulée <i>et</i> pour une traitée : les deux parcours que tu as testés aujourd'hui — annulation CC via <code>PATCH /cancel</code> (<code>cancel()</code> ne fige pas la décision) et <b>traitement en masse</b> (outbox, pas de <code>figerDecision</code>) — n'écrivent pas la photo du décideur. À confirmer en 10 s : Network → <code>GET /cash/{id}</code> → Response : si <code>decisionAt</code> est <code>null</code>, le fix est back (ajouter <code>figerDecision(id, contexte.nomComplet(), contexte.profilLibelle(), now)</code> dans <code>cancel()</code> quand <code>contexte.toutesAgences()</code>, et dans le traitement en masse avec l'identité du lanceur) ; je l'écris dès que tu me confirmes et que tu m'envoies la classe du traitement en masse qui pose la décision.</div><h2 id="ts">2. demande-entete.component.ts</h2><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>memeJour()</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.ts</span></div><p class="note">Méthode publique (appelée par le template). Pas d'autre changement.</p><pre><button class="copy">Copier</button><code>  <span class="c">/** Timeline : le jour d&#x27;un évènement n&#x27;est affiché que s&#x27;il diffère de celui de l&#x27;évènement précédent. */</span>
+  memeJour(a: Date | string | <span class="k">null</span> | undefined, b: Date | string | <span class="k">null</span> | undefined): <span class="k">boolean</span> {
+    <span class="k">if</span> (!a || !b) { <span class="k">return</span> <span class="k">false</span>; }
+    <span class="k">const</span> da = <span class="k">new</span> Date(a), db = <span class="k">new</span> Date(b);
+    <span class="k">return</span> da.getFullYear() === db.getFullYear() &amp;&amp; da.getMonth() === db.getMonth() &amp;&amp; da.getDate() === db.getDate();
+  }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demande-entete.component.spec.ts</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.spec.ts</span></div><p class="note"><code>composant</code> = l'instance déjà créée dans le spec.</p><pre><button class="copy">Copier</button><code>  describe(<span class="s">&#x27;memeJour&#x27;</span>, () =&gt; {
+    it(<span class="s">&#x27;vrai pour deux instants du même jour, faux sinon ou si une date manque&#x27;</span>, () =&gt; {
+      expect(composant.memeJour(<span class="s">&#x27;2026-11-09T15:09:00&#x27;</span>, <span class="s">&#x27;2026-11-09T15:10:00&#x27;</span>)).toBeTrue();
+      expect(composant.memeJour(<span class="s">&#x27;2026-11-09T23:59:00&#x27;</span>, <span class="s">&#x27;2026-11-10T00:01:00&#x27;</span>)).toBeFalse();
+      expect(composant.memeJour(<span class="k">null</span>, <span class="s">&#x27;2026-11-09T15:10:00&#x27;</span>)).toBeFalse();
+    });
+  });</code></pre></div><h2 id="scss">3. demande-entete.component.scss</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Méta + timeline + annulation</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\components\demande-entete\demande-entete.component.scss</span></div><p class="note">Remplace les lignes 43 à 47 (<code>.entete__meta</code> … <code>.entete__motif-icone</code>). <code>$rayon</code>, <code>@include symbole()</code> et les variables <code>--actif-*</code> / <code>--attente-*</code> / <code>--erreur*</code> sont celles déjà utilisées dans le fichier.</p><pre><button class="copy">Copier</button><code><span class="c">/* ===== Méta d&#x27;en-tête : timeline des évènements ===== */</span>
+.entete__meta    { font-size: 0.75rem; line-height: 1rem; color: <span class="k">var</span>(<span class="c">--texte-2); }</span>
+.entete__auteur  { font-weight: 700; color: <span class="k">var</span>(<span class="c">--texte); }</span>
+.entete__decision { color: <span class="k">var</span>(<span class="c">--primaire); font-weight: 500; strong { font-weight: 700; } }</span>
+<span class="c">/* (supprimer .entete__motif et .entete__motif-icone : le motif vit désormais dans .annulation) */</span>
+
+$timeline-puce: 1.5rem;    <span class="c">// diamètre de la puce sur l&#x27;axe</span>
+
+.timeline { list-style: none; margin: 0.25rem 0 0; padding: 0; }
+.timeline__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: $timeline-puce minmax(0, 1fr) auto;   <span class="c">// axe · contenu pleine largeur · date à droite</span>
+  column-gap: 0.75rem;
+  align-items: start;
+  padding-bottom: 0.875rem;
+  <span class="c">// axe vertical, centré sous la puce</span>
+  &amp;::before {
+    content: <span class="s">&quot;&quot;</span>; position: absolute; top: $timeline-puce; bottom: 0;
+    left: calc(#{$timeline-puce} / 2 - 1px);
+    width: 2px; background: <span class="k">var</span>(<span class="c">--bordure);</span>
+  }
+  &amp;:last-child { padding-bottom: 0; &amp;::before { display: none; } }
+}
+.timeline__date  { display: flex; align-items: baseline; gap: 0.375rem; justify-content: flex-end; padding-top: 0.3rem; white-space: nowrap; }
+.timeline__jour  { font-weight: 700; color: <span class="k">var</span>(<span class="c">--texte); font-variant-numeric: tabular-nums; }</span>
+.timeline__jour + .timeline__heure::before { content: <span class="s">&quot;·&quot;</span>; margin-right: 0.375rem; color: <span class="k">var</span>(<span class="c">--bordure); }</span>
+.timeline__heure { color: <span class="k">var</span>(<span class="c">--texte-2); font-variant-numeric: tabular-nums; }</span>
+.timeline__puce {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: $timeline-puce; height: $timeline-puce; border-radius: 50%;
+  background: #fff; border: 2px solid <span class="k">var</span>(<span class="c">--bordure); color: var(--texte-2);</span>
+  .material-symbols-outlined { @include symbole(0.9rem); }
+}
+.timeline__contenu { margin: 0; padding-top: 0.25rem; min-width: 0; }   <span class="c">// colonne 1fr : les blocs .declassement / .annulation occupent toute la largeur</span>
+
+<span class="c">/* Couleur de la puce par évènement (le contenu garde son style propre) */</span>
+.timeline__item<span class="c">--soumission  .timeline__puce { border-color: var(--bordure);         color: var(--texte-2); }</span>
+.timeline__item<span class="c">--declassement .timeline__puce { border-color: var(--attente-bordure); color: var(--attente-texte); background: var(--attente-fond); }</span>
+.timeline__item<span class="c">--traitee     .timeline__puce { border-color: var(--actif-bordure);   color: var(--actif-texte);   background: var(--actif-fond); }</span>
+.timeline__item<span class="c">--annulee     .timeline__puce { border-color: var(--erreur);          color: var(--erreur);        background: var(--erreur-fond); }</span>
+
+<span class="c">/* Annulation : même gabarit que .declassement, palette « grave » (texte rouge, fond plus soutenu) */</span>
+.annulation {
+  display: flex; flex-direction: column; gap: 0.125rem;
+  padding: 0.5rem 0.75rem; border-radius: $rayon;
+  background: <span class="k">var</span>(<span class="c">--erreur-fond-survol);</span>
+  border: 1px solid <span class="k">var</span>(<span class="c">--erreur); border-left-width: 4px;</span>
+  color: <span class="k">var</span>(<span class="c">--erreur);</span>
+  p { margin: 0; }
+}
+.annulation__evenement strong { font-weight: 700; }
+.annulation__auteur           { font-weight: 700; }
+.annulation__motif            { font-style: italic; }
+
+<span class="c">/* Déclassement dans la timeline : évènement sur une ligne, motif sur la suivante (règles .declassement existantes conservées ;
+   retirer seulement .declassement__icone, l&#x27;icône est sur l&#x27;axe) */</span>
+.timeline .declassement { display: flex; flex-direction: column; gap: 0.125rem; p { margin: 0; } }
+.timeline .declassement__motif { font-style: italic; }</code></pre></div><div class="card">Variante si le PO veut la date plus parlante : remplacer <code>timeline__jour</code> par un libellé relatif (« Aujourd'hui », « Hier », sinon la date) — une fonction pure de plus, même mécanique. Pas fait par défaut : la demande est « la date s'affiche intelligemment », le jour-si-différent couvre le besoin sans ambiguïté sur l'historique.</div><h2 id="recette">4. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Scénarios</b><br><span class="path">recette\demande-entete_timeline.txt</span></div><pre><button class="copy">Copier</button><code>1. Demande SUBMITTED : 1 seul évènement « Soumise par … », puce grise, date · heure alignées à droite, pas d&#x27;axe sous la puce.
+2. Même demande après déclassement : 2 évènements ; la 2ᵉ ligne n<span class="s">&#x27;affiche que l&#x27;</span>heure à droite (même jour), puce ambre, flag « URGENCE DÉCLASSÉE » sur la ligne du titre (plus à droite dans les badges), bloc « Urgence déclassée par … » puis, ligne suivante, « Motif : « … » ».
+3. Demande TRAITÉE : évènement « Traitée par &lt;nom&gt; · &lt;profil&gt; » (texte vert, inchangé), puce verte check_circle ; plus aucun doublon « Traitée… ».
+4. Demande ANNULÉE (agence) : puce rouge cancel ; bloc rouge « Annulée par l&#x27;agence » puis, ligne suivante, « Motif : « … » » ; sans decisionLe la colonne date reste vide (pas de « — »).
+5. Demande ANNULÉE (Caisse Centrale) : idem avec date/heure et « (Caisse Centrale) ».
+6. Les blocs déclassement / annulation s<span class="s">&#x27;étirent jusqu&#x27;</span>à la colonne date (plus d&#x27;espace blanc inutilisé à droite).
+7. &lt; 1024 px : la timeline reste lisible (3 colonnes date / axe / contenu), pas de débordement horizontal.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
