@@ -1,0 +1,75 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bug QA 10/11 — photo du décideur perdue après la décision Caisse Centrale (decision_* à NULL sur GET détail)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Bug QA 10/11 — photo du décideur perdue après la décision Caisse Centrale (decision_* à NULL sur GET détail)</h1><p>fund-management (back) · CashDemandUseCaseImpl.completerTacheCaisseCentrale : la décision doit être commitée avant l&#x27;appel Camunda (course avec le worker gdf-cloturer / gdf-annuler) · 10/11/2026</p></header><nav><a href="#diag">Diagnostic (tes deux captures suffisent)</a><a href="#fix">Fix</a><a href="#recette">Recette</a></nav><main><h2 id="diag">0. Diagnostic (tes deux captures suffisent)</h2><div class="card"><table><tr><th>Instant</th><th>Qui écrit</th><th>Ce qu'on voit</th></tr>
+<tr><td>08:35:01.419</td><td><code>completerTacheCaisseCentrale</code> → <code>figerDecision</code></td><td>Réponse du <code>PATCH /complete-task</code> : <code>decisionAt/Par/Profil</code> renseignés, <code>requestStatus = SUBMITTED</code>.</td></tr>
+<tr><td>08:35:01.503</td><td>worker <code>gdf-cloturer-demande</code> → <code>changerStatut</code></td><td><code>GET /cash/{id}</code> : <code>requestStatus = VALIDATED</code>, <code>updatedAt = …503</code>, <b><code>decision* = null</code></b>.</td></tr></table>
+Le worker a relu la demande <b>avant</b> que la photo du décideur soit commitée, puis l'a réécrite entière : <code>decision_*</code> repassent à NULL. Pourquoi « avant » : <code>completerTacheCaisseCentrale</code> est <code>@Transactional</code> — <code>figerDecision</code> est exécuté mais <b>pas commité</b> tant que la méthode n'est pas terminée ; or la méthode appelle ensuite Camunda (<code>completerTache</code>), qui crée immédiatement la tâche externe ; le worker (même JVM, autre thread, autre connexion, READ COMMITTED) la prend en quelques ms, charge la demande telle qu'elle est <b>en base</b> (décision NULL), pose VALIDATED et sauve ; la transaction REST commite ensuite, puis le worker termine… la dernière écriture gagne : VALIDATED sans décision. Même mécanique en annulation (worker <code>gdf-annuler-demande</code>, <code>annuler()</code>).<br><br>
+Contre-preuve qui valide le diagnostic : le <b>déclassement</b> (333) écrit les mêmes types de colonnes avec la même chaîne mapper → DTO → écran et <b>s'affiche</b> — parce qu'il ne déclenche aucun appel Camunda, donc aucun worker ne réécrit la ligne. La chaîne de mapping est saine ; c'est l'ordre commit / Camunda qui est faux.</div><h2 id="fix">1. Fix</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>CashDemandUseCaseImpl.java — completerTacheCaisseCentrale : avant</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java</span></div><pre><button class="copy">Copier</button><code>    @Override
+    @Transactional
+    <span class="k">public</span> CashRequestDTO completerTacheCaisseCentrale(UUID id, DecisionCaisseCentraleDTO decision, ContexteAppelant contexte) {</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandUseCaseImpl.java — completerTacheCaisseCentrale : après</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImpl.java</span></div><p class="note">Seule l'annotation change, le corps de la méthode est inchangé. <code>figerDecision</code> est une méthode de <code>CashDemandRepositoryImpl</code> : elle commite dans sa propre transaction (comme <code>figerPhotoAgence</code> dans <code>soumettre()</code>, qui n'est pas transactionnelle non plus et n'a jamais eu ce bug). Si l'import <code>org.springframework.transaction.annotation.Transactional</code> n'est plus utilisé dans la classe, le retirer.</p><pre><button class="copy">Copier</button><code>    <span class="c">/*
+     * Volontairement SANS @Transactional : figerDecision doit être COMMITÉ avant l&#x27;appel Camunda.
+     * completerTache() déclenche le worker (gdf-cloturer / gdf-annuler) qui relit la demande dans sa propre transaction
+     * et la réécrit (statut VALIDATED/CANCELLED). Si la photo du décideur n&#x27;est pas encore commitée, il relit decision_* à NULL
+     * et les réécrit à NULL : perte silencieuse (bug QA 10/11). Même ordre que soumettre() : écriture locale commitée, puis Camunda.
+     */</span>
+    @Override
+    <span class="k">public</span> CashRequestDTO completerTacheCaisseCentrale(UUID id, DecisionCaisseCentraleDTO decision, ContexteAppelant contexte) {</code></pre></div><div class="card"><b>Pourquoi pas l'inverse (Camunda d'abord, décision ensuite)</b> : le worker pourrait alors commiter VALIDATED entre le <code>find</code> et le <code>save</code> de <code>figerDecision</code>, et c'est le <b>statut</b> qu'on perdrait. Écriture locale commitée → puis Camunda est l'ordre déjà retenu dans <code>soumettre()</code> (saga) ; on l'applique ici.<br>
+<b>Effet de bord accepté</b> : si Camunda échoue après <code>figerDecision</code> (409 tâche introuvable, 502), la photo du décideur reste posée sur une demande encore SUBMITTED ; le prochain <code>complete-task</code> la réécrit. Avant, le rollback l'effaçait — pour une donnée de traçabilité c'est le bon compromis face à une perte silencieuse systématique.</div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>CashDemandUseCaseImplTest.java — 2 tests</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\CashDemandUseCaseImplTest.java</span></div><p class="note"><code>useCase</code>, mocks <code>cashDemandRepository / processusWorkflowPort / webMapper</code>, <code>CAISSE_CENTRALE</code>, <code>dtoAvecId</code>, <code>decisionTraitee()</code> existent déjà dans la classe. Imports : <code>InOrder</code>, <code>inOrder</code>, <code>eq</code>, <code>Optional</code>. Le 2ᵉ test verrouille le fix : quiconque remet <code>@Transactional</code> casse le build avec le message qui explique pourquoi.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ----- ordre des écritures : décision figée AVANT Camunda (bug QA 10/11) -----</span>
+
+    @Test
+    <span class="k">void</span> completerTacheCaisseCentrale_figeLaDecisionAvantDeCompleterLaTache() {
+        UUID id = UUID.randomUUID();
+        CashRequest demande = <span class="k">new</span> CashRequest();
+        demande.setId(id);
+        demande.setRequestStatus(RequestStatus.SUBMITTED);
+        when(cashDemandRepository.getCashRequestById(id)).thenReturn(demande);
+        when(processusWorkflowPort.rechercherTacheActive(id.toString(), CashDemandUseCaseImpl.TASK_CAISSE_CENTRALE)).thenReturn(Optional.of(<span class="s">&quot;task-1&quot;</span>));
+        when(cashDemandRepository.figerDecision(eq(id), any(), any(), any())).thenReturn(demande);
+        when(webMapper.toResponseDTO(demande)).thenReturn(dtoAvecId(id));
+
+        useCase.completerTacheCaisseCentrale(id, decisionTraitee(), CAISSE_CENTRALE);
+
+        InOrder ordre = inOrder(cashDemandRepository, processusWorkflowPort);
+        ordre.verify(cashDemandRepository).figerDecision(eq(id), eq(<span class="s">&quot;Karim EL IDRISSI&quot;</span>), eq(<span class="s">&quot;Caisse Centrale Siège&quot;</span>), any());
+        ordre.verify(processusWorkflowPort).completerTache(eq(<span class="s">&quot;task-1&quot;</span>), any());
+    }
+
+    @Test
+    <span class="k">void</span> completerTacheCaisseCentrale_nEstPasTransactionnelle() <span class="k">throws</span> NoSuchMethodException {
+        <span class="k">var</span> methode = CashDemandUseCaseImpl.<span class="k">class</span>.getMethod(<span class="s">&quot;completerTacheCaisseCentrale&quot;</span>, UUID.<span class="k">class</span>, DecisionCaisseCentraleDTO.<span class="k">class</span>, ContexteAppelant.<span class="k">class</span>);
+        assertThat(methode.isAnnotationPresent(org.springframework.transaction.annotation.Transactional.<span class="k">class</span>))
+                .as(<span class="s">&quot;la décision doit être commitée avant l&#x27;appel Camunda (voir commentaire de la méthode)&quot;</span>)
+                .isFalse();
+    }</code></pre></div><h2 id="recette">2. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours</b><br><span class="path">recette\decision-perdue.txt</span></div><pre><button class="copy">Copier</button><code>Local (CC = g10003 ou c63005, agence g10002) :
+1. Soumettre une demande agence, puis depuis l&#x27;écran CC : « Traiter ».
+   Network : PATCH /complete-task → 200 (decisionAt/Par/Profil renseignés, requestStatus SUBMITTED) ;
+   GET /cash/{id} (rechargement) → requestStatus VALIDATED ET decisionAt/decisionPar/decisionProfil toujours renseignés.
+2. Même parcours avec « Annuler la demande » (motif ≥ 10 car.) → CANCELLED + decision* renseignés + cancellationReason.
+3. Écran : la timeline affiche « Traitée / Annulée par Karim CENTRALE (Caisse Centrale Admin) » avec date · heure.
+4. SQL de contrôle (schéma qf-fund-management) :
+   select unique_request_ref, request_status, decision_par, decision_profil, decision_at, modification_date
+   <span class="k">from</span> cash_request order by modification_date desc limit 5;
+   → aucune ligne VALIDATED / CANCELLED avec decision_at <span class="k">NULL</span> parmi les nouvelles.
+5. Régression : 285 (décision Traiter/Annuler), 333 (déclassement, inchangé), tests CashDemandUseCaseImplTest verts.</code></pre></div><div class="card">Côté écran, rien à changer : dès que l'API renvoie <code>decisionAt / decisionPar / decisionProfil</code>, la timeline (doc <code>demande-entete_timeline-evenements</code> v6) affiche « Traitée / Annulée par Karim CENTRALE (Caisse Centrale Admin) » avec date · heure — exactement ce que le PO demande.</div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
