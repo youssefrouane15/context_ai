@@ -1,0 +1,228 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>portail-ci — externalisation des URL : config/app-config.json appliqué au démarrage (demande CI/CD)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>portail-ci — externalisation des URL : config/app-config.json appliqué au démarrage (demande CI/CD)</h1><p>portail-ci · core/config/configuration.ts (fetch, fusion dans environment, bloquant en prod) · app.module.ts : un seul APP_INITIALIZER (config puis initAuth) · environment.prod.ts sans URL · angular.json · recette locale ng serve · 11/11/2026</p></header><nav><a href="#etat">État des lieux</a><a href="#fichier">Fichier de configuration</a><a href="#chargement">Chargement</a><a href="#recette">Recette locale (avant la MR)</a></nav><main><h2 id="etat">0. État des lieux</h2><div class="card"><table><tr><th>Constat (captures)</th><th>Conséquence</th><th>Action</th></tr>
+<tr><td><code>loadAppConfig</code> (app.module.ts l. 37-42) télécharge <code>assets/config.json</code> mais la ligne qui l'applique est <b>commentée</b> (l. 40).</td><td>Le fichier que Mamadou voit dans l'image ne sert à rien ; l'URL réelle est celle d'<code>environment.ts</code> au moment du build (lignes 3-5 basculées à la main) → une image par environnement. C'est la réponse à ta question Teams.</td><td>Chargeur réécrit : <code>config/app-config.json</code> (chemin demandé par le CD), fusion dans <code>environment</code>.</td></tr>
+<tr><td>Deux <code>APP_INITIALIZER</code> « multi » (config, puis <code>initAuth</code>).</td><td>Angular les lance <b>en parallèle</b> : <code>initAuth()</code> pourrait appeler la gateway avant que l'URL soit appliquée.</td><td>Un seul initialiseur : config <b>puis</b> <code>initAuth</code>.</td></tr>
+<tr><td><code>environment.prod.ts</code> : <code>apiUrl: 'https://your-production-api.com/api'</code>, et il lui manque 8 clés d'<code>environment.ts</code> (<code>consoleApiV1</code>, <code>mockAuthEnabled</code>, …).</td><td>Un build avec substitution de fichier ne compile pas ; sans substitution, <code>production</code> vaut <code>false</code> en prod.</td><td>Fichier complet, mêmes clés, URL vides.</td></tr>
+<tr><td>Tous les usages lisent <code>environment.apiUrl</code> / <code>mockAuthEnabled</code> / <code>fundManagementUrl</code> à l'appel (getters d'<code>ApiConfigService</code>, méthodes de login / auth, champs de composants).</td><td>Aucun service à modifier : la fusion dans <code>environment</code> suffit.</td><td>—</td></tr>
+<tr><td><code>mf.manifest.json</code> (URL du <code>remoteEntry.js</code>) et <code>OAuthModule.forRoot({allowedUrls: ['http://localhost:9090']})</code>.</td><td>Le manifest est déjà un asset que le CD peut écraser (<code>assets/mf.manifest.json</code>) ; <code>allowedUrls</code> ne sert qu'à poser un Bearer côté navigateur, or le token est porté par la session gateway (cookie) — sans effet.</td><td>Inchangés (décision, pas d'oubli).</td></tr></table></div><h2 id="fichier">1. Fichier de configuration</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>src/config/app-config.json</b><br><span class="path">portail-ci\src\config\app-config.json</span></div><p class="note">Valeurs locales commitées ; le CD écrase par environnement. Clé <code>apiUrl</code> = celle que Mamadou attend ; <code>fundManagementUrl</code> = URL du MFE (carte du dashboard), qui change aussi par environnement.</p><pre><button class="copy">Copier</button><code>{
+  <span class="s">&quot;apiUrl&quot;</span>: <span class="s">&quot;http://localhost:9090&quot;</span>,
+  <span class="s">&quot;fundManagementUrl&quot;</span>: <span class="s">&quot;http://localhost:4201&quot;</span>
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>src/assets/config.json</b><br><span class="path">portail-ci\src\assets\config.json</span></div><pre><button class="copy">Copier</button><code><span class="c">// Supprimer le fichier : remplacé par src/config/app-config.json.</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>angular.json — build › assets (l. 30-33)</b><br><span class="path">portail-ci\angular.json</span></div><p class="note">Ctrl+F <code>"assets": [</code>, 1ʳᵉ occurrence (build).</p><pre><button class="copy">Copier</button><code>            <span class="s">&quot;assets&quot;</span>: [
+              <span class="s">&quot;src/favicon.svg&quot;</span>,
+              <span class="s">&quot;src/assets&quot;</span>
+            ],</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>angular.json — build › assets (APRÈS)</b><br><span class="path">portail-ci\angular.json</span></div><p class="note">Une ligne insérée après <code>"src/assets"</code> (virgule ajoutée). <b>Même insertion</b> dans la 2ᵉ occurrence <code>"assets": [</code> (test, l. 104-107) pour que Karma serve le fichier.</p><pre><button class="copy">Copier</button><code>            <span class="s">&quot;assets&quot;</span>: [
+              <span class="s">&quot;src/favicon.svg&quot;</span>,
+              <span class="s">&quot;src/assets&quot;</span>,
+              { <span class="s">&quot;glob&quot;</span>: <span class="s">&quot;app-config.json&quot;</span>, <span class="s">&quot;input&quot;</span>: <span class="s">&quot;src/config&quot;</span>, <span class="s">&quot;output&quot;</span>: <span class="s">&quot;/config&quot;</span> }
+            ],</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>angular.json — configurations › production</b><br><span class="path">portail-ci\angular.json</span></div><p class="note">Ctrl+F <code>fileReplacements</code> : <b>s'il existe déjà, ne rien faire</b>. Sinon, l. 45-46 : insérer les 3 lignes <code>fileReplacements</code> entre <code>"production": {</code> et <code>"budgets": [</code> — c'est ce qui fait que l'image de prod tourne avec <code>production: true</code> (fichier manquant = erreur bloquante, jamais une URL locale silencieuse).</p><pre><button class="copy">Copier</button><code>          <span class="s">&quot;production&quot;</span>: {
+            <span class="s">&quot;fileReplacements&quot;</span>: [
+              { <span class="s">&quot;replace&quot;</span>: <span class="s">&quot;src/environments/environment.ts&quot;</span>, <span class="s">&quot;with&quot;</span>: <span class="s">&quot;src/environments/environment.prod.ts&quot;</span> }
+            ],
+            <span class="s">&quot;budgets&quot;</span>: [</code></pre></div><h2 id="chargement">2. Chargement</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>configuration.ts</b><br><span class="path">portail-ci\src\app\core\config\configuration.ts</span></div><p class="note">Même mécanique que fund-management-front (fonction pure, <code>fetch</code>, fusion dans <code>environment</code>). Le portail est l'hôte : <code>document.baseURI</code> suffit pour l'URL.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { environment } <span class="k">from</span> <span class="s">&#x27;../../../environments/environment&#x27;</span>;
+
+<span class="c">/**
+ * Fichier de configuration d&#x27;environnement, écrasé par le CD de l&#x27;intégrateur à chaque déploiement
+ * (/var/www/html/config/app-config.json) : une seule image portail pour tous les environnements.
+ * Copié dans dist/portail-ci/config par angular.json (assets) ; en local = src/config/app-config.json.
+ * Remplace l&#x27;ancien assets/config.json (lu mais jamais appliqué).
+ */</span>
+<span class="k">export</span> <span class="k">const</span> FICHIER_CONFIGURATION = <span class="s">&#x27;config/app-config.json&#x27;</span>;
+
+<span class="k">let</span> chargement: Promise&lt;<span class="k">void</span>&gt; | <span class="k">null</span> = <span class="k">null</span>;
+
+<span class="c">/**
+ * Charge config/app-config.json et fusionne ses clés dans `environment` AVANT tout appel HTTP.
+ * fetch() plutôt que HttpClient : rien ne doit passer par les intercepteurs (qui lisent eux-mêmes `environment`).
+ * Toute clé du fichier surcharge la valeur du build (apiUrl, fundManagementUrl aujourd&#x27;hui ; mockAuthEnabled, useHash…
+ * demain si le CD en a besoin) — sauf `production`, décidée par le build.
+ * - fichier absent en dev : valeurs d&#x27;environment.ts conservées (avertissement console) ;
+ * - fichier absent en prod : erreur bloquante, le portail ne doit pas démarrer sur des URL vides.
+ * Idempotent : un seul chargement quel que soit le nombre d&#x27;appelants.
+ */</span>
+<span class="k">export</span> <span class="k">function</span> chargerConfiguration(): Promise&lt;<span class="k">void</span>&gt; {
+  <span class="k">return</span> chargement ??= charger();
+}
+
+<span class="k">async</span> <span class="k">function</span> charger(): Promise&lt;<span class="k">void</span>&gt; {
+  <span class="k">const</span> url = <span class="k">new</span> URL(FICHIER_CONFIGURATION, document.baseURI).toString();
+  <span class="k">let</span> reponse: Response;
+  <span class="k">try</span> {
+    reponse = <span class="k">await</span> fetch(url, { cache: <span class="s">&#x27;no-store&#x27;</span> });
+  } <span class="k">catch</span> (erreur) {
+    <span class="k">return</span> signalerAbsence(<span class="s">`${url} injoignable (${erreur})`</span>);
+  }
+  <span class="k">if</span> (!reponse.ok) {
+    <span class="k">return</span> signalerAbsence(<span class="s">`${url} : HTTP ${reponse.status}`</span>);
+  }
+  <span class="k">const</span> { production: _ignore, ...valeurs } = (<span class="k">await</span> reponse.json()) as Record&lt;string, unknown&gt;;
+  Object.assign(environment, valeurs);
+}
+
+<span class="k">function</span> signalerAbsence(detail: string): <span class="k">void</span> {
+  <span class="k">if</span> (environment.production) {
+    <span class="k">throw</span> <span class="k">new</span> Error(<span class="s">`Configuration manquante : ${detail}`</span>);
+  }
+  console.warn(<span class="s">`[config] ${detail} — valeurs par défaut d&#x27;environment.ts conservées.`</span>);
+}
+
+<span class="c">/** Remise à zéro pour les tests unitaires. */</span>
+<span class="k">export</span> <span class="k">function</span> reinitialiserConfiguration(): <span class="k">void</span> {
+  chargement = <span class="k">null</span>;
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>configuration.spec.ts</b><br><span class="path">portail-ci\src\app\core\config\configuration.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { environment } <span class="k">from</span> <span class="s">&#x27;../../../environments/environment&#x27;</span>;
+<span class="k">import</span> { chargerConfiguration, reinitialiserConfiguration } <span class="k">from</span> <span class="s">&#x27;./configuration&#x27;</span>;
+
+describe(<span class="s">&#x27;chargerConfiguration&#x27;</span>, () =&gt; {
+  <span class="k">const</span> apiUrlInitiale = environment.apiUrl;
+
+  beforeEach(() =&gt; reinitialiserConfiguration());
+  afterEach(() =&gt; { (environment as any).apiUrl = apiUrlInitiale; });
+
+  it(<span class="s">&#x27;surcharge environment avec les clés du fichier&#x27;</span>, <span class="k">async</span> () =&gt; {
+    spyOn(window, <span class="s">&#x27;fetch&#x27;</span>).and.resolveTo(<span class="k">new</span> Response(JSON.stringify({ apiUrl: <span class="s">&#x27;https://gw.recette&#x27;</span> }), { status: 200 }));
+
+    <span class="k">await</span> chargerConfiguration();
+
+    expect(environment.apiUrl).toBe(<span class="s">&#x27;https://gw.recette&#x27;</span>);
+    expect((window.fetch as jasmine.Spy).calls.mostRecent().args[0]).toContain(<span class="s">&#x27;config/app-config.json&#x27;</span>);
+  });
+
+  it(<span class="s">&#x27;ne charge qu\&#x27;une fois&#x27;</span>, <span class="k">async</span> () =&gt; {
+    spyOn(window, <span class="s">&#x27;fetch&#x27;</span>).and.resolveTo(<span class="k">new</span> Response(<span class="s">&#x27;{}&#x27;</span>, { status: 200 }));
+
+    <span class="k">await</span> Promise.all([chargerConfiguration(), chargerConfiguration()]);
+
+    expect(window.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it(<span class="s">&#x27;conserve environment.ts hors production quand le fichier manque&#x27;</span>, <span class="k">async</span> () =&gt; {
+    spyOn(window, <span class="s">&#x27;fetch&#x27;</span>).and.resolveTo(<span class="k">new</span> Response(<span class="s">&#x27;&#x27;</span>, { status: 404 }));
+    spyOn(console, <span class="s">&#x27;warn&#x27;</span>);
+
+    <span class="k">await</span> chargerConfiguration();
+
+    expect(environment.apiUrl).toBe(apiUrlInitiale);
+    expect(console.warn).toHaveBeenCalled();
+  });
+});</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>app.module.ts — l. 5 (AVANT)</b><br><span class="path">portail-ci\src\app\app.module.ts</span></div><p class="note"><code>HttpClient</code> n'a plus d'usage dans le fichier après les deux éditions suivantes (il n'y en avait que l. 5, 37 et 82).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> {HTTP_INTERCEPTORS, HttpClient, HttpClientModule} <span class="k">from</span> <span class="s">&#x27;@angular/common/http&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>app.module.ts — l. 5 (APRÈS)</b><br><span class="path">portail-ci\src\app\app.module.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> {HTTP_INTERCEPTORS, HttpClientModule} <span class="k">from</span> <span class="s">&#x27;@angular/common/http&#x27;</span>;
+<span class="k">import</span> {chargerConfiguration} <span class="k">from</span> <span class="s">&#x27;./core/config/configuration&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>app.module.ts — l. 36-46 (AVANT)</b><br><span class="path">portail-ci\src\app\app.module.ts</span></div><p class="note">Ctrl+F <code>loadAppConfig</code>. Si <code>firstValueFrom</code> n'est plus utilisé ailleurs dans le fichier, retirer aussi son import.</p><pre><button class="copy">Copier</button><code><span class="c">// Fonction pour charger la configuration de l&#x27;application</span>
+<span class="k">export</span> <span class="k">function</span> loadAppConfig(http: HttpClient) {
+  <span class="k">return</span> () =&gt; firstValueFrom(http.<span class="k">get</span>&lt;any&gt;(<span class="s">&#x27;./assets/config.json&#x27;</span>))
+    .then(config =&gt; {
+      <span class="c">//environment.apiUrl = config[&#x27;apiUrl&#x27;];</span>
+    });
+}
+
+
+<span class="k">export</span> <span class="k">function</span> initializeApp(authService: AuthService) {
+  <span class="k">return</span> () =&gt; authService.initAuth();
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>app.module.ts — l. 36-46 (APRÈS)</b><br><span class="path">portail-ci\src\app\app.module.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">/**
+ * Démarrage : config/app-config.json est appliqué AVANT initAuth() (qui appelle la gateway).
+ * Un seul initialiseur : deux APP_INITIALIZER « multi » s&#x27;exécutent en parallèle, pas l&#x27;un après l&#x27;autre.
+ */</span>
+<span class="k">export</span> <span class="k">function</span> initialiserApplication(authService: AuthService) {
+  <span class="k">return</span> () =&gt; chargerConfiguration().then(() =&gt; authService.initAuth());
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>app.module.ts — providers l. 79-90 (AVANT)</b><br><span class="path">portail-ci\src\app\app.module.ts</span></div><p class="note">Ctrl+F <code>useFactory: loadAppConfig</code> : les deux blocs <code>APP_INITIALIZER</code>, de l'accolade ouvrante du premier à la virgule fermante du second.</p><pre><button class="copy">Copier</button><code>    {
+      provide: APP_INITIALIZER,
+      useFactory: loadAppConfig,
+      deps: [HttpClient],
+      multi: <span class="k">true</span> <span class="c">// Permet de charger plusieurs initialisateurs</span>
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeApp,
+      deps: [AuthService],
+      multi: <span class="k">true</span> <span class="c">// Permet de charger plusieurs initialisateurs</span>
+    },</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>app.module.ts — providers (APRÈS)</b><br><span class="path">portail-ci\src\app\app.module.ts</span></div><p class="note"><code>provideAnimations()</code> avant et <code>HTTP_INTERCEPTORS / CredentialsInterceptor</code> après restent tels quels.</p><pre><button class="copy">Copier</button><code>    {
+      provide: APP_INITIALIZER,
+      useFactory: initialiserApplication,
+      deps: [AuthService],
+      multi: <span class="k">true</span>
+    },</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>environment.prod.ts</b><br><span class="path">portail-ci\src\environments\environment.prod.ts</span></div><p class="note"><code>environment.ts</code> (local) ne change pas : ses valeurs restent le repli hors production.</p><pre><button class="copy">Copier</button><code><span class="c">/**
+ * Build de production : aucune URL d&#x27;environnement en dur. apiUrl et fundManagementUrl viennent de
+ * config/app-config.json au démarrage (chargerConfiguration, obligatoire en production — erreur bloquante si absent).
+ * Les préfixes de routes gateway (…ApiV1) ne dépendent pas de l&#x27;environnement et restent ici.
+ * Mêmes clés qu&#x27;environment.ts : le code compile quel que soit le fichier substitué.
+ */</span>
+<span class="k">export</span> <span class="k">const</span> environment = {
+  production: <span class="k">true</span>,
+  apiUrl: <span class="s">&#x27;&#x27;</span>,
+  derogTarifRetailApiV1: <span class="s">&#x27;/api/v1/derog-tarif/retail&#x27;</span>,
+  documentApiV1: <span class="s">&#x27;/api/v1/public/documents&#x27;</span>,
+  consoleApiV1: <span class="s">&#x27;/api/v1/public/users&#x27;</span>,
+  fundManagementApiV1: <span class="s">&#x27;/api/v1/public/fund-management&#x27;</span>,
+  fundManagementUrl: <span class="s">&#x27;&#x27;</span>,
+  droitCommunicationApiV1: <span class="s">&#x27;/api/v1/droits-communication&#x27;</span>,
+  mainleveeApiV1: <span class="s">&#x27;/api/v1/mainlevee&#x27;</span>,
+
+  <span class="c">/** Mode d&#x27;authentification des environnements DMZR actuels (mock) ; surchargeable par app-config.json (clé mockAuthEnabled) au passage SSO. */</span>
+  mockAuthEnabled: <span class="k">true</span>,
+
+  <span class="c">// Configuration Mock API - DÉSACTIVÉ en production</span>
+  useMockApi: <span class="k">false</span>,
+  useHash: <span class="k">true</span>,
+
+  <span class="c">// Configuration des délais de simulation (non utilisés en production)</span>
+  mockApiDelays: {
+    short: 0,
+    medium: 0,
+    <span class="k">long</span>: 0
+  },
+
+  <span class="c">// Configuration des erreurs simulées (désactivée en production)</span>
+  mockErrorRate: 0,
+
+  <span class="c">// Configuration du logging (désactivé en production)</span>
+  enableMockLogs: <span class="k">false</span>,
+
+  <span class="c">// Fonctionnalités activées</span>
+  features: {
+    dashboard: <span class="k">true</span>,
+    notifications: <span class="k">true</span>,
+    advancedSearch: <span class="k">true</span>,
+    fileUpload: <span class="k">true</span>,
+    exportData: <span class="k">true</span>
+  },
+
+  <span class="c">/** AER_LM-336 : option « Déconnexion » du menu utilisateur (Staging / Qualification uniquement). */</span>
+  deconnexionVisible: <span class="k">true</span>
+};</code></pre></div><h2 id="recette">3. Recette locale (avant la MR)</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours A → C</b><br><span class="path">recette\portail_config-externalisee.txt</span></div><p class="note">A.2 est la preuve que la valeur vient du fichier ; B.5 que l'image de prod compile.</p><pre><button class="copy">Copier</button><code>A. ng serve (4200) — le fichier est lu et appliqué
+   1. http:<span class="c">//localhost:4200 → Network : GET http://localhost:4200/config/app-config.json = 200 ; login mock → POST http://localhost:9090/mock-auth/login.</span>
+   2. src/config/app-config.json : <span class="s">&quot;apiUrl&quot;</span>: <span class="s">&quot;http://localhost:9999&quot;</span> → F5 → le login part vers :9999 (échec attendu) → remettre 9090.
+      Même test avec <span class="s">&quot;fundManagementUrl&quot;</span> : la carte Gestion des fonds du dashboard pointe vers la nouvelle URL.
+   3. Renommer src/config/app-config.json → F5 → console : « [config] …/config/app-config.json : HTTP 404 — valeurs par défaut d&#x27;environment.ts conservées. »,
+      le portail marche sur environment.ts. Remettre le fichier.
+   4. Ctrl+Maj+F « assets/config.json » dans src : 0 résultat.
+
+B. Build de prod — ce que l&#x27;intégrateur attend
+   5. ng build <span class="c">--configuration production → compile (environment.prod.ts a désormais toutes les clés).</span>
+   6. dir dist\portail-ci\config\app-config.json → présent ; dist\portail-ci\assets\config.json → absent.
+   7. (si tu veux la preuve sans rebuild : éditer dist\portail-ci\config\app-config.json puis servir dist\portail-ci avec python -m http.server 4200 → Network vers la nouvelle URL.)
+
+C. ng test : configuration.spec (3 tests) vert.
+
+Pour l&#x27;intégrateur (MR) : fichier à générer = /<span class="k">var</span>/www/html/config/app-config.json, clés apiUrl et fundManagementUrl
+(toute autre clé d&#x27;environment — mockAuthEnabled, useHash — peut y être ajoutée plus tard sans changement de code).
+mf.manifest.json (URL du remoteEntry) reste un asset : /<span class="k">var</span>/www/html/assets/mf.manifest.json, à écraser de la même façon si l&#x27;URL du MFE change par environnement.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
