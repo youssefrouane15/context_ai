@@ -1,0 +1,315 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-344 — Listing &amp; KPI Caisse Centrale : logos transporteurs, ligne Monétique, date début J-1 mois</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-344 — Listing &amp; KPI Caisse Centrale : logos transporteurs, ligne Monétique, date début J-1 mois</h1><p>fund-management (back : requête KPI hors Monétique + ligne Monétique) · fund-management-front (LogoTransporteurComponent inline SVG, carte Traitées en colonne, dateIsoIlYaUnMois) · hors périmètre : motifs du popup (liste PO à venir), design historique (déjà livré) · v6 11/11/2026 (logos 14 px + marge, bloc répartition en bas à droite)</p></header><nav><a href="#analyse">Analyse</a><a href="#back">Back — fund-management</a><a href="#logo">Front — composant logo</a><a href="#listing">Front — listing demandes-list</a><a href="#recette">Recette</a></nav><main><h2 id="analyse">0. Analyse</h2><div class="card"><table><tr><th>Point Jira</th><th>Où ça se joue</th><th>Choix</th></tr>
+<tr><td>Logos Brink's / G4S (listing + carte KPI), texte en secours</td><td>Front</td><td>Composant <code>LogoTransporteurComponent</code> (SVG <b>inline dans le bundle</b>, pas <code>assets/</code> : sous le shell une URL relative se résout sur l'origine du portail → 404 en DMZR). Un seul endroit décide « logo ou texte », utilisé par les deux écrans.</td></tr>
+<tr><td>Carte « Traitées » : répartition en colonne, ligne « Monétique », « Non renseigné » réservé aux demandes agence sans transporteur</td><td><b>Back</b> + front</td><td>Aujourd'hui les GAB hors site tombent dans « Non renseigné » parce qu'ils n'ont pas de prestataire. La requête de répartition <b>exclut le canal MONETIQUE</b> et une 2ᵉ requête le compte à part → ligne <code>MONETIQUE / Monétique</code> ajoutée dans <code>kpi()</code>. Le use case et le DTO ne changent pas (code/nom/nombre). Front : liste en colonne à la place des pastilles.</td></tr>
+<tr><td>Date début = J-1 mois sur les deux historiques</td><td>Front</td><td>Fonction pure <code>dateIsoIlYaUnMois()</code> dans les règles ; appliquée aux <b>deux</b> endroits qui initialisent la date (constructeur du contrôle l. 86 et <code>reinitialiserFiltres()</code> l. 262). Le composant est commun aux deux modes → un seul changement couvre agence et CC.</td></tr>
+<tr><td>Motifs du popup déclassement</td><td>—</td><td>Hors doc : à faire quand le PO donne la liste.</td></tr></table></div><h2 id="back">1. Back — fund-management</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandJpaRepository.java — compterTraiteesParPrestataire (réécrite) + compterTraiteesMonetique</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\repository\CashDemandJpaRepository.java</span></div><p class="note">Remplace la méthode <code>compterTraiteesParPrestataire</code> (l. 76-86, corps replié sur ta capture) et ajoute la 2ᵉ juste dessous. <code>canalDemande</code> est l'attribut de l'entité (celui que <code>updateHeader</code> ignore) ; la comparaison au littéral <code>'MONETIQUE'</code> suit le pattern <code>requestStatus = 'VALIDATED'</code> de la l. 72 — si l'attribut est un enum, Hibernate 6.5 accepte le littéral tel quel.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** [prestataire, prestataireNom, nombre] par transporteur, sur les demandes AGENCE traitées dans la journée.
+     *  Le Monétique (GAB hors site, sans transporteur) est exclu : il a sa propre ligne (compterTraiteesMonetique). */</span>
+    @Query(<span class="s">&quot;&quot;</span>&quot;
+            select c.prestataire, c.prestataireNom, count(c)
+            <span class="k">from</span> CashRequestEntity c
+            where c.requestStatus = <span class="s">&#x27;VALIDATED&#x27;</span>
+              and (c.canalDemande is <span class="k">null</span> or c.canalDemande &lt;&gt; <span class="s">&#x27;MONETIQUE&#x27;</span>)
+              and coalesce(c.decisionAt, c.modificationDate) &gt;= :debut
+              and coalesce(c.decisionAt, c.modificationDate) &lt; :fin
+            group by c.prestataire, c.prestataireNom
+            order by count(c) desc
+            <span class="s">&quot;&quot;</span>&quot;)
+    List&lt;Object[]&gt; compterTraiteesParPrestataire(@Param(<span class="s">&quot;debut&quot;</span>) LocalDateTime debut, @Param(<span class="s">&quot;fin&quot;</span>) LocalDateTime fin);
+
+    <span class="c">/** AER_LM-344 : demandes Monétique traitées dans la journée (ligne « Monétique » de la carte KPI). */</span>
+    @Query(<span class="s">&quot;&quot;</span>&quot;
+            select count(c) <span class="k">from</span> CashRequestEntity c
+            where c.requestStatus = <span class="s">&#x27;VALIDATED&#x27;</span> and c.canalDemande = <span class="s">&#x27;MONETIQUE&#x27;</span>
+              and coalesce(c.decisionAt, c.modificationDate) &gt;= :debut
+              and coalesce(c.decisionAt, c.modificationDate) &lt; :fin
+            <span class="s">&quot;&quot;</span>&quot;)
+    <span class="k">long</span> compterTraiteesMonetique(@Param(<span class="s">&quot;debut&quot;</span>) LocalDateTime debut, @Param(<span class="s">&quot;fin&quot;</span>) LocalDateTime fin);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>KpiDemandes.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\repository\KpiDemandes.java</span></div><p class="note">Deux constantes ajoutées, record inchangé.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository;
+
+<span class="k">import</span> java.util.List;
+
+<span class="k">public</span> <span class="k">record</span> KpiDemandes(<span class="k">long</span> enAttente, <span class="k">long</span> urgentes, <span class="k">long</span> traitees, List&lt;RepartitionPrestataire&gt; traiteesParPrestataire) {
+
+    <span class="c">/** AER_LM-344 : clé de la ligne « Monétique » dans la répartition des traitées (pas un prestataire du référentiel). */</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> CODE_MONETIQUE = <span class="s">&quot;MONETIQUE&quot;</span>;
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> LIBELLE_MONETIQUE = <span class="s">&quot;Monétique&quot;</span>;
+
+    <span class="k">public</span> <span class="k">record</span> RepartitionPrestataire(<span class="k">String</span> code, <span class="k">String</span> nom, <span class="k">long</span> nombre) {}
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>CashDemandRepositoryImpl.java — kpi()</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java</span></div><p class="note">Remplace la méthode l. 298-312. Import <code>java.util.ArrayList</code> à ajouter s'il manque. <code>CashDemandUseCaseImpl.kpiCaisseCentrale</code> (l. 344-354) ne change pas : <code>r.nom()</code> vaut « Monétique », donc pas de passage par <code>TRANSPORTEUR_NON_RENSEIGNE</code>.</p><pre><button class="copy">Copier</button><code>    @Override
+    @Transactional(readOnly = <span class="k">true</span>)
+    <span class="k">public</span> KpiDemandes kpi(LocalDate jour) {
+        LocalDateTime debut = jour.atStartOfDay();
+        LocalDateTime fin = jour.plusDays(1).atStartOfDay();    <span class="c">// borne exclusive pour les décisions du jour</span>
+        List&lt;KpiDemandes.RepartitionPrestataire&gt; repartition = <span class="k">new</span> ArrayList&lt;&gt;(
+                cashDemandJpaRepository.compterTraiteesParPrestataire(debut, fin).stream()
+                        .map(ligne -&gt; <span class="k">new</span> KpiDemandes.RepartitionPrestataire(
+                                (<span class="k">String</span>) ligne[0], (<span class="k">String</span>) ligne[1], ((Number) ligne[2]).longValue()))
+                        .toList());
+        <span class="c">// AER_LM-344 : les GAB hors site traités forment une ligne « Monétique » ; « Non renseigné » reste réservé aux demandes agence sans transporteur</span>
+        <span class="k">long</span> monetique = cashDemandJpaRepository.compterTraiteesMonetique(debut, fin);
+        <span class="k">if</span> (monetique &gt; 0) {
+            repartition.add(<span class="k">new</span> KpiDemandes.RepartitionPrestataire(KpiDemandes.CODE_MONETIQUE, KpiDemandes.LIBELLE_MONETIQUE, monetique));
+        }
+        <span class="k">return</span> <span class="k">new</span> KpiDemandes(
+                cashDemandJpaRepository.compterEnAttente(jour),
+                cashDemandJpaRepository.compterUrgentes(jour),
+                cashDemandJpaRepository.compterTraitees(debut, fin),
+                repartition);
+    }</code></pre></div><h2 id="logo">2. Front — composant logo</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Que coller dans logos-transporteur.ts ?</b><br><span class="path">procédure (une fois)</span></div><pre><button class="copy">Copier</button><code>Oui : le CODE. Un fichier .svg est un fichier texte (XML).
+
+1. IntelliJ : clic droit sur g4s-logo-.svg → Open In → Editor (ou Notepad). Le contenu commence par &lt;svg ...&gt; (parfois précédé d&#x27;une ligne &lt;?xml version=<span class="s">&quot;1.0&quot;</span> ...?&gt;).
+2. Ctrl+A, Ctrl+C.
+3. Dans logos-transporteur.ts, remplacer COLLER_ICI_LE_CONTENU_DE_g4s-logo-.svg par le collage (entre les deux backticks <span class="s">`...`</span>).
+4. Si la première ligne collée est &lt;?xml ... ?&gt;, la supprimer : la constante doit commencer par &lt;svg.
+5. Même chose pour 250px-Brink&#x27;s_logo.svg → LOGO_BRINKS.
+Rien à modifier dans le SVG (taille, couleurs) : le dimensionnement est fait en CSS par le composant.</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>logos-transporteur.ts</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\components\logo-transporteur\logos-transporteur.ts</span></div><p class="note"><b>Une action manuelle, une seule</b> : coller le contenu brut des deux fichiers SVG entre les backticks (le contenu d'un SVG se recopie depuis une photo avec des erreurs, pas depuis un fichier). Tant qu'un logo n'est pas collé, le composant affiche le texte.</p><pre><button class="copy">Copier</button><code><span class="c">/**
+ * Logos des transporteurs embarqués dans le bundle (AER_LM-344).
+ * Pourquoi pas assets/ : le MFE tourne sous le shell portail — une URL « assets/logos/x.svg » se résout sur l&#x27;origine
+ * du portail, pas du remote → 404 en DMZR. Inline = aucune requête, aucune config.
+ * Contenu = le fichier .svg tel quel (ouvrir 250px-Brink&#x27;s_logo.svg / g4s-logo-.svg dans un éditeur, tout sélectionner, coller
+ * entre les backticks). Ne rien retoucher dedans : le dimensionnement est fait en CSS (height), pas dans le SVG.
+ */</span>
+<span class="k">export</span> <span class="k">const</span> LOGO_BRINKS = <span class="s">`COLLER_ICI_LE_CONTENU_DE_250px-Brink&#x27;s_logo.svg`</span>;
+
+<span class="k">export</span> <span class="k">const</span> LOGO_G4S = <span class="s">`COLLER_ICI_LE_CONTENU_DE_g4s-logo-.svg`</span>;
+
+<span class="c">/** Code prestataire (référentiel utilisateurs-ci : BRINKS / G4S) → SVG ; tout autre code → pas de logo, libellé texte. */</span>
+<span class="k">export</span> <span class="k">const</span> LOGOS_TRANSPORTEUR: Readonly&lt;Record&lt;string, string&gt;&gt; = {
+  BRINKS: LOGO_BRINKS,
+  G4S: LOGO_G4S
+};</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>logo-transporteur.component.ts</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\components\logo-transporteur\logo-transporteur.component.ts</span></div><p class="note"><b>v6 — remplace le fichier entier</b> (v6 : hauteur 18 → 14 px, Brink's trop grand ; marge de 6 % autour de la boîte englobante + <code>overflow: visible</code>, le « S » de G4S était rogné car <code>getBBox</code> ignore l'épaisseur des traits). v3 : logo plein écran (SVG sans width/height → 100 % de la cellule). v4 : logo minuscule — le <code>viewBox</code> du fichier téléchargé contient des marges, le dessin n'en occupe qu'une fraction. v5 : après injection, <code>ngAfterViewChecked</code> relit la boîte englobante réelle du dessin (<code>getBBox</code>) et repose <code>viewBox / width / height</code> → le dessin fait exactement 18 px de haut quel que soit le SVG collé. Placement : <code>presenter/components/</code>.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { CommonModule } <span class="k">from</span> <span class="s">&#x27;@angular/common&#x27;</span>;
+<span class="k">import</span> { AfterViewChecked, ChangeDetectionStrategy, Component, ElementRef, Input, computed, inject, signal } <span class="k">from</span> <span class="s">&#x27;@angular/core&#x27;</span>;
+<span class="k">import</span> { DomSanitizer, SafeHtml } <span class="k">from</span> <span class="s">&#x27;@angular/platform-browser&#x27;</span>;
+<span class="k">import</span> { LOGOS_TRANSPORTEUR } <span class="k">from</span> <span class="s">&#x27;./logos-transporteur&#x27;</span>;
+
+<span class="c">/** Hauteur d&#x27;affichage des logos (px) — un seul réglage pour le listing et la carte KPI. */</span>
+<span class="k">export</span> <span class="k">const</span> HAUTEUR_LOGO_PX = 14;
+
+<span class="c">/**
+ * Pré-dimensionnement de la racine &lt;svg&gt; AVANT injection : évite qu&#x27;un SVG sans width/height prenne toute la largeur
+ * de la cellule (régression recette v3). Le cadrage exact est fait ensuite sur le dessin réel (voir ajusterAuDessin).
+ */</span>
+<span class="k">export</span> <span class="k">function</span> dimensionnerSvg(svg: string, hauteur: number = HAUTEUR_LOGO_PX): string {
+  <span class="k">return</span> svg.replace(/&lt;svg\b([^&gt;]*)&gt;/i, (_, attrs: string) =&gt; {
+    <span class="k">const</span> nettoyes = attrs.replace(/\s(width|height|style)=<span class="s">&quot;[^&quot;</span>]*&quot;/gi, <span class="s">&#x27;&#x27;</span>);
+    <span class="k">return</span> <span class="s">`&lt;svg${nettoyes} width=&quot;${hauteur * 3}&quot; height=&quot;${hauteur}&quot; preserveAspectRatio=&quot;xMinYMid meet&quot; style=&quot;display:block&quot;&gt;`</span>;
+  });
+}
+
+<span class="c">/**
+ * AER_LM-344 — logo du transporteur (Brink&#x27;s / G4S) à la place du lettrage CSS ; libellé texte en secours
+ * (code inconnu, « Monétique », « Non renseigné »). Utilisé par le listing Caisse Centrale et la carte KPI « Traitées ».
+ */</span>
+@Component({
+  selector: <span class="s">&#x27;app-logo-transporteur&#x27;</span>,
+  standalone: <span class="k">true</span>,
+  imports: [CommonModule],
+  templateUrl: <span class="s">&#x27;./logo-transporteur.component.html&#x27;</span>,
+  styleUrl: <span class="s">&#x27;./logo-transporteur.component.scss&#x27;</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="k">export</span> <span class="k">class</span> LogoTransporteurComponent <span class="k">implements</span> AfterViewChecked {
+  <span class="k">private</span> <span class="k">readonly</span> sanitizer = inject(DomSanitizer);
+  <span class="k">private</span> <span class="k">readonly</span> hote = inject&lt;ElementRef&lt;HTMLElement&gt;&gt;(ElementRef);
+  <span class="k">private</span> <span class="k">readonly</span> codeSignal = signal&lt;string | <span class="k">null</span>&gt;(<span class="k">null</span>);
+  <span class="k">private</span> <span class="k">readonly</span> nomSignal = signal&lt;string | <span class="k">null</span>&gt;(<span class="k">null</span>);
+  <span class="c">/** Code pour lequel le cadrage a déjà été fait (on ne recalcule qu&#x27;au changement de logo). */</span>
+  <span class="k">private</span> codeCadre: string | <span class="k">null</span> = <span class="k">null</span>;
+
+  <span class="c">/** Code prestataire de la demande (BRINKS, G4S, MONETIQUE, null). */</span>
+  @Input() <span class="k">set</span> code(valeur: string | <span class="k">null</span> | undefined) { <span class="k">this</span>.codeSignal.<span class="k">set</span>(valeur ?? <span class="k">null</span>); }
+  <span class="c">/** Libellé affiché en secours et en info-bulle. */</span>
+  @Input() <span class="k">set</span> nom(valeur: string | <span class="k">null</span> | undefined) { <span class="k">this</span>.nomSignal.<span class="k">set</span>(valeur ?? <span class="k">null</span>); }
+
+  <span class="k">readonly</span> libelle = computed(() =&gt; <span class="k">this</span>.nomSignal() || <span class="k">this</span>.codeSignal() || <span class="s">&#x27;Non renseigné&#x27;</span>);
+
+  <span class="c">/** SVG de confiance : constantes du bundle, jamais une donnée serveur → bypass légitime. */</span>
+  <span class="k">readonly</span> svg = computed&lt;SafeHtml | <span class="k">null</span>&gt;(() =&gt; {
+    <span class="k">const</span> code = <span class="k">this</span>.codeSignal();
+    <span class="k">const</span> brut = code ? LOGOS_TRANSPORTEUR[code.toUpperCase()] : undefined;
+    <span class="k">return</span> brut &amp;&amp; !brut.startsWith(<span class="s">&#x27;COLLER_ICI&#x27;</span>)
+      ? <span class="k">this</span>.sanitizer.bypassSecurityTrustHtml(dimensionnerSvg(brut))
+      : <span class="k">null</span>;
+  });
+
+  <span class="c">/**
+   * Cadrage sur le dessin réel : le viewBox d&#x27;un SVG téléchargé contient souvent des marges (le logo paraît minuscule
+   * dans un cadre de 18 px). On relit la boîte englobante du contenu (getBBox) une fois le SVG dans le DOM et on
+   * repose viewBox + width pour que le dessin occupe exactement 18 px de haut, largeur proportionnelle.
+   */</span>
+  ngAfterViewChecked(): <span class="k">void</span> {
+    <span class="k">const</span> code = <span class="k">this</span>.codeSignal();
+    <span class="k">if</span> (code === <span class="k">this</span>.codeCadre) { <span class="k">return</span>; }
+    <span class="k">const</span> svg = <span class="k">this</span>.hote.nativeElement.querySelector(<span class="s">&#x27;svg&#x27;</span>);
+    <span class="k">if</span> (!svg) { <span class="k">this</span>.codeCadre = code; <span class="k">return</span>; }
+    <span class="k">this</span>.codeCadre = code;
+    <span class="k">try</span> {
+      <span class="k">const</span> boite = svg.getBBox();
+      <span class="k">if</span> (boite.width &gt; 0 &amp;&amp; boite.height &gt; 0) {
+        <span class="c">// getBBox ignore l&#x27;épaisseur des traits (stroke) : sans marge, un glyphe au trait est rogné (le « S » de G4S).</span>
+        <span class="k">const</span> marge = boite.height * 0.06;
+        <span class="k">const</span> largeur = boite.width + 2 * marge, hauteur = boite.height + 2 * marge;
+        svg.setAttribute(<span class="s">&#x27;viewBox&#x27;</span>, <span class="s">`${boite.x - marge} ${boite.y - marge} ${largeur} ${hauteur}`</span>);
+        svg.setAttribute(<span class="s">&#x27;height&#x27;</span>, <span class="k">String</span>(HAUTEUR_LOGO_PX));
+        svg.setAttribute(<span class="s">&#x27;width&#x27;</span>, <span class="k">String</span>(Math.round(HAUTEUR_LOGO_PX * largeur / hauteur)));
+        svg.style.overflow = <span class="s">&#x27;visible&#x27;</span>;
+      }
+    } <span class="k">catch</span> {
+      <span class="c">// getBBox indisponible (élément non rendu) : on garde le pré-dimensionnement</span>
+    }
+  }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>logo-transporteur.component.spec.ts</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\components\logo-transporteur\logo-transporteur.component.spec.ts</span></div><p class="note">v5 — remplace le fichier.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { dimensionnerSvg } <span class="k">from</span> <span class="s">&#x27;./logo-transporteur.component&#x27;</span>;
+
+describe(<span class="s">&#x27;dimensionnerSvg&#x27;</span>, () =&gt; {
+  it(<span class="s">&#x27;pose un pré-dimensionnement 54x18 et retire width/height/style d\&#x27;origine&#x27;</span>, () =&gt; {
+    <span class="k">const</span> r = dimensionnerSvg(<span class="s">&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;100%&quot; height=&quot;auto&quot; style=&quot;x&quot; viewBox=&quot;0 0 250 50&quot;&gt;&lt;path d=&quot;M0 0&quot;/&gt;&lt;/svg&gt;&#x27;</span>, 18);
+    expect(r).toContain(<span class="s">&#x27;viewBox=&quot;0 0 250 50&quot;&#x27;</span>);
+    expect(r).toContain(<span class="s">&#x27;width=&quot;54&quot; height=&quot;18&quot;&#x27;</span>);
+    expect(r).not.toContain(<span class="s">&#x27;width=&quot;100%&quot;&#x27;</span>);
+    expect(r).not.toContain(<span class="s">&#x27;style=&quot;x&quot;&#x27;</span>);
+  });
+});</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>logo-transporteur.component.html</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\components\logo-transporteur\logo-transporteur.component.html</span></div><pre><button class="copy">Copier</button><code>&lt;span <span class="k">class</span>=<span class="s">&quot;logo-transporteur&quot;</span> [attr.title]=<span class="s">&quot;libelle()&quot;</span> [attr.aria-label]=<span class="s">&quot;libelle()&quot;</span>&gt;
+  &lt;span *ngIf=<span class="s">&quot;svg() as s; else texte&quot;</span> <span class="k">class</span>=<span class="s">&quot;logo-transporteur__svg&quot;</span> [innerHTML]=<span class="s">&quot;s&quot;</span>&gt;&lt;/span&gt;
+  &lt;ng-template #texte&gt;
+    &lt;span <span class="k">class</span>=<span class="s">&quot;logo-transporteur__texte&quot;</span>&gt;{{ libelle() }}&lt;/span&gt;
+  &lt;/ng-template&gt;
+&lt;/span&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>logo-transporteur.component.scss</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\components\logo-transporteur\logo-transporteur.component.scss</span></div><p class="note"><b>v6 — remplace le fichier entier</b> (14 px, overflow visible) : plus de <code>@use</code> (erreur « Can't find stylesheet to import » : j'avais supposé le nom du partial, faute). Couleur de secours en dur <code>#475569</code> (= <code>$ardoise-600</code>).</p><pre><button class="copy">Copier</button><code><span class="c">/* Aucun @use : le composant n&#x27;a besoin d&#x27;aucune variable partagée (couleur de secours en dur = $ardoise-600). */</span>
+:host { display: inline-flex; align-items: center; max-width: 100%; }
+
+.logo-transporteur { display: inline-flex; align-items: center; line-height: 0; }
+
+<span class="c">/* La taille est posée sur le &lt;svg&gt; lui-même (width/height) par le composant ; le conteneur borne seulement la hauteur. */</span>
+.logo-transporteur__svg { display: inline-flex; align-items: center; height: 14px; overflow: visible; }
+
+<span class="c">/* Secours texte (Monétique, Non renseigné, code inconnu) : même métrique que l&#x27;ancienne pastille */</span>
+.logo-transporteur__texte {
+  font-size: 0.78rem; font-weight: 600; line-height: 1rem; color: #475569; white-space: nowrap;
+}</code></pre></div><h2 id="listing">3. Front — listing demandes-list</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.ts — imports</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts</span></div><pre><button class="copy">Copier</button><code><span class="c">// l. 46 : ajouter dateIsoIlYaUnMois à l&#x27;import existant depuis &#x27;./demandes-list.regles&#x27;</span>
+  dateIsoDuJour, dateIsoIlYaUnMois, CHIP_MONETIQUE, typesDemandePour
+} <span class="k">from</span> <span class="s">&#x27;./demandes-list.regles&#x27;</span>;
+<span class="c">// à la suite des imports (après la l. 52) :</span>
+<span class="k">import</span> { LogoTransporteurComponent } <span class="k">from</span> <span class="s">&#x27;../../components/logo-transporteur/logo-transporteur.component&#x27;</span>;
+
+<span class="c">// l. 62 : le composant standalone rejoint les imports du listing</span>
+  imports: [CommonModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule, LogoTransporteurComponent],</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.ts — dates initiales</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts</span></div><p class="note">Deux lignes changent (86 et 262) + la Javadoc de <code>reinitialiserFiltres</code>. <code>dateFinControl</code> (l. 88) et le reste de <code>reinitialiserFiltres</code> sont inchangés.</p><pre><button class="copy">Copier</button><code><span class="c">// l. 86 — AER_LM-344 : les deux historiques (agence et Caisse Centrale) s&#x27;ouvrent sur le dernier mois</span>
+  <span class="k">readonly</span> dateDebutControl = <span class="k">new</span> FormControl(dateIsoIlYaUnMois(), { nonNullable: <span class="k">true</span> });
+
+<span class="c">// l. 260-262 — « Actualiser » / réinitialisation : même valeur initiale</span>
+  <span class="c">/** Valeurs initiales de l&#x27;écran : début = J-1 mois, fin selon le mode, listes sur « Tous », urgent désactivé, statut par défaut du mode. */</span>
+  reinitialiserFiltres(): <span class="k">void</span> {
+    <span class="k">this</span>.dateDebutControl.setValue(dateIsoIlYaUnMois());</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>demandes-list.component.ts — classeTransporteur</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts</span></div><p class="note">l. 353-356 : plus aucun appel après le remplacement du template.</p><pre><button class="copy">Copier</button><code>  <span class="c">/**  */</span>
+  classeTransporteur(l: LigneListing): string {
+    <span class="k">return</span> l.transporteurId ? <span class="s">`transporteur transporteur--${l.transporteurId.toLowerCase()}`</span> : <span class="s">&#x27;transporteur&#x27;</span>;
+  }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html — cellule Transporteur</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html</span></div><p class="note"><b>Seul bloc dont l'AVANT n'est pas verbatim</b> : le <code>&lt;td&gt;</code> Transporteur n'est sur aucune capture (le HTML capturé s'arrête avant le tableau). Ctrl+F <code>classeTransporteur</code> donne la balise à remplacer sans ambiguïté (1 seul résultat). Envoie ce <code>&lt;td&gt;</code> et je mets l'AVANT exact en v4.</p><pre><button class="copy">Copier</button><code><span class="c">&lt;!-- Ctrl+F « classeTransporteur » dans demandes-list.component.html (1 résultat, dans le &lt;td&gt; Transporteur du tableau).
+     AVANT : la balise &lt;span … [class]=&quot;classeTransporteur(l)&quot; …&gt; … &lt;/span&gt; (une ou plusieurs lignes, jusqu&#x27;au &lt;/span&gt; qui la ferme).
+     APRÈS : cette seule ligne à la place. Le reste du &lt;td&gt; (la ligne « Déplacement : … MAD », class cell-transporteur__cout) ne bouge pas. --&gt;</span>
+&lt;app-logo-transporteur [code]=<span class="s">&quot;l.transporteurId&quot;</span> [nom]=<span class="s">&quot;l.transporteur&quot;</span>&gt;&lt;/app-logo-transporteur&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>demandes-list.component.html — carte KPI Traitées : AVANT (l. 33-35)</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html</span></div><p class="note">Ctrl+F <code>kpi__repartition</code> : ces 3 lignes exactement (dans le <code>&lt;button class="kpi__carte kpi__carte--traite"&gt;</code>, après le <code>&lt;div class="kpi__valeur"&gt;</code> de la l. 32).</p><pre><button class="copy">Copier</button><code>      &lt;div <span class="k">class</span>=<span class="s">&quot;kpi__repartition&quot;</span> *ngIf=<span class="s">&quot;kpi.kpi()?.traiteesParTransporteur?.length&quot;</span>&gt;
+        &lt;span *ngFor=<span class="s">&quot;let r of kpi.kpi()!.traiteesParTransporteur&quot;</span>&gt;&lt;strong&gt;{{ r.nom }}&lt;/strong&gt; : {{ r.nombre }}&lt;/span&gt;
+      &lt;/div&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html — carte KPI Traitées : APRÈS</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html</span></div><p class="note">À la place des 3 lignes ci-dessus. Le <code>&lt;span class="kpi__badge"&gt;Validées&lt;/span&gt;</code> de la l. 32 et les deux autres cartes ne changent pas.</p><pre><button class="copy">Copier</button><code>      &lt;ul <span class="k">class</span>=<span class="s">&quot;kpi__repartition&quot;</span> *ngIf=<span class="s">&quot;kpi.kpi()?.traiteesParTransporteur?.length&quot;</span>&gt;
+        &lt;li <span class="k">class</span>=<span class="s">&quot;kpi__repartition-ligne&quot;</span> *ngFor=<span class="s">&quot;let r of kpi.kpi()!.traiteesParTransporteur&quot;</span>&gt;
+          &lt;app-logo-transporteur [code]=<span class="s">&quot;r.code&quot;</span> [nom]=<span class="s">&quot;r.nom&quot;</span>&gt;&lt;/app-logo-transporteur&gt;
+          &lt;span <span class="k">class</span>=<span class="s">&quot;kpi__repartition-nombre&quot;</span>&gt;{{ r.nombre }}&lt;/span&gt;
+        &lt;/li&gt;
+      &lt;/ul&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>demandes-list.component.scss — .kpi__repartition : AVANT (bloc v3)</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.scss</span></div><p class="note">Ctrl+F <code>.kpi__repartition {</code> : le bloc tel que collé en v3 (3 règles).</p><pre><button class="copy">Copier</button><code><span class="c">/* AER_LM-344 : répartition des traitées en colonne, logo à gauche, nombre à droite */</span>
+.kpi__repartition {
+  list-style: none; margin: 10px 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.kpi__repartition-ligne {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 4px 8px; border-radius: 8px;
+  background: $vert-50; border: 1px solid $vert-100;
+  font-size: 0.8rem;
+}
+.kpi__repartition-nombre { font-weight: 700; color: $vert-700; font-variant-numeric: tabular-nums; }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.scss — .kpi__repartition : APRÈS (v6)</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.scss</span></div><p class="note">À la place : bloc compact (fond vert, 170 px mini) calé <b>en bas à droite</b> de la carte par <code>margin-left: auto</code> + <code>align-self: flex-end</code> (couvre les deux cas : carte en bloc ou en flex). <code>.kpi__badge</code> reste.</p><pre><button class="copy">Copier</button><code><span class="c">/* AER_LM-344 : répartition des traitées — bloc compact calé en bas à droite de la carte, logo à gauche, nombre à droite */</span>
+.kpi__repartition {
+  list-style: none; margin: 10px 0 0 auto; padding: 6px;     <span class="c">// margin-left:auto → bloc poussé à droite</span>
+  align-self: flex-end;                                         <span class="c">// idem si la carte est un conteneur flex</span>
+  width: max-content; min-width: 170px; max-width: 60%;
+  display: flex; flex-direction: column; gap: 4px;
+  background: $vert-50; border: 1px solid $vert-100; border-radius: 10px;
+}
+.kpi__repartition-ligne {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 2px 6px; font-size: 0.78rem; line-height: 1rem;
+}
+.kpi__repartition-nombre { font-weight: 700; color: $vert-700; font-variant-numeric: tabular-nums; }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>demandes-list.component.scss — blocs obsolètes</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.scss</span></div><p class="note">Un seul bloc à supprimer (l. 486-510). <code>.cell-transporteur__cout</code> (l. 457) reste.</p><pre><button class="copy">Copier</button><code><span class="c">/* l. 486-510 : lettrage CSS remplacé par &lt;app-logo-transporteur&gt;. Ctrl+F « .transporteur {» → supprimer du « .transporteur {» jusqu&#x27;au « } » qui ferme le bloc (après .transporteur__quatre). */</span>
+.transporteur {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: $ardoise-100;
+  color: $ardoise-700;
+  border: 1px solid $ardoise-200;
+  white-space: nowrap;
+  &amp;<span class="c">--brinks {</span>
+    background: $ardoise-100;
+    color: $ardoise-800;
+    border-color: $ardoise-200;
+  }
+  &amp;<span class="c">--g4s {</span>
+    background: #fff;
+    color: #111;
+    font-weight: 800;
+    letter-spacing: .02em;
+    .transporteur__quatre {
+      color: #e2001a;
+    }
+  }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demandes-list.regles.ts — dateIsoIlYaUnMois</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.ts</span></div><p class="note">À côté de <code>dateIsoDuJour</code>. Heure locale (pas <code>toISOString()</code>, qui bascule en UTC et peut reculer d'un jour).</p><pre><button class="copy">Copier</button><code><span class="c">/** AER_LM-344 : date ISO (yyyy-MM-dd, heure locale) un mois avant la référence ; 31/03 → 28/02 ou 29/02 (pas de débordement au 03/03). */</span>
+<span class="k">export</span> <span class="k">function</span> dateIsoIlYaUnMois(reference: Date = <span class="k">new</span> Date()): string {
+  <span class="k">const</span> d = <span class="k">new</span> Date(reference.getFullYear(), reference.getMonth() - 1, reference.getDate());
+  <span class="k">if</span> (d.getDate() !== reference.getDate()) { d.setDate(0); }   <span class="c">// débordement → dernier jour du mois précédent</span>
+  <span class="k">const</span> mm = <span class="k">String</span>(d.getMonth() + 1).padStart(2, <span class="s">&#x27;0&#x27;</span>);
+  <span class="k">const</span> jj = <span class="k">String</span>(d.getDate()).padStart(2, <span class="s">&#x27;0&#x27;</span>);
+  <span class="k">return</span> <span class="s">`${d.getFullYear()}-${mm}-${jj}`</span>;
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>demandes-list.regles.spec.ts</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.regles.spec.ts</span></div><p class="note">Ajouter <code>dateIsoIlYaUnMois</code> à l'import du spec.</p><pre><button class="copy">Copier</button><code>  describe(<span class="s">&#x27;dateIsoIlYaUnMois&#x27;</span>, () =&gt; {
+    it(<span class="s">&#x27;recule d\&#x27;un mois à jour égal&#x27;</span>, () =&gt; {
+      expect(dateIsoIlYaUnMois(<span class="k">new</span> Date(2026, 10, 10))).toBe(<span class="s">&#x27;2026-10-10&#x27;</span>);
+    });
+    it(<span class="s">&#x27;passe l\&#x27;année&#x27;</span>, () =&gt; {
+      expect(dateIsoIlYaUnMois(<span class="k">new</span> Date(2026, 0, 15))).toBe(<span class="s">&#x27;2025-12-15&#x27;</span>);
+    });
+    it(<span class="s">&#x27;cale au dernier jour quand le mois précédent est plus court&#x27;</span>, () =&gt; {
+      expect(dateIsoIlYaUnMois(<span class="k">new</span> Date(2026, 2, 31))).toBe(<span class="s">&#x27;2026-02-28&#x27;</span>);
+      expect(dateIsoIlYaUnMois(<span class="k">new</span> Date(2028, 2, 31))).toBe(<span class="s">&#x27;2028-02-29&#x27;</span>);
+    });
+  });</code></pre></div><div class="card"><b>Carte « Demandes traitées » à 0</b> : aucune ligne de répartition n'apparaît — c'est le comportement attendu (le <code>*ngIf</code> sur <code>traiteesParTransporteur?.length</code> existait déjà, l. 33) : la répartition ne liste que ce qui a été traité dans la journée. Les logos y apparaissent dès la première demande traitée.</div><h2 id="recette">4. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Scénarios</b><br><span class="path">recette\AER_LM-344.txt</span></div><pre><button class="copy">Copier</button><code>Back
+1. Base : une demande agence Brink<span class="s">&#x27;s et une GAB hors site, toutes deux traitées aujourd&#x27;</span>hui (complete-task) ; une demande agence sans prestataire traitée.
+   GET /cash/kpi → traiteesParTransporteur = [{BRINKS, Brink&#x27;s, 1}, {&lt;<span class="k">null</span>&gt;, Non renseigné, 1}, {MONETIQUE, Monétique, 1}] ; traitees = 3.
+2. Aucune demande monétique traitée → pas de ligne Monétique (même règle que les autres : on ne liste que ce qui existe).
+3. mvn clean install : CashDemandUseCaseImplTest inchangé vert (kpiCaisseCentrale mappe code/nom sans changement).
+
+Front
+4. Listing CC : colonne Transporteur = logo Brink&#x27;s / logo G4S (hauteur 18 px, info-bulle = nom) ; demande sans transporteur = « Non renseigné » en texte ;
+   demande monétique = « Monétique » en texte ; coût de déplacement toujours affiché dessous.
+5. Carte « Demandes traitées » : lignes empilées sous l&#x27;icône, logo à gauche, nombre à droite ; plus de pastilles vertes en ligne.
+6. Historique agence ET Caisse Centrale à l<span class="s">&#x27;ouverture : Date début = aujourd&#x27;</span>hui − 1 mois, Date fin = (CC) aujourd&#x27;hui / (agence) vide ;
+   « Actualiser » remet Date début à J-1 mois. Le clic KPI continue de caler début = fin = aujourd&#x27;hui.
+7. DMZR (sous le shell) : logos visibles — aucune requête assets/… en 404 dans Network.
+8. ng test : demandes-list.regles.spec (3 nouveaux) ; ng build sans warning sur LOGO_* (si un logo n&#x27;a pas été collé, le composant retombe sur le texte).</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
