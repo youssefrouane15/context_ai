@@ -1,0 +1,183 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Externalisation des URL (gateway, portail) — config/app-config.json lu au démarrage, y compris sous le shell</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Externalisation des URL (gateway, portail) — config/app-config.json lu au démarrage, y compris sous le shell</h1><p>fund-management-front · configuration.ts (chemin CD de l&#x27;intégrateur, origine du remote, résolveur) · angular.json · environment.prod.ts sans URL · recette locale avant MR · 11/11/2026</p></header><nav><a href="#etat">Ce qui existe, ce qui manque</a><a href="#fichier">Fichier de configuration</a><a href="#chargement">Chargement</a><a href="#recette">Recette locale (avant la MR)</a></nav><main><h2 id="etat">0. Ce qui existe, ce qui manque</h2><div class="card"><table><tr><th>Brique</th><th>État</th><th>Action</th></tr>
+<tr><td><code>chargerConfiguration()</code> → <code>Object.assign(environment, …)</code>, <code>APP_INITIALIZER</code></td><td>En place, tous les usages lisent <code>environment</code></td><td>Conservé</td></tr>
+<tr><td>Chemin du fichier</td><td><code>assets/app.config.json</code></td><td>→ <code>config/app-config.json</code> (celui que le CD écrase : <code>/var/www/html/config/app-config.json</code>) + copie <code>src/config</code> → <code>dist/config</code></td></tr>
+<tr><td>Sous le shell portail</td><td><b>Jamais chargé</b> : <code>app.config.ts</code> du remote ne s'exécute pas (c'est le portail qui bootstrape) et une URL relative se résout sur l'origine du portail. D'où les URL en dur dans <code>environment.prod.ts</code> — le problème remonté par l'intégrateur.</td><td>Résolveur sur la route racine exposée + URL construite sur l'origine réelle du remote (<code>__webpack_public_path__</code>, posé par Module Federation)</td></tr>
+<tr><td><code>environment.prod.ts</code></td><td>URL dev.echonet en dur</td><td>Chaînes vides : le build de prod ne porte plus d'URL</td></tr>
+<tr><td><code>GabHorsSiteService.URL</code></td><td><code>static readonly</code> évalué au chargement du bundle, <b>avant</b> le fichier</td><td>Getter static (même nom, mêmes appelants)</td></tr></table></div><h2 id="fichier">1. Fichier de configuration</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>src/config/app-config.json</b><br><span class="path">fund-management-front\src\config\app-config.json</span></div><p class="note">Deux clés, valeurs locales (c'est ce qui est commité ; le CD écrase par environnement). <code>fundManagementApi</code> / <code>usersApi</code> sont des préfixes de routes gateway, identiques partout : ils restent dans <code>environment</code>.</p><pre><button class="copy">Copier</button><code>{
+  <span class="s">&quot;gatewayUrl&quot;</span>: <span class="s">&quot;http://localhost:9090&quot;</span>,
+  <span class="s">&quot;portailUrl&quot;</span>: <span class="s">&quot;http://localhost:4200&quot;</span>
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>src/assets/app.config.json</b><br><span class="path">fund-management-front\src\assets\app.config.json</span></div><pre><button class="copy">Copier</button><code><span class="c">// Supprimer le fichier : remplacé par src/config/app-config.json (un seul fichier de configuration).</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>angular.json — build › options › assets (l. 23-25)</b><br><span class="path">fund-management-front\angular.json</span></div><p class="note">Ctrl+F <code>"assets": [</code>, 1ʳᵉ occurrence (build, l. 23).</p><pre><button class="copy">Copier</button><code>            <span class="s">&quot;assets&quot;</span>: [
+              <span class="s">&quot;src/favicon.ico&quot;</span>,
+              <span class="s">&quot;src/assets&quot;</span>,</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>angular.json — build › options › assets (APRÈS)</b><br><span class="path">fund-management-front\angular.json</span></div><p class="note">Une ligne insérée après <code>"src/assets",</code>. Faire la <b>même insertion</b> dans la 2ᵉ occurrence (test, l. 129-131) pour que Karma serve aussi le fichier.</p><pre><button class="copy">Copier</button><code>            <span class="s">&quot;assets&quot;</span>: [
+              <span class="s">&quot;src/favicon.ico&quot;</span>,
+              <span class="s">&quot;src/assets&quot;</span>,
+              { <span class="s">&quot;glob&quot;</span>: <span class="s">&quot;app-config.json&quot;</span>, <span class="s">&quot;input&quot;</span>: <span class="s">&quot;src/config&quot;</span>, <span class="s">&quot;output&quot;</span>: <span class="s">&quot;/config&quot;</span> },</code></pre></div><h2 id="chargement">2. Chargement</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>configuration.ts</b><br><span class="path">fund-management-front\src\app\shared\config\configuration.ts</span></div><p class="note">Remplace tout le fichier. Nouveautés : <code>urlConfiguration()</code> (origine du remote), chargement mutualisé (<code>chargement ??=</code>), <code>CONFIGURATION_RESOLVEUR</code>, <code>reinitialiserConfiguration()</code> pour les tests. Le comportement dev/prod (avertissement / erreur bloquante) est inchangé.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { APP_INITIALIZER, Provider } <span class="k">from</span> <span class="s">&#x27;@angular/core&#x27;</span>;
+<span class="k">import</span> { ResolveFn } <span class="k">from</span> <span class="s">&#x27;@angular/router&#x27;</span>;
+<span class="k">import</span> { Environnement, environment } <span class="k">from</span> <span class="s">&#x27;../../../environments/environment&#x27;</span>;
+
+<span class="c">/** Fixé par Module Federation (publicPath « auto ») à l&#x27;emplacement réel de remoteEntry.js ; absent hors webpack (tests). */</span>
+declare <span class="k">let</span> __webpack_public_path__: string | undefined;
+
+<span class="c">/**
+ * Fichier de configuration d&#x27;environnement, écrasé par le CD de l&#x27;intégrateur à chaque déploiement
+ * (/var/www/html/config/app-config.json) : une seule image pour tous les environnements.
+ * Copié dans dist/config par angular.json (assets) ; en local = src/config/app-config.json.
+ */</span>
+<span class="k">export</span> <span class="k">const</span> FICHIER_CONFIGURATION = <span class="s">&#x27;config/app-config.json&#x27;</span>;
+
+<span class="c">/**
+ * URL absolue du fichier. Sous le shell portail, une URL relative se résoudrait sur l&#x27;origine du PORTAIL (404) :
+ * on part de l&#x27;origine réelle du remote (publicPath), sinon du document (4201 seul, tests).
+ */</span>
+<span class="k">export</span> <span class="k">function</span> urlConfiguration(): string {
+  <span class="k">const</span> base = typeof __webpack_public_path__ === <span class="s">&#x27;string&#x27;</span> &amp;&amp; /^https?:\/\<span class="c">//.test(__webpack_public_path__)</span>
+    ? __webpack_public_path__
+    : document.baseURI;
+  <span class="k">return</span> <span class="k">new</span> URL(FICHIER_CONFIGURATION, base).toString();
+}
+
+<span class="c">/** Clés que le fichier a le droit de surcharger (`production` reste décidé par le build). */</span>
+<span class="k">type</span> ConfigurationExterne = Partial&lt;Omit&lt;Environnement, <span class="s">&#x27;production&#x27;</span>&gt;&gt;;
+
+<span class="k">let</span> chargement: Promise&lt;<span class="k">void</span>&gt; | <span class="k">null</span> = <span class="k">null</span>;
+
+<span class="c">/**
+ * Charge config/app-config.json et fusionne ses valeurs dans `environment` AVANT le premier appel HTTP.
+ * fetch() plutôt que HttpClient : rien ne doit passer par les intercepteurs (qui lisent eux-mêmes `environment`).
+ * - fichier absent en dev : on garde les valeurs d&#x27;environment.ts (avertissement console) ;
+ * - fichier absent en prod : erreur bloquante, l&#x27;application ne doit pas démarrer avec des URL vides.
+ * Idempotent : un seul chargement quel que soit le nombre d&#x27;appelants (initialiseur ET résolveur).
+ */</span>
+<span class="k">export</span> <span class="k">function</span> chargerConfiguration(): Promise&lt;<span class="k">void</span>&gt; {
+  <span class="k">return</span> chargement ??= charger();
+}
+
+<span class="k">async</span> <span class="k">function</span> charger(): Promise&lt;<span class="k">void</span>&gt; {
+  <span class="k">const</span> url = urlConfiguration();
+  <span class="k">let</span> reponse: Response;
+  <span class="k">try</span> {
+    reponse = <span class="k">await</span> fetch(url, { cache: <span class="s">&#x27;no-store&#x27;</span> });
+  } <span class="k">catch</span> (erreur) {
+    <span class="k">return</span> signalerAbsence(<span class="s">`${url} injoignable (${erreur})`</span>);
+  }
+  <span class="k">if</span> (!reponse.ok) {
+    <span class="k">return</span> signalerAbsence(<span class="s">`${url} : HTTP ${reponse.status}`</span>);
+  }
+  <span class="k">const</span> externe = (<span class="k">await</span> reponse.json()) as ConfigurationExterne;
+  <span class="k">const</span> { production: _ignore, ...valeurs } = externe as Record&lt;string, unknown&gt;;   <span class="c">// production jamais surchargée</span>
+  Object.assign(environment, valeurs);
+}
+
+<span class="k">function</span> signalerAbsence(detail: string): <span class="k">void</span> {
+  <span class="k">if</span> (environment.production) {
+    <span class="k">throw</span> <span class="k">new</span> Error(<span class="s">`Configuration manquante : ${detail}`</span>);
+  }
+  console.warn(<span class="s">`[config] ${detail} — valeurs par défaut d&#x27;environment.ts conservées.`</span>);
+}
+
+<span class="c">/** Remise à zéro pour les tests unitaires. */</span>
+<span class="k">export</span> <span class="k">function</span> reinitialiserConfiguration(): <span class="k">void</span> {
+  chargement = <span class="k">null</span>;
+}
+
+<span class="c">/** Démarrage autonome (4201) : providers de app.config.ts. */</span>
+<span class="k">export</span> <span class="k">const</span> CONFIGURATION_INITIALISEUR: Provider = {
+  provide: APP_INITIALIZER,
+  useFactory: () =&gt; chargerConfiguration,
+  multi: <span class="k">true</span>
+};
+
+<span class="c">/**
+ * Sous le shell portail, app.config.ts du remote ne s&#x27;exécute pas : le chargement est garanti par ce résolveur
+ * sur la route racine exposée (app.routes.ts). Même promesse que l&#x27;initialiseur → aucun double appel.
+ */</span>
+<span class="k">export</span> <span class="k">const</span> CONFIGURATION_RESOLVEUR: ResolveFn&lt;<span class="k">void</span>&gt; = () =&gt; chargerConfiguration();</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>app.routes.ts</b><br><span class="path">fund-management-front\src\app\app.routes.ts</span></div><p class="note">Une ligne <code>resolve</code> + son import. Le résolveur s'exécute avant l'activation de la route et de ses enfants, donc avant la construction des services HTTP.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { Routes } <span class="k">from</span> <span class="s">&#x27;@angular/router&#x27;</span>;
+<span class="k">import</span> { provideHttpClient } <span class="k">from</span> <span class="s">&#x27;@angular/common/http&#x27;</span>;
+<span class="k">import</span> { GesfondRacineComponent } <span class="k">from</span> <span class="s">&#x27;./gesfond-racine.component&#x27;</span>;
+<span class="k">import</span> { CONFIGURATION_RESOLVEUR } <span class="k">from</span> <span class="s">&#x27;./shared/config/configuration&#x27;</span>;
+
+<span class="k">export</span> <span class="k">const</span> routes: Routes = [
+  {
+    path: <span class="s">&#x27;&#x27;</span>,
+    component: GesfondRacineComponent,                 <span class="c">// AER_LM-336 : styles globaux aussi dans le portail</span>
+    providers: [provideHttpClient()],
+    resolve: { configuration: CONFIGURATION_RESOLVEUR },   <span class="c">// config/app-config.json lu avant tout appel, y compris sous le shell</span>
+    <span class="c">// canActivate: [LoginGuard],</span>
+    loadChildren: () =&gt; <span class="k">import</span>(<span class="s">&#x27;./features/fund-management/presenter/pages/fund-management/fund-management.routes&#x27;</span>)
+      .then(m =&gt; m.FUND_MANAGEMENT_ROUTES),
+  },
+];</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>environment.prod.ts</b><br><span class="path">fund-management-front\src\environments\environment.prod.ts</span></div><p class="note"><code>environment.ts</code> (local) ne change pas.</p><pre><button class="copy">Copier</button><code><span class="k">export</span> <span class="k">interface</span> Environnement {
+  production: <span class="k">boolean</span>;
+  <span class="c">/** Gateway QlickFlow (mode mock local : cookie QF_MOCK_SESSION posé par /mock-auth/login). */</span>
+  gatewayUrl: string;
+  <span class="c">/** Route gateway qf-fund-management (AER_LM-261) — RewritePath vers / côté microservice. */</span>
+  fundManagementApi: string;
+  <span class="c">/** Route gateway qf-admin (utilisateurs-ci). */</span>
+  usersApi: string;
+  <span class="c">/** Portail QlickFlow (shell) : Accueil et page de connexion. */</span>
+  portailUrl: string;
+}
+
+<span class="c">/**
+ * Build de prod : aucune URL en dur. gatewayUrl et portailUrl viennent de config/app-config.json au démarrage
+ * (chargerConfiguration, obligatoire en production — erreur bloquante si le fichier manque).
+ * Les préfixes de routes gateway ne dépendent pas de l&#x27;environnement et restent ici.
+ */</span>
+<span class="k">export</span> <span class="k">const</span> environment: Environnement = {
+  production: <span class="k">true</span>,
+  gatewayUrl: <span class="s">&#x27;&#x27;</span>,
+  fundManagementApi: <span class="s">&#x27;/api/v1/public/fund-management&#x27;</span>,
+  usersApi: <span class="s">&#x27;/api/v1/public/users&#x27;</span>,
+  portailUrl: <span class="s">&#x27;&#x27;</span>
+};</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>gab-hors-site.service.ts — l. 20</b><br><span class="path">fund-management-front\src\app\features\fund-management\adapters\apiAdapters\gab-hors-site.service.ts</span></div><pre><button class="copy">Copier</button><code>  <span class="k">static</span> <span class="k">readonly</span> URL = <span class="s">`${environment.gatewayUrl}${environment.usersApi}/gab/hors-site`</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>gab-hors-site.service.ts — l. 20 (APRÈS)</b><br><span class="path">fund-management-front\src\app\features\fund-management\adapters\apiAdapters\gab-hors-site.service.ts</span></div><p class="note">Les 6 autres usages (<code>private readonly url = …</code> dans des services <code>providedIn: root</code>, intercepteur, <code>portail.ts</code>, header) sont évalués à l'instanciation ou à l'appel, après le chargement : rien à changer.</p><pre><button class="copy">Copier</button><code>  <span class="c">/** Getter : lu à chaque appel, après le chargement de config/app-config.json (un champ static serait figé au chargement du bundle, avant). */</span>
+  <span class="k">static</span> <span class="k">get</span> URL(): string { <span class="k">return</span> <span class="s">`${environment.gatewayUrl}${environment.usersApi}/gab/hors-site`</span>; }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>configuration.spec.ts</b><br><span class="path">fund-management-front\src\app\shared\config\configuration.spec.ts</span></div><p class="note">Seul fichier non capturé en entier.</p><pre><button class="copy">Copier</button><code>configuration.spec.ts (non capturé — 3 lignes vues : l. 15, 16, 30 assertent environment.gatewayUrl / portailUrl après chargement) :
+  Ctrl+F « assets/app.config.json » → remplacer par « config/app-config.json » s<span class="s">&#x27;il y est (stub de fetch sur l&#x27;</span>URL).
+  Ctrl+F « chargerConfiguration() » : si plusieurs tests l&#x27;appellent, ajouter dans le beforeEach :
+      reinitialiserConfiguration();
+  (<span class="k">import</span> depuis <span class="s">&#x27;./configuration&#x27;</span>) — sinon le 2e test réutilise la promesse du 1er (chargement désormais mutualisé).
+  Si fetch est stubbé par comparaison exacte d<span class="s">&#x27;URL, comparer avec urlConfiguration() plutôt qu&#x27;</span>une chaîne.
+Envoie-moi le spec en capture si un test reste rouge : je livre l&#x27;AVANT/APRÈS exact.</code></pre></div><h2 id="recette">3. Recette locale (avant la MR)</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours A → D</b><br><span class="path">recette\config-externalisee.txt</span></div><p class="note">Le B.6-7 est la preuve pour l'intégrateur : la valeur change sans rebuild.</p><pre><button class="copy">Copier</button><code>A. 4201 seul (ng serve) — le fichier est lu
+   1. http:<span class="c">//localhost:4201 → Network : GET http://localhost:4201/config/app-config.json = 200 ; /me et /cash partent vers http://localhost:9090.</span>
+   2. Modifier src/config/app-config.json : <span class="s">&quot;gatewayUrl&quot;</span>: <span class="s">&quot;http://localhost:9999&quot;</span> → F5 → les appels partent vers :9999 (échec attendu) → remettre 9090.
+   3. Renommer temporairement src/config/app-config.json → F5 → console : « [config] …/config/app-config.json : HTTP 404 — valeurs par défaut d<span class="s">&#x27;environment.ts conservées. », l&#x27;</span>écran marche (environment.ts). Remettre le fichier.
+
+B. Build de prod — preuve que le CD peut écraser sans rebuild (c<span class="s">&#x27;est la demande de l&#x27;</span>intégrateur)
+   4. ng build <span class="c">--configuration production</span>
+   5. dir dist\&lt;outputPath d&#x27;angular.json&gt;\config\app-config.json → présent (valeurs locales).
+   6. Éditer CE fichier dans dist : <span class="s">&quot;gatewayUrl&quot;</span>: <span class="s">&quot;https://gw.recette&quot;</span> (sans rebuild).
+   7. npx http-server dist\&lt;outputPath&gt; -p 4201 -c-1  →  http:<span class="c">//localhost:4201 : Network → les appels partent vers https://gw.recette (échec attendu : pas de gateway) → la valeur vient bien du fichier, pas du bundle.</span>
+   8. Supprimer dist\…\config\app-config.json → F5 → console : « Configuration manquante : … HTTP 404 », l<span class="s">&#x27;application ne démarre pas (comportement prod voulu : jamais d&#x27;</span>URL vide).
+
+C. Sous le shell (4200, ng serve des deux)
+   9. Portail → Gestion des fonds → Network : GET http:<span class="c">//localhost:4201/config/app-config.json = 200 (origine du REMOTE, pas 4200) ; écran OK.</span>
+   10. Comme en 2 : changer le fichier → F5 → appels vers :9999 → remettre.
+
+D. Qualité
+   11. ng test : configuration.spec vert (voir note spec), gab-hors-site inchangé.
+   12. Aucune occurrence de « assets/app.config.json » dans src (Ctrl+Maj+F).
+
+Pour l&#x27;intégrateur (à mettre dans la MR) : fichier à écraser = &lt;racine web&gt;/config/app-config.json, clés gatewayUrl et portailUrl, pas de rebuild.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
