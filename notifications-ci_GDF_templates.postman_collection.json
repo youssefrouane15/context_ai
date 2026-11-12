@@ -1,0 +1,342 @@
+{
+  "info": {
+    "name": "QlickFlow - notifications-ci - Gestion des fonds (GDF_*)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "POST /api/v1/notifications/email avec les 5 templates GDF_* (MR notifications-ci feature/AER_LM-345).\nPré-requis : notifications-ci lancé (8095) avec notification.mail.enabled=true et un relais SMTP joignable (sinon 202 sans envoi, ou 502 si le relais refuse).\nVariable notificationsUrl = http://localhost:8095 (par défaut)."
+  },
+  "variable": [
+    {
+      "key": "notificationsUrl",
+      "value": "http://localhost:8095"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - GDF_DEMANDE_SOUMISE (DA, non urgente)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{notificationsUrl}}/api/v1/notifications/email",
+          "host": [
+            "{{notificationsUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "email"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"youssef.rouane@externe.bnpparibas.com\",\n  \"templateCode\": \"GDF_DEMANDE_SOUMISE\",\n  \"variables\": {\n    \"evenement\": \"Demande soumise\",\n    \"verbe\": \"a été soumise\",\n    \"destinataire\": \"Youssef ROUANE\",\n    \"reference\": \"20261112-1405-01\",\n    \"agence\": \"1405 - CASA MOHAMED V\",\n    \"zone\": \"Zone Casa Ouest\",\n    \"transporteur\": \"Brink's\",\n    \"date\": \"12/11/2026 à 15:50\",\n    \"dateEffet\": \"12/11/2026\",\n    \"initiateur\": \"Youness BALADI (Chef de caisse)\",\n    \"urgent\": \"NON\",\n    \"urgence\": \"Non\",\n    \"totalCaisse\": \"150 000,00\",\n    \"totalGab\": \"0,00\",\n    \"lignesDevises\": \"<tr><td colspan=\\\"2\\\" style=\\\"padding:7px 8px; border:1px solid #e8ecea; color:#8a9790; font-style:italic;\\\">Aucune</td></tr>\",\n    \"lignesRamassage\": \"<tr><td width=\\\"170\\\" style=\\\"padding:7px 8px; background-color:#f6f8f7; border:1px solid #e8ecea; color:#5c6b63; font-weight:bold;\\\">EUR</td><td style=\\\"padding:7px 8px; border:1px solid #e8ecea; text-align:right; font-family:Consolas, monospace;\\\">2 500,00 EUR</td></tr>\",\n    \"commentaire\": \"Besoin de coupures de 200\",\n    \"motifAnnulation\": \"\",\n    \"declassePar\": \"\",\n    \"declasseMotif\": \"\"\n  }\n}"
+        },
+        "description": "Mail standard au Directeur d'agence : bandeau vert, tableau, récap, bouton."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"202 Accepted\", () => pm.response.to.have.status(202));",
+              "pm.test(\"success = true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - GDF_DEMANDE_SOUMISE (DA, urgente)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{notificationsUrl}}/api/v1/notifications/email",
+          "host": [
+            "{{notificationsUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "email"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"youssef.rouane@externe.bnpparibas.com\",\n  \"templateCode\": \"GDF_DEMANDE_SOUMISE\",\n  \"variables\": {\n    \"evenement\": \"Demande soumise\",\n    \"verbe\": \"a été soumise\",\n    \"destinataire\": \"Youssef ROUANE\",\n    \"reference\": \"20261112-1405-01\",\n    \"agence\": \"1405 - CASA MOHAMED V\",\n    \"zone\": \"Zone Casa Ouest\",\n    \"transporteur\": \"Brink's\",\n    \"date\": \"12/11/2026 à 15:50\",\n    \"dateEffet\": \"12/11/2026\",\n    \"initiateur\": \"Youness BALADI (Chef de caisse)\",\n    \"urgent\": \"OUI\",\n    \"urgence\": \"OUI\",\n    \"totalCaisse\": \"150 000,00\",\n    \"totalGab\": \"0,00\",\n    \"lignesDevises\": \"<tr><td colspan=\\\"2\\\" style=\\\"padding:7px 8px; border:1px solid #e8ecea; color:#8a9790; font-style:italic;\\\">Aucune</td></tr>\",\n    \"lignesRamassage\": \"<tr><td width=\\\"170\\\" style=\\\"padding:7px 8px; background-color:#f6f8f7; border:1px solid #e8ecea; color:#5c6b63; font-weight:bold;\\\">EUR</td><td style=\\\"padding:7px 8px; border:1px solid #e8ecea; text-align:right; font-family:Consolas, monospace;\\\">2 500,00 EUR</td></tr>\",\n    \"commentaire\": \"Besoin de coupures de 200\",\n    \"motifAnnulation\": \"\",\n    \"declassePar\": \"\",\n    \"declasseMotif\": \"\"\n  }\n}"
+        },
+        "description": "Même mail, bandeau rouge."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"202 Accepted\", () => pm.response.to.have.status(202));",
+              "pm.test(\"success = true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - GDF_DEMANDE_MISE_A_JOUR",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{notificationsUrl}}/api/v1/notifications/email",
+          "host": [
+            "{{notificationsUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "email"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"youssef.rouane@externe.bnpparibas.com\",\n  \"templateCode\": \"GDF_DEMANDE_MISE_A_JOUR\",\n  \"variables\": {\n    \"evenement\": \"Demande mise à jour\",\n    \"verbe\": \"a été mise à jour\",\n    \"destinataire\": \"Youssef ROUANE\",\n    \"reference\": \"20261112-1405-01\",\n    \"agence\": \"1405 - CASA MOHAMED V\",\n    \"zone\": \"Zone Casa Ouest\",\n    \"transporteur\": \"Brink's\",\n    \"date\": \"12/11/2026 à 16:05\",\n    \"dateEffet\": \"12/11/2026\",\n    \"initiateur\": \"Youness BALADI (Chef de caisse)\",\n    \"urgent\": \"NON\",\n    \"urgence\": \"Non\",\n    \"totalCaisse\": \"150 000,00\",\n    \"totalGab\": \"0,00\",\n    \"lignesDevises\": \"<tr><td colspan=\\\"2\\\" style=\\\"padding:7px 8px; border:1px solid #e8ecea; color:#8a9790; font-style:italic;\\\">Aucune</td></tr>\",\n    \"lignesRamassage\": \"<tr><td width=\\\"170\\\" style=\\\"padding:7px 8px; background-color:#f6f8f7; border:1px solid #e8ecea; color:#5c6b63; font-weight:bold;\\\">EUR</td><td style=\\\"padding:7px 8px; border:1px solid #e8ecea; text-align:right; font-family:Consolas, monospace;\\\">2 500,00 EUR</td></tr>\",\n    \"commentaire\": \"Besoin de coupures de 200\",\n    \"motifAnnulation\": \"\",\n    \"declassePar\": \"\",\n    \"declasseMotif\": \"\"\n  }\n}"
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"202 Accepted\", () => pm.response.to.have.status(202));",
+              "pm.test(\"success = true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - GDF_DEMANDE_ANNULEE (motif)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{notificationsUrl}}/api/v1/notifications/email",
+          "host": [
+            "{{notificationsUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "email"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"youssef.rouane@externe.bnpparibas.com\",\n  \"templateCode\": \"GDF_DEMANDE_ANNULEE\",\n  \"variables\": {\n    \"evenement\": \"Demande annulée\",\n    \"verbe\": \"a été annulée\",\n    \"destinataire\": \"Youssef ROUANE\",\n    \"reference\": \"20261112-1405-01\",\n    \"agence\": \"1405 - CASA MOHAMED V\",\n    \"zone\": \"Zone Casa Ouest\",\n    \"transporteur\": \"Brink's\",\n    \"date\": \"12/11/2026 à 15:50\",\n    \"dateEffet\": \"12/11/2026\",\n    \"initiateur\": \"Youness BALADI (Chef de caisse)\",\n    \"urgent\": \"NON\",\n    \"urgence\": \"Non\",\n    \"totalCaisse\": \"150 000,00\",\n    \"totalGab\": \"0,00\",\n    \"lignesDevises\": \"<tr><td colspan=\\\"2\\\" style=\\\"padding:7px 8px; border:1px solid #e8ecea; color:#8a9790; font-style:italic;\\\">Aucune</td></tr>\",\n    \"lignesRamassage\": \"<tr><td width=\\\"170\\\" style=\\\"padding:7px 8px; background-color:#f6f8f7; border:1px solid #e8ecea; color:#5c6b63; font-weight:bold;\\\">EUR</td><td style=\\\"padding:7px 8px; border:1px solid #e8ecea; text-align:right; font-family:Consolas, monospace;\\\">2 500,00 EUR</td></tr>\",\n    \"commentaire\": \"Besoin de coupures de 200\",\n    \"motifAnnulation\": \"Erreur de saisie du montant\",\n    \"declassePar\": \"\",\n    \"declasseMotif\": \"\"\n  }\n}"
+        },
+        "description": "La ligne « Motif d'annulation » doit apparaître dans le tableau."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"202 Accepted\", () => pm.response.to.have.status(202));",
+              "pm.test(\"success = true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - GDF_URGENCE_DECLASSEE",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{notificationsUrl}}/api/v1/notifications/email",
+          "host": [
+            "{{notificationsUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "email"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"youssef.rouane@externe.bnpparibas.com\",\n  \"templateCode\": \"GDF_URGENCE_DECLASSEE\",\n  \"variables\": {\n    \"evenement\": \"Urgence déclassée\",\n    \"verbe\": \"a vu son urgence déclassée par la Caisse Centrale\",\n    \"destinataire\": \"Youssef ROUANE\",\n    \"reference\": \"20261112-1405-01\",\n    \"agence\": \"1405 - CASA MOHAMED V\",\n    \"zone\": \"Zone Casa Ouest\",\n    \"transporteur\": \"Brink's\",\n    \"date\": \"12/11/2026 à 15:50\",\n    \"dateEffet\": \"12/11/2026\",\n    \"initiateur\": \"Youness BALADI (Chef de caisse)\",\n    \"urgent\": \"NON\",\n    \"urgence\": \"Non — déclassée par la Caisse Centrale\",\n    \"totalCaisse\": \"150 000,00\",\n    \"totalGab\": \"0,00\",\n    \"lignesDevises\": \"<tr><td colspan=\\\"2\\\" style=\\\"padding:7px 8px; border:1px solid #e8ecea; color:#8a9790; font-style:italic;\\\">Aucune</td></tr>\",\n    \"lignesRamassage\": \"<tr><td width=\\\"170\\\" style=\\\"padding:7px 8px; background-color:#f6f8f7; border:1px solid #e8ecea; color:#5c6b63; font-weight:bold;\\\">EUR</td><td style=\\\"padding:7px 8px; border:1px solid #e8ecea; text-align:right; font-family:Consolas, monospace;\\\">2 500,00 EUR</td></tr>\",\n    \"commentaire\": \"Besoin de coupures de 200\",\n    \"motifAnnulation\": \"\",\n    \"declassePar\": \"Karim CENTRALE (Caisse Centrale Admin) le 12/11/2026 à 16:10\",\n    \"declasseMotif\": \"Délai trop court avant passage du transporteur\"\n  }\n}"
+        },
+        "description": "Deux lignes supplémentaires : « Urgence déclassée par » et « Motif du déclassement »."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"202 Accepted\", () => pm.response.to.have.status(202));",
+              "pm.test(\"success = true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - GDF_DEMANDE_URGENTE (Caisse Centrale)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{notificationsUrl}}/api/v1/notifications/email",
+          "host": [
+            "{{notificationsUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "email"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"youssef.rouane@externe.bnpparibas.com\",\n  \"templateCode\": \"GDF_DEMANDE_URGENTE\",\n  \"variables\": {\n    \"evenement\": \"Demande URGENTE\",\n    \"verbe\": \"est en attente de traitement et a été marquée URGENTE par l'agence\",\n    \"destinataire\": \"Caisse Centrale\",\n    \"reference\": \"20261112-1405-01\",\n    \"agence\": \"1405 - CASA MOHAMED V\",\n    \"zone\": \"Zone Casa Ouest\",\n    \"transporteur\": \"Brink's\",\n    \"date\": \"12/11/2026 à 15:50\",\n    \"dateEffet\": \"12/11/2026\",\n    \"initiateur\": \"Youness BALADI (Chef de caisse)\",\n    \"urgent\": \"OUI\",\n    \"urgence\": \"OUI\",\n    \"totalCaisse\": \"150 000,00\",\n    \"totalGab\": \"0,00\",\n    \"lignesDevises\": \"<tr><td colspan=\\\"2\\\" style=\\\"padding:7px 8px; border:1px solid #e8ecea; color:#8a9790; font-style:italic;\\\">Aucune</td></tr>\",\n    \"lignesRamassage\": \"<tr><td width=\\\"170\\\" style=\\\"padding:7px 8px; background-color:#f6f8f7; border:1px solid #e8ecea; color:#5c6b63; font-weight:bold;\\\">EUR</td><td style=\\\"padding:7px 8px; border:1px solid #e8ecea; text-align:right; font-family:Consolas, monospace;\\\">2 500,00 EUR</td></tr>\",\n    \"commentaire\": \"Besoin de coupures de 200\",\n    \"motifAnnulation\": \"\",\n    \"declassePar\": \"\",\n    \"declasseMotif\": \"\"\n  }\n}"
+        },
+        "description": "Mail Caisse Centrale : bandeau rouge, « Bonjour Caisse Centrale »."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"202 Accepted\", () => pm.response.to.have.status(202));",
+              "pm.test(\"success = true\", () => pm.expect(pm.response.json().success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - KO template inconnu (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{notificationsUrl}}/api/v1/notifications/email",
+          "host": [
+            "{{notificationsUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "email"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"youssef.rouane@externe.bnpparibas.com\",\n  \"templateCode\": \"GDF_INCONNU\",\n  \"variables\": {\n    \"evenement\": \"Demande soumise\",\n    \"verbe\": \"a été soumise\",\n    \"destinataire\": \"Youssef ROUANE\",\n    \"reference\": \"20261112-1405-01\",\n    \"agence\": \"1405 - CASA MOHAMED V\",\n    \"zone\": \"Zone Casa Ouest\",\n    \"transporteur\": \"Brink's\",\n    \"date\": \"12/11/2026 à 15:50\",\n    \"dateEffet\": \"12/11/2026\",\n    \"initiateur\": \"Youness BALADI (Chef de caisse)\",\n    \"urgent\": \"NON\",\n    \"urgence\": \"Non\",\n    \"totalCaisse\": \"150 000,00\",\n    \"totalGab\": \"0,00\",\n    \"lignesDevises\": \"<tr><td colspan=\\\"2\\\" style=\\\"padding:7px 8px; border:1px solid #e8ecea; color:#8a9790; font-style:italic;\\\">Aucune</td></tr>\",\n    \"lignesRamassage\": \"<tr><td width=\\\"170\\\" style=\\\"padding:7px 8px; background-color:#f6f8f7; border:1px solid #e8ecea; color:#5c6b63; font-weight:bold;\\\">EUR</td><td style=\\\"padding:7px 8px; border:1px solid #e8ecea; text-align:right; font-family:Consolas, monospace;\\\">2 500,00 EUR</td></tr>\",\n    \"commentaire\": \"Besoin de coupures de 200\",\n    \"motifAnnulation\": \"\",\n    \"declassePar\": \"\",\n    \"declasseMotif\": \"\"\n  }\n}"
+        },
+        "description": "Vérifie fromCode() : template non déclaré dans NotificationTemplate."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+              "pm.test(\"message explicite\", () => pm.expect(pm.response.json().message).to.include(\"inconnu\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - KO destinataire invalide (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{notificationsUrl}}/api/v1/notifications/email",
+          "host": [
+            "{{notificationsUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "email"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"pas-un-email\",\n  \"templateCode\": \"GDF_DEMANDE_SOUMISE\",\n  \"variables\": {\n    \"evenement\": \"Demande soumise\",\n    \"verbe\": \"a été soumise\",\n    \"destinataire\": \"Youssef ROUANE\",\n    \"reference\": \"20261112-1405-01\",\n    \"agence\": \"1405 - CASA MOHAMED V\",\n    \"zone\": \"Zone Casa Ouest\",\n    \"transporteur\": \"Brink's\",\n    \"date\": \"12/11/2026 à 15:50\",\n    \"dateEffet\": \"12/11/2026\",\n    \"initiateur\": \"Youness BALADI (Chef de caisse)\",\n    \"urgent\": \"NON\",\n    \"urgence\": \"Non\",\n    \"totalCaisse\": \"150 000,00\",\n    \"totalGab\": \"0,00\",\n    \"lignesDevises\": \"<tr><td colspan=\\\"2\\\" style=\\\"padding:7px 8px; border:1px solid #e8ecea; color:#8a9790; font-style:italic;\\\">Aucune</td></tr>\",\n    \"lignesRamassage\": \"<tr><td width=\\\"170\\\" style=\\\"padding:7px 8px; background-color:#f6f8f7; border:1px solid #e8ecea; color:#5c6b63; font-weight:bold;\\\">EUR</td><td style=\\\"padding:7px 8px; border:1px solid #e8ecea; text-align:right; font-family:Consolas, monospace;\\\">2 500,00 EUR</td></tr>\",\n    \"commentaire\": \"Besoin de coupures de 200\",\n    \"motifAnnulation\": \"\",\n    \"declassePar\": \"\",\n    \"declasseMotif\": \"\"\n  }\n}"
+        },
+        "description": "Validation @Email sur SendEmailRequest.to."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
