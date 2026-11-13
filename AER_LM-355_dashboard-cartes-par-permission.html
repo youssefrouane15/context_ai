@@ -1,0 +1,254 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-355 — Dashboard : cartes affichées selon les permissions de l&#x27;utilisateur</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-355 — Dashboard : cartes affichées selon les permissions de l&#x27;utilisateur</h1><p>portail-ci · PlateformesService (référentiel /habilitations/platforms/active + AuthService.hasPermission) · directive structurelle *appSiPlateforme · 4 cartes, permissions existantes, rien à créer dans utilisateurs-ci · 13/11/2026</p></header><nav><a href="#regle">Règle retenue</a><a href="#code">Service et directive</a><a href="#html">dashboard.component.html — 4 éditions</a><a href="#recette">Contrôle base et recette</a></nav><main><h2 id="regle">0. Règle retenue</h2><div class="card"><b>Une carte = une plateforme</b> (enum <code>Platform</code> d'utilisateurs-ci, 5 valeurs : CONSOLE_ADMIN, DTRP, ML_CHAB, DC, GESTION_FONDS). La carte est visible si l'utilisateur détient <b>au moins une permission de la plateforme</b>. Les permissions de chaque plateforme viennent du référentiel existant <code>GET /api/v1/public/users/habilitations/platforms/active</code> (<code>PlatformDTO.permissions[].code</code>), le test « l'utilisateur les a-t-il ? » est l'existant <code>AuthService.hasPermission(codes)</code> (OU sur <code>extractUserPermissions</code>).<br><br>
+Pourquoi pas une liste de codes en dur par carte (<code>DTRP_CHOIX_WF</code>, <code>GDF_CONSULTER_DEMANDE</code>…) : le Pôle monétique n'a pas <code>GDF_CONSULTER_DEMANDE</code> et doit voir la carte ; les codes ML_*/DC_* appartiennent aux autres squads et bougent ; et tout nouveau droit demanderait une livraison du portail. Avec la plateforme, <b>rien n'est créé dans utilisateurs-ci</b> et un profil qui doit voir Mainlevée se règle dans la console Droits (rattacher un rôle ML_CHAB).<br><br>
+<b>Dégradé</b> : référentiel injoignable → cartes affichées (le back reste la barrière ; un dashboard vide sur un incident serait pire). Un seul appel par chargement, mutualisé entre les 4 cartes.<br><br>
+<table><tr><th>Carte</th><th>Plateforme</th><th>id (corrigé : 3 cartes portaient <code>id="derogation"</code>)</th></tr>
+<tr><td>Dérogation</td><td><code>DTRP</code></td><td><code>derogation</code></td></tr>
+<tr><td>Gestion des fonds</td><td><code>GESTION_FONDS</code></td><td><code>fund-management</code> (remplace <code>*ngIf="canAccessFundManagement"</code>)</td></tr>
+<tr><td>Mainlevée Crédit Habitat</td><td><code>ML_CHAB</code></td><td><code>mainlevee</code></td></tr>
+<tr><td>Droits de Communication</td><td><code>DC</code></td><td><code>droit-communication</code></td></tr></table></div><h2 id="code">1. Service et directive</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>core/services/plateformes.service.ts</b><br><span class="path">portail-ci\src\app\core\services\plateformes.service.ts</span></div><p class="note">Les 3 imports (<code>AuthService</code>, <code>ApiResponse</code>, <code>ApiConfigService</code>) : <b>mêmes chemins que dans <code>auth.service.ts</code></b> — si l'un diffère de ce que j'ai écrit, aligner le chemin, pas le nom. <code>buildConsoleApiUrl()</code> = gateway + <code>/api/v1/public/users</code> (getter, donc lu après <code>app-config.json</code>).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { HttpClient } <span class="k">from</span> <span class="s">&#x27;@angular/common/http&#x27;</span>;
+<span class="k">import</span> { Injectable } <span class="k">from</span> <span class="s">&#x27;@angular/core&#x27;</span>;
+<span class="k">import</span> { firstValueFrom } <span class="k">from</span> <span class="s">&#x27;rxjs&#x27;</span>;
+<span class="k">import</span> { AuthService } <span class="k">from</span> <span class="s">&#x27;../../auth/auth.service&#x27;</span>;
+<span class="k">import</span> { ApiResponse } <span class="k">from</span> <span class="s">&#x27;../../shared/interfaces/derogation.interface&#x27;</span>;
+<span class="k">import</span> { PlatformDTO } <span class="k">from</span> <span class="s">&#x27;../../shared/interfaces/habilitation.interface&#x27;</span>;
+<span class="k">import</span> { ApiConfigService } <span class="k">from</span> <span class="s">&#x27;./api-config.service&#x27;</span>;
+
+<span class="c">/** Identifiants des plateformes QlickFlow (utilisateurs-ci : enum Platform, colonne hab_roles.platform). */</span>
+<span class="k">export</span> <span class="k">const</span> PLATEFORME = {
+  DEROGATION: <span class="s">&#x27;DTRP&#x27;</span>,
+  MAINLEVEE: <span class="s">&#x27;ML_CHAB&#x27;</span>,
+  DROIT_COMMUNICATION: <span class="s">&#x27;DC&#x27;</span>,
+  GESTION_FONDS: <span class="s">&#x27;GESTION_FONDS&#x27;</span>
+} as <span class="k">const</span>;
+<span class="k">export</span> <span class="k">type</span> Plateforme = typeof PLATEFORME[keyof typeof PLATEFORME];
+
+<span class="c">/**
+ * AER_LM-355 — accès aux modules du dashboard par permission, sans liste de codes en dur côté portail :
+ * le référentiel des plateformes (GET /habilitations/platforms/active) donne les permissions de chaque plateforme,
+ * et l&#x27;utilisateur accède à un module s&#x27;il détient AU MOINS UNE de ses permissions (AuthService.hasPermission).
+ * - un nouveau droit ajouté dans utilisateurs-ci est pris en compte sans livraison du portail ;
+ * - le Super Admin (permissions DTRP/GDF posées sur un rôle CONSOLE_ADMIN) et le Pôle monétique
+ *   (GDF_TRAITER_DEMANDE_MONETIQUE seul) sont couverts, là où un test « rôle de plateforme X » les exclurait.
+ * Le référentiel est chargé une fois par session (promesse mutualisée). En cas d&#x27;échec : les cartes restent visibles
+ * (le back reste la barrière, une panne du référentiel ne doit pas vider le dashboard).
+ */</span>
+@Injectable({ providedIn: <span class="s">&#x27;root&#x27;</span> })
+<span class="k">export</span> <span class="k">class</span> PlateformesService {
+  <span class="k">private</span> permissionsParPlateforme: Promise&lt;Map&lt;string, string[]&gt;&gt; | <span class="k">null</span> = <span class="k">null</span>;
+
+  <span class="k">constructor</span>(<span class="k">private</span> <span class="k">readonly</span> http: HttpClient,
+              <span class="k">private</span> <span class="k">readonly</span> apiConfig: ApiConfigService,
+              <span class="k">private</span> <span class="k">readonly</span> authService: AuthService) {}
+
+  <span class="c">/** true si l&#x27;utilisateur courant détient au moins une permission de la plateforme (true aussi si le référentiel est injoignable). */</span>
+  <span class="k">async</span> utilisateurAccede(plateforme: Plateforme): Promise&lt;<span class="k">boolean</span>&gt; {
+    <span class="k">const</span> referentiel = <span class="k">await</span> <span class="k">this</span>.charger();
+    <span class="k">if</span> (!referentiel) { <span class="k">return</span> <span class="k">true</span>; }
+    <span class="k">const</span> codes = referentiel.<span class="k">get</span>(plateforme) ?? [];
+    <span class="k">return</span> codes.length &gt; 0 &amp;&amp; <span class="k">this</span>.authService.hasPermission(codes);
+  }
+
+  <span class="k">private</span> charger(): Promise&lt;Map&lt;string, string[]&gt; | <span class="k">null</span>&gt; {
+    <span class="k">return</span> <span class="k">this</span>.permissionsParPlateforme ??= firstValueFrom(
+      <span class="k">this</span>.http.<span class="k">get</span>&lt;ApiResponse&lt;PlatformDTO[]&gt;&gt;(<span class="s">`${this.apiConfig.buildConsoleApiUrl()}/habilitations/platforms/active`</span>))
+      .then(reponse =&gt; <span class="k">new</span> Map((reponse.data ?? []).map(p =&gt; [p.id, (p.permissions ?? []).map(x =&gt; x.code)])))
+      .<span class="k">catch</span>(err =&gt; {
+        console.error(<span class="s">&#x27;[dashboard] référentiel des plateformes injoignable — cartes affichées sans filtrage&#x27;</span>, err);
+        <span class="k">this</span>.permissionsParPlateforme = <span class="k">null</span>;   <span class="c">// nouvel essai au prochain appel</span>
+        <span class="k">return</span> <span class="k">null</span>;
+      });
+  }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>core/services/plateformes.service.spec.ts</b><br><span class="path">portail-ci\src\app\core\services\plateformes.service.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { HttpClientTestingModule, HttpTestingController } <span class="k">from</span> <span class="s">&#x27;@angular/common/http/testing&#x27;</span>;
+<span class="k">import</span> { TestBed } <span class="k">from</span> <span class="s">&#x27;@angular/core/testing&#x27;</span>;
+<span class="k">import</span> { AuthService } <span class="k">from</span> <span class="s">&#x27;../../auth/auth.service&#x27;</span>;
+<span class="k">import</span> { ApiConfigService } <span class="k">from</span> <span class="s">&#x27;./api-config.service&#x27;</span>;
+<span class="k">import</span> { PLATEFORME, PlateformesService } <span class="k">from</span> <span class="s">&#x27;./plateformes.service&#x27;</span>;
+
+describe(<span class="s">&#x27;PlateformesService&#x27;</span>, () =&gt; {
+  <span class="k">let</span> service: PlateformesService;
+  <span class="k">let</span> http: HttpTestingController;
+  <span class="k">const</span> permissionsUtilisateur = [<span class="s">&#x27;DTRP_CHOIX_WF&#x27;</span>, <span class="s">&#x27;GDF_TRAITER_DEMANDE_MONETIQUE&#x27;</span>];
+
+  <span class="k">const</span> referentiel = { success: <span class="k">true</span>, message: <span class="k">null</span>, error: <span class="k">null</span>, data: [
+    { id: <span class="s">&#x27;DTRP&#x27;</span>, nom: <span class="s">&#x27;Dérogation&#x27;</span>, permissions: [{ code: <span class="s">&#x27;DTRP_CHOIX_WF&#x27;</span> }, { code: <span class="s">&#x27;DTRP_SUBMIT&#x27;</span> }] },
+    { id: <span class="s">&#x27;ML_CHAB&#x27;</span>, nom: <span class="s">&#x27;Mainlevée&#x27;</span>, permissions: [{ code: <span class="s">&#x27;ML_CHAB_CONSULTER&#x27;</span> }] },
+    { id: <span class="s">&#x27;GESTION_FONDS&#x27;</span>, nom: <span class="s">&#x27;Gestion des fonds&#x27;</span>, permissions: [{ code: <span class="s">&#x27;GDF_CONSULTER_DEMANDE&#x27;</span> }, { code: <span class="s">&#x27;GDF_TRAITER_DEMANDE_MONETIQUE&#x27;</span> }] }
+  ] };
+
+  beforeEach(() =&gt; {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [
+        { provide: ApiConfigService, useValue: { buildConsoleApiUrl: () =&gt; <span class="s">&#x27;http://gw/api/v1/public/users&#x27;</span> } },
+        { provide: AuthService, useValue: { hasPermission: (codes: string[]) =&gt; codes.some(c =&gt; permissionsUtilisateur.includes(c)) } }
+      ]
+    });
+    service = TestBed.inject(PlateformesService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() =&gt; http.verify());
+
+  it(<span class="s">&#x27;accède à une plateforme dont il détient une permission, pas aux autres&#x27;</span>, <span class="k">async</span> () =&gt; {
+    <span class="k">const</span> derog = service.utilisateurAccede(PLATEFORME.DEROGATION);
+    http.expectOne(<span class="s">&#x27;http://gw/api/v1/public/users/habilitations/platforms/active&#x27;</span>).flush(referentiel);
+
+    expect(<span class="k">await</span> derog).toBeTrue();
+    expect(<span class="k">await</span> service.utilisateurAccede(PLATEFORME.GESTION_FONDS)).toBeTrue();     <span class="c">// monétique : via GDF_TRAITER_DEMANDE_MONETIQUE</span>
+    expect(<span class="k">await</span> service.utilisateurAccede(PLATEFORME.MAINLEVEE)).toBeFalse();
+    expect(<span class="k">await</span> service.utilisateurAccede(PLATEFORME.DROIT_COMMUNICATION)).toBeFalse();   <span class="c">// plateforme absente du référentiel</span>
+  });
+
+  it(<span class="s">&#x27;ne charge le référentiel qu\&#x27;une fois&#x27;</span>, <span class="k">async</span> () =&gt; {
+    <span class="k">const</span> a = service.utilisateurAccede(PLATEFORME.DEROGATION);
+    <span class="k">const</span> b = service.utilisateurAccede(PLATEFORME.MAINLEVEE);
+    http.expectOne(<span class="s">&#x27;http://gw/api/v1/public/users/habilitations/platforms/active&#x27;</span>).flush(referentiel);
+    <span class="k">await</span> Promise.all([a, b]);
+  });
+
+  it(<span class="s">&#x27;laisse les cartes visibles si le référentiel est injoignable&#x27;</span>, <span class="k">async</span> () =&gt; {
+    spyOn(console, <span class="s">&#x27;error&#x27;</span>);
+    <span class="k">const</span> p = service.utilisateurAccede(PLATEFORME.MAINLEVEE);
+    http.expectOne(<span class="s">&#x27;http://gw/api/v1/public/users/habilitations/platforms/active&#x27;</span>).flush(<span class="s">&#x27;&#x27;</span>, { status: 500, statusText: <span class="s">&#x27;KO&#x27;</span> });
+    expect(<span class="k">await</span> p).toBeTrue();
+  });
+});</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>shared/directives/si-plateforme.directive.ts</b><br><span class="path">portail-ci\src\app\shared\directives\si-plateforme.directive.ts</span></div><p class="note">Standalone. <b>Une ligne à ajouter</b> : <code>SiPlateformeDirective</code> dans le tableau <code>imports: [...]</code> du NgModule qui déclare <code>DashboardComponent</code> (Ctrl+Maj+F <code>declarations</code> + <code>DashboardComponent</code> → <code>app.module.ts</code> ou le module dashboard) — sinon NG8002 « Can't bind to appSiPlateforme ».</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { Directive, Input, OnInit, TemplateRef, ViewContainerRef } <span class="k">from</span> <span class="s">&#x27;@angular/core&#x27;</span>;
+<span class="k">import</span> { Plateforme, PlateformesService } <span class="k">from</span> <span class="s">&#x27;../../core/services/plateformes.service&#x27;</span>;
+
+<span class="c">/**
+ * AER_LM-355 — &lt;div *appSiPlateforme=&quot;&#x27;DTRP&#x27;&quot;&gt; : le bloc n&#x27;est rendu que si l&#x27;utilisateur détient au moins une permission
+ * de la plateforme. Structurelle (comme *ngIf), standalone : à ajouter aux imports du NgModule qui déclare le composant.
+ */</span>
+@Directive({ selector: <span class="s">&#x27;[appSiPlateforme]&#x27;</span>, standalone: <span class="k">true</span> })
+<span class="k">export</span> <span class="k">class</span> SiPlateformeDirective <span class="k">implements</span> OnInit {
+  @Input({ alias: <span class="s">&#x27;appSiPlateforme&#x27;</span>, required: <span class="k">true</span> }) plateforme!: Plateforme;
+
+  <span class="k">constructor</span>(<span class="k">private</span> <span class="k">readonly</span> gabarit: TemplateRef&lt;unknown&gt;,
+              <span class="k">private</span> <span class="k">readonly</span> conteneur: ViewContainerRef,
+              <span class="k">private</span> <span class="k">readonly</span> plateformes: PlateformesService) {}
+
+  <span class="k">async</span> ngOnInit(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">const</span> visible = <span class="k">await</span> <span class="k">this</span>.plateformes.utilisateurAccede(<span class="k">this</span>.plateforme);
+    <span class="k">this</span>.conteneur.clear();
+    <span class="k">if</span> (visible) { <span class="k">this</span>.conteneur.createEmbeddedView(<span class="k">this</span>.gabarit); }
+  }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>shared/directives/si-plateforme.directive.spec.ts</b><br><span class="path">portail-ci\src\app\shared\directives\si-plateforme.directive.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { Component } <span class="k">from</span> <span class="s">&#x27;@angular/core&#x27;</span>;
+<span class="k">import</span> { ComponentFixture, TestBed } <span class="k">from</span> <span class="s">&#x27;@angular/core/testing&#x27;</span>;
+<span class="k">import</span> { PlateformesService } <span class="k">from</span> <span class="s">&#x27;../../core/services/plateformes.service&#x27;</span>;
+<span class="k">import</span> { SiPlateformeDirective } <span class="k">from</span> <span class="s">&#x27;./si-plateforme.directive&#x27;</span>;
+
+@Component({
+  standalone: <span class="k">true</span>,
+  imports: [SiPlateformeDirective],
+  template: <span class="s">`&lt;p id=&quot;derog&quot; *appSiPlateforme=&quot;&#x27;DTRP&#x27;&quot;&gt;Dérogation&lt;/p&gt;&lt;p id=&quot;ml&quot; *appSiPlateforme=&quot;&#x27;ML_CHAB&#x27;&quot;&gt;Mainlevée&lt;/p&gt;`</span>
+})
+<span class="k">class</span> HoteComponent {}
+
+describe(<span class="s">&#x27;SiPlateformeDirective&#x27;</span>, () =&gt; {
+  <span class="k">let</span> fixture: ComponentFixture&lt;HoteComponent&gt;;
+
+  beforeEach(<span class="k">async</span> () =&gt; {
+    <span class="k">await</span> TestBed.configureTestingModule({
+      imports: [HoteComponent],
+      providers: [{ provide: PlateformesService, useValue: { utilisateurAccede: (p: string) =&gt; Promise.resolve(p === <span class="s">&#x27;DTRP&#x27;</span>) } }]
+    }).compileComponents();
+    fixture = TestBed.createComponent(HoteComponent);
+    fixture.detectChanges();
+    <span class="k">await</span> fixture.whenStable();
+    fixture.detectChanges();
+  });
+
+  it(<span class="s">&#x27;rend le bloc autorisé et masque l\&#x27;autre&#x27;</span>, () =&gt; {
+    <span class="k">const</span> el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector(<span class="s">&#x27;#derog&#x27;</span>)).not.toBeNull();
+    expect(el.querySelector(<span class="s">&#x27;#ml&#x27;</span>)).toBeNull();
+  });
+});</code></pre></div><h2 id="html">2. dashboard.component.html — 4 éditions</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>Carte Dérogation (AVANT, 1ʳᵉ ligne de la carte, au-dessus de la l. 23 « Container pour l&#x27;effet d&#x27;arcs »)</b><br><span class="path">portail-ci\src\app\features\dashboard\components\dashboard\dashboard.component.html</span></div><p class="note">Ctrl+F <code>id="derogation"</code> : <b>1ʳᵉ occurrence</b> (celle dont le bouton l. 40 navigue vers <code>/demande-derogation</code>).</p><pre><button class="copy">Copier</button><code>    &lt;div <span class="k">class</span>=<span class="s">&quot;service-card&quot;</span> id=<span class="s">&quot;derogation&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Carte Dérogation (APRÈS)</b><br><span class="path">portail-ci\src\app\features\dashboard\components\dashboard\dashboard.component.html</span></div><pre><button class="copy">Copier</button><code>    &lt;div <span class="k">class</span>=<span class="s">&quot;service-card&quot;</span> id=<span class="s">&quot;derogation&quot;</span> *appSiPlateforme=<span class="s">&quot;&#x27;DTRP&#x27;&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>Carte Gestion des fonds l. 43 (AVANT)</b><br><span class="path">portail-ci\src\app\features\dashboard\components\dashboard\dashboard.component.html</span></div><pre><button class="copy">Copier</button><code>    &lt;div <span class="k">class</span>=<span class="s">&quot;service-card&quot;</span> id=<span class="s">&quot;fund-management&quot;</span> *ngIf=<span class="s">&quot;canAccessFundManagement&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Carte Gestion des fonds l. 43 (APRÈS)</b><br><span class="path">portail-ci\src\app\features\dashboard\components\dashboard\dashboard.component.html</span></div><p class="note">Dans <code>dashboard.component.ts</code>, <code>canAccessFundManagement</code> et le code qui le calcule n'ont plus d'usage : Ctrl+F et supprimer (champ + <code>checkCardPermissions</code> / appel dans <code>ngOnInit</code> si c'est le code livré le 21/09).</p><pre><button class="copy">Copier</button><code>    &lt;div <span class="k">class</span>=<span class="s">&quot;service-card&quot;</span> id=<span class="s">&quot;fund-management&quot;</span> *appSiPlateforme=<span class="s">&quot;&#x27;GESTION_FONDS&#x27;&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>Carte Mainlevée l. 64-76 (AVANT)</b><br><span class="path">portail-ci\src\app\features\dashboard\components\dashboard\dashboard.component.html</span></div><p class="note">Ctrl+F <code>mainlevee.png</code> : les 13 lignes au-dessus incluses.</p><pre><button class="copy">Copier</button><code>    &lt;div <span class="k">class</span>=<span class="s">&quot;service-card&quot;</span> id=<span class="s">&quot;derogation&quot;</span>&gt;
+      <span class="c">&lt;!-- Container pour l&#x27;effet d&#x27;arcs --&gt;</span>
+      &lt;div <span class="k">class</span>=<span class="s">&quot;arc-container&quot;</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-1&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-2&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-3&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-4&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-5&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-6&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-7&quot;</span>&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;service-card-icon&quot;</span>&gt;
+        &lt;img src=<span class="s">&quot;assets/icons/mainlevee.png&quot;</span> <span class="k">class</span>=<span class="s">&quot;icon-img&quot;</span> alt=<span class="s">&quot;Icon&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Carte Mainlevée (APRÈS)</b><br><span class="path">portail-ci\src\app\features\dashboard\components\dashboard\dashboard.component.html</span></div><p class="note">Seule la 1ʳᵉ ligne change (id + directive) ; le reste est recopié pour lever toute ambiguïté.</p><pre><button class="copy">Copier</button><code>    &lt;div <span class="k">class</span>=<span class="s">&quot;service-card&quot;</span> id=<span class="s">&quot;mainlevee&quot;</span> *appSiPlateforme=<span class="s">&quot;&#x27;ML_CHAB&#x27;&quot;</span>&gt;
+      <span class="c">&lt;!-- Container pour l&#x27;effet d&#x27;arcs --&gt;</span>
+      &lt;div <span class="k">class</span>=<span class="s">&quot;arc-container&quot;</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-1&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-2&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-3&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-4&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-5&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-6&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-7&quot;</span>&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;service-card-icon&quot;</span>&gt;
+        &lt;img src=<span class="s">&quot;assets/icons/mainlevee.png&quot;</span> <span class="k">class</span>=<span class="s">&quot;icon-img&quot;</span> alt=<span class="s">&quot;Icon&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>Carte Droits de Communication l. 85-97 (AVANT)</b><br><span class="path">portail-ci\src\app\features\dashboard\components\dashboard\dashboard.component.html</span></div><p class="note">Ctrl+F <code>icon-droit-com.png</code> : les 13 lignes au-dessus incluses.</p><pre><button class="copy">Copier</button><code>    &lt;div <span class="k">class</span>=<span class="s">&quot;service-card&quot;</span> id=<span class="s">&quot;derogation&quot;</span>&gt;
+      <span class="c">&lt;!-- Container pour l&#x27;effet d&#x27;arcs --&gt;</span>
+      &lt;div <span class="k">class</span>=<span class="s">&quot;arc-container&quot;</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-1&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-2&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-3&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-4&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-5&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-6&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-7&quot;</span>&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;service-card-icon&quot;</span>&gt;
+        &lt;img src=<span class="s">&quot;assets/icons/icon-droit-com.png&quot;</span> <span class="k">class</span>=<span class="s">&quot;icon-img&quot;</span> alt=<span class="s">&quot;Icon&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Carte Droits de Communication (APRÈS)</b><br><span class="path">portail-ci\src\app\features\dashboard\components\dashboard\dashboard.component.html</span></div><pre><button class="copy">Copier</button><code>    &lt;div <span class="k">class</span>=<span class="s">&quot;service-card&quot;</span> id=<span class="s">&quot;droit-communication&quot;</span> *appSiPlateforme=<span class="s">&quot;&#x27;DC&#x27;&quot;</span>&gt;
+      <span class="c">&lt;!-- Container pour l&#x27;effet d&#x27;arcs --&gt;</span>
+      &lt;div <span class="k">class</span>=<span class="s">&quot;arc-container&quot;</span>&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-1&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-2&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-3&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-4&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-5&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-6&quot;</span>&gt;&lt;/div&gt;
+        &lt;div <span class="k">class</span>=<span class="s">&quot;arc arc-7&quot;</span>&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div <span class="k">class</span>=<span class="s">&quot;service-card-icon&quot;</span>&gt;
+        &lt;img src=<span class="s">&quot;assets/icons/icon-droit-com.png&quot;</span> <span class="k">class</span>=<span class="s">&quot;icon-img&quot;</span> alt=<span class="s">&quot;Icon&quot;</span>&gt;</code></pre></div><h2 id="recette">3. Contrôle base et recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>qf_admin — permissions par plateforme</b><br><span class="path">recette\355_plateformes.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- qf_admin : ce que le dashboard va utiliser (contrôle avant recette)</span>
+<span class="k">set</span> search_path to qf_admin;
+select r.platform, rp.permission, count(distinct pr.profile_id) as nb_profils
+<span class="k">from</span> hab_roles r
+join hab_role_permission rp on rp.role_id = r.id
+left join hab_profile_role pr on pr.role_id = r.id
+group by r.platform, rp.permission order by 1, 2;
+<span class="c">-- Toute permission ML_* / DC_* portée par un rôle de plateforme ML_CHAB / DC donne accès à la carte correspondante.</span>
+<span class="c">-- Un profil sans aucune permission d&#x27;une plateforme ne voit pas sa carte : si un profil métier doit voir Mainlevée</span>
+<span class="c">-- ou Droits de com, on lui rattache un rôle de cette plateforme (console Droits) — aucun code à ajouter dans le portail.</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Scénarios</b><br><span class="path">recette\AER_LM-355.txt</span></div><pre><button class="copy">Copier</button><code>1. g10002 (Chef de caisse, rôle GDF Agence) : dashboard = carte Gestion des fonds seule (ni Dérogation, ni Mainlevée, ni Droits de com).
+2. h11111 (Super Admin, V17 : DTRP_CHOIX_WF + GDF_* sur le rôle 8) : Dérogation + Gestion des fonds visibles.
+3. Utilisateur Pôle monétique (rôle GDF Opérations monétique, sans GDF_CONSULTER_DEMANDE) : Gestion des fonds visible.
+4. Utilisateur DTRP (profil CONSEILLER / DA avec rôles 1-7) : Dérogation visible.
+5. Mainlevée / Droits de com : visibles pour un profil porteur d&#x27;un rôle ML_CHAB / DC (voir SQL), absents sinon.
+6. Network : 1 seul GET …/habilitations/platforms/active par chargement du dashboard (4 cartes → 1 appel).
+7. Couper utilisateurs-ci puis recharger le dashboard : toutes les cartes affichées, console « référentiel des plateformes injoignable » (le back refuse l&#x27;accès de toute façon).
+8. ng test : plateformes.service.spec (3), si-plateforme.directive.spec (1) verts ; ng build sans NG8002 (directive importée dans le module du dashboard).</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>

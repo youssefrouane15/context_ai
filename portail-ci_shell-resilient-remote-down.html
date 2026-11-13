@@ -1,0 +1,146 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>portail-ci — shell résilient : un micro-frontend arrêté ne bloque plus le portail · manifest MF dérivé de config/app-config.json</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>portail-ci — shell résilient : un micro-frontend arrêté ne bloque plus le portail · manifest MF dérivé de config/app-config.json</h1><p>main.ts : config → initFederation(manifest, skipRemoteEntries) → bootstrap · route /portail avec repli ModuleIndisponibleComponent · suppression de assets/mf.manifest.json · 13/11/2026</p></header><nav><a href="#cause">Cause et principe</a><a href="#fichiers">Fichiers</a><a href="#recette">Recette</a></nav><main><h2 id="cause">0. Cause et principe</h2><div class="card"><b>Cause</b> : <code>main.ts</code> appelle <code>initFederation('/assets/mf.manifest.json')</code> qui, par défaut, <b>télécharge tous les <code>remoteEntry.js</code> du manifest avant le bootstrap</b>. Si fund-management-front est arrêté, la promesse rejette (<code>ERR_CONNECTION_REFUSED</code>, « Failed to fetch dynamically imported module »), <code>import('./bootstrap')</code> n'est jamais appelé → page blanche. C'est l'erreur que tu avais partagée.<br><br>
+<b>Fix</b> (3 pièces) : (1) <code>initFederation(manifest, <b>true</b>)</code> — <code>skipRemoteEntries</code> : le manifest est enregistré, les <code>remoteEntry.js</code> sont chargés <b>à la demande</b> par <code>loadRemoteModule</code> (route <code>/portail</code>, <code>CHARGEUR_MENU_GESFOND</code>), qui ont déjà chacun leur <code>catch</code> côté menu ; (2) la route <code>/portail</code> retombe sur une page « module indisponible » au lieu d'une navigation en erreur ; (3) le bootstrap a lieu quoi qu'il arrive.<br><br>
+<b>Manifest depuis app-config.json</b> : <code>initFederation</code> accepte un objet <code>{ remoteName: url }</code> aussi bien qu'une URL de fichier. L'URL du remote est désormais <code>fundManagementUrl + '/remoteEntry.js'</code> (clé déjà présente dans <code>config/app-config.json</code> et <code>environment</code>) ; <code>assets/mf.manifest.json</code> disparaît — l'intégrateur n'a plus qu'un fichier à écraser. La config est donc chargée <b>avant</b> la fédération, dans <code>main.ts</code> ; <code>configuration.ts</code> n'importe rien d'Angular, il peut y être importé sans casser le graphe partagé.</div><h2 id="fichiers">1. Fichiers</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>core/config/federation.ts</b><br><span class="path">portail-ci\src\app\core\config\federation.ts</span></div><p class="note">À côté de <code>configuration.ts</code>.</p><pre><button class="copy">Copier</button><code><span class="c">/**
+ * Module Federation : le manifest n&#x27;est plus un fichier d&#x27;assets (mf.manifest.json) mais est dérivé de config/app-config.json
+ * (clé fundManagementUrl, écrasée par le CD de l&#x27;intégrateur) → une seule source d&#x27;URL d&#x27;environnement.
+ */</span>
+<span class="k">export</span> <span class="k">const</span> REMOTE_GESFOND = <span class="s">&#x27;qlickFlowFMFront&#x27;</span>;
+
+<span class="c">/** Manifest attendu par initFederation / loadRemoteModule({ type: &#x27;manifest&#x27;, remoteName }). */</span>
+<span class="k">export</span> <span class="k">function</span> manifestFederation(fundManagementUrl: string): Record&lt;string, string&gt; {
+  <span class="k">const</span> base = (fundManagementUrl || <span class="s">&#x27;&#x27;</span>).replace(/\/+$/, <span class="s">&#x27;&#x27;</span>);
+  <span class="k">return</span> { [REMOTE_GESFOND]: <span class="s">`${base}/remoteEntry.js`</span> };
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>core/config/federation.spec.ts</b><br><span class="path">portail-ci\src\app\core\config\federation.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { REMOTE_GESFOND, manifestFederation } <span class="k">from</span> <span class="s">&#x27;./federation&#x27;</span>;
+
+describe(<span class="s">&#x27;manifestFederation&#x27;</span>, () =&gt; {
+  it(<span class="s">&#x27;construit l\&#x27;URL du remoteEntry depuis fundManagementUrl&#x27;</span>, () =&gt; {
+    expect(manifestFederation(<span class="s">&#x27;http://localhost:4201&#x27;</span>)).toEqual({ [REMOTE_GESFOND]: <span class="s">&#x27;http://localhost:4201/remoteEntry.js&#x27;</span> });
+  });
+  it(<span class="s">&#x27;tolère un slash final&#x27;</span>, () =&gt; {
+    expect(manifestFederation(<span class="s">&#x27;https://gesfond.dev.echonet/&#x27;</span>)[REMOTE_GESFOND]).toBe(<span class="s">&#x27;https://gesfond.dev.echonet/remoteEntry.js&#x27;</span>);
+  });
+});</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>main.ts</b><br><span class="path">portail-ci\src\main.ts</span></div><p class="note">Remplace les 5 lignes actuelles. <code>bootstrap.ts</code> ne change pas. L'<code>APP_INITIALIZER</code> d'<code>app.module.ts</code> continue d'appeler <code>chargerConfiguration()</code> : la promesse est mutualisée, aucun 2ᵉ appel réseau.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { initFederation } <span class="k">from</span> <span class="s">&#x27;@angular-architects/module-federation&#x27;</span>;
+<span class="k">import</span> { chargerConfiguration } <span class="k">from</span> <span class="s">&#x27;./app/core/config/configuration&#x27;</span>;
+<span class="k">import</span> { manifestFederation } <span class="k">from</span> <span class="s">&#x27;./app/core/config/federation&#x27;</span>;
+<span class="k">import</span> { environment } <span class="k">from</span> <span class="s">&#x27;./environments/environment&#x27;</span>;
+
+<span class="c">/*
+ * Ordre de démarrage du shell :
+ *  1. config/app-config.json → environment (apiUrl, fundManagementUrl…) — AVANT la fédération, qui a besoin de l&#x27;URL du remote ;
+ *  2. initFederation avec le manifest dérivé de la config, skipRemoteEntries = true : remoteEntry.js n&#x27;est plus téléchargé ici
+ *     mais à la demande (route /portail, menu GesFond). Un micro-frontend arrêté ne bloque donc plus le portail ;
+ *  3. bootstrap Angular, quoi qu&#x27;il arrive.
+ * Aucun import @angular/* dans ce fichier : il doit rester hors du graphe partagé (d&#x27;où le import(&#x27;./bootstrap&#x27;) dynamique).
+ */</span>
+(<span class="k">async</span> () =&gt; {
+  <span class="k">try</span> {
+    <span class="k">await</span> chargerConfiguration();
+  } <span class="k">catch</span> (err) {
+    console.error(<span class="s">&#x27;[config] chargement impossible, le portail démarre avec les valeurs du build&#x27;</span>, err);
+  }
+  <span class="k">try</span> {
+    <span class="k">await</span> initFederation(manifestFederation(environment.fundManagementUrl), <span class="k">true</span>);
+  } <span class="k">catch</span> (err) {
+    console.error(<span class="s">&#x27;[mf] initialisation de la fédération impossible — le portail continue sans micro-frontend&#x27;</span>, err);
+  }
+  <span class="k">await</span> <span class="k">import</span>(<span class="s">&#x27;./bootstrap&#x27;</span>);
+})().<span class="k">catch</span>(err =&gt; console.error(err));</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>shared/components/module-indisponible/module-indisponible.component.ts</b><br><span class="path">portail-ci\src\app\shared\components\module-indisponible\module-indisponible.component.ts</span></div><p class="note">Standalone (Angular 17) : référencé directement par la route, <b>rien à déclarer</b> dans <code>app.module.ts</code>. Créer le dossier <code>shared/components</code> s'il n'existe pas (<code>shared/</code> existe : <code>interfaces/</code>).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { Component } <span class="k">from</span> <span class="s">&#x27;@angular/core&#x27;</span>;
+<span class="k">import</span> { RouterLink } <span class="k">from</span> <span class="s">&#x27;@angular/router&#x27;</span>;
+
+<span class="c">/** Affiché à la place d&#x27;un micro-frontend injoignable (chargement de remoteEntry.js en échec). Standalone : aucune déclaration de module. */</span>
+@Component({
+  selector: <span class="s">&#x27;app-module-indisponible&#x27;</span>,
+  standalone: <span class="k">true</span>,
+  imports: [RouterLink],
+  template: <span class="s">`
+    &lt;section class=&quot;module-indisponible&quot; role=&quot;alert&quot;&gt;
+      &lt;h2&gt;Module momentanément indisponible&lt;/h2&gt;
+      &lt;p&gt;Ce service ne répond pas pour le moment. Réessayez dans quelques instants ; si le problème persiste, contactez le support QlickFlow.&lt;/p&gt;
+      &lt;a routerLink=&quot;/dashboard&quot; class=&quot;module-indisponible__retour&quot;&gt;Retour à l&#x27;accueil&lt;/a&gt;
+    &lt;/section&gt;
+  `</span>,
+  styles: [<span class="s">`
+    .module-indisponible { max-width: 560px; margin: 64px auto; padding: 32px; text-align: center; background: #fff; border: 1px solid #e1e1e1; border-radius: 8px; }
+    .module-indisponible h2 { margin: 0 0 12px; color: #0e6a38; font-size: 1.25rem; }
+    .module-indisponible p { margin: 0 0 24px; color: #555; }
+    .module-indisponible__retour { display: inline-block; padding: 10px 24px; border-radius: 4px; background: #0e6a38; color: #fff; text-decoration: none; font-weight: 600; }
+  `</span>]
+})
+<span class="k">export</span> <span class="k">class</span> ModuleIndisponibleComponent {}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>module-indisponible.component.spec.ts</b><br><span class="path">portail-ci\src\app\shared\components\module-indisponible\module-indisponible.component.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { ComponentFixture, TestBed } <span class="k">from</span> <span class="s">&#x27;@angular/core/testing&#x27;</span>;
+<span class="k">import</span> { provideRouter } <span class="k">from</span> <span class="s">&#x27;@angular/router&#x27;</span>;
+<span class="k">import</span> { ModuleIndisponibleComponent } <span class="k">from</span> <span class="s">&#x27;./module-indisponible.component&#x27;</span>;
+
+describe(<span class="s">&#x27;ModuleIndisponibleComponent&#x27;</span>, () =&gt; {
+  <span class="k">let</span> fixture: ComponentFixture&lt;ModuleIndisponibleComponent&gt;;
+
+  beforeEach(<span class="k">async</span> () =&gt; {
+    <span class="k">await</span> TestBed.configureTestingModule({ imports: [ModuleIndisponibleComponent], providers: [provideRouter([])] }).compileComponents();
+    fixture = TestBed.createComponent(ModuleIndisponibleComponent);
+    fixture.detectChanges();
+  });
+
+  it(<span class="s">&#x27;affiche le message et le lien de retour&#x27;</span>, () =&gt; {
+    <span class="k">const</span> el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector(<span class="s">&#x27;h2&#x27;</span>)?.textContent).toContain(<span class="s">&#x27;indisponible&#x27;</span>);
+    expect(el.querySelector(<span class="s">&#x27;a&#x27;</span>)?.getAttribute(<span class="s">&#x27;href&#x27;</span>)).toBe(<span class="s">&#x27;/dashboard&#x27;</span>);
+  });
+});</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>app-routing.module.ts — imports</b><br><span class="path">portail-ci\src\app\app-routing.module.ts</span></div><p class="note">Dans le bloc <code>import …</code> replié (l. 1-13), après les imports existants.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { REMOTE_GESFOND } <span class="k">from</span> <span class="s">&#x27;./core/config/federation&#x27;</span>;
+<span class="k">import</span> { ModuleIndisponibleComponent } <span class="k">from</span> <span class="s">&#x27;./shared/components/module-indisponible/module-indisponible.component&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>app-routing.module.ts — route portail l. 40-46 (AVANT)</b><br><span class="path">portail-ci\src\app\app-routing.module.ts</span></div><p class="note">Ctrl+F <code>path: 'portail'</code>.</p><pre><button class="copy">Copier</button><code>      {
+        path: <span class="s">&#x27;portail&#x27;</span>,
+        loadChildren: () =&gt; loadRemoteModule({
+          <span class="k">type</span>: <span class="s">&#x27;manifest&#x27;</span>,
+          remoteName: <span class="s">&#x27;qlickFlowFMFront&#x27;</span>,
+          exposedModule: <span class="s">&#x27;./Routes&#x27;</span>
+        }).then(m =&gt; m.routes)</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>app-routing.module.ts — route portail (APRÈS)</b><br><span class="path">portail-ci\src\app\app-routing.module.ts</span></div><p class="note">La suite de l'objet route (l. 47+, <code>canActivate</code> ou fermeture) ne change pas.</p><pre><button class="copy">Copier</button><code>      {
+        path: <span class="s">&#x27;portail&#x27;</span>,
+        loadChildren: () =&gt; loadRemoteModule({
+          <span class="k">type</span>: <span class="s">&#x27;manifest&#x27;</span>,
+          remoteName: REMOTE_GESFOND,
+          exposedModule: <span class="s">&#x27;./Routes&#x27;</span>
+        }).then(m =&gt; m.routes)
+          <span class="c">// micro-frontend injoignable (arrêté, URL fausse, réseau) : page « module indisponible » au lieu d&#x27;une navigation en erreur</span>
+          .<span class="k">catch</span>(err =&gt; {
+            console.error(<span class="s">&#x27;[mf] Gestion des fonds indisponible&#x27;</span>, err);
+            <span class="k">return</span> [{ path: <span class="s">&#x27;**&#x27;</span>, component: ModuleIndisponibleComponent }];
+          })</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>src/assets/mf.manifest.json</b><br><span class="path">portail-ci\src\assets\mf.manifest.json</span></div><pre><button class="copy">Copier</button><code><span class="c">// Supprimer le fichier : le manifest est construit depuis config/app-config.json (fundManagementUrl).</span></code></pre></div><div class="card"><b>Pas touché, volontairement</b> : <code>menu-module.service.ts</code> — <code>CHARGEUR_MENU_GESFOND</code> utilise <code>type: 'manifest'</code> et <code>chargerModule()</code> a déjà son <code>catch</code> (« Gestion des fonds indisponible » → menu vide) ; il bénéficie du manifest enregistré par <code>initFederation</code> sans modification. <code>webpack.config.js</code> idem.</div><h2 id="recette">2. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours A → C</b><br><span class="path">recette\shell-resilient.txt</span></div><pre><button class="copy">Copier</button><code>Pré-requis : portail-ci avec la config externalisée (app-config.json : apiUrl + fundManagementUrl), fund-management-front sur 4201.
+
+A. Remote arrêté (ne PAS lancer ng serve du MFE)
+   1. http:<span class="c">//localhost:4200 → le portail s&#x27;affiche (login, dashboard). Console : aucune erreur « Failed to fetch dynamically imported module …/remoteEntry.js » au démarrage.</span>
+      Network : GET config/app-config.json = 200 ; AUCUNE requête remoteEntry.js avant le clic.
+   2. Dashboard → carte « Gestion des fonds » → ACCÉDER → page « Module momentanément indisponible » + bouton Retour ; console : « [mf] Gestion des fonds indisponible ».
+      Le header / menu du portail restent fonctionnels ; Dérogation, Mainlevée, Droits de com inchangés.
+   3. Retour à l&#x27;accueil → dashboard.
+
+B. Remote démarré
+   4. ng serve du MFE (4201). F5 sur le portail (obligatoire : un <span class="k">import</span>() échoué reste en échec dans le navigateur jusqu&#x27;au rechargement).
+   5. Carte Gestion des fonds → écran GesFond, menu GesFond chargé (CHARGEUR_MENU_GESFOND). Network : remoteEntry.js chargé APRÈS le clic, depuis fundManagementUrl.
+   6. Changer <span class="s">&quot;fundManagementUrl&quot;</span> dans src/config/app-config.json vers http:<span class="c">//localhost:9999 → F5 → clic carte → page indisponible (preuve que le manifest vient du fichier). Remettre 4201.</span>
+
+C. Qualité
+   7. ng test : federation.spec (2), module-indisponible.component.spec (1) verts.
+   8. Ctrl+Maj+F « mf.manifest.json » dans src : 0 résultat.
+   Pour l<span class="s">&#x27;intégrateur : plus de fichier manifest à écraser — l&#x27;</span>URL du MFE = clé fundManagementUrl de config/app-config.json.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
