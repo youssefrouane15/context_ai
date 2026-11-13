@@ -1,0 +1,236 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-353 — Synchronisation de retail.user_profile à la première connexion (et aux suivantes)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-353 — Synchronisation de retail.user_profile à la première connexion (et aux suivantes)</h1><p>fund-management : upsert depuis IdentiteAppelantResolver (déjà alimenté par /internal/users/{uid}) via SynchroniserUtilisateurUseCase → UserProfileRepository.synchroniser · utilisateurs-ci : profileType exposé dans ProfileDTO · seed de 4 utilisateurs de test + recette · v2 13/11/2026 (records imbriqués, insertion dans resoudre)</p></header><nav><a href="#conception">Conception</a><a href="#users">utilisateurs-ci (2 lignes)</a><a href="#domaine">fund-management — domaine et ports</a><a href="#adapters">fund-management — adapters</a><a href="#recette">Cas de test et recette</a></nav><main><h2 id="conception">0. Conception</h2><div class="card"><b>Où</b> : <code>IdentiteAppelantResolver</code> appelle déjà <code>GET /internal/users/{uid}</code> à chaque appel authentifié (cache 5 min) — c'est le seul endroit où fund-management « voit » l'utilisateur du référentiel, et il ne le voit que s'il est authentifié par le portail (prérequis de la Jira). On y greffe un <b>upsert</b> de <code>retail.user_profile</code> (insert à la 1ʳᵉ connexion, mise à jour ensuite : un changement de profil dans la console est répercuté). Pas d'endpoint, pas de batch, pas de BPMN.<br>
+<b>Hexagonal</b> : VO <code>ProfilUtilisateur</code> (domain-core, <code>valueobjects.utilisateur</code>) → port d'entrée <code>SynchroniserUtilisateurUseCase</code> → port de sortie <code>UserProfileRepository.synchroniser</code> → adapter JPA. Le resolver (couche application) ne parle qu'au port d'entrée.<br>
+<b>Données</b> : <code>user_profile(uid, profile_code, profile_label, profile_type)</code>. <code>/internal/users/{uid}</code> renvoie <code>profile.code</code> et <code>profile.name</code>, mais <b>pas le type</b> (absent de <code>ProfileDTO</code> côté utilisateurs-ci alors que l'entité le porte) → 2 lignes dans utilisateurs-ci pour l'exposer, et <code>ProfilInterneDTO</code> lit <code>name</code> + <code>profileType</code>. Tant que la MR users n'est pas déployée, <code>profile_type</code> est <code>null</code> (pas d'échec : Jackson ignore l'absence).<br>
+<b>Jamais bloquant</b> : échec base → WARN, l'appel métier continue (la photo locale n'autorise rien, c'est le JWT + <code>/internal/users</code> qui autorisent).</div><h2 id="users">1. utilisateurs-ci (2 lignes)</h2><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>dto/hab/ProfileDTO.java</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\dto\hab\ProfileDTO.java</span></div><p class="note">Lombok <code>@Builder/@Data</code> comme les autres DTO hab (captures 15/09). Le champ apparaît aussi dans <code>GET /me</code> (portail), sans effet.</p><pre><button class="copy">Copier</button><code>    <span class="c">// utilisateurs-ci — dto/hab/ProfileDTO.java : exposer le type de profil (absent aujourd&#x27;hui du DTO, présent sur ProfileEntity).</span>
+    <span class="c">// Ctrl+F « private boolean actif » dans ProfileDTO : ajouter juste dessous</span>
+    <span class="k">private</span> <span class="k">String</span> profileType;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>mapper/ProfileMapper.java — toDto</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\mapper\ProfileMapper.java</span></div><p class="note"><code>ProfileEntity.profileType</code> est l'enum <code>ProfileType</code> (STANDARD_USER / USER_ADMIN / PROFILE_ADMIN / SUPER_ADMIN).</p><pre><button class="copy">Copier</button><code>    <span class="c">// utilisateurs-ci — mapper/ProfileMapper.java, méthode toDto(ProfileEntity) : une ligne dans le builder, à côté de .actif(entity.isActif())</span>
+                .profileType(entity.getProfileType() == <span class="k">null</span> ? <span class="k">null</span> : entity.getProfileType().name())</code></pre></div><h2 id="domaine">2. fund-management — domaine et ports</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>ProfilUtilisateur.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\valueobjects\utilisateur\ProfilUtilisateur.java</span></div><p class="note">Nouveau sous-package <code>valueobjects.utilisateur</code> (convention : VO sous <code>retail.valueobjects.&lt;sujet&gt;</code>).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.q360.domain.retail.valueobjects.utilisateur;
+
+<span class="c">/**
+ * AER_LM-353 — photo d&#x27;un utilisateur du référentiel (utilisateurs-ci) telle que fund-management la conserve
+ * dans retail.user_profile. Alimentée à la première connexion et rafraîchie ensuite (profil / agence peuvent changer).
+ *
+ * @param uid          identifiant BMCI (ex. j61104)
+ * @param profileCode  code du profil utilisateurs-ci (DA, CHEF_CAISSE, CAISSE_CENTRALE, SUPPORT, …)
+ * @param profileLabel libellé du profil (ex. « Directeur d&#x27;agence »)
+ * @param profileType  type du profil (STANDARD_USER, USER_ADMIN, PROFILE_ADMIN, SUPER_ADMIN)
+ */</span>
+<span class="k">public</span> <span class="k">record</span> ProfilUtilisateur(<span class="k">String</span> uid, <span class="k">String</span> profileCode, <span class="k">String</span> profileLabel, <span class="k">String</span> profileType) {
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>UserProfileRepository.java (port output)</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\repository\UserProfileRepository.java</span></div><p class="note">Sous <code>uidsParProfil</code>. Import du VO.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-353 : crée ou met à jour la photo de l&#x27;utilisateur (uid unique). Idempotent. */</span>
+    <span class="k">void</span> synchroniser(ProfilUtilisateur profil);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>SynchroniserUtilisateurUseCase.java (port input)</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\…\retail\ports\inputs\service\SynchroniserUtilisateurUseCase.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.ports.inputs.service;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.utilisateur.ProfilUtilisateur;
+
+<span class="c">/** AER_LM-353 — mise à jour de retail.user_profile à partir de l&#x27;identité résolue auprès d&#x27;utilisateurs-ci. */</span>
+<span class="k">public</span> <span class="k">interface</span> SynchroniserUtilisateurUseCase {
+
+    <span class="c">/** Jamais bloquant pour l&#x27;appel en cours : un échec est journalisé, l&#x27;utilisateur reste authentifié. */</span>
+    <span class="k">void</span> synchroniser(ProfilUtilisateur profil);
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>SynchroniserUtilisateurUseCaseImpl.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\SynchroniserUtilisateurUseCaseImpl.java</span></div><p class="note">Même package et même style que <code>CashDemandUseCaseImpl</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.utilisateur.ProfilUtilisateur;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.inputs.service.SynchroniserUtilisateurUseCase;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.UserProfileRepository;
+<span class="k">import</span> lombok.RequiredArgsConstructor;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.stereotype.Service;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+<span class="k">public</span> <span class="k">class</span> SynchroniserUtilisateurUseCaseImpl <span class="k">implements</span> SynchroniserUtilisateurUseCase {
+
+    <span class="k">private</span> <span class="k">final</span> UserProfileRepository userProfileRepository;
+
+    @Override
+    <span class="k">public</span> <span class="k">void</span> synchroniser(ProfilUtilisateur profil) {
+        <span class="k">if</span> (profil == <span class="k">null</span> || profil.uid() == <span class="k">null</span> || profil.uid().isBlank()) {
+            <span class="k">return</span>;
+        }
+        <span class="k">try</span> {
+            userProfileRepository.synchroniser(profil);
+            log.debug(<span class="s">&quot;[user-profile] {} synchronisé ({})&quot;</span>, profil.uid(), profil.profileCode());
+        } <span class="k">catch</span> (RuntimeException e) {
+            <span class="c">// La photo locale n&#x27;est pas nécessaire pour autoriser l&#x27;appel : on trace, on ne bloque pas.</span>
+            log.warn(<span class="s">&quot;[user-profile] synchronisation impossible pour {} : {}&quot;</span>, profil.uid(), e.getMessage());
+        }
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>SynchroniserUtilisateurUseCaseImplTest.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\SynchroniserUtilisateurUseCaseImplTest.java</span></div><p class="note">Convention : <code>Mockito.</code> qualifié, assertions JUnit, aucun stub global.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.utilisateur.ProfilUtilisateur;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.repository.UserProfileRepository;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.InjectMocks;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+@ExtendWith(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> SynchroniserUtilisateurUseCaseImplTest {
+
+    @Mock
+    UserProfileRepository userProfileRepository;
+    @InjectMocks
+    SynchroniserUtilisateurUseCaseImpl useCase;
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> ProfilUtilisateur DA = <span class="k">new</span> ProfilUtilisateur(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;DA&quot;</span>, <span class="s">&quot;Directeur d&#x27;agence&quot;</span>, <span class="s">&quot;STANDARD_USER&quot;</span>);
+
+    @Test
+    <span class="k">void</span> synchroniser_deleguAuRepository() {
+        useCase.synchroniser(DA);
+
+        Mockito.verify(userProfileRepository).synchroniser(DA);
+    }
+
+    @Test
+    <span class="k">void</span> synchroniser_sansUid_neFaitRien() {
+        useCase.synchroniser(<span class="k">new</span> ProfilUtilisateur(<span class="s">&quot; &quot;</span>, <span class="s">&quot;DA&quot;</span>, <span class="s">&quot;Directeur d&#x27;agence&quot;</span>, <span class="s">&quot;STANDARD_USER&quot;</span>));
+        useCase.synchroniser(<span class="k">null</span>);
+
+        Mockito.verifyNoInteractions(userProfileRepository);
+    }
+
+    @Test
+    <span class="k">void</span> synchroniser_echecBase_neRemontePas() {
+        Mockito.doThrow(<span class="k">new</span> IllegalStateException(<span class="s">&quot;base indisponible&quot;</span>)).when(userProfileRepository).synchroniser(Mockito.any());
+
+        assertDoesNotThrow(() -&gt; useCase.synchroniser(DA));
+    }
+}</code></pre></div><h2 id="adapters">3. fund-management — adapters</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>ProfilInterneDTO.java (livré en v1)</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\ProfilInterneDTO.java</span></div><pre><button class="copy">Copier</button><code><span class="c">// v2 : supprimer ce fichier créé en v1 — chez toi le profil est le record IMBRIQUÉ UtilisateurInterneDTO.ProfilDTO, pas un fichier séparé.</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>UtilisateurInterneDTO.java — record imbriqué ProfilDTO</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\dto\UtilisateurInterneDTO.java</span></div><p class="note">Seul bloc non verbatim du doc : le fichier n'est sur aucune capture.</p><pre><button class="copy">Copier</button><code>UtilisateurInterneDTO.java (external-services, users/dto) — le <span class="k">record</span> imbriqué ProfilDTO doit exposer name et profileType.
+Ctrl+F « <span class="k">record</span> ProfilDTO(» : ajouter les deux composants <span class="k">String</span> name, <span class="k">String</span> profileType juste après <span class="k">String</span> code, ex. :
+    <span class="k">record</span> ProfilDTO(<span class="k">String</span> code, <span class="k">String</span> name, <span class="k">String</span> profileType, List&lt;RoleDTO&gt; roles) {}
+Le <span class="k">record</span> (ou la classe englobante) doit porter @JsonIgnoreProperties(ignoreUnknown = <span class="k">true</span>) — déjà le cas si /me renvoie plus de champs
+que le <span class="k">record</span> n<span class="s">&#x27;en lit (c&#x27;</span>est le cas aujourd&#x27;hui : description, actif, id ne sont pas lus).
+Puis Ctrl+Maj+F « <span class="k">new</span> UtilisateurInterneDTO.ProfilDTO(» (tests) → insérer <span class="k">null</span>, <span class="k">null</span>, après le code.
+→ Envoie-moi UtilisateurInterneDTO.java en capture : je remplace cette note par le bloc AVANT/APRÈS exact et j&#x27;aligne IdentiteAppelantResolverProfilTest.</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>UserProfileJpaRepository.java</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\repository\UserProfileJpaRepository.java</span></div><pre><button class="copy">Copier</button><code>    <span class="c">// Ctrl+F « findByUid » dans UserProfileJpaRepository : si la méthode existe déjà (très probable : CashDemandRepositoryImpl</span>
+    <span class="c">// résout l&#x27;auteur d&#x27;une demande par uid), ne rien faire. Sinon :</span>
+    Optional&lt;UserProfileEntity&gt; findByUid(<span class="k">String</span> uid);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>UserProfileRepositoryImpl.java — synchroniser()</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\UserProfileRepositoryImpl.java</span></div><p class="note">Après <code>uidsParProfil</code>. Setters Lombok de <code>UserProfileEntity</code> (<code>setUid / setProfileCode / setProfileLabel / setProfileType</code>) ; <code>creation_date / modification_date</code> gérés par <code>BaseEntity</code>.</p><pre><button class="copy">Copier</button><code>    <span class="c">// À AJOUTER dans UserProfileRepositoryImpl (data-access, retail.adapter) — import com.bmci.q360.domain.retail.valueobjects.utilisateur.ProfilUtilisateur</span>
+    @Override
+    @Transactional
+    <span class="k">public</span> <span class="k">void</span> synchroniser(ProfilUtilisateur profil) {
+        UserProfileEntity entite = userProfileJpaRepository.findByUid(profil.uid()).orElseGet(() -&gt; {
+            UserProfileEntity nouvelle = <span class="k">new</span> UserProfileEntity();
+            nouvelle.setUid(profil.uid());
+            <span class="k">return</span> nouvelle;
+        });
+        entite.setProfileCode(profil.profileCode());
+        entite.setProfileLabel(profil.profileLabel());
+        entite.setProfileType(profil.profileType());
+        userProfileJpaRepository.save(entite);
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>IdentiteAppelantResolver.java — champ</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\security\IdentiteAppelantResolver.java</span></div><p class="note">Imports : <code>SynchroniserUtilisateurUseCase</code>, <code>ProfilUtilisateur</code>. Ta l. 37 est bonne (<code>@RequiredArgsConstructor</code> prend le paramètre).</p><pre><button class="copy">Copier</button><code>    <span class="c">// À AJOUTER parmi les champs de IdentiteAppelantResolver (classe @Component à constructeur Lombok / explicite : ajouter le paramètre</span>
+    <span class="c">// au constructeur si la classe n&#x27;utilise pas @RequiredArgsConstructor)</span>
+    <span class="k">private</span> <span class="k">final</span> SynchroniserUtilisateurUseCase synchroniserUtilisateur;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>IdentiteAppelantResolver.java — resoudre() l. 45-47 (AVANT)</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\…\security\IdentiteAppelantResolver.java</span></div><p class="note">Ctrl+F <code>.map(this::versIdentite)</code>.</p><pre><button class="copy">Copier</button><code>        Optional&lt;IdentiteAppelant&gt; identite = utilisateursInterneClient.trouverParUid(uid)
+                .filter(UtilisateurInterneDTO::enabled)
+                .map(<span class="k">this</span>::versIdentite);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>IdentiteAppelantResolver.java — resoudre() (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\…\security\IdentiteAppelantResolver.java</span></div><p class="note">Le DTO n'existait pas comme variable (chaîne Optional) : la synchronisation se fait dans le <code>map</code>, sur le chemin cache miss uniquement ; l. 48-49 (mise en cache, return) inchangées.</p><pre><button class="copy">Copier</button><code>        Optional&lt;IdentiteAppelant&gt; identite = utilisateursInterneClient.trouverParUid(uid)
+                .filter(UtilisateurInterneDTO::enabled)
+                .map(dto -&gt; {
+                    synchroniserUtilisateur.synchroniser(profilDe(dto));   <span class="c">// AER_LM-353 : photo locale (user_profile), jamais bloquant</span>
+                    <span class="k">return</span> versIdentite(dto);
+                });</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>IdentiteAppelantResolver.java — profilDe()</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\…\security\IdentiteAppelantResolver.java</span></div><p class="note">v2 : <code>var</code> au lieu du type <code>ProfilInterneDTO</code> (le type réel est <code>UtilisateurInterneDTO.ProfilDTO</code>). Compile dès que <code>name()</code> et <code>profileType()</code> existent sur le record imbriqué (bloc ci-dessus). Import <code>ProfilInterneDTO</code> à retirer.</p><pre><button class="copy">Copier</button><code>    <span class="c">/** AER_LM-353 : projection de l&#x27;identité utilisateurs-ci vers la photo locale (retail.user_profile). */</span>
+    <span class="k">static</span> ProfilUtilisateur profilDe(UtilisateurInterneDTO dto) {
+        <span class="k">var</span> profil = dto.profile();                      <span class="c">// UtilisateurInterneDTO.ProfilDTO (record imbriqué)</span>
+        <span class="k">return</span> <span class="k">new</span> ProfilUtilisateur(
+                dto.uid(),
+                profil == <span class="k">null</span> ? <span class="k">null</span> : profil.code(),
+                profil == <span class="k">null</span> ? <span class="k">null</span> : profil.name(),
+                profil == <span class="k">null</span> ? <span class="k">null</span> : profil.profileType());
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>IdentiteAppelantResolverProfilTest.java</b><br><span class="path">fund-management-microservice\fund-management-application\src\test\java\com\bmci\workflow\fund\management\application\security\IdentiteAppelantResolverProfilTest.java</span></div><p class="note">Les constructeurs des records <code>UtilisateurInterneDTO(uid, email, firstName, lastName, enabled, profile, orgaUnit)</code> et <code>OrgaUnitInterneDTO(id, code, type)</code> sont ceux des captures ; si l'ordre réel diffère, adapter les deux <code>new</code>.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.security;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.utilisateur.ProfilUtilisateur;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.OrgaUnitInterneDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.ProfilInterneDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.UtilisateurInterneDTO;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+
+<span class="k">import</span> java.util.List;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertNull;
+
+<span class="c">/** Package de IdentiteAppelantResolver (profilDe est package-private). */</span>
+<span class="k">class</span> IdentiteAppelantResolverProfilTest {
+
+    @Test
+    <span class="k">void</span> profilDe_projetteCodeLibelleType() {
+        UtilisateurInterneDTO dto = <span class="k">new</span> UtilisateurInterneDTO(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;j61104@bnpparibas.com&quot;</span>, <span class="s">&quot;Marouane&quot;</span>, <span class="s">&quot;MASSOUNE&quot;</span>, <span class="k">true</span>,
+                <span class="k">new</span> ProfilInterneDTO(<span class="s">&quot;DA&quot;</span>, <span class="s">&quot;Directeur d&#x27;agence&quot;</span>, <span class="s">&quot;STANDARD_USER&quot;</span>, List.of()),
+                <span class="k">new</span> OrgaUnitInterneDTO(5L, <span class="s">&quot;1104&quot;</span>, <span class="s">&quot;AGENCE&quot;</span>));
+
+        ProfilUtilisateur p = IdentiteAppelantResolver.profilDe(dto);
+
+        assertEquals(<span class="k">new</span> ProfilUtilisateur(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;DA&quot;</span>, <span class="s">&quot;Directeur d&#x27;agence&quot;</span>, <span class="s">&quot;STANDARD_USER&quot;</span>), p);
+    }
+
+    @Test
+    <span class="k">void</span> profilDe_sansProfil_gardeLUid() {
+        UtilisateurInterneDTO dto = <span class="k">new</span> UtilisateurInterneDTO(<span class="s">&quot;h11111&quot;</span>, <span class="s">&quot;sa@bnpparibas.com&quot;</span>, <span class="s">&quot;Super&quot;</span>, <span class="s">&quot;Admin&quot;</span>, <span class="k">true</span>, <span class="k">null</span>, <span class="k">null</span>);
+
+        ProfilUtilisateur p = IdentiteAppelantResolver.profilDe(dto);
+
+        assertEquals(<span class="s">&quot;h11111&quot;</span>, p.uid());
+        assertNull(p.profileCode());
+    }
+}</code></pre></div><h2 id="recette">4. Cas de test et recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Seed utilisateurs de test (qf_admin) + contrôles</b><br><span class="path">recette\353_seed-users-test.sql</span></div><p class="note">Colonnes de <code>users</code> = celles du seed local livré le 03/11 ; profils par <code>code</code> (V16 : DA, CHEF_CAISSE, CAISSE_CENTRALE, SUPPORT).</p><pre><button class="copy">Copier</button><code><span class="c">-- ===== utilisateurs-ci (schéma qf_admin) : 4 utilisateurs de test AER_LM-353, agence 1422 DAR BOUAAZA =====</span>
+<span class="c">-- Idempotent ; profils résolus par code, agence par code (convention des scripts post-merge). Email = &lt;uid&gt;@bnpparibas.com.</span>
+<span class="k">set</span> search_path to qf_admin;
+
+insert into users (id, uid, email, first_name, last_name, actif, profile_id, organization_unit_id, created_at, updated_at)
+select nextval(<span class="s">&#x27;hab_users_seq&#x27;</span>), v.uid, v.uid || <span class="s">&#x27;@bnpparibas.com&#x27;</span>, v.prenom, v.nom, <span class="k">true</span>,
+       (select id <span class="k">from</span> hab_profiles where code = v.profil),
+       (select id <span class="k">from</span> orga_unit where code = v.agence and <span class="k">type</span> = <span class="s">&#x27;AGENCE&#x27;</span>),
+       now(), now()
+<span class="k">from</span> (values
+  (<span class="s">&#x27;t53001&#x27;</span>, <span class="s">&#x27;Test&#x27;</span>,  <span class="s">&#x27;DIRECTEUR&#x27;</span>,     <span class="s">&#x27;DA&#x27;</span>,              <span class="s">&#x27;1422&#x27;</span>),
+  (<span class="s">&#x27;t53002&#x27;</span>, <span class="s">&#x27;Test&#x27;</span>,  <span class="s">&#x27;CHEF CAISSE&#x27;</span>,   <span class="s">&#x27;CHEF_CAISSE&#x27;</span>,     <span class="s">&#x27;1422&#x27;</span>),
+  (<span class="s">&#x27;t53003&#x27;</span>, <span class="s">&#x27;Test&#x27;</span>,  <span class="s">&#x27;CAISSE CENTRALE&#x27;</span>,<span class="s">&#x27;CAISSE_CENTRALE&#x27;</span>, <span class="k">null</span>),
+  (<span class="s">&#x27;t53004&#x27;</span>, <span class="s">&#x27;Test&#x27;</span>,  <span class="s">&#x27;SUPPORT&#x27;</span>,       <span class="s">&#x27;SUPPORT&#x27;</span>,         <span class="k">null</span>)
+) as v(uid, prenom, nom, profil, agence)
+where not exists (select 1 <span class="k">from</span> users u where u.uid = v.uid);
+
+<span class="c">-- contrôle : 4 lignes, profil et agence résolus (profile_id non nul ; organization_unit_id nul pour CC / Support)</span>
+select u.uid, p.code as profil, p.name as libelle, p.profile_type, o.code as agence
+<span class="k">from</span> users u join hab_profiles p on p.id = u.profile_id left join orga_unit o on o.id = u.organization_unit_id
+where u.uid like <span class="s">&#x27;t530%&#x27;</span> order by 1;
+
+<span class="c">-- ===== fund-management (schéma qf-fund-management ou retail selon le poste) : AVANT la 1re connexion =====</span>
+select uid, profile_code, profile_label, profile_type <span class="k">from</span> user_profile where uid like <span class="s">&#x27;t530%&#x27;</span>;   <span class="c">-- 0 ligne attendue</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Scénarios</b><br><span class="path">recette\AER_LM-353.txt</span></div><pre><button class="copy">Copier</button><code>Pré-requis : seed SQL ci-dessus appliqué dans qf_admin ; fund-management démarré avec les devs 353 ; portail + MFE lancés.
+
+1. Portail → login mock t53001 → Gestion des fonds (ou Postman : POST /mock-auth/login?uid=t53001 puis GET /api/v1/<span class="k">public</span>/fund-management/cash?page=0&amp;size=20).
+   → fund-management log DEBUG « [user-profile] t53001 synchronisé (DA) » (niveau debug sur com.bmci.workflow.fund.management.service.domain.retail si besoin).
+   → select * <span class="k">from</span> user_profile where uid = <span class="s">&#x27;t53001&#x27;</span> : 1 ligne, profile_code = DA, profile_label = Directeur d&#x27;agence, profile_type = STANDARD_USER.
+2. Même chose avec t53002 (CHEF_CAISSE), t53003 (CAISSE_CENTRALE), t53004 (SUPPORT) → 4 lignes dans user_profile.
+3. Rejouer un appel avec t53001 dans les 5 min : pas de nouvelle écriture (cache IdentiteAppelantResolver) ; après 5 min : même ligne (upsert, pas de doublon — uid unique).
+4. Changer le profil de t53002 dans la console (→ DA), attendre l&#x27;expiration du cache (ou redémarrer fund-management), rejouer → user_profile.profile_code = DA pour t53002.
+5. Un uid inconnu d&#x27;utilisateurs-ci → 401 comme avant, rien dans user_profile.
+6. Couper la base fund-management… non testable simplement ; couvert par le test unitaire « echecBase_neRemontePas ».
+7. mvn clean install : SynchroniserUtilisateurUseCaseImplTest (3), IdentiteAppelantResolverProfilTest (2) verts ; tests existants du resolver verts
+   (si un test construit IdentiteAppelantResolver à la main : lui passer un Mockito.mock(SynchroniserUtilisateurUseCase.<span class="k">class</span>) en paramètre supplémentaire).
+8. Côté utilisateurs-ci : GET /api/v1/internal/users/t53001 → profile.profileType = <span class="s">&quot;STANDARD_USER&quot;</span> (après la MR users).
+Nettoyage : delete <span class="k">from</span> qf_admin.users where uid like <span class="s">&#x27;t530%&#x27;</span>; delete <span class="k">from</span> user_profile where uid like <span class="s">&#x27;t530%&#x27;</span>;</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
