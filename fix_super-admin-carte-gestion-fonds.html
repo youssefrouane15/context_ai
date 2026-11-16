@@ -1,0 +1,66 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fix carte Gestion des fonds (Super Admin) + ÉDITER réservé aux utilisateurs GDF</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Fix carte Gestion des fonds (Super Admin) + ÉDITER réservé aux utilisateurs GDF</h1><p>utilisateurs-ci V29 · portail-ci console-user · 16/11/2026</p></header><nav><a href="#cause">Cause</a><a href="#sql">utilisateurs-ci — migration</a><a href="#verif">Vérification</a><a href="#editer">Évolution — ÉDITER réservé aux utilisateurs habilités Gestion des fonds</a></nav><main><h2 id="cause">0. Cause</h2><div class="card">Aucune requête et aucun message au clic : la navigation est <b>refusée en silence par une garde de fund-management-front</b> (un <code>canActivate</code> qui renvoie <code>false</code> ou redirige vers le dashboard ne laisse aucune trace). Le portail, lui, laisse passer : <code>AuthGuard</code> ne teste que <code>currentUser</code>, et la carte s'affiche parce que <code>*appSiPlateforme</code> se base sur les <b>permissions</b>.<br>
+Pourquoi seulement pour h11111 : en V17 (21/09), les permissions <code>GDF_CONSULTER_DEMANDE</code> / <code>GDF_TOUTES_AGENCES</code> ont été ajoutées directement au rôle 8 « Super Admin », qui est de plateforme <code>CONSOLE_ADMIN</code>. Or fund-management-front dérive ses habilitations (<code>deriverContexteGdf</code>) en ne gardant que les rôles de plateforme <code>GESTION_FONDS</code> → pour le SA : aucune habilitation → <code>exigePermission('consulter')</code> refuse. Les autres profils (DA, Chef de caisse, CC, Support) ont un vrai rôle <code>GESTION_FONDS</code>, d'où un bug propre au SA.<br><br>
+<b>Fix</b> : rattacher au profil SA le rôle existant « GDF Support » (consultation + toutes agences, plateforme <code>GESTION_FONDS</code>). Aucun code front ni back à changer. Les permissions déjà posées sur le rôle 8 restent (sans effet).</div><h2 id="sql">1. utilisateurs-ci — migration</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>V29__rattacher_role_gdf_support_super_admin.sql</b><br><span class="path">utilisateurs-ci\src\main\resources\db\migration\V29__rattacher_role_gdf_support_super_admin.sql</span></div><p class="note">Numéro après V28 (droit export Caisse Centrale Admin). Insert idempotent par <code>code</code> de profil et <code>name</code> de rôle, comme les seeds de develop-omega.</p><pre><button class="copy">Copier</button><code><span class="c">-- Le Super Admin (profil SA) n&#x27;avait les permissions GDF que via le rôle 8 « Super Admin » (plateforme CONSOLE_ADMIN, V17).</span>
+<span class="c">-- Le portail affiche la carte (contrôle sur les permissions) mais fund-management-front ne retient que les rôles de la</span>
+<span class="c">-- plateforme GESTION_FONDS : le SA y arrive sans aucune habilitation et la navigation est refusée en silence.</span>
+<span class="c">-- Correctif : rattacher au profil SA le rôle existant « GDF Support » (consultation + toutes agences, plateforme GESTION_FONDS).</span>
+<span class="c">-- Idempotent, sans id en dur.</span>
+INSERT INTO hab_profile_role (profile_id, role_id)
+<span class="k">SELECT</span> p.id, r.id
+<span class="k">FROM</span> hab_profiles p, hab_roles r
+<span class="k">WHERE</span> p.code = <span class="s">&#x27;SA&#x27;</span>
+  <span class="k">AND</span> r.name = <span class="s">&#x27;GDF Support&#x27;</span>
+  <span class="k">AND</span> <span class="k">NOT</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> hab_profile_role pr <span class="k">WHERE</span> pr.profile_id = p.id <span class="k">AND</span> pr.role_id = r.id);</code></pre></div><h2 id="verif">2. Vérification</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Avant / après</b><br><span class="path">recette\super-admin-gestion-fonds.txt</span></div><pre><button class="copy">Copier</button><code>AVANT le script (confirme la cause, 30 s) — connecté en h11111 sur le portail, F12 → Network → Fetch/XHR → recharger la page → requête « me » → Preview :
+  profile.roles[*].platform : seulement CONSOLE_ADMIN (+ éventuellement DTRP), AUCUN rôle GESTION_FONDS
+  alors que GDF_CONSULTER_DEMANDE / GDF_TOUTES_AGENCES apparaissent dans les permissions du rôle « Super Admin ».
+
+APRÈS le script (redémarrer utilisateurs-ci pour que Flyway l&#x27;applique) :
+  1. Contrôle SQL (pgAdmin, schéma qf_admin) — doit renvoyer 1 ligne :
+     <span class="k">SELECT</span> p.code, r.name, r.platform <span class="k">FROM</span> hab_profile_role pr
+       JOIN hab_profiles p <span class="k">ON</span> p.id = pr.profile_id JOIN hab_roles r <span class="k">ON</span> r.id = pr.role_id
+      <span class="k">WHERE</span> p.code = <span class="s">&#x27;SA&#x27;</span> <span class="k">AND</span> r.platform = <span class="s">&#x27;GESTION_FONDS&#x27;</span>;
+  2. Se déconnecter / reconnecter en h11111 (le /me est relu au login).
+  3. Dashboard → carte Gestion des fonds → ACCÉDER : le module s&#x27;ouvre (listing Caisse Centrale / historique en consultation,
+     comme le profil Support), sans bouton Traiter ni Nouvelle demande.</code></pre></div><h2 id="editer">3. Évolution — ÉDITER réservé aux utilisateurs habilités Gestion des fonds</h2><div class="card">Règle : sur chaque ligne, ÉDITER n'est actif que si l'utilisateur de la ligne a au moins une permission <code>GDF_</code> dans les rôles de son profil. On réutilise <code>extractUserPermissions</code> (déjà utilisé par <code>AuthService.hasPermission</code>, même type <code>UserDTO</code>) : aucun nouveau type, aucun appel en plus. Le bouton reste affiché, grisé avec une infobulle ; <code>editUser</code> refuse aussi par sécurité.</div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Import (à ajouter dans le bloc import)</b><br><span class="path">portail-ci\src\app\console\components\console-user\console-user.component.ts</span></div><p class="note">Si le fichier importe déjà d'autres éléments de <code>habilitation.interface</code>, cette ligne en plus compile quand même (deux imports du même module sont autorisés).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { extractUserPermissions } <span class="k">from</span> <span class="s">&#x27;../../../shared/interfaces/habilitation.interface&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>editUser — l. 360-361 (AVANT) — Ctrl+F : &lt;code&gt;editUser(user: UserDTO): void {&lt;/code&gt;</b><br><span class="path">portail-ci\src\app\console\components\console-user\console-user.component.ts</span></div><pre><button class="copy">Copier</button><code>  editUser(user: UserDTO): <span class="k">void</span> {
+    <span class="k">this</span>.isEditing = <span class="k">true</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>editUser — l. 360-361 (APRÈS)</b><br><span class="path">portail-ci\src\app\console\components\console-user\console-user.component.ts</span></div><p class="note">Le reste de <code>editUser</code> (<code>this.isAdding = false;</code> … <code>this.isAddUserModalOpen = true;</code>) est inchangé.</p><pre><button class="copy">Copier</button><code>  <span class="c">/** ÉDITER actif seulement pour un utilisateur habilité Gestion des fonds (au moins une permission GDF_ dans les rôles de son profil). */</span>
+  estHabiliteGestionFonds(user: UserDTO): <span class="k">boolean</span> {
+    <span class="k">return</span> extractUserPermissions(user).some(permission =&gt; permission.code?.startsWith(<span class="s">&#x27;GDF_&#x27;</span>));
+  }
+
+  editUser(user: UserDTO): <span class="k">void</span> {
+    <span class="k">if</span> (!<span class="k">this</span>.estHabiliteGestionFonds(user)) {
+      <span class="k">return</span>;
+    }
+    <span class="k">this</span>.isEditing = <span class="k">true</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>Bouton ÉDITER — l. 82 (AVANT) — Ctrl+F : &lt;code&gt;(click)=&quot;editUser(user)&quot;&gt;&lt;/code&gt;</b><br><span class="path">portail-ci\src\app\console\components\console-user\console-user.component.html</span></div><pre><button class="copy">Copier</button><code>(click)=<span class="s">&quot;editUser(user)&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Bouton ÉDITER — l. 82 (APRÈS)</b><br><span class="path">portail-ci\src\app\console\components\console-user\console-user.component.html</span></div><p class="note">Garde l'indentation de la ligne 82. Lignes 79-81 (<code>&lt;button</code>, <code>class</code>, <code>[class.console-mode]</code>) et 83-85 inchangées.</p><pre><button class="copy">Copier</button><code>(click)=<span class="s">&quot;editUser(user)&quot;</span>
+[disabled]=<span class="s">&quot;!estHabiliteGestionFonds(user)&quot;</span>
+[style.opacity]=<span class="s">&quot;estHabiliteGestionFonds(user) ? 1 : 0.4&quot;</span>
+[style.cursor]=<span class="s">&quot;estHabiliteGestionFonds(user) ? &#x27;pointer&#x27; : &#x27;not-allowed&#x27;&quot;</span>
+[title]=<span class="s">&quot;estHabiliteGestionFonds(user) ? &#x27;&#x27; : &#x27;Modification réservée aux utilisateurs habilités Gestion des fonds&#x27;&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Recette</b><br><span class="path">recette\console-editer-gdf.txt</span></div><pre><button class="copy">Copier</button><code>Console → Utilisateurs (connecté en h11111) :
+  - ligne d<span class="s">&#x27;un utilisateur GDF (ex. j61104 DA, j62211 Chef de caisse, c63005 Caisse Centrale) : ÉDITER cliquable, la modale s&#x27;</span>ouvre.
+  - ligne d&#x27;un utilisateur sans rôle Gestion des fonds (ex. un utilisateur Dérogation seul) : ÉDITER grisé, curseur interdit,
+    infobulle « Modification réservée aux utilisateurs habilités Gestion des fonds », aucun effet au clic.
+  - SUPPRIMER et le toggle actif/inactif : inchangés.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
