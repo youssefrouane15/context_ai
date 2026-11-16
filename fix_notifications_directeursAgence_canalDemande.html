@@ -1,0 +1,163 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fix notifications — directeursAgence et canalDemande</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Fix notifications — directeursAgence et canalDemande</h1><p>UtilisateursGestionDemandesPort / Adapter (FICHIER COMPLET) · NotificationDemandeService l. 94 · 16/11/2026</p></header><nav><a href="#quoi">Les deux erreurs</a><a href="#port">Port</a><a href="#adapter">Adapter</a><a href="#service">NotificationDemandeService — ligne 94</a><a href="#verif">Vérification</a></nav><main><h2 id="quoi">0. Les deux erreurs</h2><div class="card"><b>1. <code>directeursAgence</code> introuvable</b> (<code>NotificationDemandeService</code> l. 86) : la méthode n'existe ni dans <code>UtilisateursGestionDemandesPort</code> ni dans <code>UtilisateursGestionDemandesAdapter</code>. Correctif : les deux fichiers ci-dessous en FICHIER COMPLET (le port gagne <code>directeursAgence</code>, l'adapter mutualise l'appel utilisateurs-ci et filtre sur le profil <code>DA</code>).<br>
+<b>2. <code>name()</code> sur un String</b> (<code>NotificationDemandeService</code> l. 94) : <code>CashRequestDTO.canalDemande</code> est un <code>String</code>, pas l'enum. Erreur de ma part. Correctif : comparaison directe de la chaîne.</div><h2 id="port">1. Port</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>UtilisateursGestionDemandesPort.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ports\output\referentiel\UtilisateursGestionDemandesPort.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.referentiel;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.UtilisateurAgence;
+
+<span class="k">import</span> java.util.List;
+
+<span class="k">public</span> <span class="k">interface</span> UtilisateursGestionDemandesPort {
+
+    <span class="c">/** AER_LM-333 : utilisateurs « gestion demandes » (DA + Chef de caisse) de l&#x27;agence de la demande. */</span>
+    List&lt;UtilisateurAgence&gt; utilisateursGestionDemandes(<span class="k">String</span> uidReference, <span class="k">String</span> branchCode);
+
+    <span class="c">/** Directeur(s) d&#x27;agence de l&#x27;agence de la demande, lus dans utilisateurs-ci (profil DA), indépendamment de user_profile. */</span>
+    List&lt;UtilisateurAgence&gt; directeursAgence(<span class="k">String</span> uidReference, <span class="k">String</span> branchCode);
+}</code></pre></div><h2 id="adapter">2. Adapter</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>UtilisateursGestionDemandesAdapter.java</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\users\UtilisateursGestionDemandesAdapter.java</span></div><p class="note">Remplace tout le fichier. Repris de ta version (l. 1-81) : même appel <code>/internal/users/{uid}</code> → contrôle agence → <code>/by-orga-unit</code>, mêmes filtres et logs. Changements : le corps de <code>utilisateursGestionDemandes</code> devient la méthode privée <code>utilisateursAgence(uid, branchCode, filtre)</code>, appelée par <code>utilisateursGestionDemandes</code> (filtre <code>GDF_CREER_DEMANDE</code>) et par <code>directeursAgence</code> (filtre profil <code>DA</code>) ; import inutilisé <code>RoleInterneDTO</code> retiré, <code>java.util.function.Predicate</code> ajouté.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.UtilisateurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.PermissionInterneDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.UtilisateurInterneDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.referentiel.UtilisateursGestionDemandesPort;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="k">import</span> org.springframework.core.ParameterizedTypeReference;
+<span class="k">import</span> org.springframework.stereotype.Component;
+<span class="k">import</span> org.springframework.web.client.RestClient;
+<span class="k">import</span> org.springframework.web.client.RestClientException;
+
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.<span class="k">function</span>.Predicate;
+
+<span class="c">/**
+ * AER_LM-333 — utilisateurs « gestion demandes » d&#x27;une agence, lus chez utilisateurs-ci avec deux endpoints internes existants :
+ *   1. GET /api/v1/internal/users/{uid}                   → l&#x27;unité d&#x27;organisation (id) du créateur de la demande, contrôlée = AGENCE de code branchCode
+ *   2. GET /api/v1/internal/users/by-orga-unit?orgaUnitId= → les utilisateurs actifs de cette agence
+ * puis filtre : enabled, email renseigné, puis
+ *   - utilisateursGestionDemandes : une permission GDF_CREER_DEMANDE dans les rôles du profil (DA, Chef de caisse) ;
+ *   - directeursAgence            : le profil DA (notifications soumission / mise à jour / annulation).
+ * Même style qu&#x27;UtilisateursDirecteurAdapter : RestClient.create (pas un bean), tolérant — toute erreur → liste vide.
+ */</span>
+@Component
+@Slf4j
+<span class="k">public</span> <span class="k">class</span> UtilisateursGestionDemandesAdapter <span class="k">implements</span> UtilisateursGestionDemandesPort {
+
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> PERMISSION_GESTION_DEMANDES = <span class="s">&quot;GDF_CREER_DEMANDE&quot;</span>;
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> PROFIL_DA = <span class="s">&quot;DA&quot;</span>;
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> TYPE_AGENCE = <span class="s">&quot;AGENCE&quot;</span>;
+
+    <span class="k">private</span> <span class="k">final</span> RestClient client;
+
+    <span class="k">public</span> UtilisateursGestionDemandesAdapter(@Value(<span class="s">&quot;${qf.users.internal-base-url}&quot;</span>) <span class="k">String</span> baseUrl) {
+        <span class="k">this</span>.client = RestClient.create(baseUrl);
+    }
+
+    @Override
+    <span class="k">public</span> List&lt;UtilisateurAgence&gt; utilisateursGestionDemandes(<span class="k">String</span> uidReference, <span class="k">String</span> branchCode) {
+        <span class="k">return</span> utilisateursAgence(uidReference, branchCode, UtilisateursGestionDemandesAdapter::gereLesDemandes);
+    }
+
+    @Override
+    <span class="k">public</span> List&lt;UtilisateurAgence&gt; directeursAgence(<span class="k">String</span> uidReference, <span class="k">String</span> branchCode) {
+        <span class="k">return</span> utilisateursAgence(uidReference, branchCode, UtilisateursGestionDemandesAdapter::estDirecteur);
+    }
+
+    <span class="c">/** Utilisateurs actifs avec email de l&#x27;agence de uidReference (contrôlée = branchCode), retenus par le filtre. */</span>
+    <span class="k">private</span> List&lt;UtilisateurAgence&gt; utilisateursAgence(<span class="k">String</span> uidReference, <span class="k">String</span> branchCode, Predicate&lt;UtilisateurInterneDTO&gt; retenu) {
+        <span class="k">if</span> (uidReference == <span class="k">null</span> || uidReference.isBlank() || branchCode == <span class="k">null</span> || branchCode.isBlank()) { <span class="k">return</span> List.of(); }
+        <span class="k">try</span> {
+            UtilisateurInterneDTO reference = client.<span class="k">get</span>()
+                    .uri(<span class="s">&quot;/api/v1/internal/users/{uid}&quot;</span>, uidReference)
+                    .retrieve()
+                    .body(UtilisateurInterneDTO.<span class="k">class</span>);
+            <span class="k">if</span> (reference == <span class="k">null</span> || reference.orgaUnit() == <span class="k">null</span> || reference.orgaUnit().id() == <span class="k">null</span>
+                    || !TYPE_AGENCE.equals(reference.orgaUnit().<span class="k">type</span>()) || !branchCode.equals(reference.orgaUnit().code())) {
+                log.warn(<span class="s">&quot;[notification] {} n&#x27;est pas rattaché à l&#x27;agence {} : destinataires non résolus&quot;</span>, uidReference, branchCode);
+                <span class="k">return</span> List.of();
+            }
+            Long orgaUnitId = reference.orgaUnit().id();
+            List&lt;UtilisateurInterneDTO&gt; utilisateurs = client.<span class="k">get</span>()
+                    .uri(b -&gt; b.path(<span class="s">&quot;/api/v1/internal/users/by-orga-unit&quot;</span>).queryParam(<span class="s">&quot;orgaUnitId&quot;</span>, orgaUnitId).build())
+                    .retrieve()
+                    .body(<span class="k">new</span> ParameterizedTypeReference&lt;List&lt;UtilisateurInterneDTO&gt;&gt;() { });
+            <span class="k">if</span> (utilisateurs == <span class="k">null</span>) { <span class="k">return</span> List.of(); }
+            <span class="k">return</span> utilisateurs.stream()
+                    .filter(u -&gt; Boolean.TRUE.equals(u.enabled()))
+                    .filter(u -&gt; u.email() != <span class="k">null</span> &amp;&amp; !u.email().isBlank())
+                    .filter(retenu)
+                    .map(u -&gt; <span class="k">new</span> UtilisateurAgence(u.uid(), u.email(), nomComplet(u)))
+                    .toList();
+        } <span class="k">catch</span> (RestClientException e) {
+            log.warn(<span class="s">&quot;[notification] utilisateurs-ci injoignable pour l&#x27;agence {} : {}&quot;</span>, branchCode, e.getMessage());
+            <span class="k">return</span> List.of();
+        }
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">boolean</span> gereLesDemandes(UtilisateurInterneDTO u) {
+        <span class="k">if</span> (u.profile() == <span class="k">null</span> || u.profile().roles() == <span class="k">null</span>) { <span class="k">return</span> <span class="k">false</span>; }
+        <span class="k">return</span> u.profile().roles().stream()
+                .filter(r -&gt; r != <span class="k">null</span> &amp;&amp; r.permissions() != <span class="k">null</span>)
+                .flatMap(r -&gt; r.permissions().stream())
+                .map(PermissionInterneDTO::code)
+                .anyMatch(PERMISSION_GESTION_DEMANDES::equals);
+    }
+
+    <span class="c">/** Profil Directeur d&#x27;agence (code « DA » du référentiel utilisateurs-ci). */</span>
+    <span class="k">static</span> <span class="k">boolean</span> estDirecteur(UtilisateurInterneDTO u) {
+        <span class="k">return</span> u.profile() != <span class="k">null</span> &amp;&amp; PROFIL_DA.equals(u.profile().code());
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> nomComplet(UtilisateurInterneDTO u) {
+        <span class="k">String</span> nom = ((u.firstName() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : u.firstName()) + <span class="s">&quot; &quot;</span> + (u.lastName() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : u.lastName())).trim();
+        <span class="k">return</span> nom.isEmpty() ? u.uid() : nom;
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>UtilisateursGestionDemandesAdapterDirecteurTest.java</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\test\java\com\bmci\workflow\fund\management\external\users\UtilisateursGestionDemandesAdapterDirecteurTest.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.external.users;
+
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.ProfilInterneDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.external.users.dto.UtilisateurInterneDTO;
+<span class="k">import</span> org.junit.jupiter.api.Assertions;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+
+<span class="k">import</span> java.util.List;
+
+<span class="k">class</span> UtilisateursGestionDemandesAdapterDirecteurTest {
+
+    <span class="k">private</span> <span class="k">static</span> UtilisateurInterneDTO utilisateur(<span class="k">String</span> profil) {
+        <span class="k">return</span> <span class="k">new</span> UtilisateurInterneDTO(<span class="s">&quot;u1&quot;</span>, <span class="s">&quot;u1@bnpparibas.com&quot;</span>, <span class="s">&quot;Prenom&quot;</span>, <span class="s">&quot;Nom&quot;</span>, <span class="k">true</span>,
+                profil == <span class="k">null</span> ? <span class="k">null</span> : <span class="k">new</span> ProfilInterneDTO(profil, List.of()), <span class="k">null</span>);
+    }
+
+    @Test
+    <span class="k">void</span> estDirecteur_vraiPourLeProfilDA() {
+        Assertions.assertTrue(UtilisateursGestionDemandesAdapter.estDirecteur(utilisateur(<span class="s">&quot;DA&quot;</span>)));
+    }
+
+    @Test
+    <span class="k">void</span> estDirecteur_fauxPourLesAutresProfils() {
+        Assertions.assertFalse(UtilisateursGestionDemandesAdapter.estDirecteur(utilisateur(<span class="s">&quot;CHEF_CAISSE&quot;</span>)));
+        Assertions.assertFalse(UtilisateursGestionDemandesAdapter.estDirecteur(utilisateur(<span class="k">null</span>)));
+    }
+}</code></pre></div><h2 id="service">3. NotificationDemandeService — ligne 94</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 94 (AVANT) — Ctrl+F : &lt;code&gt;boolean monetique&lt;/code&gt;</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeService.java</span></div><pre><button class="copy">Copier</button><code>        <span class="k">boolean</span> monetique = demande.getCanalDemande() != <span class="k">null</span> &amp;&amp; <span class="s">&quot;MONETIQUE&quot;</span>.equals(demande.getCanalDemande().name());</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 94 (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeService.java</span></div><p class="note">Rien d'autre à changer dans ce fichier : la ligne 86 (<code>directeursAgence</code>) compile dès que le port du §1 est en place.</p><pre><button class="copy">Copier</button><code>        <span class="k">boolean</span> monetique = <span class="s">&quot;MONETIQUE&quot;</span>.equals(demande.getCanalDemande());   <span class="c">// canalDemande est un String dans CashRequestDTO</span></code></pre></div><h2 id="verif">4. Vérification</h2><div class="card"><code>mvn clean install</code> à la racine de fund-management-microservice : <code>NotificationDemandeServiceTest</code>, <code>VariablesEmailDemandeTest</code> et <code>UtilisateursGestionDemandesAdapterDirecteurTest</code> verts. Recette inchangée (doc templates PO §3) : soumission d'une demande → le mail <code>GDF_DEMANDE_SOUMISE</code> part au DA de l'agence.</div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
