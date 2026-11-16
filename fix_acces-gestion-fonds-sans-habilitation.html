@@ -1,0 +1,106 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fix accès Gestion des fonds sans habilitation (Super Admin) + ÉDITER réservé aux utilisateurs GDF</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Fix accès Gestion des fonds sans habilitation (Super Admin) + ÉDITER réservé aux utilisateurs GDF</h1><p>fund-management-front : redirection « aucun accès » · portail-ci : console-user · 16/11/2026</p></header><nav><a href="#cause">Cause</a><a href="#routes">fund-management-front — routes</a><a href="#recette">Recette</a><a href="#editer">Évolution — ÉDITER réservé aux utilisateurs habilités Gestion des fonds</a></nav><main><h2 id="cause">0. Cause</h2><div class="card">Le Super Admin n'a aucune habilitation Gestion des fonds dans fund-management-front. En arrivant sur <code>/portail</code>, la route <code>''</code> exécute <code>accueilParProfil</code> puis <code>exigePermission('creer')</code>, et <code>exigePermission</code> renvoie <code>false</code> : Angular <b>annule la navigation sans rien afficher</b> → on reste sur le dashboard, aucun appel, aucun message.<br>
+<b>Fix</b> (aucun droit ajouté au SA) : les gardes ne renvoient plus jamais <code>false</code>, elles redirigent vers une page « aucun accès » du module. Une garde d'entrée <code>accesGestionFonds</code> est placée en premier sur <code>''</code> pour court-circuiter <code>accueilParProfil</code> quand l'utilisateur n'a aucune habilitation.</div><h2 id="routes">1. fund-management-front — routes</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 1 (AVANT) — Ctrl+F : &lt;code&gt;import { Routes, CanActivateFn }&lt;/code&gt;</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { Routes, CanActivateFn } <span class="k">from</span> <span class="s">&#x27;@angular/router&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 1 (APRÈS)</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { ActivatedRouteSnapshot, CanActivateFn, Router, Routes, UrlTree } <span class="k">from</span> <span class="s">&#x27;@angular/router&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Après la l. 10 (&lt;code&gt;import { accueilParProfil } from &#x27;./accueil-par-profil.guard&#x27;;&lt;/code&gt;)</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { AucunAccesComponent } <span class="k">from</span> <span class="s">&#x27;../aucun-acces/aucun-acces.component&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 13-16 (AVANT) — Ctrl+F : &lt;code&gt;const exigePermission&lt;/code&gt;</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">const</span> exigePermission = (cle: keyof HabilitationsGdf): CanActivateFn =&gt; <span class="k">async</span> () =&gt; {
+  <span class="k">const</span> ctx = <span class="k">await</span> inject(ContexteUtilisateurService).charger();
+  <span class="k">return</span> ctx !== <span class="k">null</span> &amp;&amp; ctx.habilitations[cle];
+};</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 13-16 (APRÈS)</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><p class="note"><code>inject(Router)</code> est appelé <b>avant</b> le <code>await</code> (après, on n'est plus dans le contexte d'injection). Les 12 usages de <code>exigePermission</code> sont inchangés.</p><pre><button class="copy">Copier</button><code><span class="c">/**
+ * Page « aucun accès » sous le préfixe où le module est monté (/portail dans le shell, racine en autonome 4201).
+ * Une garde qui renvoie false annule la navigation EN SILENCE (clic sans effet) : on redirige toujours vers cette page.
+ */</span>
+<span class="k">function</span> versAucunAcces(router: Router, route: ActivatedRouteSnapshot): UrlTree {
+  <span class="k">const</span> prefixe = (route.parent?.pathFromRoot ?? []).flatMap(r =&gt; r.url.map(segment =&gt; segment.path));
+  <span class="k">return</span> router.createUrlTree([<span class="s">&#x27;/&#x27;</span>, ...prefixe, <span class="s">&#x27;aucun-acces&#x27;</span>]);
+}
+
+<span class="c">/** Entrée du module : un utilisateur sans aucune habilitation Gestion des fonds (ex. Super Admin) va sur « aucun accès ». */</span>
+<span class="k">const</span> accesGestionFonds: CanActivateFn = <span class="k">async</span> (route) =&gt; {
+  <span class="k">const</span> router = inject(Router);
+  <span class="k">const</span> ctx = <span class="k">await</span> inject(ContexteUtilisateurService).charger();
+  <span class="k">const</span> auMoinsUneHabilitation = ctx !== <span class="k">null</span> &amp;&amp; Object.values(ctx.habilitations).some(Boolean);
+  <span class="k">return</span> auMoinsUneHabilitation || versAucunAcces(router, route);
+};
+
+<span class="k">const</span> exigePermission = (cle: keyof HabilitationsGdf): CanActivateFn =&gt; <span class="k">async</span> (route) =&gt; {
+  <span class="k">const</span> router = inject(Router);
+  <span class="k">const</span> ctx = <span class="k">await</span> inject(ContexteUtilisateurService).charger();
+  <span class="k">return</span> (ctx !== <span class="k">null</span> &amp;&amp; ctx.habilitations[cle]) || versAucunAcces(router, route);
+};</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 24 (AVANT) — Ctrl+F : &lt;code&gt;canActivate: [accueilParProfil&lt;/code&gt;</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><pre><button class="copy">Copier</button><code>    canActivate: [accueilParProfil, exigePermission(<span class="s">&#x27;creer&#x27;</span>)]</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 24 (APRÈS)</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><p class="note">Ordre important : Angular retient le résultat de la première garde de la liste qui ne renvoie pas <code>true</code>.</p><pre><button class="copy">Copier</button><code>    canActivate: [accesGestionFonds, accueilParProfil, exigePermission(<span class="s">&#x27;creer&#x27;</span>)]</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 79-81 (AVANT) — fin du fichier</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><pre><button class="copy">Copier</button><code>    canActivate: [exigePermission(<span class="s">&#x27;toutesAgences&#x27;</span>)]
+  }
+];</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 79-81 (APRÈS)</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\fund-management\fund-management.routes.ts</span></div><pre><button class="copy">Copier</button><code>    canActivate: [exigePermission(<span class="s">&#x27;toutesAgences&#x27;</span>)]
+  },
+  <span class="c">// Utilisateur du portail sans habilitation Gestion des fonds : page d&#x27;information, aucune garde (sinon boucle)</span>
+  { path: <span class="s">&#x27;aucun-acces&#x27;</span>, component: AucunAccesComponent }
+];</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>aucun-acces.component.ts</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\aucun-acces\aucun-acces.component.ts</span></div><p class="note">Nouveau dossier <code>pages/aucun-acces/</code>, à côté de <code>demande-traitement/</code>. Couleurs et typo = tokens des maquettes.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { ChangeDetectionStrategy, Component } <span class="k">from</span> <span class="s">&#x27;@angular/core&#x27;</span>;
+
+<span class="c">/**
+ * Utilisateur connecté au portail mais sans aucune habilitation Gestion des fonds (ex. Super Admin) :
+ * il arrive bien dans le module (header + menu du portail conservés), sans contenu ni appel API.
+ */</span>
+@Component({
+  selector: <span class="s">&#x27;app-aucun-acces&#x27;</span>,
+  standalone: <span class="k">true</span>,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: <span class="s">`
+    &lt;section class=&quot;aucun-acces&quot;&gt;
+      &lt;h2 class=&quot;aucun-acces__titre&quot;&gt;Gestion des fonds&lt;/h2&gt;
+      &lt;p class=&quot;aucun-acces__texte&quot;&gt;Votre profil ne dispose d&#x27;aucune habilitation sur ce module.&lt;/p&gt;
+      &lt;p class=&quot;aucun-acces__texte&quot;&gt;Pour obtenir un accès, contactez votre administrateur.&lt;/p&gt;
+    &lt;/section&gt;
+  `</span>,
+  styles: [<span class="s">`
+    :host { display: block; padding: 24px; font-family: &#x27;Inter&#x27;, sans-serif; }
+    .aucun-acces { max-width: 640px; margin: 48px auto; padding: 32px; background: #ffffff; border: 1px solid #d5dad8;
+      border-radius: 12px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .05); text-align: center; }
+    .aucun-acces__titre { margin: 0 0 12px; font-size: 22px; line-height: 28px; font-weight: 700; color: #006a40; }
+    .aucun-acces__texte { margin: 4px 0; font-size: 14px; line-height: 20px; color: #3e4a41; }
+  `</span>],
+})
+<span class="k">export</span> <span class="k">class</span> AucunAccesComponent {}</code></pre></div><h2 id="recette">2. Recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours</b><br><span class="path">recette\\gestion-fonds-sans-habilitation.txt</span></div><pre><button class="copy">Copier</button><code>1. h11111 (Super Admin) : dashboard → carte Gestion des fonds → ACCÉDER
+   → l&#x27;URL devient …/#/portail/aucun-acces, header + menu du portail affichés, encadré
+     « Votre profil ne dispose d&#x27;aucune habilitation sur ce module. » ; aucun appel /cash.
+2. Non-régression (même parcours) :
+   - g10002 / j62211 (Chef de caisse) → écran agence habituel ;
+   - c63005 (Caisse Centrale) → listing Caisse Centrale ;
+   - Pôle monétique → historique GAB hors site.
+3. h11111 qui tape directement …/#/portail/caisse-centrale → redirigé vers …/#/portail/aucun-acces (plus de page blanche ni de clic sans effet).</code></pre></div><h2 id="editer">3. Évolution — ÉDITER réservé aux utilisateurs habilités Gestion des fonds</h2><div class="card">Règle : sur chaque ligne, ÉDITER n'est actif que si l'utilisateur de la ligne a au moins une permission <code>GDF_</code> dans les rôles de son profil. On réutilise <code>extractUserPermissions</code> (déjà utilisé par <code>AuthService.hasPermission</code>, même type <code>UserDTO</code>) : aucun nouveau type, aucun appel en plus. Le bouton reste affiché, grisé avec une infobulle ; <code>editUser</code> refuse aussi par sécurité.</div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Import (à ajouter dans le bloc import)</b><br><span class="path">portail-ci\src\app\console\components\console-user\console-user.component.ts</span></div><p class="note">Si le fichier importe déjà d'autres éléments de <code>habilitation.interface</code>, cette ligne en plus compile quand même (deux imports du même module sont autorisés).</p><pre><button class="copy">Copier</button><code><span class="k">import</span> { extractUserPermissions } <span class="k">from</span> <span class="s">&#x27;../../../shared/interfaces/habilitation.interface&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>editUser — l. 360-361 (AVANT) — Ctrl+F : &lt;code&gt;editUser(user: UserDTO): void {&lt;/code&gt;</b><br><span class="path">portail-ci\src\app\console\components\console-user\console-user.component.ts</span></div><pre><button class="copy">Copier</button><code>  editUser(user: UserDTO): <span class="k">void</span> {
+    <span class="k">this</span>.isEditing = <span class="k">true</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>editUser — l. 360-361 (APRÈS)</b><br><span class="path">portail-ci\src\app\console\components\console-user\console-user.component.ts</span></div><p class="note">Le reste de <code>editUser</code> (<code>this.isAdding = false;</code> … <code>this.isAddUserModalOpen = true;</code>) est inchangé.</p><pre><button class="copy">Copier</button><code>  <span class="c">/** ÉDITER actif seulement pour un utilisateur habilité Gestion des fonds (au moins une permission GDF_ dans les rôles de son profil). */</span>
+  estHabiliteGestionFonds(user: UserDTO): <span class="k">boolean</span> {
+    <span class="k">return</span> extractUserPermissions(user).some(permission =&gt; permission.code?.startsWith(<span class="s">&#x27;GDF_&#x27;</span>));
+  }
+
+  editUser(user: UserDTO): <span class="k">void</span> {
+    <span class="k">if</span> (!<span class="k">this</span>.estHabiliteGestionFonds(user)) {
+      <span class="k">return</span>;
+    }
+    <span class="k">this</span>.isEditing = <span class="k">true</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>Bouton ÉDITER — l. 82 (AVANT) — Ctrl+F : &lt;code&gt;(click)=&quot;editUser(user)&quot;&gt;&lt;/code&gt;</b><br><span class="path">portail-ci\src\app\console\components\console-user\console-user.component.html</span></div><pre><button class="copy">Copier</button><code>(click)=<span class="s">&quot;editUser(user)&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Bouton ÉDITER — l. 82 (APRÈS)</b><br><span class="path">portail-ci\src\app\console\components\console-user\console-user.component.html</span></div><p class="note">Garde l'indentation de la ligne 82. Lignes 79-81 (<code>&lt;button</code>, <code>class</code>, <code>[class.console-mode]</code>) et 83-85 inchangées.</p><pre><button class="copy">Copier</button><code>(click)=<span class="s">&quot;editUser(user)&quot;</span>
+[disabled]=<span class="s">&quot;!estHabiliteGestionFonds(user)&quot;</span>
+[style.opacity]=<span class="s">&quot;estHabiliteGestionFonds(user) ? 1 : 0.4&quot;</span>
+[style.cursor]=<span class="s">&quot;estHabiliteGestionFonds(user) ? &#x27;pointer&#x27; : &#x27;not-allowed&#x27;&quot;</span>
+[title]=<span class="s">&quot;estHabiliteGestionFonds(user) ? &#x27;&#x27; : &#x27;Modification réservée aux utilisateurs habilités Gestion des fonds&#x27;&quot;</span>&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Recette</b><br><span class="path">recette\console-editer-gdf.txt</span></div><pre><button class="copy">Copier</button><code>Console → Utilisateurs (connecté en h11111) :
+  - ligne d<span class="s">&#x27;un utilisateur GDF (ex. j61104 DA, j62211 Chef de caisse, c63005 Caisse Centrale) : ÉDITER cliquable, la modale s&#x27;</span>ouvre.
+  - ligne d&#x27;un utilisateur sans rôle Gestion des fonds (ex. un utilisateur Dérogation seul) : ÉDITER grisé, curseur interdit,
+    infobulle « Modification réservée aux utilisateurs habilités Gestion des fonds », aucun effet au clic.
+  - SUPPRIMER et le toggle actif/inactif : inchangés.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
