@@ -1,0 +1,1430 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Notifications — intégration des 5 templates PO (un template Thymeleaf par scénario)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Notifications — intégration des 5 templates PO (un template Thymeleaf par scénario)</h1><p>notifications-ci : 5 templates + NotificationTemplate · fund-management : VariablesEmailDemande, NotificationDemandeService, tests · 13/11/2026</p></header><nav><a href="#quoi">Le changement</a><a href="#notif">notifications-ci</a><a href="#fm">fund-management</a><a href="#recette">Test</a></nav><main><h2 id="quoi">0. Le changement</h2><div class="card"><b>Avant</b> : un seul template générique <code>mail/gestion-fonds-demande.html</code> pour les 5 évènements.<br>
+<b>Après</b> : les 5 maquettes du PO, transcrites à la lettre en Thymeleaf, <b>une par scénario</b> ; fund-management envoie les variables exactes de chaque maquette.
+<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13px">
+<tr style="background:#f6f8f7"><th style="text-align:left;padding:6px;border:1px solid #e8ecea">Scénario</th><th style="text-align:left;padding:6px;border:1px solid #e8ecea">Destinataires</th><th style="text-align:left;padding:6px;border:1px solid #e8ecea">templateCode</th><th style="text-align:left;padding:6px;border:1px solid #e8ecea">Template</th></tr>
+<tr><td style="padding:6px;border:1px solid #e8ecea">Soumission</td><td style="padding:6px;border:1px solid #e8ecea">DA</td><td style="padding:6px;border:1px solid #e8ecea"><code>GDF_DEMANDE_SOUMISE</code></td><td style="padding:6px;border:1px solid #e8ecea">gestion-fonds-demande-soumise</td></tr>
+<tr><td style="padding:6px;border:1px solid #e8ecea">Mise à jour</td><td style="padding:6px;border:1px solid #e8ecea">DA</td><td style="padding:6px;border:1px solid #e8ecea"><code>GDF_DEMANDE_MISE_A_JOUR</code></td><td style="padding:6px;border:1px solid #e8ecea">gestion-fonds-demande-mise-a-jour</td></tr>
+<tr><td style="padding:6px;border:1px solid #e8ecea">Annulation</td><td style="padding:6px;border:1px solid #e8ecea">DA</td><td style="padding:6px;border:1px solid #e8ecea"><code>GDF_DEMANDE_ANNULEE</code></td><td style="padding:6px;border:1px solid #e8ecea">gestion-fonds-demande-annulee</td></tr>
+<tr><td style="padding:6px;border:1px solid #e8ecea">Soumission / MAJ <b>urgente</b></td><td style="padding:6px;border:1px solid #e8ecea">Caisse Centrale (en plus du DA)</td><td style="padding:6px;border:1px solid #e8ecea"><code>GDF_DEMANDE_URGENTE</code></td><td style="padding:6px;border:1px solid #e8ecea">gestion-fonds-demande-urgente</td></tr>
+<tr><td style="padding:6px;border:1px solid #e8ecea">Déclassement d'urgence</td><td style="padding:6px;border:1px solid #e8ecea">DA + Chef(s) de caisse</td><td style="padding:6px;border:1px solid #e8ecea"><code>GDF_URGENCE_DECLASSEE</code></td><td style="padding:6px;border:1px solid #e8ecea">gestion-fonds-urgence-declassee</td></tr>
+</table>
+<p style="margin-top:10px"><b>Variables envoyées</b> (toutes en chaîne, jamais nulles) : <code>agence</code>, <code>reference</code>, <code>date</code>, <code>operateurNom</code>, <code>operateurProfil</code>, <code>motif</code> + <code>natureUrgence</code> pour le mail Caisse Centrale. <code>portalUrl</code> et <code>logoCid</code> restent posés par <code>EmailNotificationService</code> (inchangé).</p>
+<p><b>Seuls écarts avec les maquettes</b> (imposés par le dynamique) : logo SVG → <code>&lt;img cid&gt;</code> PNG (Outlook n'affiche pas le SVG) ; civilité « Mme / M. » retirée (absente des données) ; commentaires « NOTE D'INTÉGRATION » / « Variantes » retirés ; bloc motif masqué si vide ; l'annulation reçoit un bloc motif (même style que l'urgence) car la maquette prévoyait l'emplacement « BLOC MOTIF EN CAS DE MAJ OU ANNULATION » sans le dessiner. Les objets des mails (<code>subject</code>) sont inchangés.</p></div><div class="card"><b>Aperçu rendu (5 templates, données de test)</b> — fichier <code>apercu-templates-PO-gestion-fonds.png</code> envoyé avec ce doc.</div><h2 id="notif">1. notifications-ci</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gestion-fonds-demande-soumise.html</b><br><span class="path">notifications-ci\src\main\resources\templates\mail\gestion-fonds-demande-soumise.html</span></div><p class="note">Maquette « Notification_DA_nouvelle demande.html ».</p><pre><button class="copy">Copier</button><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=<span class="s">&quot;fr&quot;</span> xmlns:th=<span class="s">&quot;http://www.thymeleaf.org&quot;</span>&gt;&lt;head&gt;
+&lt;meta charset=<span class="s">&quot;utf-8&quot;</span>/&gt;
+&lt;meta content=<span class="s">&quot;width=device-width, initial-scale=1&quot;</span> name=<span class="s">&quot;viewport&quot;</span>/&gt;
+&lt;meta name=<span class="s">&quot;x-apple-disable-message-reformatting&quot;</span>/&gt;
+&lt;title&gt;QlickFlow - Notification Mouvement de Fonds Agence&lt;/title&gt;
+&lt;/head&gt;
+&lt;body style=&#x27;margin: 0px; padding: 0px; background-color: rgb(242, 242, 242); font-family: <span class="s">&quot;Segoe UI&quot;</span>, Arial, Helvetica,
+ sans-serif; color: rgb(34, 34, 34); -webkit-font-smoothing: antialiased;&#x27;&gt;
+&lt;table bgcolor=<span class="s">&quot;#f2f2f2&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=<span class="s">&quot;background-color:#f2f2f2;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:28px 12px;&quot;</span>&gt;
+<span class="c">&lt;!-- Conteneur principal 640 px --&gt;</span>
+&lt;table bgcolor=<span class="s">&quot;#ffffff&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;width:100%; max-width:640px;
+ background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06); border-top:5px solid #00915a;&quot;
+ width=<span class="s">&quot;640&quot;</span>&gt;
+<span class="c">&lt;!-- EN-TÊTE : Logo QlickFlow &amp; Contexte BMCI --&gt;</span>
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:26px 32px 14px 32px; border-bottom:1px solid #f0f2f1;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;left&quot;</span> valign=<span class="s">&quot;middle&quot;</span>&gt;
+<span class="c">&lt;!-- Logo QlickFlow : PNG inline (cid) — le SVG de la maquette n&#x27;est pas affiché par Outlook --&gt;</span>
+&lt;img th:src=<span class="s">&quot;&#x27;cid:&#x27; + ${logoCid}&quot;</span> src=<span class="s">&quot;../../static/mail/logo-qlickflow.png&quot;</span> width=<span class="s">&quot;190&quot;</span> height=<span class="s">&quot;58&quot;</span> alt=<span class="s">&quot;QlickFlow&quot;</span>
+ style=<span class="s">&quot;display:block;border:0;&quot;</span>/&gt;
+&lt;/td&gt;
+&lt;td align=<span class="s">&quot;right&quot;</span> valign=<span class="s">&quot;middle&quot;</span>&gt;
+&lt;span style=&quot;display:inline-block; font-size:12px; font-weight:700; color:#00915a; background-color:#e1fff3;
+ border:1px solid #85ffd1; padding:5px 12px; border-radius:12px; text-transform:uppercase; letter-spacing:0.5px;&quot;&gt;
+BMCI • Gestion des Fonds&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BANDEAU NATURE D&#x27;ÉVÉNEMENT (Exemple dynamique : SOUMISSION / MISE À JOUR / ANNULATION) --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:22px 32px 10px 32px;&quot;</span>&gt;
+&lt;table bgcolor=<span class="s">&quot;#e1fff3&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;background-color:#e1fff3;
+ border-left:4px solid #00915a; border-radius:4px;<span class="s">&quot; width=&quot;</span>100%&quot;&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 18px;&quot;</span>&gt;
+&lt;span style=&quot;font-size:13px; font-weight:700; color:#007f4f; text-transform:uppercase; letter-spacing:0.8px; display:block;
+ margin-bottom:4px;&quot;&gt;Notification Directeur d&#x27;Agence&lt;/span&gt;
+&lt;span style=<span class="s">&quot;font-size:17px; font-weight:700; color:#00492d;&quot;</span>&gt;Nouvelle demande de fonds soumise&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- CORPS DU MESSAGE --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 32px 16px 32px; font-size:15px; line-height:23px; color:#404a46;&quot;</span>&gt;
+&lt;p style=<span class="s">&quot;margin:0 0 14px 0; font-size:16px;&quot;</span>&gt;&lt;strong&gt;Monsieur / Madame le Directeur d&#x27;Agence,&lt;/strong&gt;&lt;/p&gt;
+&lt;p style=<span class="s">&quot;margin:0 0 16px 0;&quot;</span>&gt;Nous vous informons qu&#x27;une opération relative à la &lt;strong&gt;Gestion des Fonds &amp;amp; Approvisionnements&lt;/strong&gt;
+ a été enregistrée pour votre agence :&lt;/p&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BLOC D&#x27;INFORMATIONS DÉTAILLÉES --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:0 32px;&quot;</span>&gt;
+&lt;table bgcolor=<span class="s">&quot;#f7f8f7&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span>
+ style=<span class="s">&quot;background-color:#f7f8f7; border:1px solid #e6e9e8; border-radius:6px;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:20px 22px;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=<span class="s">&quot;font-size:14px; line-height:22px;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Agence concernée&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#000604; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>
+ th:text=<span class="s">&quot;|Agence ${agence}|&quot;</span>&gt;Agence 1001 - Nations Unies&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Nature de l&#x27;opération&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#007f4f; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;&lt;span
+ style=<span class="s">&quot;display:inline-block; padding:2px 8px; background-color:#e1fff3; color:#007f4f; border-radius:4px; font-size:13px;&quot;</span>&gt;Soumission d&#x27;une nouvelle demande&lt;/span&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Référence de la demande&lt;/td&gt;
+&lt;td style=&quot;padding:6px 0; color:#000604; font-weight:700; font-family:<span class="s">&#x27;Courier New&#x27;</span>, monospace; font-size:15px;
+ border-bottom:1px dashed #dde2e0;<span class="s">&quot; th:text=&quot;</span>${reference}&quot;&gt;20260805-1001-02&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Date et heure&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#404a46; font-weight:600; border-bottom:1px dashed #dde2e0;&quot;</span> th:text=<span class="s">&quot;${date}&quot;</span>&gt;05/08/2026 à 18:10&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Opérateur (initiateur)&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#000604; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;
+&lt;span th:text=<span class="s">&quot;${operateurNom}&quot;</span> th:remove=<span class="s">&quot;tag&quot;</span>&gt;Salma EL AMRANI&lt;/span&gt; &lt;span style=<span class="s">&quot;font-weight:400; color:#606f69; font-size:12px;&quot;</span>
+ th:<span class="k">if</span>=<span class="s">&quot;${!#strings.isEmpty(operateurProfil)}&quot;</span> th:text=<span class="s">&quot;|(${operateurProfil})|&quot;</span>&gt;(Chef de Caisse / BackOffice)&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Statut actuel&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;&lt;span style=&quot;display:inline-block; padding:2px 8px;
+ background-color:#fff6cc; color:#9c7e00; border-radius:4px; font-weight:700; font-size:12px;
+ letter-spacing:0.3px;&quot;&gt;EN ATTENTE (SOUMISE)&lt;/span&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BOUTON D&#x27;ACTION PRINCIPALE (Accès QlickFlow) --&gt;</span>
+&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:28px 32px 14px 32px;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> bgcolor=<span class="s">&quot;#00915a&quot;</span> style=<span class="s">&quot;background-color:#00915a; border-radius:4px; box-shadow:0 3px 6px rgba(0,145,90,0.25);&quot;</span>&gt;
+&lt;a th:href=<span class="s">&quot;${portalUrl}&quot;</span> href=<span class="s">&quot;https://qlickflow-portail.rb.echonet&quot;</span> style=&quot;font-family:<span class="s">&#x27;Segoe UI&#x27;</span>, Arial, Helvetica, sans-serif;
+ font-size:15px; font-weight:700; color:#ffffff; text-decoration:none; display:inline-block; padding:13px 32px;
+ letter-spacing:0.5px;<span class="s">&quot; target=&quot;</span>_blank&quot;&gt;Consulter la demande sur QlickFlow →&lt;/a&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- AIDE ET LIEN DIRECT --&gt;</span>
+&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:0 32px 20px 32px; font-size:12px; line-height:18px; color:#82938c;&quot;</span>&gt;
+        Si le bouton ne s&#x27;affiche pas correctement, vous pouvez accéder directement au portail via le lien suivant :&lt;br/&gt;
+&lt;a th:href=<span class="s">&quot;${portalUrl}&quot;</span> th:text=<span class="s">&quot;${portalUrl}&quot;</span> href=<span class="s">&quot;https://qlickflow-portail.rb.echonet&quot;</span> style=<span class="s">&quot;color:#00915a; text-decoration:underline; font-weight:600;&quot;</span>
+ target=<span class="s">&quot;_blank&quot;</span>&gt;https:<span class="c">//qlickflow-portail.rb.echonet&lt;/a&gt;</span>
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- SIGNATURE OFFICIELLE --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:18px 32px 24px 32px; border-top:1px solid #eef0ef; font-size:14px; line-height:22px; color:#404a46;&quot;</span>&gt;
+Cordialement,&lt;br/&gt;
+&lt;strong style=<span class="s">&quot;color:#00915a;&quot;</span>&gt;L&#x27;équipe QlickFlow&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- PIED DE PAGE &amp; MENTIONS LÉGALES --&gt;</span>
+&lt;tr&gt;
+&lt;td bgcolor=<span class="s">&quot;#f7f8f7&quot;</span> style=&quot;background-color:#f7f8f7; padding:16px 32px 22px 32px; border-top:1px solid #dde2e0;
+ font-size:11px; line-height:17px; color:#82938c; text-align:center;&quot;&gt;
+            Ceci est une notification automatique générée par le système QlickFlow.&lt;br/&gt;
+            Merci de ne pas répondre directement à cet email. Pour toute question opérationnelle,
+            veuillez contacter la &lt;strong&gt;Caisse Centrale&lt;/strong&gt; via le canal dédié.&lt;br/&gt;
+            © 2026 BMCI - Tous droits réservés.
+          &lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/body&gt;&lt;/html&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gestion-fonds-demande-mise-a-jour.html</b><br><span class="path">notifications-ci\src\main\resources\templates\mail\gestion-fonds-demande-mise-a-jour.html</span></div><p class="note">Maquette « Notification_DA_maj_demande.html ».</p><pre><button class="copy">Copier</button><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=<span class="s">&quot;fr&quot;</span> xmlns:th=<span class="s">&quot;http://www.thymeleaf.org&quot;</span>&gt;&lt;head&gt;
+&lt;meta charset=<span class="s">&quot;utf-8&quot;</span>/&gt;
+&lt;meta content=<span class="s">&quot;width=device-width, initial-scale=1&quot;</span> name=<span class="s">&quot;viewport&quot;</span>/&gt;
+&lt;meta name=<span class="s">&quot;x-apple-disable-message-reformatting&quot;</span>/&gt;
+&lt;title&gt;QlickFlow - Mise à jour d&#x27;une demande de fonds&lt;/title&gt;
+&lt;/head&gt;
+&lt;body style=&#x27;margin: 0px; padding: 0px; background-color: rgb(242, 242, 242); font-family: <span class="s">&quot;Segoe UI&quot;</span>, Arial, Helvetica,
+ sans-serif; color: rgb(34, 34, 34); -webkit-font-smoothing: antialiased;&#x27;&gt;
+&lt;table bgcolor=<span class="s">&quot;#f2f2f2&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=<span class="s">&quot;background-color:#f2f2f2;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:28px 12px;&quot;</span>&gt;
+<span class="c">&lt;!-- Conteneur principal 640 px --&gt;</span>
+&lt;table bgcolor=<span class="s">&quot;#ffffff&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;width:100%; max-width:640px;
+ background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06); border-top:5px solid #00915a;&quot;
+ width=<span class="s">&quot;640&quot;</span>&gt;
+<span class="c">&lt;!-- EN-TÊTE : Logo QlickFlow &amp; Contexte BMCI --&gt;</span>
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:26px 32px 14px 32px; border-bottom:1px solid #f0f2f1;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;left&quot;</span> valign=<span class="s">&quot;middle&quot;</span>&gt;
+<span class="c">&lt;!-- Logo QlickFlow : PNG inline (cid) — le SVG de la maquette n&#x27;est pas affiché par Outlook --&gt;</span>
+&lt;img th:src=<span class="s">&quot;&#x27;cid:&#x27; + ${logoCid}&quot;</span> src=<span class="s">&quot;../../static/mail/logo-qlickflow.png&quot;</span> width=<span class="s">&quot;190&quot;</span> height=<span class="s">&quot;58&quot;</span> alt=<span class="s">&quot;QlickFlow&quot;</span>
+ style=<span class="s">&quot;display:block;border:0;&quot;</span>/&gt;
+&lt;/td&gt;
+&lt;td align=<span class="s">&quot;right&quot;</span> valign=<span class="s">&quot;middle&quot;</span>&gt;
+&lt;span style=&quot;display:inline-block; font-size:12px; font-weight:700; color:#00915a; background-color:#e1fff3;
+ border:1px solid #85ffd1; padding:5px 12px; border-radius:12px; text-transform:uppercase; letter-spacing:0.5px;&quot;&gt;
+BMCI • Gestion des Fonds&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BANDEAU NATURE D&#x27;ÉVÉNEMENT (Exemple dynamique : SOUMISSION / MISE À JOUR / ANNULATION) --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:22px 32px 10px 32px;&quot;</span>&gt;
+&lt;table bgcolor=<span class="s">&quot;#e9f3fb&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;background-color:#e9f3fb;
+ border-left:4px solid #1e71ac; border-radius:4px;<span class="s">&quot; width=&quot;</span>100%&quot;&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 18px;&quot;</span>&gt;
+&lt;span style=&quot;font-size:13px; font-weight:700; color:#1e71ac; text-transform:uppercase; letter-spacing:0.8px; display:block;
+ margin-bottom:4px;&quot;&gt;Notification Directeur d&#x27;Agence&lt;/span&gt;
+&lt;span style=<span class="s">&quot;font-size:17px; font-weight:700; color:#103b5b;&quot;</span>&gt;Demande de fonds modifiée&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- CORPS DU MESSAGE --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 32px 16px 32px; font-size:15px; line-height:23px; color:#404a46;&quot;</span>&gt;
+&lt;p style=<span class="s">&quot;margin:0 0 14px 0; font-size:16px;&quot;</span>&gt;&lt;strong&gt;Monsieur / Madame le Directeur d&#x27;Agence,&lt;/strong&gt;&lt;/p&gt;
+&lt;p style=<span class="s">&quot;margin:0 0 16px 0;&quot;</span>&gt;Nous vous informons qu&#x27;une opération relative à la &lt;strong&gt;Gestion des Fonds &amp;amp; Approvisionnements&lt;/strong&gt;
+ a été mise à jour pour votre agence :&lt;/p&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BLOC D&#x27;INFORMATIONS DÉTAILLÉES --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:0 32px;&quot;</span>&gt;
+&lt;table bgcolor=<span class="s">&quot;#f7f8f7&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span>
+ style=<span class="s">&quot;background-color:#f7f8f7; border:1px solid #e6e9e8; border-radius:6px;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:20px 22px;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=<span class="s">&quot;font-size:14px; line-height:22px;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Agence concernée&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#000604; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>
+ th:text=<span class="s">&quot;|Agence ${agence}|&quot;</span>&gt;Agence 1001 - Nations Unies&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Nature de l&#x27;opération&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#007f4f; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;&lt;span
+ style=<span class="s">&quot;display:inline-block; padding:2px 8px; background-color:#e9f3fb; color:#1e71ac; border-radius:4px; font-size:13px;&quot;</span>&gt;Mise à jour d&#x27;une demande existante&lt;/span&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Référence de la demande&lt;/td&gt;
+&lt;td style=&quot;padding:6px 0; color:#000604; font-weight:700; font-family:<span class="s">&#x27;Courier New&#x27;</span>, monospace; font-size:15px;
+ border-bottom:1px dashed #dde2e0;<span class="s">&quot; th:text=&quot;</span>${reference}&quot;&gt;20260805-1001-02&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Date et heure&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#404a46; font-weight:600; border-bottom:1px dashed #dde2e0;&quot;</span> th:text=<span class="s">&quot;${date}&quot;</span>&gt;05/08/2026 à 18:35&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Opérateur (initiateur)&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#000604; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;
+&lt;span th:text=<span class="s">&quot;${operateurNom}&quot;</span> th:remove=<span class="s">&quot;tag&quot;</span>&gt;Salma EL AMRANI&lt;/span&gt; &lt;span style=<span class="s">&quot;font-weight:400; color:#606f69; font-size:12px;&quot;</span>
+ th:<span class="k">if</span>=<span class="s">&quot;${!#strings.isEmpty(operateurProfil)}&quot;</span> th:text=<span class="s">&quot;|(${operateurProfil})|&quot;</span>&gt;(Chef de Caisse / BackOffice)&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Statut actuel&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;&lt;span style=&quot;display:inline-block; padding:2px 8px;
+ background-color:#fff6cc; color:#9c7e00; border-radius:4px; font-weight:700; font-size:12px;
+ letter-spacing:0.3px;&quot;&gt;MODIFIÉE (EN ATTENTE)&lt;/span&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BOUTON D&#x27;ACTION PRINCIPALE (Accès QlickFlow) --&gt;</span>
+&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:28px 32px 14px 32px;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> bgcolor=<span class="s">&quot;#00915a&quot;</span> style=<span class="s">&quot;background-color:#00915a; border-radius:4px; box-shadow:0 3px 6px rgba(0,145,90,0.25);&quot;</span>&gt;
+&lt;a th:href=<span class="s">&quot;${portalUrl}&quot;</span> href=<span class="s">&quot;https://qlickflow-portail.rb.echonet&quot;</span> style=&quot;font-family:<span class="s">&#x27;Segoe UI&#x27;</span>, Arial, Helvetica, sans-serif;
+ font-size:15px; font-weight:700; color:#ffffff; text-decoration:none; display:inline-block; padding:13px 32px;
+ letter-spacing:0.5px;<span class="s">&quot; target=&quot;</span>_blank&quot;&gt;Consulter la demande sur QlickFlow →&lt;/a&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- AIDE ET LIEN DIRECT --&gt;</span>
+&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:0 32px 20px 32px; font-size:12px; line-height:18px; color:#82938c;&quot;</span>&gt;
+        Si le bouton ne s&#x27;affiche pas correctement, vous pouvez accéder directement au portail via le lien suivant :&lt;br/&gt;
+&lt;a th:href=<span class="s">&quot;${portalUrl}&quot;</span> th:text=<span class="s">&quot;${portalUrl}&quot;</span> href=<span class="s">&quot;https://qlickflow-portail.rb.echonet&quot;</span> style=<span class="s">&quot;color:#00915a; text-decoration:underline; font-weight:600;&quot;</span>
+ target=<span class="s">&quot;_blank&quot;</span>&gt;https:<span class="c">//qlickflow-portail.rb.echonet&lt;/a&gt;</span>
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- SIGNATURE OFFICIELLE --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:18px 32px 24px 32px; border-top:1px solid #eef0ef; font-size:14px; line-height:22px; color:#404a46;&quot;</span>&gt;
+Cordialement,&lt;br/&gt;
+&lt;strong style=<span class="s">&quot;color:#00915a;&quot;</span>&gt;L&#x27;équipe QlickFlow&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- PIED DE PAGE &amp; MENTIONS LÉGALES --&gt;</span>
+&lt;tr&gt;
+&lt;td bgcolor=<span class="s">&quot;#f7f8f7&quot;</span> style=&quot;background-color:#f7f8f7; padding:16px 32px 22px 32px; border-top:1px solid #dde2e0;
+ font-size:11px; line-height:17px; color:#82938c; text-align:center;&quot;&gt;
+            Ceci est une notification automatique générée par le système QlickFlow.&lt;br/&gt;
+            Merci de ne pas répondre directement à cet email. Pour toute question opérationnelle,
+            veuillez contacter la &lt;strong&gt;Caisse Centrale&lt;/strong&gt; via le canal dédié.&lt;br/&gt;
+            © 2026 BMCI - Tous droits réservés.
+          &lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/body&gt;&lt;/html&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gestion-fonds-demande-annulee.html</b><br><span class="path">notifications-ci\src\main\resources\templates\mail\gestion-fonds-demande-annulee.html</span></div><p class="note">Maquette « Notification_DA_annulation_demande.html » + bloc motif.</p><pre><button class="copy">Copier</button><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=<span class="s">&quot;fr&quot;</span> xmlns:th=<span class="s">&quot;http://www.thymeleaf.org&quot;</span>&gt;&lt;head&gt;
+&lt;meta charset=<span class="s">&quot;utf-8&quot;</span>/&gt;
+&lt;meta content=<span class="s">&quot;width=device-width, initial-scale=1&quot;</span> name=<span class="s">&quot;viewport&quot;</span>/&gt;
+&lt;meta name=<span class="s">&quot;x-apple-disable-message-reformatting&quot;</span>/&gt;
+&lt;title&gt;QlickFlow - Annulation d&#x27;une demande de fonds&lt;/title&gt;
+&lt;/head&gt;
+&lt;body style=&#x27;margin: 0px; padding: 0px; background-color: rgb(242, 242, 242); font-family: <span class="s">&quot;Segoe UI&quot;</span>, Arial, Helvetica,
+ sans-serif; color: rgb(34, 34, 34); -webkit-font-smoothing: antialiased;&#x27;&gt;
+&lt;table bgcolor=<span class="s">&quot;#f2f2f2&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=<span class="s">&quot;background-color:#f2f2f2;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:28px 12px;&quot;</span>&gt;
+<span class="c">&lt;!-- Conteneur principal 640 px --&gt;</span>
+&lt;table bgcolor=<span class="s">&quot;#ffffff&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;width:100%; max-width:640px;
+ background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06); border-top:5px solid #00915a;&quot;
+ width=<span class="s">&quot;640&quot;</span>&gt;
+<span class="c">&lt;!-- EN-TÊTE : Logo QlickFlow &amp; Contexte BMCI --&gt;</span>
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:26px 32px 14px 32px; border-bottom:1px solid #f0f2f1;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;left&quot;</span> valign=<span class="s">&quot;middle&quot;</span>&gt;
+<span class="c">&lt;!-- Logo QlickFlow : PNG inline (cid) — le SVG de la maquette n&#x27;est pas affiché par Outlook --&gt;</span>
+&lt;img th:src=<span class="s">&quot;&#x27;cid:&#x27; + ${logoCid}&quot;</span> src=<span class="s">&quot;../../static/mail/logo-qlickflow.png&quot;</span> width=<span class="s">&quot;190&quot;</span> height=<span class="s">&quot;58&quot;</span> alt=<span class="s">&quot;QlickFlow&quot;</span>
+ style=<span class="s">&quot;display:block;border:0;&quot;</span>/&gt;
+&lt;/td&gt;
+&lt;td align=<span class="s">&quot;right&quot;</span> valign=<span class="s">&quot;middle&quot;</span>&gt;
+&lt;span style=&quot;display:inline-block; font-size:12px; font-weight:700; color:#00915a; background-color:#e1fff3;
+ border:1px solid #85ffd1; padding:5px 12px; border-radius:12px; text-transform:uppercase; letter-spacing:0.5px;&quot;&gt;
+BMCI • Gestion des Fonds&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BANDEAU NATURE D&#x27;ÉVÉNEMENT (Exemple dynamique : SOUMISSION / MISE À JOUR / ANNULATION) --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:22px 32px 10px 32px;&quot;</span>&gt;
+&lt;table bgcolor=<span class="s">&quot;#fcebea&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;background-color:#fcebea;
+ border-left:4px solid #C8281E; border-radius:4px;<span class="s">&quot; width=&quot;</span>100%&quot;&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 18px;&quot;</span>&gt;
+&lt;span style=&quot;font-size:13px; font-weight:700; color:#851b14; text-transform:uppercase; letter-spacing:0.8px; display:block;
+ margin-bottom:4px;&quot;&gt;Notification Directeur d&#x27;Agence&lt;/span&gt;
+&lt;span style=<span class="s">&quot;font-size:17px; font-weight:700; color:#C8281E;&quot;</span>&gt;Demande de fonds annulée&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- CORPS DU MESSAGE --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 32px 16px 32px; font-size:15px; line-height:23px; color:#404a46;&quot;</span>&gt;
+&lt;p style=<span class="s">&quot;margin:0 0 14px 0; font-size:16px;&quot;</span>&gt;&lt;strong&gt;Monsieur / Madame le Directeur d&#x27;Agence,&lt;/strong&gt;&lt;/p&gt;
+&lt;p style=<span class="s">&quot;margin:0 0 16px 0;&quot;</span>&gt;Nous vous informons qu&#x27;une demande de &lt;strong&gt;Gestion des Fonds &amp;amp; Approvisionnements&lt;/strong&gt;
+ a été annulée pour votre agence :&lt;/p&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BLOC D&#x27;INFORMATIONS DÉTAILLÉES --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:0 32px;&quot;</span>&gt;
+&lt;table bgcolor=<span class="s">&quot;#f7f8f7&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span>
+ style=<span class="s">&quot;background-color:#f7f8f7; border:1px solid #e6e9e8; border-radius:6px;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:20px 22px;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=<span class="s">&quot;font-size:14px; line-height:22px;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Agence concernée&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#000604; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>
+ th:text=<span class="s">&quot;|Agence ${agence}|&quot;</span>&gt;Agence 1001 - Nations Unies&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Nature de l&#x27;opération&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#007f4f; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;&lt;span
+ style=<span class="s">&quot;display:inline-block; padding:2px 8px; background-color:#fcebea; color:#C8281E; border-radius:4px; font-size:13px; font-weight:700;&quot;</span>&gt;Annulation de la demande&lt;/span&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Référence de la demande&lt;/td&gt;
+&lt;td style=&quot;padding:6px 0; color:#000604; font-weight:700; font-family:<span class="s">&#x27;Courier New&#x27;</span>, monospace; font-size:15px;
+ border-bottom:1px dashed #dde2e0;<span class="s">&quot; th:text=&quot;</span>${reference}&quot;&gt;20260805-1001-02&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Date et heure&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#404a46; font-weight:600; border-bottom:1px dashed #dde2e0;&quot;</span> th:text=<span class="s">&quot;${date}&quot;</span>&gt;05/08/2026 à 18:45&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Opérateur (initiateur)&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#000604; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;
+&lt;span th:text=<span class="s">&quot;${operateurNom}&quot;</span> th:remove=<span class="s">&quot;tag&quot;</span>&gt;Salma EL AMRANI&lt;/span&gt; &lt;span style=<span class="s">&quot;font-weight:400; color:#606f69; font-size:12px;&quot;</span>
+ th:<span class="k">if</span>=<span class="s">&quot;${!#strings.isEmpty(operateurProfil)}&quot;</span> th:text=<span class="s">&quot;|(${operateurProfil})|&quot;</span>&gt;(Chef de Caisse / BackOffice)&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Statut actuel&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;&lt;span style=&quot;display:inline-block; padding:2px 8px;
+ background-color:#fcebea; color:#C8281E; border-radius:4px; font-weight:700; font-size:12px;
+ letter-spacing:0.3px;&quot;&gt;ANNULÉE&lt;/span&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+<span class="c">&lt;!-- Bloc motif : affiché seulement si renseigné --&gt;</span>
+&lt;table bgcolor=<span class="s">&quot;#FFF8F8&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;margin-top:14px;
+ background-color:#FFF8F8; border:1px solid #F6D6C6; border-left:4px solid #C8281E; border-radius:6px;<span class="s">&quot; width=&quot;</span>100%&quot;
+ th:<span class="k">if</span>=<span class="s">&quot;${!#strings.isEmpty(motif)}&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 18px;&quot;</span>&gt;
+&lt;div style=<span class="s">&quot;font-size:12px; font-weight:700; color:#C8281E; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;&quot;</span>&gt;
+MOTIF DE L&#x27;ANNULATION :
+&lt;/div&gt;
+&lt;div style=<span class="s">&quot;font-size:13px; line-height:20px; color:#2c3531; font-style:italic;&quot;</span> th:text=<span class="s">&quot;|« ${motif} »|&quot;</span>&gt;
+« Motif »
+&lt;/div&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BOUTON D&#x27;ACTION PRINCIPALE (Accès QlickFlow) --&gt;</span>
+&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:28px 32px 14px 32px;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> bgcolor=<span class="s">&quot;#00915a&quot;</span> style=<span class="s">&quot;background-color:#00915a; border-radius:4px; box-shadow:0 3px 6px rgba(0,145,90,0.25);&quot;</span>&gt;
+&lt;a th:href=<span class="s">&quot;${portalUrl}&quot;</span> href=<span class="s">&quot;https://qlickflow-portail.rb.echonet&quot;</span> style=&quot;font-family:<span class="s">&#x27;Segoe UI&#x27;</span>, Arial, Helvetica, sans-serif;
+ font-size:15px; font-weight:700; color:#ffffff; text-decoration:none; display:inline-block; padding:13px 32px;
+ letter-spacing:0.5px;<span class="s">&quot; target=&quot;</span>_blank&quot;&gt;Consulter la demande sur QlickFlow →&lt;/a&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- AIDE ET LIEN DIRECT --&gt;</span>
+&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:0 32px 20px 32px; font-size:12px; line-height:18px; color:#82938c;&quot;</span>&gt;
+        Si le bouton ne s&#x27;affiche pas correctement, vous pouvez accéder directement au portail via le lien suivant :&lt;br/&gt;
+&lt;a th:href=<span class="s">&quot;${portalUrl}&quot;</span> th:text=<span class="s">&quot;${portalUrl}&quot;</span> href=<span class="s">&quot;https://qlickflow-portail.rb.echonet&quot;</span> style=<span class="s">&quot;color:#00915a; text-decoration:underline; font-weight:600;&quot;</span>
+ target=<span class="s">&quot;_blank&quot;</span>&gt;https:<span class="c">//qlickflow-portail.rb.echonet&lt;/a&gt;</span>
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- SIGNATURE OFFICIELLE --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:18px 32px 24px 32px; border-top:1px solid #eef0ef; font-size:14px; line-height:22px; color:#404a46;&quot;</span>&gt;
+Cordialement,&lt;br/&gt;
+&lt;strong style=<span class="s">&quot;color:#00915a;&quot;</span>&gt;L&#x27;équipe QlickFlow&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- PIED DE PAGE &amp; MENTIONS LÉGALES --&gt;</span>
+&lt;tr&gt;
+&lt;td bgcolor=<span class="s">&quot;#f7f8f7&quot;</span> style=&quot;background-color:#f7f8f7; padding:16px 32px 22px 32px; border-top:1px solid #dde2e0;
+ font-size:11px; line-height:17px; color:#82938c; text-align:center;&quot;&gt;
+            Ceci est une notification automatique générée par le système QlickFlow.&lt;br/&gt;
+            Merci de ne pas répondre directement à cet email. Pour toute question opérationnelle,
+            veuillez contacter la &lt;strong&gt;Caisse Centrale&lt;/strong&gt; via le canal dédié.&lt;br/&gt;
+            © 2026 BMCI - Tous droits réservés.
+          &lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/body&gt;&lt;/html&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gestion-fonds-demande-urgente.html</b><br><span class="path">notifications-ci\src\main\resources\templates\mail\gestion-fonds-demande-urgente.html</span></div><p class="note">Maquette « Notification_Nouvelle_Urgence.html » (Caisse Centrale). « Nature de l'opération » = <code>natureUrgence</code>.</p><pre><button class="copy">Copier</button><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=<span class="s">&quot;fr&quot;</span> xmlns:th=<span class="s">&quot;http://www.thymeleaf.org&quot;</span>&gt;&lt;head&gt;
+&lt;meta charset=<span class="s">&quot;utf-8&quot;</span>/&gt;
+&lt;meta content=<span class="s">&quot;width=device-width, initial-scale=1&quot;</span> name=<span class="s">&quot;viewport&quot;</span>/&gt;
+&lt;meta name=<span class="s">&quot;x-apple-disable-message-reformatting&quot;</span>/&gt;
+&lt;title&gt;QlickFlow - Nouvelle demande de fonds urgente reçue (Caisse Centrale)&lt;/title&gt;
+&lt;/head&gt;
+&lt;body style=&#x27;margin: 0px; padding: 0px; background-color: rgb(242, 242, 242); font-family: <span class="s">&quot;Segoe UI&quot;</span>, Arial, Helvetica,
+ sans-serif; color: rgb(34, 34, 34); -webkit-font-smoothing: antialiased;&#x27;&gt;
+&lt;table bgcolor=<span class="s">&quot;#f2f2f2&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=<span class="s">&quot;background-color:#f2f2f2;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:28px 12px;&quot;</span>&gt;
+<span class="c">&lt;!-- Conteneur principal 640 px --&gt;</span>
+&lt;table bgcolor=<span class="s">&quot;#ffffff&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;width:100%; max-width:640px;
+ background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06); border-top:5px solid #00915a;&quot;
+ width=<span class="s">&quot;640&quot;</span>&gt;
+<span class="c">&lt;!-- EN-TÊTE : Logo QlickFlow &amp; Contexte BMCI --&gt;</span>
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:26px 32px 14px 32px; border-bottom:1px solid #f0f2f1;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;left&quot;</span> valign=<span class="s">&quot;middle&quot;</span>&gt;
+<span class="c">&lt;!-- Logo QlickFlow : PNG inline (cid) — le SVG de la maquette n&#x27;est pas affiché par Outlook --&gt;</span>
+&lt;img th:src=<span class="s">&quot;&#x27;cid:&#x27; + ${logoCid}&quot;</span> src=<span class="s">&quot;../../static/mail/logo-qlickflow.png&quot;</span> width=<span class="s">&quot;190&quot;</span> height=<span class="s">&quot;58&quot;</span> alt=<span class="s">&quot;QlickFlow&quot;</span>
+ style=<span class="s">&quot;display:block;border:0;&quot;</span>/&gt;
+&lt;/td&gt;
+&lt;td align=<span class="s">&quot;right&quot;</span> valign=<span class="s">&quot;middle&quot;</span>&gt;
+&lt;span style=&quot;display:inline-block; font-size:12px; font-weight:700; color:#00915a; background-color:#e1fff3;
+ border:1px solid #85ffd1; padding:5px 12px; border-radius:12px; text-transform:uppercase; letter-spacing:0.5px;&quot;&gt;
+BMCI • Gestion des Fonds&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BANDEAU NATURE D&#x27;ÉVÉNEMENT (Exemple dynamique : SOUMISSION / MISE À JOUR / ANNULATION) --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:22px 32px 10px 32px;&quot;</span>&gt;
+&lt;table bgcolor=<span class="s">&quot;#FCEBEA&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;background-color:#FCEBEA;
+ border-left:4px solid #C8281E; border-radius:4px;<span class="s">&quot; width=&quot;</span>100%&quot;&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 18px;&quot;</span>&gt;
+&lt;span style=&quot;font-size:12px; font-weight:700; color:#C8281E; text-transform:uppercase; letter-spacing:0.8px; display:block;
+ margin-bottom:4px;&quot;&gt;NOTIFICATION CAISSE CENTRALE • ALERTE IMMÉDIATE&lt;/span&gt;
+&lt;span style=<span class="s">&quot;font-size:17px; font-weight:700; color:#93000A;&quot;</span>&gt;Nouvelle demande de fonds urgente reçue&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- CORPS DU MESSAGE --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 32px 16px 32px; font-size:15px; line-height:23px; color:#404a46;&quot;</span>&gt;
+&lt;p style=<span class="s">&quot;margin:0 0 14px 0; font-size:16px;&quot;</span>&gt;&lt;strong&gt;Chère équipe Caisse Centrale,&lt;/strong&gt;&lt;/p&gt;
+&lt;p style=<span class="s">&quot;margin:0 0 16px 0;&quot;</span>&gt;Une nouvelle demande de &lt;strong&gt;Gestion des Fonds &amp;amp; Approvisionnements&lt;/strong&gt; marquée &lt;strong&gt;URGENTE&lt;/strong&gt; vient d&#x27;être soumise par une agence et requiert votre arbitrage ou prise en
+ charge prioritaire :&lt;/p&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BLOC D&#x27;INFORMATIONS DÉTAILLÉES --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:0 32px;&quot;</span>&gt;
+&lt;table bgcolor=<span class="s">&quot;#f7f8f7&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span>
+ style=<span class="s">&quot;background-color:#f7f8f7; border:1px solid #e6e9e8; border-radius:6px;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:20px 22px;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=<span class="s">&quot;font-size:14px; line-height:22px;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Agence concernée&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#000604; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>
+ th:text=<span class="s">&quot;|Agence ${agence}|&quot;</span>&gt;Agence 1001 - Nations Unies&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Nature de l&#x27;opération&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;&lt;span
+ style=<span class="s">&quot;display:inline-block; padding:3px 10px; background-color:#FFDAD6; color:#93000A; border:1px solid #FFB4AB; border-radius:4px; font-size:13px; font-weight:700;&quot;</span> th:text=<span class="s">&quot;${natureUrgence}&quot;</span>&gt;Nouvelle demande urgente&lt;/span&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Référence de la demande&lt;/td&gt;
+&lt;td style=&quot;padding:6px 0; color:#000604; font-weight:700; font-family:<span class="s">&#x27;Courier New&#x27;</span>, monospace; font-size:15px;
+ border-bottom:1px dashed #dde2e0;<span class="s">&quot; th:text=&quot;</span>${reference}&quot;&gt;20260805-1001-02&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Date et heure de soumission&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#404a46; font-weight:600; border-bottom:1px dashed #dde2e0;&quot;</span> th:text=<span class="s">&quot;${date}&quot;</span>&gt;05/08/2026 à 18:10&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Initiateur (Agence)&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#000604; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;
+&lt;span th:text=<span class="s">&quot;${operateurNom}&quot;</span> th:remove=<span class="s">&quot;tag&quot;</span>&gt;Salma EL AMRANI&lt;/span&gt; &lt;span style=<span class="s">&quot;font-weight:400; color:#606f69; font-size:12px;&quot;</span>
+ th:<span class="k">if</span>=<span class="s">&quot;${!#strings.isEmpty(operateurProfil)}&quot;</span> th:text=<span class="s">&quot;|(${operateurProfil})|&quot;</span>&gt;(Chef de Caisse / BackOffice)&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Statut actuel&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0;&quot;</span>&gt;&lt;span style=&quot;display:inline-block; padding:3px 10px;
+ background-color:#FCEBEA; color:#C8281E; border:1px solid #FFB4AB; border-radius:4px; font-weight:700; font-size:12px;
+ letter-spacing:0.3px;<span class="s">&quot;&gt;EN ATTENTE&lt;/span&gt; &lt;span style=&quot;</span>display:inline-block; margin-left:6px; font-size:12px;
+ color:#C8281E; font-weight:700;&quot;&gt;• URGENCE SIGNALÉE&lt;/span&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+<span class="c">&lt;!-- Bloc motif : affiché seulement si renseigné --&gt;</span>
+&lt;table bgcolor=<span class="s">&quot;#FFF8F8&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;margin-top:14px;
+ background-color:#FFF8F8; border:1px solid #F6D6C6; border-left:4px solid #C8281E; border-radius:6px;<span class="s">&quot; width=&quot;</span>100%&quot;
+ th:<span class="k">if</span>=<span class="s">&quot;${!#strings.isEmpty(motif)}&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 18px;&quot;</span>&gt;
+&lt;div style=<span class="s">&quot;font-size:12px; font-weight:700; color:#C8281E; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;&quot;</span>&gt;
+MOTIF DE L<span class="s">&#x27;URGENCE (SAISI PAR L&#x27;</span>AGENCE) :
+&lt;/div&gt;
+&lt;div style=<span class="s">&quot;font-size:13px; line-height:20px; color:#2c3531; font-style:italic;&quot;</span> th:text=<span class="s">&quot;|« ${motif} »|&quot;</span>&gt;
+« Motif »
+&lt;/div&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BOUTON D&#x27;ACTION PRINCIPALE (Accès QlickFlow) --&gt;</span>
+&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:28px 32px 14px 32px;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> bgcolor=<span class="s">&quot;#00915a&quot;</span> style=<span class="s">&quot;background-color:#00915a; border-radius:4px; box-shadow:0 3px 6px rgba(0,145,90,0.25);&quot;</span>&gt;
+&lt;a th:href=<span class="s">&quot;${portalUrl}&quot;</span> href=<span class="s">&quot;https://qlickflow-portail.rb.echonet&quot;</span> style=&quot;font-family:<span class="s">&#x27;Segoe UI&#x27;</span>, Arial, Helvetica, sans-serif;
+ font-size:15px; font-weight:700; color:#ffffff; text-decoration:none; display:inline-block; padding:13px 32px;
+ letter-spacing:0.5px;<span class="s">&quot; target=&quot;</span>_blank&quot;&gt;Traiter ou arbitrer la demande sur QlickFlow →&lt;/a&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- AIDE ET LIEN DIRECT --&gt;</span>
+&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:0 32px 20px 32px; font-size:12px; line-height:18px; color:#82938c;&quot;</span>&gt;
+        Si le bouton ne s&#x27;affiche pas correctement, vous pouvez accéder directement au portail via le lien suivant :&lt;br/&gt;
+&lt;a th:href=<span class="s">&quot;${portalUrl}&quot;</span> th:text=<span class="s">&quot;${portalUrl}&quot;</span> href=<span class="s">&quot;https://qlickflow-portail.rb.echonet&quot;</span> style=<span class="s">&quot;color:#00915a; text-decoration:underline; font-weight:600;&quot;</span>
+ target=<span class="s">&quot;_blank&quot;</span>&gt;https:<span class="c">//qlickflow-portail.rb.echonet&lt;/a&gt;</span>
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- SIGNATURE OFFICIELLE --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:18px 32px 24px 32px; border-top:1px solid #eef0ef; font-size:14px; line-height:22px; color:#404a46;&quot;</span>&gt;
+Cordialement,&lt;br/&gt;
+&lt;strong style=<span class="s">&quot;color:#00915a;&quot;</span>&gt;L&#x27;équipe QlickFlow&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- PIED DE PAGE &amp; MENTIONS LÉGALES --&gt;</span>
+&lt;tr&gt;
+&lt;td bgcolor=<span class="s">&quot;#f7f8f7&quot;</span> style=&quot;background-color:#f7f8f7; padding:16px 32px 22px 32px; border-top:1px solid #dde2e0;
+ font-size:11px; line-height:17px; color:#82938c; text-align:center;&quot;&gt;
+            Ceci est une notification automatique générée par le système QlickFlow.&lt;br/&gt;
+            Merci de ne pas répondre directement à cet email. Pour toute question opérationnelle ou arbitrage
+            d&#x27;urgence, veuillez contacter la &lt;strong&gt;Caisse Centrale&lt;/strong&gt; via la ligne dédiée ou le portail QlickFlow.&lt;br/&gt;
+            © 2026 BMCI - Tous droits réservés.
+          &lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/body&gt;&lt;/html&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>gestion-fonds-urgence-declassee.html</b><br><span class="path">notifications-ci\src\main\resources\templates\mail\gestion-fonds-urgence-declassee.html</span></div><p class="note">Maquette « Notification_Declassement_urgence.html ».</p><pre><button class="copy">Copier</button><code>&lt;!DOCTYPE html&gt;
+
+&lt;html lang=<span class="s">&quot;fr&quot;</span> xmlns:th=<span class="s">&quot;http://www.thymeleaf.org&quot;</span>&gt;&lt;head&gt;
+&lt;meta charset=<span class="s">&quot;utf-8&quot;</span>/&gt;
+&lt;meta content=<span class="s">&quot;width=device-width, initial-scale=1&quot;</span> name=<span class="s">&quot;viewport&quot;</span>/&gt;
+&lt;meta name=<span class="s">&quot;x-apple-disable-message-reformatting&quot;</span>/&gt;
+&lt;title&gt;QlickFlow - Déclassement d<span class="s">&#x27;urgence d&#x27;</span>une demande de fonds&lt;/title&gt;
+&lt;/head&gt;
+&lt;body style=&#x27;margin: 0px; padding: 0px; background-color: rgb(242, 242, 242); font-family: <span class="s">&quot;Segoe UI&quot;</span>, Arial, Helvetica,
+ sans-serif; color: rgb(34, 34, 34); -webkit-font-smoothing: antialiased;&#x27;&gt;
+&lt;table bgcolor=<span class="s">&quot;#f2f2f2&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=<span class="s">&quot;background-color:#f2f2f2;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:28px 12px;&quot;</span>&gt;
+<span class="c">&lt;!-- Conteneur principal 640 px --&gt;</span>
+&lt;table bgcolor=<span class="s">&quot;#ffffff&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;width:100%; max-width:640px;
+ background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06); border-top:5px solid #00915a;&quot;
+ width=<span class="s">&quot;640&quot;</span>&gt;
+<span class="c">&lt;!-- EN-TÊTE : Logo QlickFlow &amp; Contexte BMCI --&gt;</span>
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:26px 32px 14px 32px; border-bottom:1px solid #f0f2f1;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;left&quot;</span> valign=<span class="s">&quot;middle&quot;</span>&gt;
+<span class="c">&lt;!-- Logo QlickFlow : PNG inline (cid) — le SVG de la maquette n&#x27;est pas affiché par Outlook --&gt;</span>
+&lt;img th:src=<span class="s">&quot;&#x27;cid:&#x27; + ${logoCid}&quot;</span> src=<span class="s">&quot;../../static/mail/logo-qlickflow.png&quot;</span> width=<span class="s">&quot;190&quot;</span> height=<span class="s">&quot;58&quot;</span> alt=<span class="s">&quot;QlickFlow&quot;</span>
+ style=<span class="s">&quot;display:block;border:0;&quot;</span>/&gt;
+&lt;/td&gt;
+&lt;td align=<span class="s">&quot;right&quot;</span> valign=<span class="s">&quot;middle&quot;</span>&gt;
+&lt;span style=&quot;display:inline-block; font-size:12px; font-weight:700; color:#00915a; background-color:#e1fff3;
+ border:1px solid #85ffd1; padding:5px 12px; border-radius:12px; text-transform:uppercase; letter-spacing:0.5px;&quot;&gt;
+BMCI • Gestion des Fonds&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BANDEAU NATURE D&#x27;ÉVÉNEMENT (Exemple dynamique : SOUMISSION / MISE À JOUR / ANNULATION) --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:22px 32px 10px 32px;&quot;</span>&gt;
+&lt;table bgcolor=<span class="s">&quot;#FFF8EE&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;background-color:#FFF8EE;
+ border-left:4px solid #DD4E20; border-radius:4px;<span class="s">&quot; width=&quot;</span>100%&quot;&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 18px;&quot;</span>&gt;
+&lt;span style=&quot;font-size:12px; font-weight:700; color:#B13E19; text-transform:uppercase; letter-spacing:0.8px; display:block;
+ margin-bottom:4px;&quot;&gt;NOTIFICATION AGENCE (DIRECTEUR D&#x27;AGENCE &amp;amp; CHEF DE CAISSE)&lt;/span&gt;
+&lt;span style=<span class="s">&quot;font-size:17px; font-weight:700; color:#DD4E20;&quot;</span>&gt;Demande de fonds déclassée (Urgence retirée)&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- CORPS DU MESSAGE --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 32px 16px 32px; font-size:15px; line-height:23px; color:#404a46;&quot;</span>&gt;
+&lt;p style=<span class="s">&quot;margin:0 0 14px 0; font-size:16px;&quot;</span>&gt;&lt;strong&gt;Madame / Monsieur le Directeur d&#x27;Agence, Chef de Caisse,&lt;/strong&gt;&lt;/p&gt;
+&lt;p style=<span class="s">&quot;margin:0 0 16px 0;&quot;</span>&gt;Nous vous informons que le caractère urgent de votre demande de
+&lt;strong&gt;Gestion des Fonds &amp;amp; Approvisionnements&lt;/strong&gt; a été déclassé par la &lt;strong&gt;Caisse Centrale&lt;/strong&gt;. La demande est désormais traitée selon le circuit standard :&lt;/p&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BLOC D&#x27;INFORMATIONS DÉTAILLÉES --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:0 32px;&quot;</span>&gt;
+&lt;table bgcolor=<span class="s">&quot;#f7f8f7&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span>
+ style=<span class="s">&quot;background-color:#f7f8f7; border:1px solid #e6e9e8; border-radius:6px;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:20px 22px;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=<span class="s">&quot;font-size:14px; line-height:22px;&quot;</span> width=<span class="s">&quot;100%&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Agence concernée&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#000604; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>
+ th:text=<span class="s">&quot;|Agence ${agence}|&quot;</span>&gt;Agence 1001 - Nations Unies&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Nature de l&#x27;opération&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;&lt;span
+ style=<span class="s">&quot;display:inline-block; padding:3px 10px; background-color:#FFF3EB; color:#DD4E20; border:1px solid #FFD8C7; border-radius:4px; font-size:13px; font-weight:700;&quot;</span>&gt;Déclassement de l&#x27;urgence&lt;/span&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Référence de la demande&lt;/td&gt;
+&lt;td style=&quot;padding:6px 0; color:#000604; font-weight:700; font-family:<span class="s">&#x27;Courier New&#x27;</span>, monospace; font-size:15px;
+ border-bottom:1px dashed #dde2e0;<span class="s">&quot; th:text=&quot;</span>${reference}&quot;&gt;20260805-1001-02&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Date et heure&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#404a46; font-weight:600; border-bottom:1px dashed #dde2e0;&quot;</span> th:text=<span class="s">&quot;${date}&quot;</span>&gt;05/08/2026 à 18:25&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69; border-bottom:1px dashed #dde2e0;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Opérateur Caisse Centrale&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#000604; font-weight:700; border-bottom:1px dashed #dde2e0;&quot;</span>&gt;
+&lt;span th:text=<span class="s">&quot;${operateurNom}&quot;</span> th:remove=<span class="s">&quot;tag&quot;</span>&gt;Youssef BENANI&lt;/span&gt; &lt;span style=<span class="s">&quot;font-weight:400; color:#606f69; font-size:12px;&quot;</span>
+ th:<span class="k">if</span>=<span class="s">&quot;${!#strings.isEmpty(operateurProfil)}&quot;</span> th:text=<span class="s">&quot;|(${operateurProfil})|&quot;</span>&gt;(Caisse Centrale BMCI)&lt;/span&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0; color:#606f69;&quot;</span> width=<span class="s">&quot;38%&quot;</span>&gt;Statut actuel&lt;/td&gt;
+&lt;td style=<span class="s">&quot;padding:6px 0;&quot;</span>&gt;&lt;span style=&quot;display:inline-block; padding:3px 10px; background-color:#e9f3fb; color:#154e77;
+ border:1px solid #bce0fd; border-radius:4px; font-weight:700; font-size:12px; letter-spacing:0.3px;&quot;&gt;STANDARD (EN COURS)&lt;/span&gt;
+ &lt;span style=<span class="s">&quot;display:inline-block; margin-left:6px; font-size:12px; color:#DD4E20; font-weight:600;&quot;</span>&gt;• Urgence levée&lt;/span&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+<span class="c">&lt;!-- Bloc motif : affiché seulement si renseigné --&gt;</span>
+&lt;table bgcolor=<span class="s">&quot;#FFFBF7&quot;</span> border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span> style=&quot;margin-top:14px;
+ background-color:#FFFBF7; border:1px solid #F6D6C6; border-left:4px solid #DD4E20; border-radius:6px;<span class="s">&quot; width=&quot;</span>100%&quot;
+ th:<span class="k">if</span>=<span class="s">&quot;${!#strings.isEmpty(motif)}&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:14px 18px;&quot;</span>&gt;
+&lt;div style=<span class="s">&quot;font-size:12px; font-weight:700; color:#B13E19; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;&quot;</span>&gt;
+Motif du déclassement (Caisse Centrale) :
+&lt;/div&gt;
+&lt;div style=<span class="s">&quot;font-size:13px; line-height:20px; color:#2c3531; font-style:italic;&quot;</span> th:text=<span class="s">&quot;|« ${motif} »|&quot;</span>&gt;
+« Motif »
+&lt;/div&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- BOUTON D&#x27;ACTION PRINCIPALE (Accès QlickFlow) --&gt;</span>
+&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:28px 32px 14px 32px;&quot;</span>&gt;
+&lt;table border=<span class="s">&quot;0&quot;</span> cellpadding=<span class="s">&quot;0&quot;</span> cellspacing=<span class="s">&quot;0&quot;</span> role=<span class="s">&quot;presentation&quot;</span>&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> bgcolor=<span class="s">&quot;#00915a&quot;</span> style=<span class="s">&quot;background-color:#00915a; border-radius:4px; box-shadow:0 3px 6px rgba(0,145,90,0.25);&quot;</span>&gt;
+&lt;a th:href=<span class="s">&quot;${portalUrl}&quot;</span> href=<span class="s">&quot;https://qlickflow-portail.rb.echonet&quot;</span> style=&quot;font-family:<span class="s">&#x27;Segoe UI&#x27;</span>, Arial, Helvetica, sans-serif;
+ font-size:15px; font-weight:700; color:#ffffff; text-decoration:none; display:inline-block; padding:13px 32px;
+ letter-spacing:0.5px;<span class="s">&quot; target=&quot;</span>_blank&quot;&gt;Consulter la demande sur QlickFlow →&lt;/a&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- AIDE ET LIEN DIRECT --&gt;</span>
+&lt;tr&gt;
+&lt;td align=<span class="s">&quot;center&quot;</span> style=<span class="s">&quot;padding:0 32px 20px 32px; font-size:12px; line-height:18px; color:#82938c;&quot;</span>&gt;
+        Si le bouton ne s&#x27;affiche pas correctement, vous pouvez accéder directement au portail via le lien suivant :&lt;br/&gt;
+&lt;a th:href=<span class="s">&quot;${portalUrl}&quot;</span> th:text=<span class="s">&quot;${portalUrl}&quot;</span> href=<span class="s">&quot;https://qlickflow-portail.rb.echonet&quot;</span> style=<span class="s">&quot;color:#00915a; text-decoration:underline; font-weight:600;&quot;</span>
+ target=<span class="s">&quot;_blank&quot;</span>&gt;https:<span class="c">//qlickflow-portail.rb.echonet&lt;/a&gt;</span>
+&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- SIGNATURE OFFICIELLE --&gt;</span>
+&lt;tr&gt;
+&lt;td style=<span class="s">&quot;padding:18px 32px 24px 32px; border-top:1px solid #eef0ef; font-size:14px; line-height:22px; color:#404a46;&quot;</span>&gt;
+Cordialement,&lt;br/&gt;
+&lt;strong style=<span class="s">&quot;color:#00915a;&quot;</span>&gt;L&#x27;équipe QlickFlow&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+<span class="c">&lt;!-- PIED DE PAGE &amp; MENTIONS LÉGALES --&gt;</span>
+&lt;tr&gt;
+&lt;td bgcolor=<span class="s">&quot;#f7f8f7&quot;</span> style=&quot;background-color:#f7f8f7; padding:16px 32px 22px 32px; border-top:1px solid #dde2e0;
+ font-size:11px; line-height:17px; color:#82938c; text-align:center;&quot;&gt;
+            Ceci est une notification automatique générée par le système QlickFlow.&lt;br/&gt;
+            Merci de ne pas répondre directement à cet email. Pour toute question opérationnelle ou arbitrage
+            d&#x27;urgence, veuillez contacter la &lt;strong&gt;Caisse Centrale&lt;/strong&gt; via la ligne dédiée ou le portail QlickFlow.&lt;br/&gt;
+            © 2026 BMCI - Tous droits réservés.
+          &lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;&lt;/table&gt;
+&lt;/body&gt;&lt;/html&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>gestion-fonds-demande.html</b><br><span class="path">notifications-ci\src\main\resources\templates\mail\gestion-fonds-demande.html</span></div><pre><button class="copy">Copier</button><code>(supprimer le fichier : plus référencé après l&#x27;édition ci-dessous)</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>NotificationTemplate.java — l. 29 à 39 (AVANT)</b><br><span class="path">notifications-ci\src\main\java\qlickflow\bnpparibas\irb\qlickflow\notification\service\NotificationTemplate.java</span></div><p class="note">Ctrl+F : <code>// ----- Gestion des fonds</code> → de cette ligne (29) jusqu'à <code>GDF_DEMANDE_URGENTE(...);</code> (39) inclus.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ----- Gestion des fonds (fund-management) : un template unique, un objet par évènement -----</span>
+    <span class="c">/** Demande d&#x27;agence soumise → Directeur d&#x27;agence. */</span>
+    GDF_DEMANDE_SOUMISE(<span class="s">&quot;[Gestion des fonds] Demande soumise&quot;</span>, <span class="s">&quot;mail/gestion-fonds-demande&quot;</span>),
+    <span class="c">/** Demande d&#x27;agence mise à jour → Directeur d&#x27;agence. */</span>
+    GDF_DEMANDE_MISE_A_JOUR(<span class="s">&quot;[Gestion des fonds] Demande mise à jour&quot;</span>, <span class="s">&quot;mail/gestion-fonds-demande&quot;</span>),
+    <span class="c">/** Demande annulée (agence ou Caisse Centrale) → Directeur d&#x27;agence. */</span>
+    GDF_DEMANDE_ANNULEE(<span class="s">&quot;[Gestion des fonds] Demande annulée&quot;</span>, <span class="s">&quot;mail/gestion-fonds-demande&quot;</span>),
+    <span class="c">/** Urgence déclassée par la Caisse Centrale → gestionnaires de l&#x27;agence. */</span>
+    GDF_URGENCE_DECLASSEE(<span class="s">&quot;[Gestion des fonds] Urgence déclassée&quot;</span>, <span class="s">&quot;mail/gestion-fonds-demande&quot;</span>),
+    <span class="c">/** Demande urgente soumise / mise à jour → Caisse Centrale. */</span>
+    GDF_DEMANDE_URGENTE(<span class="s">&quot;[Gestion des fonds] URGENT — Demande à traiter&quot;</span>, <span class="s">&quot;mail/gestion-fonds-demande&quot;</span>);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>NotificationTemplate.java — l. 29 à 39 (APRÈS)</b><br><span class="path">notifications-ci\src\main\java\qlickflow\bnpparibas\irb\qlickflow\notification\service\NotificationTemplate.java</span></div><p class="note">Mêmes codes et mêmes objets : seul <code>templatePath</code> change. <code>fromCode</code> (l. 43-49) inchangé.</p><pre><button class="copy">Copier</button><code>    <span class="c">// ----- Gestion des fonds (fund-management) : un template PO par scénario -----</span>
+    <span class="c">/** Demande d&#x27;agence soumise → Directeur d&#x27;agence. */</span>
+    GDF_DEMANDE_SOUMISE(<span class="s">&quot;[Gestion des fonds] Demande soumise&quot;</span>, <span class="s">&quot;mail/gestion-fonds-demande-soumise&quot;</span>),
+    <span class="c">/** Demande d&#x27;agence mise à jour → Directeur d&#x27;agence. */</span>
+    GDF_DEMANDE_MISE_A_JOUR(<span class="s">&quot;[Gestion des fonds] Demande mise à jour&quot;</span>, <span class="s">&quot;mail/gestion-fonds-demande-mise-a-jour&quot;</span>),
+    <span class="c">/** Demande annulée → Directeur d&#x27;agence. */</span>
+    GDF_DEMANDE_ANNULEE(<span class="s">&quot;[Gestion des fonds] Demande annulée&quot;</span>, <span class="s">&quot;mail/gestion-fonds-demande-annulee&quot;</span>),
+    <span class="c">/** Urgence déclassée par la Caisse Centrale → Directeur d&#x27;agence et Chef(s) de caisse. */</span>
+    GDF_URGENCE_DECLASSEE(<span class="s">&quot;[Gestion des fonds] Urgence déclassée&quot;</span>, <span class="s">&quot;mail/gestion-fonds-urgence-declassee&quot;</span>),
+    <span class="c">/** Demande urgente soumise / mise à jour → Caisse Centrale. */</span>
+    GDF_DEMANDE_URGENTE(<span class="s">&quot;[Gestion des fonds] URGENT — Demande à traiter&quot;</span>, <span class="s">&quot;mail/gestion-fonds-demande-urgente&quot;</span>);</code></pre></div><h2 id="fm">2. fund-management</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>VariablesEmailDemande.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\VariablesEmailDemande.java</span></div><p class="note">Remplace tout le fichier. <code>construire(demande, evenement)</code> perd le 3ᵉ paramètre (le nom du destinataire n'apparaît dans aucune maquette) ; <code>construireUrgence</code> sert le mail Caisse Centrale. Les totaux / lignes devises / styles disparaissent (absents des maquettes).</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> org.springframework.stereotype.Component;
+
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.time.format.DateTimeFormatter;
+<span class="k">import</span> java.util.LinkedHashMap;
+<span class="k">import</span> java.util.Map;
+
+<span class="c">/**
+ * Variables des 5 templates PO de notifications-ci (mail/gestion-fonds-*.html), une par scénario :
+ * agence, reference, date, operateurNom, operateurProfil, motif (+ natureUrgence pour le mail Caisse Centrale).
+ * Toutes les valeurs sont des chaînes non nulles, injectées en th:text (échappées par Thymeleaf) ; les th:if testent « vide / non vide ».
+ */</span>
+@Component
+<span class="k">public</span> <span class="k">class</span> VariablesEmailDemande {
+
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> NATURE_URGENCE_SOUMISSION = <span class="s">&quot;Nouvelle demande urgente&quot;</span>;
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> NATURE_URGENCE_MISE_A_JOUR = <span class="s">&quot;Mise à jour d&#x27;une demande urgente&quot;</span>;
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> DateTimeFormatter DATE_HEURE = DateTimeFormatter.ofPattern(<span class="s">&quot;dd/MM/yyyy &#x27;à&#x27; HH:mm&quot;</span>);
+
+    <span class="c">/** Mail agence : SOUMISSION, MISE_A_JOUR, ANNULATION (Directeur d&#x27;agence) ou DECLASSEMENT_URGENCE (DA + Chef de caisse). */</span>
+    <span class="k">public</span> Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; construire(CashRequestDTO d, EvenementDemande evenement) {
+        Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; v = <span class="k">new</span> LinkedHashMap&lt;&gt;();
+        v.put(<span class="s">&quot;agence&quot;</span>, vide(d.getBranchCode()) + (d.getAgenceNom() != <span class="k">null</span> ? <span class="s">&quot; - &quot;</span> + d.getAgenceNom() : <span class="s">&quot;&quot;</span>));
+        v.put(<span class="s">&quot;reference&quot;</span>, vide(d.getUniqueRequestRef()));
+        v.put(<span class="s">&quot;date&quot;</span>, date(dateEvenement(d, evenement)));
+        <span class="k">boolean</span> parCaisseCentrale = evenement == EvenementDemande.DECLASSEMENT_URGENCE;
+        v.put(<span class="s">&quot;operateurNom&quot;</span>, vide(parCaisseCentrale ? d.getUrgenceDeclasseePar() : d.getAgentNom()));
+        v.put(<span class="s">&quot;operateurProfil&quot;</span>, vide(parCaisseCentrale ? d.getUrgenceDeclasseeProfil() : d.getAgentProfil()));
+        v.put(<span class="s">&quot;motif&quot;</span>, motif(d, evenement));
+        <span class="k">return</span> v;
+    }
+
+    <span class="c">/**
+     * Mail Caisse Centrale (template GDF_DEMANDE_URGENTE) d&#x27;une demande urgente soumise ou mise à jour.
+     * evenementOrigine (SOUMISSION / MISE_A_JOUR) fixe la date et la « Nature de l&#x27;opération » ; le motif est le commentaire de l&#x27;agence.
+     */</span>
+    <span class="k">public</span> Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; construireUrgence(CashRequestDTO d, EvenementDemande evenementOrigine) {
+        Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; v = construire(d, evenementOrigine);
+        v.put(<span class="s">&quot;motif&quot;</span>, vide(d.getComment()).trim());
+        v.put(<span class="s">&quot;natureUrgence&quot;</span>, evenementOrigine == EvenementDemande.MISE_A_JOUR ? NATURE_URGENCE_MISE_A_JOUR : NATURE_URGENCE_SOUMISSION);
+        <span class="k">return</span> v;
+    }
+
+    <span class="c">/** Date affichée « Date et heure » : celle de l&#x27;action notifiée. */</span>
+    <span class="k">private</span> <span class="k">static</span> LocalDateTime dateEvenement(CashRequestDTO d, EvenementDemande evenement) {
+        LocalDateTime derniereModif = d.getUpdatedAt() != <span class="k">null</span> ? d.getUpdatedAt() : d.getCreatedAt();
+        <span class="k">return</span> <span class="k">switch</span> (evenement) {
+            <span class="k">case</span> SOUMISSION, URGENCE_CAISSE_CENTRALE -&gt; d.getSubmittedAt() != <span class="k">null</span> ? d.getSubmittedAt() : derniereModif;
+            <span class="k">case</span> DECLASSEMENT_URGENCE -&gt; d.getUrgenceDeclasseeAt() != <span class="k">null</span> ? d.getUrgenceDeclasseeAt() : derniereModif;
+            <span class="k">case</span> MISE_A_JOUR, ANNULATION -&gt; derniereModif;
+        };
+    }
+
+    <span class="c">/** Motif affiché dans le bloc motif du template (bloc masqué si vide). */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> motif(CashRequestDTO d, EvenementDemande evenement) {
+        <span class="k">return</span> <span class="k">switch</span> (evenement) {
+            <span class="k">case</span> ANNULATION -&gt; vide(d.getCancellationReason()).trim();
+            <span class="k">case</span> DECLASSEMENT_URGENCE -&gt; vide(d.getUrgenceDeclasseeMotif()).trim();
+            <span class="k">case</span> URGENCE_CAISSE_CENTRALE -&gt; vide(d.getComment()).trim();
+            <span class="k">case</span> SOUMISSION, MISE_A_JOUR -&gt; <span class="s">&quot;&quot;</span>;
+        };
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> date(LocalDateTime date) { <span class="k">return</span> date != <span class="k">null</span> ? DATE_HEURE.format(date) : <span class="s">&quot;&quot;</span>; }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> vide(<span class="k">String</span> s) { <span class="k">return</span> s == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : s; }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>VariablesEmailDemandeTest.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\notification\VariablesEmailDemandeTest.java</span></div><p class="note">Assertions JUnit qualifiées (<code>Assertions.assertEquals</code>), aucun import statique.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> org.junit.jupiter.api.Assertions;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.util.Map;
+
+<span class="k">class</span> VariablesEmailDemandeTest {
+
+    <span class="k">private</span> <span class="k">final</span> VariablesEmailDemande variables = <span class="k">new</span> VariablesEmailDemande();
+
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demande() {
+        CashRequestDTO d = <span class="k">new</span> CashRequestDTO();
+        d.setUniqueRequestRef(<span class="s">&quot;20261109-1405-01&quot;</span>);
+        d.setBranchCode(<span class="s">&quot;1405&quot;</span>);
+        d.setAgenceNom(<span class="s">&quot;CASA MOHAMED V&quot;</span>);
+        d.setAgentNom(<span class="s">&quot;Youness BALADI&quot;</span>);
+        d.setCreatedAt(LocalDateTime.of(2026, 11, 9, 10, 13));
+        d.setUrgent(Boolean.TRUE);
+        <span class="k">return</span> d;
+    }
+
+    @Test
+    <span class="k">void</span> soumission_variablesDuTemplate() {
+        Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; v = variables.construire(demande(), EvenementDemande.SOUMISSION);
+
+        Assertions.assertEquals(<span class="s">&quot;1405 - CASA MOHAMED V&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;agence&quot;</span>));
+        Assertions.assertEquals(<span class="s">&quot;20261109-1405-01&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;reference&quot;</span>));
+        Assertions.assertEquals(<span class="s">&quot;09/11/2026 à 10:13&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;date&quot;</span>));     <span class="c">// ni submittedAt ni updatedAt → createdAt</span>
+        Assertions.assertEquals(<span class="s">&quot;Youness BALADI&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;operateurNom&quot;</span>));
+        Assertions.assertEquals(<span class="s">&quot;&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;operateurProfil&quot;</span>));             <span class="c">// profil absent → span masqué par le template</span>
+        Assertions.assertEquals(<span class="s">&quot;&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;motif&quot;</span>));
+        Assertions.assertFalse(v.containsValue(<span class="k">null</span>));
+    }
+
+    @Test
+    <span class="k">void</span> annulation_motifEstLaRaisonDAnnulation() {
+        CashRequestDTO d = demande();
+        d.setCancellationReason(<span class="s">&quot;Erreur de &lt;saisie&gt;&quot;</span>);
+
+        Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; v = variables.construire(d, EvenementDemande.ANNULATION);
+
+        Assertions.assertEquals(<span class="s">&quot;Erreur de &lt;saisie&gt;&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;motif&quot;</span>));   <span class="c">// échappé par Thymeleaf (th:text), pas ici</span>
+    }
+
+    @Test
+    <span class="k">void</span> declassement_operateurCaisseCentraleEtMotif() {
+        CashRequestDTO d = demande();
+        d.setUrgenceDeclasseePar(<span class="s">&quot;Karim CENTRALE&quot;</span>);
+        d.setUrgenceDeclasseeProfil(<span class="s">&quot;Caisse Centrale&quot;</span>);
+        d.setUrgenceDeclasseeAt(LocalDateTime.of(2026, 11, 10, 10, 13));
+        d.setUrgenceDeclasseeMotif(<span class="s">&quot;Stock suffisant&quot;</span>);
+
+        Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; v = variables.construire(d, EvenementDemande.DECLASSEMENT_URGENCE);
+
+        Assertions.assertEquals(<span class="s">&quot;Karim CENTRALE&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;operateurNom&quot;</span>));
+        Assertions.assertEquals(<span class="s">&quot;Caisse Centrale&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;operateurProfil&quot;</span>));
+        Assertions.assertEquals(<span class="s">&quot;10/11/2026 à 10:13&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;date&quot;</span>));
+        Assertions.assertEquals(<span class="s">&quot;Stock suffisant&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;motif&quot;</span>));
+    }
+
+    @Test
+    <span class="k">void</span> urgence_motifEstLeCommentaireEtNatureSelonOrigine() {
+        CashRequestDTO d = demande();
+        d.setComment(<span class="s">&quot;  Pic de retraits  &quot;</span>);
+
+        Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; soumission = variables.construireUrgence(d, EvenementDemande.SOUMISSION);
+        Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; miseAJour = variables.construireUrgence(d, EvenementDemande.MISE_A_JOUR);
+
+        Assertions.assertEquals(<span class="s">&quot;Pic de retraits&quot;</span>, soumission.<span class="k">get</span>(<span class="s">&quot;motif&quot;</span>));
+        Assertions.assertEquals(<span class="s">&quot;Nouvelle demande urgente&quot;</span>, soumission.<span class="k">get</span>(<span class="s">&quot;natureUrgence&quot;</span>));
+        Assertions.assertEquals(<span class="s">&quot;Mise à jour d&#x27;une demande urgente&quot;</span>, miseAJour.<span class="k">get</span>(<span class="s">&quot;natureUrgence&quot;</span>));
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>NotificationDemandeService.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeService.java</span></div><p class="note">Diff avec la version actuelle : variables construites une fois par évènement (plus par destinataire) ; <code>notifierCaisseCentrale(demande, evenement)</code> reçoit l'évènement d'origine (SOUMISSION / MISE_A_JOUR) ; constante <code>NOM_CAISSE_CENTRALE</code> supprimée ; javadoc de <code>codeTemplate</code>. Ports, destinataires et règles 277 / 330 / 333 inchangés.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.UtilisateurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.notification.NotificationPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.referentiel.UtilisateursGestionDemandesPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> lombok.extern.slf4j.Slf4j;
+<span class="k">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="k">import</span> org.springframework.stereotype.Service;
+
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Map;
+
+<span class="c">/**
+ * Notification email d&#x27;une demande agence (envoi via notifications-ci, templates GDF_*).
+ * AER_LM-277 — soumission, mise à jour, annulation par l&#x27;agence : le(s) Directeur(s) d&#x27;agence, lus dans utilisateurs-ci
+ *              (profil DA de l&#x27;agence de la demande) — plus via user_profile, qui ne connaît que les DA déjà connectés.
+ * AER_LM-333 — déclassement d&#x27;urgence par la Caisse Centrale : tous les utilisateurs « gestion demandes » de l&#x27;agence
+ *              (DA et Chef de caisse), un email par destinataire ; repli sur le DA si la liste est vide.
+ * AER_LM-330 — demande agence URGENTE soumise ou mise à jour : un email supplémentaire vers l&#x27;adresse de la Caisse Centrale
+ *              (gdf.notification.caisse-centrale.destinataires). Jamais sur annulation ni sur déclassement.
+ * Best effort : aucune exception ne remonte au use case appelant.
+ */</span>
+@Service
+@Slf4j
+<span class="k">public</span> <span class="k">class</span> NotificationDemandeService {
+
+    <span class="k">private</span> <span class="k">final</span> UtilisateursGestionDemandesPort utilisateursGestionDemandesPort;
+    <span class="k">private</span> <span class="k">final</span> NotificationPort notificationPort;
+    <span class="k">private</span> <span class="k">final</span> VariablesEmailDemande variables;
+    <span class="c">/** AER_LM-330 : adresses de la Caisse Centrale (liste, vide = pas d&#x27;envoi). */</span>
+    <span class="k">private</span> <span class="k">final</span> List&lt;<span class="k">String</span>&gt; destinatairesCaisseCentrale;
+
+    <span class="k">public</span> NotificationDemandeService(UtilisateursGestionDemandesPort utilisateursGestionDemandesPort,
+                                      NotificationPort notificationPort,
+                                      VariablesEmailDemande variables,
+                                      @Value(<span class="s">&quot;${gdf.notification.caisse-centrale.destinataires:}&quot;</span>) List&lt;<span class="k">String</span>&gt; destinatairesCaisseCentrale) {
+        <span class="k">this</span>.utilisateursGestionDemandesPort = utilisateursGestionDemandesPort;
+        <span class="k">this</span>.notificationPort = notificationPort;
+        <span class="k">this</span>.variables = variables;
+        <span class="k">this</span>.destinatairesCaisseCentrale = destinatairesCaisseCentrale == <span class="k">null</span> ? List.of()
+                : destinatairesCaisseCentrale.stream().map(<span class="k">String</span>::trim).filter(s -&gt; !s.isEmpty()).toList();
+    }
+
+    <span class="k">public</span> <span class="k">void</span> notifier(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">if</span> (demande == <span class="k">null</span>) { <span class="k">return</span>; }
+        notifierAgence(demande, evenement);
+        <span class="k">if</span> (concerneLaCaisseCentrale(demande, evenement)) {
+            notifierCaisseCentrale(demande, evenement);
+        }
+    }
+
+    <span class="c">// ------------------------------------------------------------------ Agence (277 / 333)</span>
+
+    <span class="k">private</span> <span class="k">void</span> notifierAgence(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">try</span> {
+            List&lt;UtilisateurAgence&gt; destinataires = destinatairesDe(demande, evenement);
+            <span class="k">if</span> (destinataires.isEmpty()) {
+                log.warn(<span class="s">&quot;[notification] {} {} : aucun destinataire avec email pour l&#x27;agence {} — email non envoyé&quot;</span>,
+                        evenement, demande.getUniqueRequestRef(), demande.getBranchCode());
+                <span class="k">return</span>;
+            }
+            <span class="k">String</span> codeTemplate = codeTemplate(evenement);   <span class="c">// un template PO par scénario côté notifications-ci (objet + HTML)</span>
+            Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; valeurs = variables.construire(demande, evenement);   <span class="c">// identiques pour tous les destinataires</span>
+            <span class="k">for</span> (UtilisateurAgence destinataire : destinataires) {
+                notificationPort.envoyer(<span class="k">new</span> EmailNotification(destinataire.email(), codeTemplate, valeurs));
+                log.info(<span class="s">&quot;[notification] {} {} → {}&quot;</span>, evenement, demande.getUniqueRequestRef(), destinataire.email());
+            }
+        } <span class="k">catch</span> (RuntimeException e) {
+            log.error(<span class="s">&quot;[notification] {} {} : échec de l&#x27;envoi, demande non impactée — {}&quot;</span>,
+                    evenement, demande.getUniqueRequestRef(), e.getMessage());
+        }
+    }
+
+    <span class="c">/** Déclassement : les utilisateurs gestion demandes de l&#x27;agence (repli DA) ; autres événements : le(s) DA de l&#x27;agence. */</span>
+    <span class="k">private</span> List&lt;UtilisateurAgence&gt; destinatairesDe(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">if</span> (evenement == EvenementDemande.DECLASSEMENT_URGENCE) {
+            List&lt;UtilisateurAgence&gt; gestionnaires =
+                    utilisateursGestionDemandesPort.utilisateursGestionDemandes(demande.getUser(), demande.getBranchCode());
+            <span class="k">if</span> (!gestionnaires.isEmpty()) { <span class="k">return</span> gestionnaires; }
+            log.warn(<span class="s">&quot;[notification] {} {} : aucun utilisateur gestion demandes trouvé pour l&#x27;agence {}, repli sur le Directeur d&#x27;agence&quot;</span>,
+                    evenement, demande.getUniqueRequestRef(), demande.getBranchCode());
+        }
+        <span class="k">return</span> utilisateursGestionDemandesPort.directeursAgence(demande.getUser(), demande.getBranchCode());
+    }
+
+    <span class="c">// ------------------------------------------------------------------ Caisse Centrale (330)</span>
+
+    <span class="c">/** Soumission ou mise à jour d&#x27;une demande agence urgente (état APRÈS l&#x27;action : couvre « passe en urgente à la mise à jour »). */</span>
+    <span class="k">static</span> <span class="k">boolean</span> concerneLaCaisseCentrale(CashRequestDTO demande, EvenementDemande evenement) {
+        <span class="k">boolean</span> evenementEligible = evenement == EvenementDemande.SOUMISSION || evenement == EvenementDemande.MISE_A_JOUR;
+        <span class="k">boolean</span> monetique = demande.getCanalDemande() != <span class="k">null</span> &amp;&amp; <span class="s">&quot;MONETIQUE&quot;</span>.equals(demande.getCanalDemande().name());
+        <span class="k">return</span> evenementEligible &amp;&amp; !monetique &amp;&amp; Boolean.TRUE.equals(demande.getUrgent());
+    }
+
+    <span class="c">/**
+     * Évènement → entrée de NotificationTemplate (notifications-ci), un template PO par scénario :
+     * SOUMISSION → gestion-fonds-demande-soumise · MISE_A_JOUR → gestion-fonds-demande-mise-a-jour · ANNULATION → gestion-fonds-demande-annulee
+     * DECLASSEMENT_URGENCE → gestion-fonds-urgence-declassee · URGENCE_CAISSE_CENTRALE → gestion-fonds-demande-urgente.
+     * Toute nouvelle valeur d&#x27;EvenementDemande doit être mappée ici.
+     */</span>
+    <span class="k">static</span> <span class="k">String</span> codeTemplate(EvenementDemande evenement) {
+        <span class="k">return</span> <span class="k">switch</span> (evenement) {
+            <span class="k">case</span> SOUMISSION -&gt; <span class="s">&quot;GDF_DEMANDE_SOUMISE&quot;</span>;
+            <span class="k">case</span> MISE_A_JOUR -&gt; <span class="s">&quot;GDF_DEMANDE_MISE_A_JOUR&quot;</span>;
+            <span class="k">case</span> ANNULATION -&gt; <span class="s">&quot;GDF_DEMANDE_ANNULEE&quot;</span>;
+            <span class="k">case</span> DECLASSEMENT_URGENCE -&gt; <span class="s">&quot;GDF_URGENCE_DECLASSEE&quot;</span>;
+            <span class="k">case</span> URGENCE_CAISSE_CENTRALE -&gt; <span class="s">&quot;GDF_DEMANDE_URGENTE&quot;</span>;
+        };
+    }
+
+    <span class="c">/** evenementOrigine : SOUMISSION ou MISE_A_JOUR — fixe la date et la « Nature de l&#x27;opération » du mail Caisse Centrale. */</span>
+    <span class="k">private</span> <span class="k">void</span> notifierCaisseCentrale(CashRequestDTO demande, EvenementDemande evenementOrigine) {
+        <span class="k">if</span> (destinatairesCaisseCentrale.isEmpty()) {
+            log.warn(<span class="s">&quot;[notification] URGENCE {} : gdf.notification.caisse-centrale.destinataires vide — email Caisse Centrale non envoyé&quot;</span>,
+                    demande.getUniqueRequestRef());
+            <span class="k">return</span>;
+        }
+        <span class="k">try</span> {
+            EvenementDemande evenement = EvenementDemande.URGENCE_CAISSE_CENTRALE;
+            Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; valeurs = variables.construireUrgence(demande, evenementOrigine);
+            <span class="k">for</span> (<span class="k">String</span> destinataire : destinatairesCaisseCentrale) {
+                notificationPort.envoyer(<span class="k">new</span> EmailNotification(destinataire, codeTemplate(evenement), valeurs));
+                log.info(<span class="s">&quot;[notification] {} {} → {}&quot;</span>, evenement, demande.getUniqueRequestRef(), destinataire);
+            }
+        } <span class="k">catch</span> (RuntimeException e) {
+            log.error(<span class="s">&quot;[notification] URGENCE {} : échec de l&#x27;envoi Caisse Centrale, demande non impactée — {}&quot;</span>,
+                    demande.getUniqueRequestRef(), e.getMessage());
+        }
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>NotificationDemandeServiceTest.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\notification\NotificationDemandeServiceTest.java</span></div><p class="note">Mêmes imports que le fichier actuel, moins <code>CurrencyDTO</code>, <code>OperationType</code>, <code>RequestType</code>, <code>CashOperationDTO</code>, <code>OperationCurrencyDetailDTO</code>, <code>BigDecimal</code>, <code>LocalDate</code> (plus utilisés). 15 tests : un par scénario + vérification du template et des variables.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.notification;
+
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.EvenementDemande;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.notification.EmailNotification;
+<span class="k">import</span> com.bmci.q360.domain.retail.valueobjects.referentiel.UtilisateurAgence;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.CashRequestDTO;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.notification.NotificationPort;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.ports.output.referentiel.UtilisateursGestionDemandesPort;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.ArgumentCaptor;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Map;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertTrue;
+
+@ExtendWith(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> NotificationDemandeServiceTest {
+
+    @Mock
+    UtilisateursGestionDemandesPort utilisateursGestionDemandesPort;
+    @Mock
+    NotificationPort notificationPort;
+
+    <span class="k">private</span> NotificationDemandeService service() {
+        <span class="k">return</span> service(List.of(<span class="s">&quot;casablanca_irs_bmci_caisse_centrale@bnpparibas.com&quot;</span>));
+    }
+
+    <span class="k">private</span> NotificationDemandeService service(List&lt;<span class="k">String</span>&gt; caisseCentrale) {
+        <span class="k">return</span> <span class="k">new</span> NotificationDemandeService(utilisateursGestionDemandesPort, notificationPort, <span class="k">new</span> VariablesEmailDemande(), caisseCentrale);
+    }
+
+    <span class="c">/** DA de l&#x27;agence 1104 lu dans utilisateurs-ci (créateur de la demande : g10004). */</span>
+    <span class="k">private</span> <span class="k">void</span> daDeLAgence1104() {
+        Mockito.when(utilisateursGestionDemandesPort.directeursAgence(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;1104&quot;</span>))
+                .thenReturn(List.of(<span class="k">new</span> UtilisateurAgence(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;j61104@bnpparibas.com&quot;</span>, <span class="s">&quot;Marouane MASSOUNE&quot;</span>)));
+    }
+
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demande() {
+        CashRequestDTO d = <span class="k">new</span> CashRequestDTO();
+        d.setUniqueRequestRef(<span class="s">&quot;20261009-1104-03&quot;</span>);
+        d.setBranchCode(<span class="s">&quot;1104&quot;</span>);
+        d.setUser(<span class="s">&quot;g10004&quot;</span>);
+        d.setAgenceNom(<span class="s">&quot;CASA MOHAMED V&quot;</span>);
+        d.setAgentNom(<span class="s">&quot;Youness BALADI&quot;</span>);
+        d.setAgentProfil(<span class="s">&quot;Chef de caisse&quot;</span>);
+        d.setCreatedAt(LocalDateTime.of(2026, 10, 9, 10, 30));
+        d.setSubmittedAt(LocalDateTime.of(2026, 10, 9, 10, 45));
+        d.setUpdatedAt(LocalDateTime.of(2026, 10, 9, 11, 0));
+        d.setUrgent(<span class="k">true</span>);
+        d.setComment(<span class="s">&quot;Pic de retraits &lt;salaires&gt; avant 11h&quot;</span>);
+        <span class="k">return</span> d;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demandeDeclassee() {
+        CashRequestDTO d = demande();
+        d.setUrgent(<span class="k">false</span>);
+        d.setUrgenceDeclasseePar(<span class="s">&quot;Karim EL IDRISSI&quot;</span>);
+        d.setUrgenceDeclasseeProfil(<span class="s">&quot;Caisse Centrale Siège&quot;</span>);
+        d.setUrgenceDeclasseeAt(LocalDateTime.of(2026, 8, 5, 18, 25));
+        d.setUrgenceDeclasseeMotif(<span class="s">&quot;Délai trop court avant passage du transporteur&quot;</span>);
+        <span class="k">return</span> d;
+    }
+
+    @Test
+    <span class="k">void</span> soumission_envoieAuDaLeTemplateSoumise() {
+        daDeLAgence1104();
+
+        service().notifier(demande(), EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort, Mockito.times(2)).envoyer(email.capture());   <span class="c">// 330 : la demande() est urgente → DA + Caisse Centrale</span>
+        EmailNotification auDa = email.getAllValues().<span class="k">get</span>(0);
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, auDa.destinataire());
+        assertEquals(<span class="s">&quot;GDF_DEMANDE_SOUMISE&quot;</span>, auDa.codeTemplate());
+        Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; v = auDa.variables();
+        assertEquals(<span class="s">&quot;1104 - CASA MOHAMED V&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;agence&quot;</span>));
+        assertEquals(<span class="s">&quot;20261009-1104-03&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;reference&quot;</span>));
+        assertEquals(<span class="s">&quot;09/10/2026 à 10:45&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;date&quot;</span>));          <span class="c">// date de soumission</span>
+        assertEquals(<span class="s">&quot;Youness BALADI&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;operateurNom&quot;</span>));
+        assertEquals(<span class="s">&quot;Chef de caisse&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;operateurProfil&quot;</span>));
+        assertEquals(<span class="s">&quot;&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;motif&quot;</span>));
+        Mockito.verify(utilisateursGestionDemandesPort, Mockito.never()).utilisateursGestionDemandes(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    <span class="k">void</span> miseAJour_templateMiseAJour_dateDeModification() {
+        daDeLAgence1104();
+        CashRequestDTO d = demande();
+        d.setUrgent(<span class="k">false</span>);
+
+        service().notifier(d, EvenementDemande.MISE_A_JOUR);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;GDF_DEMANDE_MISE_A_JOUR&quot;</span>, email.getValue().codeTemplate());
+        assertEquals(<span class="s">&quot;09/10/2026 à 11:00&quot;</span>, email.getValue().variables().<span class="k">get</span>(<span class="s">&quot;date&quot;</span>));
+    }
+
+    @Test
+    <span class="k">void</span> annulation_templateAnnulee_avecMotif() {
+        daDeLAgence1104();
+        CashRequestDTO d = demande();
+        d.setCancellationReason(<span class="s">&quot;Erreur de saisie du montant&quot;</span>);
+
+        service().notifier(d, EvenementDemande.ANNULATION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;GDF_DEMANDE_ANNULEE&quot;</span>, email.getValue().codeTemplate());
+        assertEquals(<span class="s">&quot;Erreur de saisie du montant&quot;</span>, email.getValue().variables().<span class="k">get</span>(<span class="s">&quot;motif&quot;</span>));
+    }
+
+    @Test
+    <span class="k">void</span> echecEnvoi_neRemontePas() {
+        daDeLAgence1104();
+        Mockito.doThrow(<span class="k">new</span> IllegalStateException(<span class="s">&quot;notifications-ci 502&quot;</span>)).when(notificationPort).envoyer(Mockito.any());
+
+        service().notifier(demande(), EvenementDemande.MISE_A_JOUR);   <span class="c">// ne doit pas lever (ni pour le DA, ni pour la Caisse Centrale)</span>
+    }
+
+    @Test
+    <span class="k">void</span> sansDa_nEnvoieRienALAgence() {
+        Mockito.when(utilisateursGestionDemandesPort.directeursAgence(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;1104&quot;</span>)).thenReturn(List.of());
+
+        service().notifier(demande(), EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());                       <span class="c">// 330 : seul l&#x27;email Caisse Centrale (demande urgente)</span>
+        assertEquals(<span class="s">&quot;casablanca_irs_bmci_caisse_centrale@bnpparibas.com&quot;</span>, email.getValue().destinataire());
+    }
+
+    <span class="c">// ===== AER_LM-333 =====</span>
+
+    @Test
+    <span class="k">void</span> declassementUrgence_unEmailParUtilisateurGestionDemandes() {
+        Mockito.when(utilisateursGestionDemandesPort.utilisateursGestionDemandes(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;1104&quot;</span>)).thenReturn(List.of(
+                <span class="k">new</span> UtilisateurAgence(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;j61104@bnpparibas.com&quot;</span>, <span class="s">&quot;Marouane MASSOUNE&quot;</span>),
+                <span class="k">new</span> UtilisateurAgence(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;g10004@bnpparibas.com&quot;</span>, <span class="s">&quot;Youness BALADI&quot;</span>)));
+
+        service().notifier(demandeDeclassee(), EvenementDemande.DECLASSEMENT_URGENCE);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort, Mockito.times(2)).envoyer(email.capture());
+        List&lt;EmailNotification&gt; envoyes = email.getAllValues();
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, envoyes.<span class="k">get</span>(0).destinataire());
+        assertEquals(<span class="s">&quot;g10004@bnpparibas.com&quot;</span>, envoyes.<span class="k">get</span>(1).destinataire());
+        assertEquals(<span class="s">&quot;GDF_URGENCE_DECLASSEE&quot;</span>, envoyes.<span class="k">get</span>(0).codeTemplate());
+        Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; v = envoyes.<span class="k">get</span>(0).variables();
+        assertEquals(<span class="s">&quot;05/08/2026 à 18:25&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;date&quot;</span>));                 <span class="c">// date du déclassement</span>
+        assertEquals(<span class="s">&quot;Karim EL IDRISSI&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;operateurNom&quot;</span>));           <span class="c">// opérateur Caisse Centrale, pas l&#x27;agent</span>
+        assertEquals(<span class="s">&quot;Caisse Centrale Siège&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;operateurProfil&quot;</span>));
+        assertEquals(<span class="s">&quot;Délai trop court avant passage du transporteur&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;motif&quot;</span>));
+        Mockito.verify(utilisateursGestionDemandesPort, Mockito.never()).directeursAgence(Mockito.any(), Mockito.any());   <span class="c">// pas de repli</span>
+    }
+
+    @Test
+    <span class="k">void</span> declassementUrgence_sansGestionnaire_repliSurLeDa() {
+        Mockito.when(utilisateursGestionDemandesPort.utilisateursGestionDemandes(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;1104&quot;</span>)).thenReturn(List.of());
+        daDeLAgence1104();
+
+        service().notifier(demandeDeclassee(), EvenementDemande.DECLASSEMENT_URGENCE);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, email.getValue().destinataire());
+    }
+
+    <span class="c">// ===== AER_LM-330 =====</span>
+
+    @Test
+    <span class="k">void</span> soumissionUrgente_notifieAussiLaCaisseCentrale() {
+        daDeLAgence1104();
+
+        service().notifier(demande(), EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort, Mockito.times(2)).envoyer(email.capture());
+        EmailNotification cc = email.getAllValues().<span class="k">get</span>(1);
+        assertEquals(<span class="s">&quot;casablanca_irs_bmci_caisse_centrale@bnpparibas.com&quot;</span>, cc.destinataire());
+        assertEquals(<span class="s">&quot;GDF_DEMANDE_URGENTE&quot;</span>, cc.codeTemplate());
+        Map&lt;<span class="k">String</span>, <span class="k">String</span>&gt; v = cc.variables();
+        assertEquals(<span class="s">&quot;Nouvelle demande urgente&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;natureUrgence&quot;</span>));
+        assertEquals(<span class="s">&quot;09/10/2026 à 10:45&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;date&quot;</span>));
+        assertEquals(<span class="s">&quot;Pic de retraits &lt;salaires&gt; avant 11h&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;motif&quot;</span>));   <span class="c">// brut : échappé par Thymeleaf (th:text)</span>
+        assertEquals(<span class="s">&quot;Youness BALADI&quot;</span>, v.<span class="k">get</span>(<span class="s">&quot;operateurNom&quot;</span>));
+    }
+
+    @Test
+    <span class="k">void</span> miseAJourPasseeEnUrgente_notifieLaCaisseCentrale() {
+        daDeLAgence1104();
+
+        service().notifier(demande(), EvenementDemande.MISE_A_JOUR);   <span class="c">// demande() est urgente après la mise à jour</span>
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort, Mockito.times(2)).envoyer(email.capture());
+        EmailNotification cc = email.getAllValues().<span class="k">get</span>(1);
+        assertEquals(<span class="s">&quot;casablanca_irs_bmci_caisse_centrale@bnpparibas.com&quot;</span>, cc.destinataire());
+        assertEquals(<span class="s">&quot;GDF_DEMANDE_URGENTE&quot;</span>, cc.codeTemplate());
+        assertEquals(<span class="s">&quot;Mise à jour d&#x27;une demande urgente&quot;</span>, cc.variables().<span class="k">get</span>(<span class="s">&quot;natureUrgence&quot;</span>));
+        assertEquals(<span class="s">&quot;09/10/2026 à 11:00&quot;</span>, cc.variables().<span class="k">get</span>(<span class="s">&quot;date&quot;</span>));
+    }
+
+    @Test
+    <span class="k">void</span> soumissionNonUrgente_nenvoieQuAuDa() {
+        daDeLAgence1104();
+        CashRequestDTO d = demande();
+        d.setUrgent(<span class="k">false</span>);
+
+        service().notifier(d, EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, email.getValue().destinataire());
+    }
+
+    @Test
+    <span class="k">void</span> annulationUrgente_neNotifiePasLaCaisseCentrale() {
+        daDeLAgence1104();
+        CashRequestDTO d = demande();
+        d.setCancellationReason(<span class="s">&quot;Erreur de saisie du montant&quot;</span>);
+
+        service().notifier(d, EvenementDemande.ANNULATION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;j61104@bnpparibas.com&quot;</span>, email.getValue().destinataire());
+    }
+
+    @Test
+    <span class="k">void</span> declassement_neNotifiePasLaCaisseCentrale() {
+        Mockito.when(utilisateursGestionDemandesPort.utilisateursGestionDemandes(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;1104&quot;</span>)).thenReturn(List.of(
+                <span class="k">new</span> UtilisateurAgence(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;j61104@bnpparibas.com&quot;</span>, <span class="s">&quot;Marouane MASSOUNE&quot;</span>)));
+
+        service().notifier(demandeDeclassee(), EvenementDemande.DECLASSEMENT_URGENCE);
+
+        Mockito.verify(notificationPort, Mockito.times(1)).envoyer(Mockito.any());
+    }
+
+    @Test
+    <span class="k">void</span> sansAdresseCaisseCentrale_nenvoieQuAuDa() {
+        daDeLAgence1104();
+
+        service(List.of()).notifier(demande(), EvenementDemande.SOUMISSION);
+
+        Mockito.verify(notificationPort, Mockito.times(1)).envoyer(Mockito.any());
+    }
+
+    @Test
+    <span class="k">void</span> plusieursAdressesCaisseCentrale_unEmailChacune() {
+        daDeLAgence1104();
+
+        service(List.of(<span class="s">&quot;a@bnpparibas.com&quot;</span>, <span class="s">&quot;b@bnpparibas.com&quot;</span>)).notifier(demande(), EvenementDemande.SOUMISSION);
+
+        ArgumentCaptor&lt;EmailNotification&gt; email = ArgumentCaptor.forClass(EmailNotification.<span class="k">class</span>);
+        Mockito.verify(notificationPort, Mockito.times(3)).envoyer(email.capture());
+        assertEquals(<span class="s">&quot;a@bnpparibas.com&quot;</span>, email.getAllValues().<span class="k">get</span>(1).destinataire());
+        assertEquals(<span class="s">&quot;b@bnpparibas.com&quot;</span>, email.getAllValues().<span class="k">get</span>(2).destinataire());
+    }
+
+    @Test
+    <span class="k">void</span> plusieursDa_unEmailChacun() {
+        Mockito.when(utilisateursGestionDemandesPort.directeursAgence(<span class="s">&quot;g10004&quot;</span>, <span class="s">&quot;1104&quot;</span>)).thenReturn(List.of(
+                <span class="k">new</span> UtilisateurAgence(<span class="s">&quot;j61104&quot;</span>, <span class="s">&quot;j61104@bnpparibas.com&quot;</span>, <span class="s">&quot;Marouane MASSOUNE&quot;</span>),
+                <span class="k">new</span> UtilisateurAgence(<span class="s">&quot;j61105&quot;</span>, <span class="s">&quot;j61105@bnpparibas.com&quot;</span>, <span class="s">&quot;Second DA&quot;</span>)));
+        CashRequestDTO d = demande();
+        d.setUrgent(<span class="k">false</span>);
+
+        service().notifier(d, EvenementDemande.SOUMISSION);
+
+        Mockito.verify(notificationPort, Mockito.times(2)).envoyer(Mockito.any());
+    }
+
+    <span class="c">// ===== codeTemplate : un template par scénario =====</span>
+
+    @Test
+    <span class="k">void</span> codeTemplate_unTemplateParEvenement() {
+        assertEquals(<span class="s">&quot;GDF_DEMANDE_SOUMISE&quot;</span>, NotificationDemandeService.codeTemplate(EvenementDemande.SOUMISSION));
+        assertEquals(<span class="s">&quot;GDF_DEMANDE_MISE_A_JOUR&quot;</span>, NotificationDemandeService.codeTemplate(EvenementDemande.MISE_A_JOUR));
+        assertEquals(<span class="s">&quot;GDF_DEMANDE_ANNULEE&quot;</span>, NotificationDemandeService.codeTemplate(EvenementDemande.ANNULATION));
+        assertEquals(<span class="s">&quot;GDF_URGENCE_DECLASSEE&quot;</span>, NotificationDemandeService.codeTemplate(EvenementDemande.DECLASSEMENT_URGENCE));
+        assertEquals(<span class="s">&quot;GDF_DEMANDE_URGENTE&quot;</span>, NotificationDemandeService.codeTemplate(EvenementDemande.URGENCE_CAISSE_CENTRALE));
+        <span class="k">for</span> (EvenementDemande e : EvenementDemande.values()) {
+            assertTrue(NotificationDemandeService.codeTemplate(e).startsWith(<span class="s">&quot;GDF_&quot;</span>), e.name());
+        }
+    }
+}</code></pre></div><h2 id="recette">3. Test</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours</b><br><span class="path">recette\notifications-templates-PO.txt</span></div><p class="note">Collection Postman : <code>notifications-ci_GDF_templates-PO.postman_collection.json</code> (destinataire : ton adresse BNPP).</p><pre><button class="copy">Copier</button><code>A. notifications-ci seul (Postman « notifications-ci_GDF_templates-PO », 8095)
+   Lancer les requêtes 01 à 07 → 202 {<span class="s">&quot;success&quot;</span>:<span class="k">true</span>} ; vérifier dans la boîte (ou MailHog) que chaque mail = la maquette PO correspondante :
+   01 bandeau vert « Nouvelle demande de fonds soumise »      · statut EN ATTENTE (SOUMISE)
+   02 bandeau bleu « Demande de fonds modifiée »              · statut MODIFIÉE (EN ATTENTE)
+   03 bandeau rouge « Demande de fonds annulée »              · statut ANNULÉE · bloc « MOTIF DE L&#x27;ANNULATION »
+   04 idem 03 sans motif                                      · bloc motif absent
+   05 bandeau rouge « ALERTE IMMÉDIATE » (Caisse Centrale)     · nature « Nouvelle demande urgente » · bloc motif urgence · bouton « Traiter ou arbitrer… »
+   06 idem 05                                                 · nature « Mise à jour d&#x27;une demande urgente »
+   07 bandeau orange « Demande de fonds déclassée »            · opérateur Caisse Centrale · bloc « Motif du déclassement »
+   Partout : logo QlickFlow (PNG), bouton + lien = portalUrl, pied de page.
+   08 → 400 « Template de notification inconnu » ; 09 → 400.
+
+B. fund-management → notifications-ci (mode http, les deux services lancés, DA de l&#x27;agence avec email dans la base users)
+   1. Soumettre une demande non urgente      → 1 appel GDF_DEMANDE_SOUMISE (DA).
+   2. Soumettre une demande URGENTE           → GDF_DEMANDE_SOUMISE (DA) + GDF_DEMANDE_URGENTE (boîte CC, nature « Nouvelle demande urgente », motif = commentaire).
+   3. Mettre à jour une demande (urgente)     → GDF_DEMANDE_MISE_A_JOUR (DA) + GDF_DEMANDE_URGENTE (nature « Mise à jour d&#x27;une demande urgente »).
+   4. Annuler une demande avec motif          → GDF_DEMANDE_ANNULEE (DA), motif affiché.
+   5. CC : déclasser l&#x27;urgence avec motif     → GDF_URGENCE_DECLASSEE vers DA + chef(s) de caisse ; opérateur = agent CC, date = date du déclassement.
+   Logs fund-management : « [notification-http] GDF_… → &lt;email&gt; : acceptée » ; notifications-ci : POST /api/v1/notifications/email 202.
+
+C. mvn clean install
+   fund-management : VariablesEmailDemandeTest (4), NotificationDemandeServiceTest (15) verts.
+   notifications-ci : build OK ; plus aucune référence à « mail/gestion-fonds-demande » (Ctrl+Shift+F) une fois l&#x27;ancien fichier supprimé.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
