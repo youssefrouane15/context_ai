@@ -1,0 +1,66 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recette notifications — adresses de test dans utilisateurs-ci</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Recette notifications — adresses de test dans utilisateurs-ci</h1><p>j51204 → Youssef · j53488 → Hamza · c60010 → Omar · sauvegarde et restauration · 16/11/2026</p></header><nav><a href="#principe">Principe</a><a href="#controle">Contrôle préalable</a><a href="#affectation">Affectation</a><a href="#scenarios">Scénarios</a><a href="#restauration">Restauration</a></nav><main><h2 id="principe">0. Principe</h2><div class="card">Base <b>utilisateurs-ci</b> de l'environnement de test (schéma <code>qf_admin</code>, pgAdmin) — <b>jamais en prod</b>. La colonne <code>email</code> de <code>users</code> est unique : une adresse = un seul utilisateur.
+<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13px">
+<tr style="background:#f6f8f7"><th style="text-align:left;padding:6px;border:1px solid #e8ecea">uid</th><th style="text-align:left;padding:6px;border:1px solid #e8ecea">Profil</th><th style="text-align:left;padding:6px;border:1px solid #e8ecea">Adresse de test</th></tr>
+<tr><td style="padding:6px;border:1px solid #e8ecea">j51204</td><td style="padding:6px;border:1px solid #e8ecea">DA</td><td style="padding:6px;border:1px solid #e8ecea">youssef.rouane@externe.bnpparibas.com</td></tr>
+<tr><td style="padding:6px;border:1px solid #e8ecea">j53488</td><td style="padding:6px;border:1px solid #e8ecea">DA</td><td style="padding:6px;border:1px solid #e8ecea">hamza.marouane@externe.bnpparibas.com</td></tr>
+<tr><td style="padding:6px;border:1px solid #e8ecea">c60010</td><td style="padding:6px;border:1px solid #e8ecea">Caisse Centrale</td><td style="padding:6px;border:1px solid #e8ecea">omar.ghandour@externe.bnpparibas.com</td></tr>
+</table></div><h2 id="controle">1. Contrôle préalable</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 0 — doublons</b><br><span class="path">recette\emails-test-notifications.sql</span></div><p class="note">Doit renvoyer <b>0 ligne</b>. Sinon, lancer le bloc suivant avec l'uid renvoyé, puis relancer l'étape 0.</p><pre><button class="copy">Copier</button><code><span class="k">SET</span> search_path TO qf_admin;
+
+<span class="c">-- 0. Contrôle : ces adresses ne doivent être portées par AUCUN autre utilisateur (email unique) → doit renvoyer 0 ligne</span>
+<span class="k">SELECT</span> uid, email <span class="k">FROM</span> users
+<span class="k">WHERE</span> lower(email) IN (<span class="s">&#x27;youssef.rouane@externe.bnpparibas.com&#x27;</span>,
+                       <span class="s">&#x27;hamza.marouane@externe.bnpparibas.com&#x27;</span>,
+                       <span class="s">&#x27;omar.ghandour@externe.bnpparibas.com&#x27;</span>)
+  <span class="k">AND</span> uid <span class="k">NOT</span> IN (<span class="s">&#x27;j51204&#x27;</span>, <span class="s">&#x27;j53488&#x27;</span>, <span class="s">&#x27;c60010&#x27;</span>);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Si l&#x27;étape 0 renvoie une ligne</b><br><span class="path">recette\emails-test-notifications.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Uniquement si l&#x27;étape 0 a renvoyé une ligne : libérer l&#x27;adresse sur cet utilisateur</span>
+<span class="k">UPDATE</span> qf_admin.users <span class="k">SET</span> email = uid || <span class="s">&#x27;@bnpparibas.com&#x27;</span> <span class="k">WHERE</span> uid = <span class="s">&#x27;&lt;uid renvoyé par l&#x27;</span><span class="s">&#x27;étape 0&gt;&#x27;</span>;</code></pre></div><h2 id="affectation">2. Affectation</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étapes 1 à 3 — sauvegarde, mise à jour, contrôle</b><br><span class="path">recette\emails-test-notifications.sql</span></div><p class="note">L'étape 3 doit afficher 3 lignes avec les nouvelles adresses.</p><pre><button class="copy">Copier</button><code><span class="k">SET</span> search_path TO qf_admin;
+
+<span class="c">-- 1. Sauvegarde des emails d&#x27;origine (ne s&#x27;écrase pas si tu relances)</span>
+CREATE <span class="k">TABLE</span> <span class="k">IF</span> <span class="k">NOT</span> <span class="k">EXISTS</span> recette_users_email_backup AS
+<span class="k">SELECT</span> uid, email <span class="k">FROM</span> users <span class="k">WHERE</span> uid IN (<span class="s">&#x27;j51204&#x27;</span>, <span class="s">&#x27;j53488&#x27;</span>, <span class="s">&#x27;c60010&#x27;</span>);
+
+<span class="c">-- 2. Affectation des adresses de test</span>
+<span class="k">UPDATE</span> users u
+<span class="k">SET</span> email = d.email
+<span class="k">FROM</span> (values
+    (<span class="s">&#x27;j51204&#x27;</span>, <span class="s">&#x27;youssef.rouane@externe.bnpparibas.com&#x27;</span>),   <span class="c">-- DA (1er de la liste)</span>
+    (<span class="s">&#x27;j53488&#x27;</span>, <span class="s">&#x27;hamza.marouane@externe.bnpparibas.com&#x27;</span>),   <span class="c">-- DA (3e de la liste)</span>
+    (<span class="s">&#x27;c60010&#x27;</span>, <span class="s">&#x27;omar.ghandour@externe.bnpparibas.com&#x27;</span>)     <span class="c">-- Caisse Centrale</span>
+) AS d (uid, email)
+<span class="k">WHERE</span> u.uid = d.uid;
+
+<span class="c">-- 3. Contrôle : 3 lignes avec profil et agence</span>
+<span class="k">SELECT</span> u.uid, u.email, p.code AS profil, o.code AS agence
+<span class="k">FROM</span> users u
+LEFT JOIN hab_profiles p <span class="k">ON</span> p.id = u.profile_id
+LEFT JOIN orga_unit o <span class="k">ON</span> o.id = u.organization_unit_id
+<span class="k">WHERE</span> u.uid IN (<span class="s">&#x27;j51204&#x27;</span>, <span class="s">&#x27;j53488&#x27;</span>, <span class="s">&#x27;c60010&#x27;</span>);</code></pre></div><h2 id="scenarios">3. Scénarios</h2><div class="card"><b>Soumission / mise à jour / annulation</b> : le mail part au DA de l'agence de la demande → créer la demande avec un utilisateur de l'agence de <code>j51204</code> (mail à Youssef) ou de l'agence de <code>j53488</code> (mail à Hamza).<br>
+<b>Déclassement d'urgence</b> : DA + chefs de caisse de l'agence → mêmes agences.<br>
+<b>Demande urgente</b> : le mail Caisse Centrale part à la variable <code>QF_NOTIF_CAISSE_CENTRALE</code>, pas à <code>c60010</code> → y mettre <code>omar.ghandour@externe.bnpparibas.com</code> pour qu'Omar le reçoive.</div><h2 id="restauration">4. Restauration</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Étape 4 — après les tests</b><br><span class="path">recette\emails-test-notifications.sql</span></div><pre><button class="copy">Copier</button><code><span class="k">SET</span> search_path TO qf_admin;
+
+<span class="c">-- 4. Après les tests : remettre les adresses d&#x27;origine</span>
+<span class="k">UPDATE</span> users u <span class="k">SET</span> email = b.email <span class="k">FROM</span> recette_users_email_backup b <span class="k">WHERE</span> b.uid = u.uid;
+DROP <span class="k">TABLE</span> recette_users_email_backup;</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
