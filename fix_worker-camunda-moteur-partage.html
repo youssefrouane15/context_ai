@@ -1,0 +1,154 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fix — statut jamais mis à jour après Traiter / Annuler (moteur Camunda partagé)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Fix — statut jamais mis à jour après Traiter / Annuler (moteur Camunda partagé)</h1><p>camunda.worker.instance · DemarrerProcessusStep (variable instanceFundManagement) · GdfWorkerConfig (processVariableEquals) · 16/11/2026</p></header><nav><a href="#cause">Cause</a><a href="#yaml">application.yaml</a><a href="#step">DemarrerProcessusStep — poser l&#x27;instance sur le processus</a><a href="#worker">GdfWorkerConfig — ne prendre que ses tâches</a><a href="#recette">Déploiement et recette</a></nav><main><h2 id="cause">0. Cause</h2><div class="card">Le moteur Camunda DEV (derrière Apigee) est <b>partagé</b> : tous les fund-management qui s'y branchent (pod DMZR + le poste local de chaque développeur, car <code>application-local.yaml</code> pointe sur Apigee DEV) s'abonnent aux <b>mêmes topics</b> <code>gdf-*</code>, même tenant <code>QLICKFLOW</code>, et <b>aucun filtre</b> ne dit à qui appartient une tâche (<code>GdfWorkerConfig.abonner</code> : seul <code>tenantIdIn</code>).<br>
+Quand la Caisse Centrale traite / annule, la tâche externe <code>gdf-cloturer-demande</code> / <code>gdf-annuler-demande</code> est prise par <b>le premier worker qui interroge le moteur</b>. Si ce n'est pas le pod DMZR, ce worker ne trouve pas la demande dans <b>sa</b> base → exception → <code>handleFailure</code> (3 essais, 10 s) → au 3ᵉ échec : <b>incident</b>, la tâche n'est plus proposée à personne. Résultat : l'écran reste « En attente » pour toujours, et le re-clic donne 409 (la tâche Caisse Centrale est déjà complétée) ou 502 (l'annulation est déjà partie).<br>
+Ton log de 11:05:26 (statut écrit 85 s après le clic, par ton poste local) en est la trace ; arrêter ton poste ne suffit pas, n'importe quel autre fund-management branché sur le moteur DEV fait pareil. Comme <code>worker-id</code> est figé à <code>fund-management-local</code> dans <code>application.yaml</code>, tous les workers ont le même nom : impossible de les distinguer dans le moteur.<br><br>
+<b>Fix</b> : chaque fund-management a une <b>instance</b> (<code>camunda.worker.instance</code>) ; <code>DemarrerProcessusStep</code> la pose sur le processus (variable <code>instanceFundManagement</code>) et le worker ne s'abonne qu'aux tâches dont le processus porte <b>sa</b> valeur (<code>processVariableEquals</code> du client Camunda). Aucun changement BPMN, front, base ni Apigee.</div><h2 id="yaml">1. application.yaml</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 50-54 (AVANT) — Ctrl+F : &lt;code&gt;worker-id: fund-management-local&lt;/code&gt;</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\application.yaml</span></div><pre><button class="copy">Copier</button><code>  worker:
+    worker-id: fund-management-local
+    lock-duration-ms: 30000
+    <span class="k">async</span>-response-timeout-ms: 20000
+    enabled: <span class="k">true</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 50-54 (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\application.yaml</span></div><p class="note"><code>application-local.yaml</code> : rien à changer (il hérite de <code>instance</code>). Dans le pod DMZR, <code>QF_CAMUNDA_INSTANCE</code> est posée par Helm (§4).</p><pre><button class="copy">Copier</button><code>  worker:
+    worker-id: ${QF_CAMUNDA_WORKER_ID:fund-management-local}
+    instance: ${QF_CAMUNDA_INSTANCE:local-${user.name}}   # propriétaire des processus : le worker ne prend QUE les tâches des processus démarrés avec cette valeur (ne jamais la changer sur un environnement)
+    lock-duration-ms: 30000
+    <span class="k">async</span>-response-timeout-ms: 20000
+    enabled: <span class="k">true</span></code></pre></div><h2 id="step">2. DemarrerProcessusStep — poser l&#x27;instance sur le processus</h2><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Import (à ajouter après &lt;code&gt;import org.springframework.stereotype.Component;&lt;/code&gt;, l. 8)</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\saga\DemarrerProcessusStep.java</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> org.springframework.beans.factory.annotation.Value;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 24 (AVANT) — Ctrl+F : &lt;code&gt;private final CutoffPolicy cutoffPolicy;&lt;/code&gt;</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\saga\DemarrerProcessusStep.java</span></div><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">final</span> CutoffPolicy cutoffPolicy;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 24 (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\saga\DemarrerProcessusStep.java</span></div><p class="note">Champ non final : <code>@RequiredArgsConstructor</code> ne l'ajoute pas au constructeur (même mécanique que <code>@Value gdf.verrou-modification-duree</code> dans <code>CashDemandUseCaseImpl</code>).</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">final</span> CutoffPolicy cutoffPolicy;
+
+    <span class="c">/** Variable de processus qui désigne l&#x27;instance fund-management propriétaire : seul son worker prend les tâches externes. */</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> VARIABLE_INSTANCE = <span class="s">&quot;instanceFundManagement&quot;</span>;
+
+    <span class="c">/** camunda.worker.instance — package-private pour le test unitaire (pas de Spring dans le test). */</span>
+    @Value(<span class="s">&quot;${camunda.worker.instance:}&quot;</span>)
+    <span class="k">String</span> instance;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 48 (AVANT) — Ctrl+F : &lt;code&gt;variables.put(&quot;journeeCloturee&quot;, Boolean.FALSE);&lt;/code&gt;</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\saga\DemarrerProcessusStep.java</span></div><pre><button class="copy">Copier</button><code>        variables.put(<span class="s">&quot;journeeCloturee&quot;</span>, Boolean.FALSE);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 48 (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\saga\DemarrerProcessusStep.java</span></div><p class="note">Cette étape démarre les deux circuits (agence et monétique : <code>canal == CanalDemande.MONETIQUE</code>), donc tous les processus portent la variable.</p><pre><button class="copy">Copier</button><code>        variables.put(<span class="s">&quot;journeeCloturee&quot;</span>, Boolean.FALSE);
+        <span class="k">if</span> (instance != <span class="k">null</span> &amp;&amp; !instance.isBlank()) {
+            variables.put(VARIABLE_INSTANCE, instance);   <span class="c">// seul le worker de cette instance traitera les tâches externes du processus</span>
+        }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>DemarrerProcessusStepInstanceTest.java</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\test\java\com\bmci\workflow\fund\management\service\domain\retail\saga\DemarrerProcessusStepInstanceTest.java</span></div><p class="note">Mockito qualifié, <code>Assertions</code> qualifié, aucun import statique. Le contexte est mocké (pas de constructeur supposé) ; <code>CashRequest</code> par <code>new</code> + setters.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.service.domain.retail.saga;
+
+<span class="k">import</span> com.bmci.common.workflow.fund.management.service.domain.ports.output.workflow.ProcessusWorkflowPort;
+<span class="k">import</span> com.bmci.q360.domain.retail.entity.CashRequest;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.CutoffPolicy;
+<span class="k">import</span> org.junit.jupiter.api.Assertions;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.ArgumentCaptor;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> java.time.LocalTime;
+<span class="k">import</span> java.util.ArrayList;
+<span class="k">import</span> java.util.Map;
+<span class="k">import</span> java.util.UUID;
+
+@ExtendWith(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> DemarrerProcessusStepInstanceTest {
+
+    @Mock
+    ProcessusWorkflowPort processusWorkflowPort;
+    @Mock
+    CutoffPolicy cutoffPolicy;
+
+    @SuppressWarnings(<span class="s">&quot;unchecked&quot;</span>)
+    <span class="k">private</span> Map&lt;<span class="k">String</span>, Object&gt; variablesDeDemarrage(<span class="k">String</span> instance) {
+        UUID id = UUID.randomUUID();
+        CashRequest demande = <span class="k">new</span> CashRequest();
+        demande.setUidUser(<span class="s">&quot;g10002&quot;</span>);
+        demande.setBranchCode(<span class="s">&quot;1422&quot;</span>);
+        demande.setOperations(<span class="k">new</span> ArrayList&lt;&gt;());
+        SoumissionDemandeContext contexte = Mockito.mock(SoumissionDemandeContext.<span class="k">class</span>);
+        Mockito.when(contexte.getDemande()).thenReturn(demande);
+        Mockito.when(contexte.getDemandeId()).thenReturn(id);
+        Mockito.when(cutoffPolicy.heureCutoff(Mockito.any())).thenReturn(LocalTime.of(16, 0));
+        Mockito.when(processusWorkflowPort.demarrerProcessus(Mockito.eq(id.toString()), Mockito.any())).thenReturn(<span class="s">&quot;pi-1&quot;</span>);
+
+        DemarrerProcessusStep step = <span class="k">new</span> DemarrerProcessusStep(processusWorkflowPort, cutoffPolicy);
+        step.instance = instance;
+        step.executer(contexte);
+
+        ArgumentCaptor&lt;Map&lt;<span class="k">String</span>, Object&gt;&gt; variables = ArgumentCaptor.forClass(Map.<span class="k">class</span>);
+        Mockito.verify(processusWorkflowPort).demarrerProcessus(Mockito.eq(id.toString()), variables.capture());
+        <span class="k">return</span> variables.getValue();
+    }
+
+    @Test
+    <span class="k">void</span> instanceConfiguree_estPoseeSurLeProcessus() {
+        Map&lt;<span class="k">String</span>, Object&gt; variables = variablesDeDemarrage(<span class="s">&quot;fund-management-dev&quot;</span>);
+
+        Assertions.assertEquals(<span class="s">&quot;fund-management-dev&quot;</span>, variables.<span class="k">get</span>(DemarrerProcessusStep.VARIABLE_INSTANCE));
+    }
+
+    @Test
+    <span class="k">void</span> instanceVide_aucuneVariable() {
+        Map&lt;<span class="k">String</span>, Object&gt; variables = variablesDeDemarrage(<span class="s">&quot;&quot;</span>);
+
+        Assertions.assertFalse(variables.containsKey(DemarrerProcessusStep.VARIABLE_INSTANCE));
+    }
+}</code></pre></div><h2 id="worker">3. GdfWorkerConfig — ne prendre que ses tâches</h2><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Imports (à ajouter dans le bloc import)</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.saga.DemarrerProcessusStep;
+<span class="k">import</span> org.springframework.beans.factory.annotation.Value;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 38 (AVANT) — Ctrl+F : &lt;code&gt;private ExternalTaskClient client;&lt;/code&gt;</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java</span></div><pre><button class="copy">Copier</button><code>    <span class="k">private</span> ExternalTaskClient client;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 38 (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java</span></div><pre><button class="copy">Copier</button><code>    <span class="k">private</span> ExternalTaskClient client;
+
+    <span class="c">/** Même valeur que celle posée au démarrage du processus par DemarrerProcessusStep. */</span>
+    @Value(<span class="s">&quot;${camunda.worker.instance:}&quot;</span>)
+    <span class="k">private</span> <span class="k">String</span> instance;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 69 (AVANT) — Ctrl+F : &lt;code&gt;abonné aux 9 topics&lt;/code&gt;</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java</span></div><pre><button class="copy">Copier</button><code>        log.info(<span class="s">&quot;Worker Camunda abonné aux 9 topics gdf-* sur {}&quot;</span>, properties.getBaseUrl());</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 69 (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java</span></div><pre><button class="copy">Copier</button><code>        log.info(<span class="s">&quot;Worker Camunda abonné aux 9 topics gdf-* sur {} (workerId {}, instance {})&quot;</span>,
+                properties.getBaseUrl(), properties.getWorker().getWorkerId(), instance);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>l. 81-84 (AVANT) — Ctrl+F : &lt;code&gt;var subscription = client.subscribe(topic);&lt;/code&gt;</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java</span></div><pre><button class="copy">Copier</button><code>        <span class="k">var</span> subscription = client.subscribe(topic);
+        <span class="k">if</span> (properties.getTenantId() != <span class="k">null</span> &amp;&amp; !properties.getTenantId().isBlank()) {
+            subscription.tenantIdIn(properties.getTenantId());
+        }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>l. 81-84 (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\worker\GdfWorkerConfig.java</span></div><p class="note">Le reste de <code>abonner</code> (l. 85-95, <code>.handler(...).open()</code>) est inchangé.</p><pre><button class="copy">Copier</button><code>        <span class="k">var</span> subscription = client.subscribe(topic);
+        <span class="k">if</span> (properties.getTenantId() != <span class="k">null</span> &amp;&amp; !properties.getTenantId().isBlank()) {
+            subscription.tenantIdIn(properties.getTenantId());
+        }
+        <span class="k">if</span> (instance != <span class="k">null</span> &amp;&amp; !instance.isBlank()) {
+            <span class="c">// Moteur partagé : ne prendre que les tâches des processus démarrés par CETTE instance (sinon un autre</span>
+            <span class="c">// fund-management les verrouille, ne trouve pas la demande dans sa base, échoue → statut jamais mis à jour)</span>
+            subscription.processVariableEquals(DemarrerProcessusStep.VARIABLE_INSTANCE, instance);
+        }</code></pre></div><h2 id="recette">4. Déploiement et recette</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Parcours</b><br><span class="path">recette\worker-camunda-instance.txt</span></div><pre><button class="copy">Copier</button><code>0. PREUVE DE LA CAUSE (avant le déploiement, 1 min)
+   Cockpit DMZR (https:<span class="c">//webapp.socle-bpm-ma.ac.dev.echonet/) → Processes → gestion-des-fonds → instance de la demande monétique bloquée.</span>
+   Attendu : un INCIDENT sur « gdf-cloturer-demande » (ou gdf-annuler-demande) avec le message
+   « La demande &lt;id&gt; est introuvable » → un AUTRE fund-management (base différente) a pris la tâche, a échoué 3 fois, la tâche est morte.
+
+1. DÉPLOIEMENT
+   - Variable Helm du pod DMZR dev : QF_CAMUNDA_INSTANCE=fund-management-dev   (staging : fund-management-staging, prod : fund-management-prod)
+     Ne JAMAIS changer cette valeur ensuite : les processus démarrés avec l&#x27;ancienne valeur ne seraient plus pris par personne.
+   - En local : rien à faire (valeur par défaut local-&lt;ton uid Windows&gt;, donc distincte pour chaque développeur).
+   - Toute l&#x27;équipe doit récupérer ce commit : un fund-management local SANS ce correctif (Hamza, Yassine…) continue de voler
+     toutes les tâches du moteur DEV (application-local.yaml pointe sur Apigee DEV).
+
+2. VÉRIFICATION AU DÉMARRAGE (log fund-management)
+   « Worker Camunda abonné aux 9 topics gdf-* sur … (workerId fund-management-dev, instance fund-management-dev) »
+
+3. RECETTE ÉCRAN (DMZR) — sur des demandes CRÉÉES APRÈS le déploiement
+   a. Agence : créer + soumettre une demande ; Caisse Centrale : Traiter → statut « Traitée » en 1 à 2 s.
+   b. Une 2e demande : Caisse Centrale Annuler (motif) → « Annulée » en 1 à 2 s.
+   c. Agence : annuler une demande soumise → « Annulée » en 1 à 2 s.
+   d. Monétique : même chose (Traiter puis Annuler).
+   e. Cockpit : variable « instanceFundManagement = fund-management-dev » sur les nouvelles instances, aucun incident.
+
+4. DÉBLOQUER LES DEMANDES DÉJÀ EN COURS SUR DEV (Postman, collection Apigee, base https:<span class="c">//morocco.apigee.dev.echonet/bpm/v1)</span>
+   Pour chaque demande bloquée :
+   - GET  {base}/process-instance?businessKey=&lt;id demande&gt;                       → id de l&#x27;instance
+   - PUT  {base}/process-instance/&lt;id instance&gt;/variables/instanceFundManagement
+          body : {<span class="s">&quot;value&quot;</span>:<span class="s">&quot;fund-management-dev&quot;</span>,<span class="s">&quot;type&quot;</span>:<span class="s">&quot;String&quot;</span>}
+   - si incident : GET {base}/external-task?processInstanceId=&lt;id instance&gt;       → id de la tâche externe
+                   PUT {base}/external-task/&lt;id tâche&gt;/retries   body : {<span class="s">&quot;retries&quot;</span>:3}
+   → le worker DMZR la reprend dans la seconde et le statut se met à jour à l&#x27;écran.</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
