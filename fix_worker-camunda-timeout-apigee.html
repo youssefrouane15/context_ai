@@ -1,0 +1,36 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fix — worker Camunda coupé par Apigee (TASK/CLIENT-03001, code 500.T.02)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>Fix — worker Camunda coupé par Apigee (TASK/CLIENT-03001, code 500.T.02)</h1><p>application.yaml : QF_CAMUNDA_ASYNC_TIMEOUT_MS / QF_CAMUNDA_LOCK_MS · 17/11/2026</p></header><nav><a href="#cause">Cause</a><a href="#yaml">application.yaml</a><a href="#cd">CD (intégrateur)</a><a href="#verif">Vérification</a></nav><main><h2 id="cause">0. Cause</h2><div class="card">Log du pod (16/11 17:01) : <code>TASK/CLIENT-03001 Exception while fetching and locking task</code> — le corps de la réponse contient <code>"code":"500.T.02"</code>, un code d'erreur <b>Apigee</b> (et non du moteur Camunda) : le proxy <code>bpm/v1</code> coupe l'interrogation du worker (<code>fetchAndLock</code>), qui attend jusqu'à 20 s (<code>async-response-timeout-ms</code>).<br>
+Quand la coupure tombe juste après que le moteur a réservé une tâche pour notre worker, la tâche reste bloquée pendant <code>lock-duration-ms</code> (30 s) sans être traitée, puis est reproposée → statut mis à jour avec 30, 60, 90 s de retard ; un re-clic entre-temps donne 409 / 502.<br>
+<b>Fix</b> : interroger le moteur moins longtemps que le timeout Apigee (5 s) et réduire la réservation (15 s). Valeurs paramétrables, défauts inchangés en local.</div><h2 id="yaml">1. application.yaml</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>Bloc camunda.worker (AVANT) — Ctrl+F : &lt;code&gt;lock-duration-ms: 30000&lt;/code&gt;</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\application.yaml</span></div><pre><button class="copy">Copier</button><code>    lock-duration-ms: 30000
+    <span class="k">async</span>-response-timeout-ms: 20000</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>APRÈS</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\application.yaml</span></div><p class="note">Les lignes <code>worker-id</code>, <code>instance</code> et <code>enabled</code> sont inchangées. Rien à changer dans <code>application-local.yaml</code> ni dans le yaml de test.</p><pre><button class="copy">Copier</button><code>    lock-duration-ms: ${QF_CAMUNDA_LOCK_MS:30000}                    # durée de réservation d&#x27;une tâche prise par le worker
+    <span class="k">async</span>-response-timeout-ms: ${QF_CAMUNDA_ASYNC_TIMEOUT_MS:20000}  # attente max d&#x27;une interrogation du moteur ; DOIT rester sous le timeout du proxy Apigee</code></pre></div><h2 id="cd">2. CD (intégrateur)</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Variables DMZR</b><br><span class="path">cd\fund-management-variables.txt</span></div><pre><button class="copy">Copier</button><code># Variables à ajouter dans le CD du pod fund-management (DMZR dev, staging, prod) — non secrètes
+QF_CAMUNDA_ASYNC_TIMEOUT_MS=5000
+QF_CAMUNDA_LOCK_MS=15000
+# En local : rien à poser (moteur direct, sans Apigee → 20000 / 30000 par défaut)</code></pre></div><h2 id="verif">3. Vérification</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Avant / après</b><br><span class="path">recette\worker-apigee-timeout.txt</span></div><pre><button class="copy">Copier</button><code>1. Avant déploiement : dans les logs de chaque pod, Notepad++ → Find → Count « TASK/CLIENT-03001 » (noter le nombre sur 1 h).
+2. Déployer avec les deux variables.
+3. Créer et soumettre une demande, Caisse Centrale → Traiter : statut « Traitée » en 1 à 2 s. Idem Annuler (CC et agence).
+4. Logs après 1 h : « TASK/CLIENT-03001 » doit être à 0 (ou quasi).
+5. S<span class="s">&#x27;il en reste : demander à l&#x27;</span>équipe Apigee le timeout exact du proxy bpm/v1 et descendre QF_CAMUNDA_ASYNC_TIMEOUT_MS en dessous (ex. 3000).</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
