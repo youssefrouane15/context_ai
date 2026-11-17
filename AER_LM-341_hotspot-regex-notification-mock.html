@@ -1,0 +1,48 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-341 — Security Hotspot : regex de NotificationMockAdapter (S5852)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-341 — Security Hotspot : regex de NotificationMockAdapter (S5852)</h1><p>fund-management-external-services · nettoyer() sans regex à backtracking · 17/11/2026</p></header><nav><a href="#cause">Le hotspot</a><a href="#fix">NotificationMockAdapter</a><a href="#verif">Vérification</a></nav><main><h2 id="cause">0. Le hotspot</h2><div class="card">Règle Sonar <b>S5852</b> (regex vulnérable au backtracking) sur <code>replaceAll("^_+|_+$", "")</code> : sur une chaîne faite d'une longue suite de <code>_</code>, le moteur de regex essaie un nombre de combinaisons qui croît en carré de la longueur → déni de service possible.<br>
+<b>Fix</b> : la première regex (<code>[^A-Za-z0-9_-]+</code>, linéaire) est conservée ; le retrait des <code>_</code> de début et de fin est fait par deux boucles simples, en temps linéaire. Même résultat, plus de regex à risque. Aucune dépendance ajoutée.</div><h2 id="fix">1. NotificationMockAdapter</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>nettoyer (AVANT) — Ctrl+F : &lt;code&gt;private static String nettoyer&lt;/code&gt;</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\notification\mock\NotificationMockAdapter.java</span></div><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> nettoyer(<span class="k">String</span> s) {
+        <span class="k">return</span> s.replaceAll(<span class="s">&quot;[^A-Za-z0-9_-]+&quot;</span>, <span class="s">&quot;_&quot;</span>).replaceAll(<span class="s">&quot;^_+|_+$&quot;</span>, <span class="s">&quot;&quot;</span>);
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>nettoyer (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\notification\mock\NotificationMockAdapter.java</span></div><p class="note">Seule cette méthode change ; ses appelants sont inchangés.</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> nettoyer(<span class="k">String</span> s) {
+        <span class="k">String</span> remplace = s.replaceAll(<span class="s">&quot;[^A-Za-z0-9_-]+&quot;</span>, <span class="s">&quot;_&quot;</span>);
+        <span class="c">// Retrait des « _ » de début et de fin sans regex (Sonar S5852 : &quot;^_+|_+$&quot; = backtracking polynomial)</span>
+        <span class="k">int</span> debut = 0;
+        <span class="k">int</span> fin = remplace.length();
+        <span class="k">while</span> (debut &lt; fin &amp;&amp; remplace.charAt(debut) == <span class="s">&#x27;_&#x27;</span>) {
+            debut++;
+        }
+        <span class="k">while</span> (fin &gt; debut &amp;&amp; remplace.charAt(fin - 1) == <span class="s">&#x27;_&#x27;</span>) {
+            fin<span class="c">--;</span>
+        }
+        <span class="k">return</span> remplace.substring(debut, fin);
+    }</code></pre></div><h2 id="verif">2. Vérification</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contrôles</b><br><span class="path">recette\sonar-hotspot-notification-mock.txt</span></div><pre><button class="copy">Copier</button><code>Comportement identique à l&#x27;ancienne méthode (exemples) :
+  <span class="s">&quot;Demande soumise — 1104&quot;</span>   → <span class="s">&quot;Demande_soumise_1104&quot;</span>
+  <span class="s">&quot;  [GDF] Annulée !  &quot;</span>      → <span class="s">&quot;GDF_Annul_e&quot;</span>
+  <span class="s">&quot;___&quot;</span>                      → <span class="s">&quot;&quot;</span>
+  <span class="s">&quot;abc&quot;</span>                      → <span class="s">&quot;abc&quot;</span>
+
+1. mvn clean install (fund-management-microservice) : build vert.
+2. Pousser sur develop (via MR) → nouvelle analyse Sonar.
+3. Sonar → Security Hotspots : le hotspot sur NotificationMockAdapter.java disparaît (statut « Fixed » dans l&#x27;historique).</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
