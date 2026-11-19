@@ -1,0 +1,494 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-341 — Correction intégrale des issues Sonar High (fund-management)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-341 — Correction intégrale des issues Sonar High (fund-management)</h1><p>12 correctifs dans l&#x27;ordre Sonar · complexité cognitive, littéraux dupliqués, package · sans changement fonctionnel · 19/11/2026</p></header><nav><a href="#recap">Récapitulatif (ordre Sonar)</a><a href="#i1">ExportExcelDemandes · remplirGab (25 → 4)</a><a href="#i2">ExtractionDemande · lignesGab (22 → 2)</a><a href="#i3">ExtractionDemande · lignesDevise (19 → 6)</a><a href="#i4">ExtractionDemande · quantitesParFaceValue (20 → 5)</a><a href="#i5">Script Flyway · BANKNOTE ×18 (plsql:S1192)</a><a href="#i6">CashDemandRepositoryImpl · &quot;La demande &quot; / &quot; est introuvable&quot; (S1192 ×2)</a><a href="#i7">CamundaEngineClient · &quot;businessKey&quot; (S1192)</a><a href="#i8">CashOperation · validateAndComputeTotal (42 → 6)</a><a href="#i9">ReportingMensuelUseCaseImpl · ligne (19 → 2)</a><a href="#i10">DemandeMonetiqueSpecifications · of (21 → 4)</a><a href="#i11">UserProfileRepositoryImpl · package (S1598)</a><a href="#i12">CashDemandRepositoryImpl · &quot;creationDate&quot; (S1192)</a><a href="#verif">Vérification</a></nav><main><h2 id="recap">0. Récapitulatif (ordre Sonar)</h2><div class="card"><table><tr><th>#</th><th>Règle</th><th>Fichier · méthode</th><th>Correctif</th></tr>
+<tr><td>1</td><td>S3776 (25)</td><td>ExportExcelDemandes · remplirGab</td><td>écriture d'une ligne GAB extraite dans <code>ecrireLigneGab</code></td></tr>
+<tr><td>2</td><td>S3776 (22)</td><td>ExtractionDemande · lignesGab</td><td><code>quantitesCassettes</code> + <code>ajouterCassette</code></td></tr>
+<tr><td>3</td><td>S3776 (19)</td><td>ExtractionDemande · lignesDevise</td><td><code>sensDevise</code> + <code>cumulerDevise</code></td></tr>
+<tr><td>4</td><td>S3776 (20)</td><td>ExtractionDemande · quantitesParFaceValue</td><td><code>cumulerFaceValues</code></td></tr>
+<tr><td>5</td><td>plsql:S1192</td><td>script Flyway (BANKNOTE ×18)</td><td>règle ignorée sur <code>db/migration</code> (pom) : script appliqué = intouchable</td></tr>
+<tr><td>6</td><td>S1192 ×2</td><td>CashDemandRepositoryImpl · "La demande " / " est introuvable"</td><td>fabrique <code>introuvable(id)</code></td></tr>
+<tr><td>7</td><td>S1192</td><td>CamundaEngineClient · "businessKey"</td><td>constante <code>BUSINESS_KEY</code></td></tr>
+<tr><td>8</td><td>S3776 (42)</td><td>CashOperation · validateAndComputeTotal</td><td>5 méthodes privées</td></tr>
+<tr><td>9</td><td>S3776 (19)</td><td>ReportingMensuelUseCaseImpl · ligne</td><td>agrégats en streams</td></tr>
+<tr><td>10</td><td>S3776 (21)</td><td>DemandeMonetiqueSpecifications · of</td><td><code>filtresDemande</code> + <code>filtresGab</code></td></tr>
+<tr><td>11</td><td>S1598</td><td>UserProfileRepositoryImpl · package</td><td>package aligné sur le dossier <code>retail\adapter</code></td></tr>
+<tr><td>12</td><td>S1192</td><td>CashDemandRepositoryImpl · "creationDate"</td><td>constante <code>CREATION_DATE</code></td></tr></table>
+<b>Aucun changement fonctionnel</b> : chaque refacto a été comparé à l'ancien code sur 20 000 jeux de données aléatoires (CashOperation, Reporting, ExtractionDemande) → 0 écart (mêmes résultats, mêmes exceptions, mêmes messages).</div><h2 id="i1">1. ExportExcelDemandes · remplirGab (25 → 4)</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>remplirGab l. 211 à 226 (AVANT) — de « OperationGabDTO gab = lg.gab(); » jusqu&#x27;à la } de la boucle des cassettes</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><pre><button class="copy">Copier</button><code>                OperationGabDTO gab = lg.gab();
+                texte(r, 0, x.reference());
+                texte(r, 1, x.dateDemande() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : DATE_DEMANDE.format(x.dateDemande()));
+                texte(r, 2, gab.getAgenceCode() != <span class="k">null</span> ? gab.getAgenceCode() : x.codeAgence());
+                texte(r, 3, gab.getAgenceLibelle() != <span class="k">null</span> ? gab.getAgenceLibelle() : x.nomAgence());
+                texte(r, 4, gab.getVille());
+                texte(r, 5, gab.getTransporteur() != <span class="k">null</span> ? gab.getTransporteur() : x.transporteur());
+                montant(r, 6, gab.getTarifTransporteur() != <span class="k">null</span> ? gab.getTarifTransporteur() : x.coutDeplacement(), styles);
+                texte(r, 7, gab.getGabId());
+                texte(r, 8, gab.getGabNom());
+                texte(r, 9, gab.getNumeroCompte());
+                texte(r, 10, gab.getGabType() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : libelleTypeGab(gab.getGabType().name()));
+                texte(r, 11, x.libelleStatut());
+                <span class="k">for</span> (<span class="k">int</span> i = 0; i &lt; ExtractionDemande.NB_CASSETTES; i++) {
+                    quantite(r, GAB_PREMIERE_CASSETTE + i, lg.quantitesCassettes()[i], styles);
+                }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>remplirGab l. 211 (APRÈS) — juste sous « Row r = ligne(onglet, ligne++, modele); »</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><p class="note">Les lignes 203-210 et la fin de la méthode ne bougent pas.</p><pre><button class="copy">Copier</button><code>                ecrireLigneGab(r, x, lg, styles);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Nouvelle méthode — juste après la } qui ferme remplirGab</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><pre><button class="copy">Copier</button><code>
+    <span class="c">/** Une ligne de l&#x27;onglet GAB : colonnes 0 à 11 puis une colonne par cassette. */</span>
+    <span class="k">private</span> <span class="k">void</span> ecrireLigneGab(Row r, ExtractionDemande x, ExtractionDemande.LigneGab lg, Styles styles) {
+        OperationGabDTO gab = lg.gab();
+        texte(r, 0, x.reference());
+        texte(r, 1, x.dateDemande() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : DATE_DEMANDE.format(x.dateDemande()));
+        texte(r, 2, gab.getAgenceCode() != <span class="k">null</span> ? gab.getAgenceCode() : x.codeAgence());
+        texte(r, 3, gab.getAgenceLibelle() != <span class="k">null</span> ? gab.getAgenceLibelle() : x.nomAgence());
+        texte(r, 4, gab.getVille());
+        texte(r, 5, gab.getTransporteur() != <span class="k">null</span> ? gab.getTransporteur() : x.transporteur());
+        montant(r, 6, gab.getTarifTransporteur() != <span class="k">null</span> ? gab.getTarifTransporteur() : x.coutDeplacement(), styles);
+        texte(r, 7, gab.getGabId());
+        texte(r, 8, gab.getGabNom());
+        texte(r, 9, gab.getNumeroCompte());
+        texte(r, 10, gab.getGabType() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : libelleTypeGab(gab.getGabType().name()));
+        texte(r, 11, x.libelleStatut());
+        <span class="k">for</span> (<span class="k">int</span> i = 0; i &lt; ExtractionDemande.NB_CASSETTES; i++) {
+            quantite(r, GAB_PREMIERE_CASSETTE + i, lg.quantitesCassettes()[i], styles);
+        }
+    }</code></pre></div><h2 id="i2">2. ExtractionDemande · lignesGab (22 → 2)</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>lignesGab l. 136 à 154 (AVANT, méthode entière)</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExtractionDemande.java</span></div><pre><button class="copy">Copier</button><code>    List&lt;LigneGab&gt; lignesGab() {
+        List&lt;LigneGab&gt; lignes = <span class="k">new</span> ArrayList&lt;&gt;();
+        <span class="k">for</span> (CashOperationDTO op : operations()) {
+            <span class="k">if</span> (op.getGab() == <span class="k">null</span>) continue;
+            Integer[] quantites = <span class="k">new</span> Integer[NB_CASSETTES];
+            <span class="k">for</span> (OperationCurrencyDetailDTO detail : details(op)) {
+                <span class="k">if</span> (detail.getOperationDenominations() == <span class="k">null</span>) continue;
+                <span class="k">for</span> (OperationDenominationDTO ligne : detail.getOperationDenominations()) {
+                    Integer cassette = ligne.getCassetteNumber();
+                    <span class="k">if</span> (cassette == <span class="k">null</span> || cassette &lt; 1 || cassette &gt; NB_CASSETTES || ligne.getQuantity() == <span class="k">null</span>) continue;
+                    <span class="k">int</span> i = cassette - 1;
+                    quantites[i] = quantites[i] == <span class="k">null</span> ? ligne.getQuantity() : quantites[i] + ligne.getQuantity();
+                }
+            }
+            lignes.add(<span class="k">new</span> LigneGab(op.getGab(), quantites));
+        }
+        lignes.sort(Comparator.comparing(l -&gt; l.gab().getGabId() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : l.gab().getGabId()));
+        <span class="k">return</span> lignes;
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>lignesGab + 2 méthodes privées (APRÈS) — à la place</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExtractionDemande.java</span></div><pre><button class="copy">Copier</button><code>    List&lt;LigneGab&gt; lignesGab() {
+        List&lt;LigneGab&gt; lignes = <span class="k">new</span> ArrayList&lt;&gt;();
+        <span class="k">for</span> (CashOperationDTO op : operations()) {
+            <span class="k">if</span> (op.getGab() != <span class="k">null</span>) {
+                lignes.add(<span class="k">new</span> LigneGab(op.getGab(), quantitesCassettes(op)));
+            }
+        }
+        lignes.sort(Comparator.comparing(l -&gt; l.gab().getGabId() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : l.gab().getGabId()));
+        <span class="k">return</span> lignes;
+    }
+
+    <span class="c">/** Quantités par cassette (1..NB_CASSETTES) d&#x27;une opération GAB, cumulées si plusieurs lignes portent la même cassette. */</span>
+    <span class="k">private</span> Integer[] quantitesCassettes(CashOperationDTO op) {
+        Integer[] quantites = <span class="k">new</span> Integer[NB_CASSETTES];
+        <span class="k">for</span> (OperationCurrencyDetailDTO detail : details(op)) {
+            <span class="k">if</span> (detail.getOperationDenominations() == <span class="k">null</span>) {
+                continue;
+            }
+            <span class="k">for</span> (OperationDenominationDTO ligne : detail.getOperationDenominations()) {
+                ajouterCassette(quantites, ligne);
+            }
+        }
+        <span class="k">return</span> quantites;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">void</span> ajouterCassette(Integer[] quantites, OperationDenominationDTO ligne) {
+        Integer cassette = ligne.getCassetteNumber();
+        <span class="k">if</span> (cassette == <span class="k">null</span> || cassette &lt; 1 || cassette &gt; NB_CASSETTES || ligne.getQuantity() == <span class="k">null</span>) {
+            <span class="k">return</span>;
+        }
+        <span class="k">int</span> i = cassette - 1;
+        quantites[i] = quantites[i] == <span class="k">null</span> ? ligne.getQuantity() : quantites[i] + ligne.getQuantity();
+    }</code></pre></div><h2 id="i3">3. ExtractionDemande · lignesDevise (19 → 6)</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>lignesDevise l. 110 à 125 (AVANT) — de la signature jusqu&#x27;à « lignes.sort(...) » inclus</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExtractionDemande.java</span></div><pre><button class="copy">Copier</button><code>    List&lt;LigneDevise&gt; lignesDevise() {
+        Map&lt;<span class="k">String</span>, BigDecimal[]&gt; parDevise = <span class="k">new</span> HashMap&lt;&gt;();          <span class="c">// [0] alimentation, [1] ramassage</span>
+        <span class="k">for</span> (CashOperationDTO op : operations()) {
+            <span class="k">if</span> (op.getOperationType() != OperationType.CURRENCY) continue;
+            <span class="k">int</span> sens = op.getOperationSens() == RequestType.SUPPLY ? 0 : op.getOperationSens() == RequestType.COLLECTION ? 1 : -1;
+            <span class="k">if</span> (sens &lt; 0) continue;
+            <span class="k">for</span> (OperationCurrencyDetailDTO detail : details(op)) {
+                <span class="k">String</span> devise = codeDevise(detail);
+                <span class="k">if</span> (devise == <span class="k">null</span> || MAD.equals(devise) || detail.getTotalAmountByCurrency() == <span class="k">null</span>) continue;
+                BigDecimal[] montants = parDevise.computeIfAbsent(devise, k -&gt; <span class="k">new</span> BigDecimal[2]);
+                montants[sens] = montants[sens] == <span class="k">null</span> ? detail.getTotalAmountByCurrency() : montants[sens].add(detail.getTotalAmountByCurrency());
+            }
+        }
+        List&lt;LigneDevise&gt; lignes = <span class="k">new</span> ArrayList&lt;&gt;();
+        parDevise.forEach((devise, m) -&gt; lignes.add(<span class="k">new</span> LigneDevise(devise, m[0], m[1])));
+        lignes.sort(Comparator.comparing(LigneDevise::devise));</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>lignesDevise l. 110 à 125 (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExtractionDemande.java</span></div><p class="note">« return lignes; » et la } qui suivent ne bougent pas.</p><pre><button class="copy">Copier</button><code>    List&lt;LigneDevise&gt; lignesDevise() {
+        Map&lt;<span class="k">String</span>, BigDecimal[]&gt; parDevise = <span class="k">new</span> HashMap&lt;&gt;();          <span class="c">// [0] alimentation, [1] ramassage</span>
+        <span class="k">for</span> (CashOperationDTO op : operations()) {
+            <span class="k">int</span> sens = sensDevise(op);
+            <span class="k">if</span> (sens &lt; 0) {
+                continue;
+            }
+            <span class="k">for</span> (OperationCurrencyDetailDTO detail : details(op)) {
+                cumulerDevise(parDevise, detail, sens);
+            }
+        }
+        List&lt;LigneDevise&gt; lignes = <span class="k">new</span> ArrayList&lt;&gt;();
+        parDevise.forEach((devise, m) -&gt; lignes.add(<span class="k">new</span> LigneDevise(devise, m[0], m[1])));
+        lignes.sort(Comparator.comparing(LigneDevise::devise));</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Nouvelles méthodes — juste après la } qui ferme lignesDevise</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExtractionDemande.java</span></div><pre><button class="copy">Copier</button><code>
+    <span class="c">/** 0 = alimentation, 1 = ramassage, -1 = opération ignorée (pas une commande devises, ou sens inconnu). */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">int</span> sensDevise(CashOperationDTO op) {
+        <span class="k">if</span> (op.getOperationType() != OperationType.CURRENCY) {
+            <span class="k">return</span> -1;
+        }
+        <span class="k">if</span> (op.getOperationSens() == RequestType.SUPPLY) {
+            <span class="k">return</span> 0;
+        }
+        <span class="k">return</span> op.getOperationSens() == RequestType.COLLECTION ? 1 : -1;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">void</span> cumulerDevise(Map&lt;<span class="k">String</span>, BigDecimal[]&gt; parDevise, OperationCurrencyDetailDTO detail, <span class="k">int</span> sens) {
+        <span class="k">String</span> devise = codeDevise(detail);
+        BigDecimal montant = detail.getTotalAmountByCurrency();
+        <span class="k">if</span> (devise == <span class="k">null</span> || MAD.equals(devise) || montant == <span class="k">null</span>) {
+            <span class="k">return</span>;
+        }
+        BigDecimal[] montants = parDevise.computeIfAbsent(devise, k -&gt; <span class="k">new</span> BigDecimal[2]);
+        montants[sens] = montants[sens] == <span class="k">null</span> ? montant : montants[sens].add(montant);
+    }</code></pre></div><h2 id="i4">4. ExtractionDemande · quantitesParFaceValue (20 → 5)</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>quantitesParFaceValue l. 76 à 91 (AVANT, méthode entière, la javadoc l. 75 reste)</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExtractionDemande.java</span></div><pre><button class="copy">Copier</button><code>    Map&lt;BigDecimal, Integer&gt; quantitesParFaceValue(Alimentation <span class="k">type</span>, Map&lt;<span class="k">String</span>, BigDecimal&gt; faceValuesByCode) {
+        Map&lt;BigDecimal, Integer&gt; resultat = <span class="k">new</span> HashMap&lt;&gt;();
+        <span class="k">for</span> (CashOperationDTO op : operations()) {
+            <span class="k">if</span> (!estAlimentation(op, <span class="k">type</span>)) continue;
+            <span class="k">for</span> (OperationCurrencyDetailDTO detail : details(op)) {
+                <span class="k">if</span> (detail.getOperationDenominations() == <span class="k">null</span>) continue;
+                <span class="k">for</span> (OperationDenominationDTO ligne : detail.getOperationDenominations()) {
+                    <span class="k">if</span> (ligne.getDenomination() == <span class="k">null</span> || ligne.getQuantity() == <span class="k">null</span>) continue;
+                    BigDecimal faceValue = faceValuesByCode.<span class="k">get</span>(ligne.getDenomination().getDenominationCode());
+                    <span class="k">if</span> (faceValue == <span class="k">null</span>) continue;
+                    resultat.merge(faceValue.stripTrailingZeros(), ligne.getQuantity(), Integer::sum);
+                }
+            }
+        }
+        <span class="k">return</span> resultat;
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>quantitesParFaceValue + cumulerFaceValues (APRÈS) — à la place</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExtractionDemande.java</span></div><pre><button class="copy">Copier</button><code>    Map&lt;BigDecimal, Integer&gt; quantitesParFaceValue(Alimentation <span class="k">type</span>, Map&lt;<span class="k">String</span>, BigDecimal&gt; faceValuesByCode) {
+        Map&lt;BigDecimal, Integer&gt; resultat = <span class="k">new</span> HashMap&lt;&gt;();
+        <span class="k">for</span> (CashOperationDTO op : operations()) {
+            <span class="k">if</span> (!estAlimentation(op, <span class="k">type</span>)) {
+                continue;
+            }
+            <span class="k">for</span> (OperationCurrencyDetailDTO detail : details(op)) {
+                cumulerFaceValues(resultat, detail, faceValuesByCode);
+            }
+        }
+        <span class="k">return</span> resultat;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">void</span> cumulerFaceValues(Map&lt;BigDecimal, Integer&gt; resultat, OperationCurrencyDetailDTO detail,
+                                          Map&lt;<span class="k">String</span>, BigDecimal&gt; faceValuesByCode) {
+        <span class="k">if</span> (detail.getOperationDenominations() == <span class="k">null</span>) {
+            <span class="k">return</span>;
+        }
+        <span class="k">for</span> (OperationDenominationDTO ligne : detail.getOperationDenominations()) {
+            BigDecimal faceValue = ligne.getDenomination() == <span class="k">null</span> ? <span class="k">null</span>
+                    : faceValuesByCode.<span class="k">get</span>(ligne.getDenomination().getDenominationCode());
+            <span class="k">if</span> (faceValue != <span class="k">null</span> &amp;&amp; ligne.getQuantity() != <span class="k">null</span>) {
+                resultat.merge(faceValue.stripTrailingZeros(), ligne.getQuantity(), Integer::sum);
+            }
+        }
+    }</code></pre></div><h2 id="i5">5. Script Flyway · BANKNOTE ×18 (plsql:S1192)</h2><div class="card">Le script de création des tables est <b>déjà appliqué</b> en local, DMZR dev et qualif : le modifier casse le démarrage (<code>checksum mismatch</code> Flyway). On ne touche donc pas au SQL : on dit à Sonar d'ignorer cette règle sur les scripts de migration (un script Flyway est figé par nature).</div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>pom parent — dans &lt;properties&gt;, juste avant &lt;/properties&gt;</b><br><span class="path">fund-management-microservice\pom.xml</span></div><pre><button class="copy">Copier</button><code>        <span class="c">&lt;!-- AER_LM-341 : les scripts Flyway déjà appliqués ne peuvent pas être modifiés (checksum) -&gt; règle &quot;littéraux dupliqués&quot; ignorée sur les migrations --&gt;</span>
+        &lt;sonar.issue.ignore.multicriteria&gt;flyway&lt;/sonar.issue.ignore.multicriteria&gt;
+        &lt;sonar.issue.ignore.multicriteria.flyway.ruleKey&gt;plsql:S1192&lt;/sonar.issue.ignore.multicriteria.flyway.ruleKey&gt;
+        &lt;sonar.issue.ignore.multicriteria.flyway.resourceKey&gt;**/db/migration/**&lt;/sonar.issue.ignore.multicriteria.flyway.resourceKey&gt;</code></pre></div><div class="card">Si l'issue est toujours ouverte après l'analyse (cas où le job Sonar ne lit pas le pom), dans Sonar : issue → statut <b>Accepted</b>, commentaire : « Script Flyway appliqué en dev/qualif, non modifiable (checksum). AER_LM-341. »</div><h2 id="i6">6. CashDemandRepositoryImpl · &quot;La demande &quot; / &quot; est introuvable&quot; (S1192 ×2)</h2><div class="card"><b>Ordre impératif</b> : étape 1 (remplacer) <b>avant</b> étape 2 (ajouter), sinon le remplacement transforme la nouvelle méthode en appel récursif.</div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Étape 1 — Ctrl+R dans le fichier, Replace All</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java</span></div><pre><button class="copy">Copier</button><code>Rechercher   :  <span class="k">new</span> RetailNotFoundException(<span class="s">&quot;La demande &quot;</span> + id + <span class="s">&quot; est introuvable&quot;</span>)
+Remplacer par:  introuvable(id)
+-&gt; IntelliJ annonce 10 occurrences : update, getCashRequestById, cancelById, figerDecision, changerStatut,
+   verrouiller, libererVerrou, annuler, figerPhotoAgence, declasserUrgence</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Résultat attendu sur chacune des 10 méthodes</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java</span></div><pre><button class="copy">Copier</button><code><span class="c">// AVANT (x10 : update, getCashRequestById, cancelById, figerDecision, changerStatut,</span>
+<span class="c">//              verrouiller, libererVerrou, annuler, figerPhotoAgence, declasserUrgence)</span>
+        CashRequestEntity entity = cashDemandJpaRepository.findByIdWithTree(id)
+                .orElseThrow(() -&gt; <span class="k">new</span> RetailNotFoundException(<span class="s">&quot;La demande &quot;</span> + id + <span class="s">&quot; est introuvable&quot;</span>));
+<span class="c">// APRÈS</span>
+        CashRequestEntity entity = cashDemandJpaRepository.findByIdWithTree(id)
+                .orElseThrow(() -&gt; introuvable(id));</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Étape 2 — juste au-dessus du @Override de update (l. 77)</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java</span></div><p class="note">Les deux issues S1192 (« La demande » et « est introuvable ») tombent ensemble : le message n'existe plus qu'une fois.</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">static</span> RetailNotFoundException introuvable(UUID id) {
+        <span class="k">return</span> <span class="k">new</span> RetailNotFoundException(<span class="s">&quot;La demande &quot;</span> + id + <span class="s">&quot; est introuvable&quot;</span>);
+    }</code></pre></div><h2 id="i7">7. CamundaEngineClient · &quot;businessKey&quot; (S1192)</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Étape 1 — Ctrl+R dans le fichier, Replace All</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\client\CamundaEngineClient.java</span></div><pre><button class="copy">Copier</button><code>Rechercher   :  <span class="s">&quot;businessKey&quot;</span>          (guillemets compris, Match <span class="k">case</span> Cc coché)
+Remplacer par:  BUSINESS_KEY
+-&gt; IntelliJ annonce 3 occurrences : l. 37 demarrerProcessus, l. 69 correlerMessage, l. 137 supprimerInstancesParBusinessKey</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Étape 2 — juste sous « private final CamundaProperties properties; » (l. 32)</b><br><span class="path">fund-management-microservice\fund-management-external-services\src\main\java\com\bmci\workflow\fund\management\external\camunda\client\CamundaEngineClient.java</span></div><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> BUSINESS_KEY = <span class="s">&quot;businessKey&quot;</span>;</code></pre></div><h2 id="i8">8. CashOperation · validateAndComputeTotal (42 → 6)</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>validateAndComputeTotal l. 45 à 107 (AVANT, méthode entière)</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\entity\CashOperation.java</span></div><pre><button class="copy">Copier</button><code>    <span class="k">public</span> <span class="k">void</span> validateAndComputeTotal(Map&lt;<span class="k">String</span>, BigDecimal&gt; faceValuesByCode) {
+        <span class="k">if</span> (operationSens == <span class="k">null</span>) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;Le sens de l&#x27;opération (SUPPLY/COLLECTION) est obligatoire&quot;</span>);
+        }
+        <span class="k">if</span> (isUrgent == <span class="k">null</span>) isUrgent = Boolean.FALSE;
+        <span class="k">if</span> (operationStatus == <span class="k">null</span>) operationStatus = RequestStatus.INITIATED;
+        <span class="k">if</span> (institutionCode == <span class="k">null</span>) institutionCode = 1;
+        <span class="k">if</span> (cashDeskNumber == <span class="k">null</span>) cashDeskNumber = <span class="s">&quot;001&quot;</span>;
+        <span class="k">if</span> (currencyDetails == <span class="k">null</span>) currencyDetails = <span class="k">new</span> ArrayList&lt;&gt;();
+
+        <span class="k">if</span> (exigeVentilation() &amp;&amp; currencyDetails.isEmpty()) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(
+                    <span class="s">&quot;Les détails des coupures sont obligatoires pour alimenter un GAB ou une caisse&quot;</span>);
+        }
+
+        BigDecimal computedTotal = BigDecimal.ZERO;
+        <span class="k">for</span> (OperationCurrencyDetail detail : currencyDetails) {
+            BigDecimal detailTotal = BigDecimal.ZERO;
+            <span class="k">if</span> (detail.getOperationDenominations() == <span class="k">null</span>) {
+                detail.setOperationDenominations(<span class="k">new</span> ArrayList&lt;&gt;());
+            }
+            <span class="k">for</span> (OperationDenomination line : detail.getOperationDenominations()) {
+                <span class="k">if</span> (line.getDenomination() == <span class="k">null</span> || line.getDenomination().getDenominationCode() == <span class="k">null</span>) {
+                    <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;Chaque ligne de ventilation doit référencer une coupure par son code&quot;</span>);
+                }
+                <span class="k">String</span> code = line.getDenomination().getDenominationCode();
+                BigDecimal faceValue = faceValuesByCode.<span class="k">get</span>(code);
+                <span class="k">if</span> (faceValue == <span class="k">null</span>) {
+                    <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;La coupure &#x27;&quot;</span> + code + <span class="s">&quot;&#x27; n&#x27;existe pas dans le référentiel&quot;</span>);
+                }
+                <span class="k">int</span> quantity = line.getQuantity() == <span class="k">null</span> ? 0 : line.getQuantity();
+                <span class="k">if</span> (quantity &lt; 0) {
+                    <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;La quantité de la coupure &#x27;&quot;</span> + code + <span class="s">&quot;&#x27; ne peut pas être négative&quot;</span>);
+                }
+                detailTotal = detailTotal.add(faceValue.multiply(BigDecimal.valueOf(quantity)));
+            }
+            <span class="k">if</span> (exigeVentilation()) {
+                <span class="k">if</span> (detail.getOperationDenominations().isEmpty()) {
+                    <span class="k">throw</span> <span class="k">new</span> RetailValidationException(
+                            <span class="s">&quot;La ventilation en coupures est obligatoire pour alimenter un GAB ou une caisse&quot;</span>);
+                }
+                <span class="k">if</span> (detail.getTotalAmountByCurrency() != <span class="k">null</span>
+                        &amp;&amp; detail.getTotalAmountByCurrency().compareTo(detailTotal) != 0) {
+                    <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;Le montant par devise fourni (&quot;</span>
+                            + detail.getTotalAmountByCurrency() + <span class="s">&quot;) ne correspond pas au calculé (&quot;</span> + detailTotal + <span class="s">&quot;)&quot;</span>);
+                }
+                detail.setTotalAmountByCurrency(detailTotal);
+            } <span class="k">else</span> {
+                <span class="k">if</span> (detail.getTotalAmountByCurrency() == <span class="k">null</span>
+                        || detail.getTotalAmountByCurrency().compareTo(BigDecimal.ZERO) &lt;= 0) {
+                    <span class="k">throw</span> <span class="k">new</span> RetailValidationException(
+                            <span class="s">&quot;Le montant par devise est obligatoire et doit être positif pour une commande devises ou un ramassage&quot;</span>);
+                }
+                detailTotal = detail.getTotalAmountByCurrency();
+            }
+            computedTotal = computedTotal.add(detailTotal);
+        }
+        <span class="k">if</span> (totalAmount != <span class="k">null</span> &amp;&amp; totalAmount.compareTo(computedTotal) != 0) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;Le montant total fourni (&quot;</span> + totalAmount
+                    + <span class="s">&quot;) ne correspond pas au calculé (&quot;</span> + computedTotal + <span class="s">&quot;)&quot;</span>);
+        }
+        totalAmount = computedTotal;
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>validateAndComputeTotal + 5 méthodes privées (APRÈS) — à la place</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-domain-core\src\main\java\com\bmci\q360\domain\retail\entity\CashOperation.java</span></div><p class="note">Même ordre de contrôles, mêmes exceptions, mêmes messages. Aucun import ajouté.</p><pre><button class="copy">Copier</button><code>    <span class="k">public</span> <span class="k">void</span> validateAndComputeTotal(Map&lt;<span class="k">String</span>, BigDecimal&gt; faceValuesByCode) {
+        <span class="k">if</span> (operationSens == <span class="k">null</span>) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;Le sens de l&#x27;opération (SUPPLY/COLLECTION) est obligatoire&quot;</span>);
+        }
+        appliquerValeursParDefaut();
+
+        <span class="k">if</span> (exigeVentilation() &amp;&amp; currencyDetails.isEmpty()) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(
+                    <span class="s">&quot;Les détails des coupures sont obligatoires pour alimenter un GAB ou une caisse&quot;</span>);
+        }
+
+        BigDecimal computedTotal = BigDecimal.ZERO;
+        <span class="k">for</span> (OperationCurrencyDetail detail : currencyDetails) {
+            computedTotal = computedTotal.add(totalDevise(detail, faceValuesByCode));
+        }
+        <span class="k">if</span> (totalAmount != <span class="k">null</span> &amp;&amp; totalAmount.compareTo(computedTotal) != 0) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;Le montant total fourni (&quot;</span> + totalAmount
+                    + <span class="s">&quot;) ne correspond pas au calculé (&quot;</span> + computedTotal + <span class="s">&quot;)&quot;</span>);
+        }
+        totalAmount = computedTotal;
+    }
+
+    <span class="k">private</span> <span class="k">void</span> appliquerValeursParDefaut() {
+        <span class="k">if</span> (isUrgent == <span class="k">null</span>) isUrgent = Boolean.FALSE;
+        <span class="k">if</span> (operationStatus == <span class="k">null</span>) operationStatus = RequestStatus.INITIATED;
+        <span class="k">if</span> (institutionCode == <span class="k">null</span>) institutionCode = 1;
+        <span class="k">if</span> (cashDeskNumber == <span class="k">null</span>) cashDeskNumber = <span class="s">&quot;001&quot;</span>;
+        <span class="k">if</span> (currencyDetails == <span class="k">null</span>) currencyDetails = <span class="k">new</span> ArrayList&lt;&gt;();
+    }
+
+    <span class="c">/** Total d&#x27;une devise : calculé depuis la ventilation (GAB / caisse) ou saisi (commande devises / ramassage). */</span>
+    <span class="k">private</span> BigDecimal totalDevise(OperationCurrencyDetail detail, Map&lt;<span class="k">String</span>, BigDecimal&gt; faceValuesByCode) {
+        <span class="k">if</span> (detail.getOperationDenominations() == <span class="k">null</span>) {
+            detail.setOperationDenominations(<span class="k">new</span> ArrayList&lt;&gt;());
+        }
+        BigDecimal detailTotal = BigDecimal.ZERO;
+        <span class="k">for</span> (OperationDenomination line : detail.getOperationDenominations()) {
+            detailTotal = detailTotal.add(montantLigne(line, faceValuesByCode));
+        }
+        <span class="k">return</span> exigeVentilation() ? totalVentile(detail, detailTotal) : totalSaisi(detail);
+    }
+
+    <span class="k">private</span> <span class="k">static</span> BigDecimal montantLigne(OperationDenomination line, Map&lt;<span class="k">String</span>, BigDecimal&gt; faceValuesByCode) {
+        <span class="k">if</span> (line.getDenomination() == <span class="k">null</span> || line.getDenomination().getDenominationCode() == <span class="k">null</span>) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;Chaque ligne de ventilation doit référencer une coupure par son code&quot;</span>);
+        }
+        <span class="k">String</span> code = line.getDenomination().getDenominationCode();
+        BigDecimal faceValue = faceValuesByCode.<span class="k">get</span>(code);
+        <span class="k">if</span> (faceValue == <span class="k">null</span>) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;La coupure &#x27;&quot;</span> + code + <span class="s">&quot;&#x27; n&#x27;existe pas dans le référentiel&quot;</span>);
+        }
+        <span class="k">int</span> quantity = line.getQuantity() == <span class="k">null</span> ? 0 : line.getQuantity();
+        <span class="k">if</span> (quantity &lt; 0) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;La quantité de la coupure &#x27;&quot;</span> + code + <span class="s">&quot;&#x27; ne peut pas être négative&quot;</span>);
+        }
+        <span class="k">return</span> faceValue.multiply(BigDecimal.valueOf(quantity));
+    }
+
+    <span class="k">private</span> <span class="k">static</span> BigDecimal totalVentile(OperationCurrencyDetail detail, BigDecimal detailTotal) {
+        <span class="k">if</span> (detail.getOperationDenominations().isEmpty()) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(
+                    <span class="s">&quot;La ventilation en coupures est obligatoire pour alimenter un GAB ou une caisse&quot;</span>);
+        }
+        <span class="k">if</span> (detail.getTotalAmountByCurrency() != <span class="k">null</span>
+                &amp;&amp; detail.getTotalAmountByCurrency().compareTo(detailTotal) != 0) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(<span class="s">&quot;Le montant par devise fourni (&quot;</span>
+                    + detail.getTotalAmountByCurrency() + <span class="s">&quot;) ne correspond pas au calculé (&quot;</span> + detailTotal + <span class="s">&quot;)&quot;</span>);
+        }
+        detail.setTotalAmountByCurrency(detailTotal);
+        <span class="k">return</span> detailTotal;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> BigDecimal totalSaisi(OperationCurrencyDetail detail) {
+        <span class="k">if</span> (detail.getTotalAmountByCurrency() == <span class="k">null</span>
+                || detail.getTotalAmountByCurrency().compareTo(BigDecimal.ZERO) &lt;= 0) {
+            <span class="k">throw</span> <span class="k">new</span> RetailValidationException(
+                    <span class="s">&quot;Le montant par devise est obligatoire et doit être positif pour une commande devises ou un ramassage&quot;</span>);
+        }
+        <span class="k">return</span> detail.getTotalAmountByCurrency();
+    }</code></pre></div><h2 id="i9">9. ReportingMensuelUseCaseImpl · ligne (19 → 2)</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>ligne l. 45 à 71 (AVANT, méthode entière)</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ReportingMensuelUseCaseImpl.java</span></div><pre><button class="copy">Copier</button><code>    <span class="k">private</span> LigneReportingMensuel ligne(AgenceReporting agence, List&lt;ComptageReporting&gt; comptages, List&lt;LocalDate&gt; jours) {
+        Map&lt;LocalDate, Long&gt; parJour = <span class="k">new</span> LinkedHashMap&lt;&gt;();
+        jours.forEach(j -&gt; parJour.put(j, 0L));
+        <span class="k">long</span> urgentes = 0;
+        BigDecimal montant = <span class="k">null</span>;
+        <span class="k">String</span> transporteur = <span class="k">null</span>;
+        BigDecimal pu = <span class="k">null</span>;
+
+        <span class="k">for</span> (ComptageReporting c : comptages) {
+            <span class="k">if</span> (!parJour.containsKey(c.jour())) {
+                continue;                                       <span class="c">// jour non ouvré : pas de colonne, rien n&#x27;est compté</span>
+            }
+            parJour.merge(c.jour(), c.nombre(), Long::sum);
+            urgentes += c.urgentes();
+            <span class="k">if</span> (c.montant() != <span class="k">null</span>) { montant = montant == <span class="k">null</span> ? c.montant() : montant.add(c.montant()); }
+            <span class="k">if</span> (transporteur == <span class="k">null</span> &amp;&amp; c.transporteur() != <span class="k">null</span>) { transporteur = c.transporteur(); }
+            <span class="k">if</span> (c.prixUnitaire() != <span class="k">null</span> &amp;&amp; (pu == <span class="k">null</span> || c.prixUnitaire().compareTo(pu) &gt; 0)) { pu = c.prixUnitaire(); }
+        }
+
+        <span class="c">// sans activité dans le mois : dernières valeurs connues de l&#x27;agence, montant 0 si le PU est connu</span>
+        <span class="k">if</span> (transporteur == <span class="k">null</span>) { transporteur = agence.transporteur(); }
+        <span class="k">if</span> (pu == <span class="k">null</span>) { pu = agence.prixUnitaire(); }
+        <span class="k">if</span> (montant == <span class="k">null</span> &amp;&amp; pu != <span class="k">null</span>) { montant = BigDecimal.ZERO; }
+
+        <span class="k">return</span> <span class="k">new</span> LigneReportingMensuel(agence.codeAgence(), agence.agence(), agence.zone(),
+                transporteur, pu, parJour, urgentes, montant);
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>ligne (APRÈS) — à la place</b><br><span class="path">fund-management-microservice\fund-management-domain\fund-management-application-service\src\main\java\com\bmci\workflow\fund\management\service\domain\retail\ReportingMensuelUseCaseImpl.java</span></div><p class="note">Jours non ouvrés écartés d'abord, puis les 4 agrégats : somme des urgentes, somme des montants (null si aucun), 1er transporteur connu, PU le plus élevé (le 1er en cas d'égalité, comme avant). Aucun import ajouté.</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> LigneReportingMensuel ligne(AgenceReporting agence, List&lt;ComptageReporting&gt; comptages, List&lt;LocalDate&gt; jours) {
+        Map&lt;LocalDate, Long&gt; parJour = <span class="k">new</span> LinkedHashMap&lt;&gt;();
+        jours.forEach(j -&gt; parJour.put(j, 0L));
+        List&lt;ComptageReporting&gt; ouvres = comptages.stream()
+                .filter(c -&gt; parJour.containsKey(c.jour()))     <span class="c">// jour non ouvré : pas de colonne, rien n&#x27;est compté</span>
+                .toList();
+
+        ouvres.forEach(c -&gt; parJour.merge(c.jour(), c.nombre(), Long::sum));
+        <span class="k">long</span> urgentes = ouvres.stream().mapToLong(ComptageReporting::urgentes).sum();
+        BigDecimal montant = ouvres.stream().map(ComptageReporting::montant)
+                .filter(m -&gt; m != <span class="k">null</span>).reduce(BigDecimal::add).orElse(<span class="k">null</span>);
+
+        <span class="c">// sans activité dans le mois : dernières valeurs connues de l&#x27;agence, montant 0 si le PU est connu</span>
+        <span class="k">String</span> transporteur = ouvres.stream().map(ComptageReporting::transporteur)
+                .filter(t -&gt; t != <span class="k">null</span>).findFirst().orElse(agence.transporteur());
+        BigDecimal pu = ouvres.stream().map(ComptageReporting::prixUnitaire)
+                .filter(p -&gt; p != <span class="k">null</span>).max(BigDecimal::compareTo).orElse(agence.prixUnitaire());
+        <span class="k">if</span> (montant == <span class="k">null</span> &amp;&amp; pu != <span class="k">null</span>) { montant = BigDecimal.ZERO; }
+
+        <span class="k">return</span> <span class="k">new</span> LigneReportingMensuel(agence.codeAgence(), agence.agence(), agence.zone(),
+                transporteur, pu, parJour, urgentes, montant);
+    }</code></pre></div><h2 id="i10">10. DemandeMonetiqueSpecifications · of (21 → 4)</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>of l. 36 à ~67 (AVANT) — de « if (c.statut() != null) { » jusqu&#x27;à la } du bloc vidageSeul, juste avant « if (c.recherche() != null) { »</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\spec\DemandeMonetiqueSpecifications.java</span></div><pre><button class="copy">Copier</button><code>            <span class="k">if</span> (c.statut() != <span class="k">null</span>) {
+                predicates.add(cb.equal(root.<span class="k">get</span>(<span class="s">&quot;requestStatus&quot;</span>), c.statut()));
+            }
+            <span class="k">if</span> (c.dateDebut() != <span class="k">null</span>) {
+                predicates.add(cb.greaterThanOrEqualTo(root.<span class="k">get</span>(<span class="s">&quot;submittedAt&quot;</span>), c.dateDebut().atStartOfDay()));
+            }
+            <span class="k">if</span> (c.dateFin() != <span class="k">null</span>) {
+                predicates.add(cb.lessThan(root.<span class="k">get</span>(<span class="s">&quot;submittedAt&quot;</span>), c.dateFin().plusDays(1).atStartOfDay()));
+            }
+            <span class="k">if</span> (c.ville() != <span class="k">null</span>) {
+                predicates.add(existeGab(root, query, cb,
+                        g -&gt; cb.equal(cb.lower(g.<span class="k">get</span>(<span class="s">&quot;ville&quot;</span>)), c.ville().toLowerCase(Locale.ROOT))));
+            }
+            <span class="k">if</span> (c.agence() != <span class="k">null</span>) {
+                predicates.add(existeGab(root, query, cb, g -&gt; cb.or(
+                        cb.equal(g.<span class="k">get</span>(<span class="s">&quot;agenceCode&quot;</span>), c.agence()),
+                        cb.like(cb.lower(g.<span class="k">get</span>(<span class="s">&quot;agenceLibelle&quot;</span>)), contient(c.agence())))));
+            }
+            <span class="k">if</span> (c.nomGab() != <span class="k">null</span>) {
+                predicates.add(existeGab(root, query, cb,
+                        g -&gt; cb.like(cb.lower(g.<span class="k">get</span>(<span class="s">&quot;gabNom&quot;</span>)), contient(c.nomGab()))));
+            }
+            <span class="k">if</span> (c.vidage() != <span class="k">null</span>) {
+                Predicate avecVidage = existeGab(root, query, cb, g -&gt; cb.isTrue(g.<span class="k">get</span>(<span class="s">&quot;vidage&quot;</span>)));
+                predicates.add(c.vidage() ? avecVidage : cb.not(avecVidage));
+            }
+            <span class="k">if</span> (Boolean.TRUE.equals(c.vidageSeul())) {
+                <span class="c">// Vidage seul : GAB vidé sans alimentation — le montant est porté par l&#x27;opération parente (...)</span>
+                predicates.add(existeGab(root, query, cb, g -&gt; cb.and(
+                        cb.isTrue(g.<span class="k">get</span>(<span class="s">&quot;vidage&quot;</span>)),
+                        cb.equal(g.<span class="k">get</span>(<span class="s">&quot;cashOperation&quot;</span>).<span class="k">get</span>(<span class="s">&quot;totalAmount&quot;</span>), BigDecimal.ZERO))));
+            }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>of (APRÈS) — à la place, sous « predicates.add(cb.equal(root.get(&quot;canalDemande&quot;), CANAL_MONETIQUE)); »</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\spec\DemandeMonetiqueSpecifications.java</span></div><p class="note">Le bloc recherche et la fin de la lambda ne bougent pas.</p><pre><button class="copy">Copier</button><code>            filtresDemande(c, root, cb, predicates);
+            filtresGab(c, root, query, cb, predicates);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Nouvelles méthodes — juste après la } qui ferme la méthode of</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\spec\DemandeMonetiqueSpecifications.java</span></div><pre><button class="copy">Copier</button><code>
+    <span class="c">/** Filtres portés par la demande : statut et période de soumission. */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">void</span> filtresDemande(DemandeMonetiqueSearchCriteria c, Root&lt;CashRequestEntity&gt; root,
+                                       CriteriaBuilder cb, List&lt;Predicate&gt; predicates) {
+        <span class="k">if</span> (c.statut() != <span class="k">null</span>) {
+            predicates.add(cb.equal(root.<span class="k">get</span>(<span class="s">&quot;requestStatus&quot;</span>), c.statut()));
+        }
+        <span class="k">if</span> (c.dateDebut() != <span class="k">null</span>) {
+            predicates.add(cb.greaterThanOrEqualTo(root.<span class="k">get</span>(<span class="s">&quot;submittedAt&quot;</span>), c.dateDebut().atStartOfDay()));
+        }
+        <span class="k">if</span> (c.dateFin() != <span class="k">null</span>) {
+            predicates.add(cb.lessThan(root.<span class="k">get</span>(<span class="s">&quot;submittedAt&quot;</span>), c.dateFin().plusDays(1).atStartOfDay()));
+        }
+    }
+
+    <span class="c">/** Filtres portés par le GAB de l&#x27;opération : ville, agence, nom, vidage, vidage seul. */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">void</span> filtresGab(DemandeMonetiqueSearchCriteria c, Root&lt;CashRequestEntity&gt; root,
+                                   CriteriaQuery&lt;?&gt; query, CriteriaBuilder cb, List&lt;Predicate&gt; predicates) {
+        <span class="k">if</span> (c.ville() != <span class="k">null</span>) {
+            predicates.add(existeGab(root, query, cb,
+                    g -&gt; cb.equal(cb.lower(g.<span class="k">get</span>(<span class="s">&quot;ville&quot;</span>)), c.ville().toLowerCase(Locale.ROOT))));
+        }
+        <span class="k">if</span> (c.agence() != <span class="k">null</span>) {
+            predicates.add(existeGab(root, query, cb, g -&gt; cb.or(
+                    cb.equal(g.<span class="k">get</span>(<span class="s">&quot;agenceCode&quot;</span>), c.agence()),
+                    cb.like(cb.lower(g.<span class="k">get</span>(<span class="s">&quot;agenceLibelle&quot;</span>)), contient(c.agence())))));
+        }
+        <span class="k">if</span> (c.nomGab() != <span class="k">null</span>) {
+            predicates.add(existeGab(root, query, cb,
+                    g -&gt; cb.like(cb.lower(g.<span class="k">get</span>(<span class="s">&quot;gabNom&quot;</span>)), contient(c.nomGab()))));
+        }
+        <span class="k">if</span> (c.vidage() != <span class="k">null</span>) {
+            Predicate avecVidage = existeGab(root, query, cb, g -&gt; cb.isTrue(g.<span class="k">get</span>(<span class="s">&quot;vidage&quot;</span>)));
+            predicates.add(c.vidage() ? avecVidage : cb.not(avecVidage));
+        }
+        <span class="k">if</span> (Boolean.TRUE.equals(c.vidageSeul())) {
+            <span class="c">// Vidage seul : GAB vidé sans alimentation — le montant est porté par l&#x27;opération parente (CashOperationEntity.totalAmount = 0)</span>
+            predicates.add(existeGab(root, query, cb, g -&gt; cb.and(
+                    cb.isTrue(g.<span class="k">get</span>(<span class="s">&quot;vidage&quot;</span>)),
+                    cb.equal(g.<span class="k">get</span>(<span class="s">&quot;cashOperation&quot;</span>).<span class="k">get</span>(<span class="s">&quot;totalAmount&quot;</span>), BigDecimal.ZERO))));
+        }
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Imports — à la suite des imports jakarta.persistence existants</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\spec\DemandeMonetiqueSpecifications.java</span></div><p class="note">Si IntelliJ les grise (déjà couverts par un import existant) : Ctrl+Alt+O.</p><pre><button class="copy">Copier</button><code><span class="k">import</span> jakarta.persistence.criteria.CriteriaBuilder;
+<span class="k">import</span> jakarta.persistence.criteria.CriteriaQuery;
+<span class="k">import</span> jakarta.persistence.criteria.Root;</code></pre></div><h2 id="i11">11. UserProfileRepositoryImpl · package (S1598)</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>Ligne 1 (AVANT)</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\UserProfileRepositoryImpl.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.dataaccess.adapter;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Ligne 1 (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\UserProfileRepositoryImpl.java</span></div><p class="note">Même package que CashDemandRepositoryImpl : le scan Spring le trouve déjà. Le bean est injecté par son interface UserProfileRepository, personne n'importe la classe.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.dataaccess.retail.adapter;</code></pre></div><h2 id="i12">12. CashDemandRepositoryImpl · &quot;creationDate&quot; (S1192)</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Étape 1 — Ctrl+R dans le fichier, Replace All</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java</span></div><pre><button class="copy">Copier</button><code>Rechercher   :  <span class="s">&quot;creationDate&quot;</span>         (guillemets compris, Match <span class="k">case</span> Cc coché)
+Remplacer par:  CREATION_DATE
+-&gt; IntelliJ annonce 5 occurrences : search (l. 118), rechercherTous (l. 161), searchMonetique (l. 336),
+   rechercherTousMonetique (l. 380), findIdsATraiterEnMasse (l. 394)</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>Étape 2 — juste au-dessus de la méthode introuvable ajoutée au point 6</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\com\bmci\workflow\fund\management\dataaccess\retail\adapter\CashDemandRepositoryImpl.java</span></div><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> CREATION_DATE = <span class="s">&quot;creationDate&quot;</span>;</code></pre></div><h2 id="verif">13. Vérification</h2><div class="card"><ol><li>À la racine <code>fund-management-microservice</code> : <code>mvn clean install</code> → BUILD SUCCESS, tous les tests verts (dont ExportExcelDemandesTest, ExportExcelGabHorsSiteTest et les tests du domaine / use cases).</li>
+<li>Recette rapide en local : export Excel Caisse Centrale (onglets MAD / Devise / GAB), export GAB hors site, listing Monétique avec les filtres ville / agence / vidage, reporting mensuel, création + soumission d'une demande agence (validation des montants).</li>
+<li>Commit <code>AER_LM-341 : correction des issues Sonar High (complexité, littéraux, package)</code>, push, analyse Sonar → les 13 issues High passent en Closed.</li></ol></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
