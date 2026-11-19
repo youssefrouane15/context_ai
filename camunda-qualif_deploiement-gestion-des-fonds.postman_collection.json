@@ -1,0 +1,125 @@
+{
+  "info": {
+    "name": "Camunda qualif — déploiement gestion-des-fonds (via Apigee)",
+    "description": "Déploie le BPMN gestion-des-fonds (tenant QLICKFLOW) sur le moteur Camunda de qualif, derrière Apigee staging.\n\nAvant de lancer : onglet Variables de la collection → renseigner client_id et client_secret (APIGEE_OAUTH_CLIENT_ID / APIGEE_OAUTH_CLIENT_SECRET de fund-management qualif), puis Save.\n\nOrdre : 1 → 2 → 3 → 4 → 5. Le jeton (≈ 15 min) est enregistré automatiquement par la requête 1 ; si une requête renvoie 401, relancer la 1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [ { "key": "token", "value": "{{access_token}}", "type": "string" } ]
+  },
+  "variable": [
+    { "key": "apigee_base_url", "value": "https://morocco.apigee.staging.echonet" },
+    { "key": "client_id", "value": "" },
+    { "key": "client_secret", "value": "" },
+    { "key": "access_token", "value": "" },
+    { "key": "tenant_id", "value": "QLICKFLOW" },
+    { "key": "process_key", "value": "gestion-des-fonds" },
+    { "key": "deployment_name", "value": "gestion-des-fonds_v4.2" }
+  ],
+  "item": [
+    {
+      "name": "1 - Jeton Apigee (client_credentials)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200 + access_token', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json().access_token).to.be.a('string');",
+        "});",
+        "pm.collectionVariables.set('access_token', pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+        "body": { "mode": "urlencoded", "urlencoded": [
+          { "key": "grant_type", "value": "client_credentials" },
+          { "key": "client_id", "value": "{{client_id}}" },
+          { "key": "client_secret", "value": "{{client_secret}}" }
+        ] },
+        "url": "{{apigee_base_url}}/auth/oauth/v2/token",
+        "description": "Si la réponse est 401 invalid_client : lancer plutôt la 1b (identifiants en Basic)."
+      }
+    },
+    {
+      "name": "1b - Jeton Apigee (variante Basic, si la 1 renvoie 401)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200 + access_token', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json().access_token).to.be.a('string');",
+        "});",
+        "pm.collectionVariables.set('access_token', pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "auth": { "type": "basic", "basic": [
+          { "key": "username", "value": "{{client_id}}", "type": "string" },
+          { "key": "password", "value": "{{client_secret}}", "type": "string" }
+        ] },
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+        "body": { "mode": "urlencoded", "urlencoded": [ { "key": "grant_type", "value": "client_credentials" } ] },
+        "url": "{{apigee_base_url}}/auth/oauth/v2/token"
+      }
+    },
+    {
+      "name": "2 - Test accès moteur (version)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Apigee joint le moteur Camunda', () => pm.response.to.have.status(200));"
+      ] } } ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{apigee_base_url}}/bpm/v1/version",
+        "description": "200 attendu : {\"version\":\"7.x\"}. 500.T.01 = le proxy Apigee staging ne joint pas le moteur → équipe plateforme."
+      }
+    },
+    {
+      "name": "3 - Etat avant (definitions déployées)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{apigee_base_url}}/bpm/v1/process-definition?key={{process_key}}&tenantIdIn={{tenant_id}}",
+        "description": "[] = le BPMN n'est pas déployé en qualif (cause du 502 sur /cash/init)."
+      }
+    },
+    {
+      "name": "4 - Déployer le BPMN",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Déploiement OK', () => pm.response.to.have.status(200));",
+        "pm.test('gestion-des-fonds déployé (ou déjà identique)', () => {",
+        "  const body = pm.response.json();",
+        "  const defs = Object.values(body.deployedProcessDefinitions || {});",
+        "  console.log('Déployées :', defs.map(d => d.key + ' v' + d.version + ' (' + d.tenantId + ')'));",
+        "  pm.expect(body.tenantId).to.eql(pm.collectionVariables.get('tenant_id'));",
+        "});"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": { "mode": "formdata", "formdata": [
+          { "key": "deployment-name", "value": "{{deployment_name}}", "type": "text" },
+          { "key": "tenant-id", "value": "{{tenant_id}}", "type": "text" },
+          { "key": "deploy-changed-only", "value": "true", "type": "text" },
+          { "key": "deployment-source", "value": "postman-qualif", "type": "text" },
+          { "key": "data", "type": "file", "src": [] }
+        ] },
+        "url": "{{apigee_base_url}}/bpm/v1/deployment/create",
+        "description": "Onglet Body : sur la ligne « data », cliquer Select Files et choisir gestion-des-fonds_v4.2.bpmn. 403 / 404 = Apigee n'expose pas le déploiement → envoyer le fichier à l'équipe plateforme (tenant QLICKFLOW)."
+      }
+    },
+    {
+      "name": "5 - Vérification (dernière version)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('gestion-des-fonds présent en qualif', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json().length).to.be.above(0);",
+        "});"
+      ] } } ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{apigee_base_url}}/bpm/v1/process-definition?key={{process_key}}&tenantIdIn={{tenant_id}}&latestVersion=true",
+        "description": "1 ligne attendue (key gestion-des-fonds, tenantId QLICKFLOW). Ensuite : relancer « Nouvelle demande » à l'écran."
+      }
+    }
+  ]
+}
