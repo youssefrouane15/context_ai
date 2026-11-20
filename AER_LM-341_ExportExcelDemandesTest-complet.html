@@ -1,0 +1,195 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-341 — ExportExcelDemandesTest (fichier complet)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-341 — ExportExcelDemandesTest (fichier complet)</h1><p>fund-management-application · feuilleMad l. 96 : ligne 4 absente acceptée · 19/11/2026</p></header><nav><a href="#fix">Correction</a></nav><main><h2 id="fix">Correction</h2><div class="card">Seul changement par rapport à ta version : <code>feuilleMad</code> l. 96-97. L'ancienne assertion appelait <code>getCell(0)</code> sur une ligne 4 qui n'existe plus depuis que le template a été élagué → NullPointerException. Elle accepte maintenant une ligne absente <b>ou</b> vide, exactement comme le font déjà <code>feuilleDevise</code> (l. 117) et <code>feuilleGab</code> (l. 150). Tout le reste est recopié de ta classe à l'identique.</div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>ExportExcelDemandesTest</b><br><span class="path">fund-management-microservice\fund-management-application\src\test\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandesTest.java</span></div><p class="note">Ctrl+A puis colle. Vérification : clic droit sur la classe → Run → 4 tests verts, puis mvn clean install.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.retail.<span class="k">export</span>;
+
+<span class="k">import</span> com.bmci.common.workflow.fund.management.application.rest.dto.CurrencyDTO;
+<span class="k">import</span> com.bmci.common.workflow.fund.management.application.rest.dto.DenominationDTO;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.OperationType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.RequestType;
+<span class="k">import</span> com.bmci.q360.domain.retail.enums.TypeGab;
+<span class="k">import</span> com.bmci.workflow.fund.management.service.domain.retail.dto.*;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Cell;
+<span class="k">import</span> org.apache.poi.ss.usermodel.CellType;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Row;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Sheet;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Workbook;
+<span class="k">import</span> org.apache.poi.xssf.usermodel.XSSFWorkbook;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+
+<span class="k">import</span> java.io.ByteArrayInputStream;
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Map;
+
+<span class="k">import</span> <span class="k">static</span> org.assertj.core.api.Assertions.assertThat;
+
+<span class="k">class</span> ExportExcelDemandesTest {
+
+    <span class="k">private</span> <span class="k">final</span> ExportExcelDemandes <span class="k">export</span> = <span class="k">new</span> ExportExcelDemandes();
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> Map&lt;<span class="k">String</span>, BigDecimal&gt; FACE_VALUES = Map.of(<span class="s">&quot;BILLET_200&quot;</span>, <span class="k">new</span> BigDecimal(<span class="s">&quot;200&quot;</span>), <span class="s">&quot;BILLET_100&quot;</span>, <span class="k">new</span> BigDecimal(<span class="s">&quot;100&quot;</span>),
+            <span class="s">&quot;PIECE_10&quot;</span>, <span class="k">new</span> BigDecimal(<span class="s">&quot;10&quot;</span>), <span class="s">&quot;PIECE_0_05&quot;</span>, <span class="k">new</span> BigDecimal(<span class="s">&quot;0.05&quot;</span>));
+
+    <span class="c">// ---- fixtures</span>
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demande(<span class="k">String</span> ref, CashOperationDTO... ops) {
+        <span class="k">return</span> CashRequestDTO.builder().uniqueRequestRef(ref).branchCode(<span class="s">&quot;1001&quot;</span>).agenceNom(<span class="s">&quot;Nations Unies&quot;</span>).zoneNom(<span class="s">&quot;Zone Casablanca&quot;</span>)
+                .prestataireNom(<span class="s">&quot;Brink&#x27;s&quot;</span>).coutDeplacement(<span class="k">new</span> BigDecimal(<span class="s">&quot;350.50&quot;</span>)).createdAt(LocalDateTime.of(2026, 10, 26, 9, 0))
+                .requestStatus(<span class="s">&quot;SUBMITTED&quot;</span>).urgent(<span class="k">false</span>).operations(List.of(ops)).build();
+    }
+
+    <span class="k">private</span> <span class="k">static</span> CashOperationDTO operation(OperationType <span class="k">type</span>, RequestType sens, OperationCurrencyDetailDTO... details) {
+        <span class="k">return</span> CashOperationDTO.builder().operationType(<span class="k">type</span>).operationSens(sens).currencyDetails(List.of(details)).build();
+    }
+
+    <span class="k">private</span> <span class="k">static</span> OperationCurrencyDetailDTO detail(<span class="k">String</span> iso, <span class="k">String</span> montant, OperationDenominationDTO... denoms) {
+        <span class="k">return</span> OperationCurrencyDetailDTO.builder().currency(CurrencyDTO.builder().isoCode(iso).build())
+                .totalAmountByCurrency(<span class="k">new</span> BigDecimal(montant)).operationDenominations(List.of(denoms)).build();
+    }
+
+    <span class="k">private</span> <span class="k">static</span> OperationDenominationDTO coupure(<span class="k">String</span> code, <span class="k">int</span> qte) {
+        <span class="k">return</span> OperationDenominationDTO.builder().denomination(DenominationDTO.builder().denominationCode(code).build()).quantity(qte).build();
+    }
+
+    <span class="k">private</span> <span class="k">static</span> CashRequestDTO demandeGab(<span class="k">String</span> ref, CashOperationDTO... ops) {
+        CashRequestDTO d = demande(ref, ops);
+        d.setCanalDemande(<span class="s">&quot;MONETIQUE&quot;</span>);
+        d.setBranchCode(<span class="s">&quot;9000&quot;</span>);
+        <span class="k">return</span> d;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> CashOperationDTO operationGab(<span class="k">String</span> gabId, <span class="k">String</span> nom, TypeGab <span class="k">type</span>, OperationDenominationDTO... cassettes) {
+        OperationGabDTO gab = <span class="k">new</span> OperationGabDTO();
+        gab.setGabId(gabId); gab.setGabNom(nom); gab.setGabType(<span class="k">type</span>); gab.setVille(<span class="s">&quot;CASABLANCA&quot;</span>);
+        gab.setAgenceCode(<span class="s">&quot;1120&quot;</span>); gab.setAgenceLibelle(<span class="s">&quot;CASA VAL D&#x27;ANFA&quot;</span>); gab.setNumeroCompte(<span class="s">&quot;0112081010030370&quot;</span>);
+        gab.setTransporteur(<span class="s">&quot;Brink&#x27;s&quot;</span>); gab.setTarifTransporteur(<span class="k">new</span> BigDecimal(<span class="s">&quot;450&quot;</span>));
+        CashOperationDTO op = operation(OperationType.ATM, RequestType.SUPPLY, detail(<span class="s">&quot;MAD&quot;</span>, <span class="s">&quot;0&quot;</span>, cassettes));
+        op.setGab(gab);
+        <span class="k">return</span> op;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> OperationDenominationDTO cassette(<span class="k">int</span> numero, <span class="k">String</span> code, <span class="k">int</span> qte) {
+        OperationDenominationDTO c = coupure(code, qte);
+        c.setCassetteNumber(numero);
+        <span class="k">return</span> c;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> Workbook lire(byte[] fichier) <span class="k">throws</span> Exception { <span class="k">return</span> <span class="k">new</span> XSSFWorkbook(<span class="k">new</span> ByteArrayInputStream(fichier)); }
+    <span class="k">private</span> <span class="k">static</span> double nombre(Row r, <span class="k">int</span> col) { <span class="k">return</span> r.getCell(col).getNumericCellValue(); }
+    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> texte(Row r, <span class="k">int</span> col) { Cell c = r.getCell(col); <span class="k">return</span> c == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : c.getStringCellValue(); }
+
+    @Test
+    @DisplayName(<span class="s">&quot;Feuille MAD : une ligne par demande, quantités caisse / GAB dans les colonnes de la coupure, ramassage MAD en Z, formules de total recopiées&quot;</span>)
+    <span class="k">void</span> feuilleMad() <span class="k">throws</span> Exception {
+        CashRequestDTO d = demande(<span class="s">&quot;20261026-1001-02&quot;</span>,
+                operation(OperationType.CASH_DESK, RequestType.SUPPLY, detail(<span class="s">&quot;MAD&quot;</span>, <span class="s">&quot;2100&quot;</span>, coupure(<span class="s">&quot;BILLET_200&quot;</span>, 10), coupure(<span class="s">&quot;PIECE_10&quot;</span>, 10))),
+                operation(OperationType.ATM, RequestType.SUPPLY, detail(<span class="s">&quot;MAD&quot;</span>, <span class="s">&quot;5000&quot;</span>, coupure(<span class="s">&quot;BILLET_100&quot;</span>, 50))),
+                operation(OperationType.CASH_DESK, RequestType.COLLECTION, detail(<span class="s">&quot;MAD&quot;</span>, <span class="s">&quot;12000.50&quot;</span>)));
+
+        byte[] fichier = <span class="k">export</span>.generer(<span class="k">new</span> ExportDemandesDTO(List.of(d), FACE_VALUES));
+
+        Sheet mad = lire(fichier).getSheetAt(ExportExcelDemandes.ONGLET_MAD);
+        Row r = mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE);
+        assertThat(texte(r, 0)).isEqualTo(<span class="s">&quot;20261026-1001-02&quot;</span>);
+        assertThat(texte(r, 7)).isEqualTo(<span class="s">&quot;26/10/2026&quot;</span>);
+        assertThat(nombre(r, 6)).isEqualTo(350.50);
+        assertThat(nombre(r, 9)).isEqualTo(10);                                   <span class="c">// J = 200 caisse</span>
+        assertThat(nombre(r, 13)).isEqualTo(10);                                  <span class="c">// N = 10 caisse</span>
+        assertThat(r.getCell(21).getCellType()).isEqualTo(CellType.FORMULA);     <span class="c">// V = Total Alim. Caisse</span>
+        assertThat(r.getCell(21).getCellFormula()).contains(<span class="s">&quot;J3&quot;</span>);
+        assertThat(nombre(r, 23)).isEqualTo(50);                                  <span class="c">// X = 100 GAB</span>
+        assertThat(r.getCell(24).getCellType()).isEqualTo(CellType.FORMULA);     <span class="c">// Y = Total Alim. GAB</span>
+        assertThat(nombre(r, 25)).isEqualTo(12000.50);                            <span class="c">// Z = ramassage MAD</span>
+        assertThat(r.getCell(25).getCellStyle().getDataFormatString()).isEqualTo(ExportExcelDemandes.FORMAT_MONTANT);
+        Row ligneSuivante = mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 1);   <span class="c">// ligne 4 : absente (template élagué) ou vide</span>
+        assertThat(ligneSuivante == <span class="k">null</span> || ligneSuivante.getCell(0) == <span class="k">null</span> || ligneSuivante.getCell(0).getCellType() == CellType.BLANK).isTrue();
+        assertThat(r.getCell(19) == <span class="k">null</span> || r.getCell(19).getCellType() == CellType.BLANK).isTrue();   <span class="c">// le « 1 » d&#x27;exemple en T3 a été écrasé</span>
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;Feuille Devise : une ligne par devise triée par code, alimentation et ramassage côte à côte, MAD exclu&quot;</span>)
+    <span class="k">void</span> feuilleDevise() <span class="k">throws</span> Exception {
+        CashRequestDTO d = demande(<span class="s">&quot;20261026-1001-03&quot;</span>,
+                operation(OperationType.CURRENCY, RequestType.SUPPLY, detail(<span class="s">&quot;USD&quot;</span>, <span class="s">&quot;1000&quot;</span>), detail(<span class="s">&quot;EUR&quot;</span>, <span class="s">&quot;500&quot;</span>)),
+                operation(OperationType.CURRENCY, RequestType.COLLECTION, detail(<span class="s">&quot;USD&quot;</span>, <span class="s">&quot;300&quot;</span>), detail(<span class="s">&quot;MAD&quot;</span>, <span class="s">&quot;999&quot;</span>)));
+
+        byte[] fichier = <span class="k">export</span>.generer(<span class="k">new</span> ExportDemandesDTO(List.of(d), FACE_VALUES));
+
+        Sheet devise = lire(fichier).getSheetAt(ExportExcelDemandes.ONGLET_DEVISE);
+        Row eur = devise.getRow(ExportExcelDemandes.PREMIERE_LIGNE), usd = devise.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 1);
+        assertThat(texte(eur, 0)).isEqualTo(<span class="s">&quot;20261026-1001-03&quot;</span>);
+        assertThat(texte(eur, 9)).isEqualTo(<span class="s">&quot;EUR&quot;</span>); assertThat(nombre(eur, 10)).isEqualTo(500); assertThat(texte(eur, 11)).isEmpty();
+        assertThat(texte(usd, 9)).isEqualTo(<span class="s">&quot;USD&quot;</span>); assertThat(nombre(usd, 10)).isEqualTo(1000);
+        assertThat(texte(usd, 11)).isEqualTo(<span class="s">&quot;USD&quot;</span>); assertThat(nombre(usd, 12)).isEqualTo(300);
+        Row suivante = devise.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 2);
+        assertThat(suivante == <span class="k">null</span> || suivante.getCell(0) == <span class="k">null</span> || suivante.getCell(0).getCellType() == CellType.BLANK).isTrue();
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;Feuille GAB Hors Sites : demandes MONETIQUE seulement, une ligne par GAB, cassettes M-P, formule Q, absentes des feuilles MAD / Devise&quot;</span>)
+    <span class="k">void</span> feuilleGab() <span class="k">throws</span> Exception {
+        CashRequestDTO gab = demandeGab(<span class="s">&quot;20261028-9000-01&quot;</span>,
+                operationGab(<span class="s">&quot;130120017&quot;</span>, <span class="s">&quot;CASA VAL D&#x27;ANFA&quot;</span>, TypeGab.HORS_SITE,
+                        cassette(1, <span class="s">&quot;BILLET_100&quot;</span>, 500), cassette(2, <span class="s">&quot;BILLET_200&quot;</span>, 300), cassette(4, <span class="s">&quot;BILLET_100&quot;</span>, 100)),
+                operationGab(<span class="s">&quot;130092026&quot;</span>, <span class="s">&quot;CASA OASIS DRIVE&quot;</span>, TypeGab.DRIVE, cassette(1, <span class="s">&quot;BILLET_100&quot;</span>, 50)));
+        CashRequestDTO agence = demande(<span class="s">&quot;20261028-1001-01&quot;</span>, operation(OperationType.CASH_DESK, RequestType.SUPPLY, detail(<span class="s">&quot;MAD&quot;</span>, <span class="s">&quot;200&quot;</span>, coupure(<span class="s">&quot;BILLET_200&quot;</span>, 1))));
+
+        Workbook classeur = lire(<span class="k">export</span>.generer(<span class="k">new</span> ExportDemandesDTO(List.of(gab, agence), FACE_VALUES)));
+
+        Sheet feuilleGab = classeur.getSheetAt(ExportExcelDemandes.ONGLET_GAB);
+        Row r1 = feuilleGab.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE), r2 = feuilleGab.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE + 1);
+        assertThat(texte(r1, 0)).isEqualTo(<span class="s">&quot;20261028-9000-01&quot;</span>);
+        assertThat(texte(r1, 7)).isEqualTo(<span class="s">&quot;130092026&quot;</span>);                  <span class="c">// tri par ID GAB</span>
+        assertThat(texte(r1, 10)).isEqualTo(<span class="s">&quot;Drive&quot;</span>);
+        assertThat(nombre(r1, 12)).isEqualTo(50);                          <span class="c">// M = cassette 1</span>
+        assertThat(texte(r2, 7)).isEqualTo(<span class="s">&quot;130120017&quot;</span>);
+        assertThat(texte(r2, 10)).isEqualTo(<span class="s">&quot;Hors site&quot;</span>);
+        assertThat(nombre(r2, 6)).isEqualTo(450);                          <span class="c">// PU = tarif transporteur du GAB</span>
+        assertThat(nombre(r2, 12)).isEqualTo(500);
+        assertThat(nombre(r2, 13)).isEqualTo(300);
+        assertThat(r2.getCell(14) == <span class="k">null</span> || r2.getCell(14).getCellType() == CellType.BLANK).isTrue();   <span class="c">// cassette 3 absente</span>
+        assertThat(nombre(r2, 15)).isEqualTo(100);
+        assertThat(r2.getCell(16).getCellType()).isEqualTo(CellType.FORMULA);
+        assertThat(r2.getCell(16).getCellFormula()).contains(<span class="s">&quot;M5&quot;</span>).contains(<span class="s">&quot;$M$3&quot;</span>);
+
+        Sheet mad = classeur.getSheetAt(ExportExcelDemandes.ONGLET_MAD);
+        assertThat(texte(mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE), 0)).isEqualTo(<span class="s">&quot;20261028-1001-01&quot;</span>);
+        Row madSuivante = mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 1);
+        assertThat(madSuivante == <span class="k">null</span> || madSuivante.getCell(0) == <span class="k">null</span> || madSuivante.getCell(0).getCellType() == CellType.BLANK).isTrue();
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;Tri par référence sur les deux feuilles&quot;</span>)
+    <span class="k">void</span> triParReference() <span class="k">throws</span> Exception {
+        CashRequestDTO b = demande(<span class="s">&quot;20261026-1001-02&quot;</span>, operation(OperationType.CASH_DESK, RequestType.SUPPLY, detail(<span class="s">&quot;MAD&quot;</span>, <span class="s">&quot;200&quot;</span>, coupure(<span class="s">&quot;BILLET_200&quot;</span>, 1))));
+        CashRequestDTO a = demande(<span class="s">&quot;20261026-1001-01&quot;</span>, operation(OperationType.CASH_DESK, RequestType.SUPPLY, detail(<span class="s">&quot;MAD&quot;</span>, <span class="s">&quot;200&quot;</span>, coupure(<span class="s">&quot;BILLET_200&quot;</span>, 1))));
+
+        Sheet mad = lire(<span class="k">export</span>.generer(<span class="k">new</span> ExportDemandesDTO(List.of(b, a), FACE_VALUES))).getSheetAt(ExportExcelDemandes.ONGLET_MAD);
+
+        assertThat(texte(mad.getRow(2), 0)).isEqualTo(<span class="s">&quot;20261026-1001-01&quot;</span>);
+        assertThat(texte(mad.getRow(3), 0)).isEqualTo(<span class="s">&quot;20261026-1001-02&quot;</span>);
+    }
+}</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
