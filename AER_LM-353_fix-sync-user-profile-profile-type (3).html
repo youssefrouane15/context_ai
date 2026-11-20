@@ -1,0 +1,162 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-353 + évolution PO — Synchronisation user_profile et colonne Vidage seul (export GAB)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-353 + évolution PO — Synchronisation user_profile et colonne Vidage seul (export GAB)</h1><p>fund-management · Flyway varchar(50) + uid unique · branche bugfix depuis release/v1.3.0 · 20/11/2026</p></header><nav><a href="#cause">Cause et correctif</a><a href="#git">Commandes git (tout le déroulé)</a><a href="#entite">UserProfileEntity</a><a href="#release">Report sur develop</a><a href="#verif">Vérification</a><a href="#vidage">Évolution PO : colonne « Vidage seul » (export GAB)</a><a href="#chefcaisse">Console : création d&#x27;un chef de caisse (portail-ci)</a></nav><main><h2 id="cause">0. Cause et correctif</h2><div class="card"><b>Cause</b> (log local) : <code>[user-profile] synchronisation impossible pour g10008 : valeur trop longue pour le type character varying(10)</code>. utilisateurs-ci envoie <code>profile_type = STANDARD_USER</code> (13 car.), la colonne en accepte 10 → la synchronisation AER_LM-353 échoue en silence, le DA n'existe pas dans <code>user_profile</code>, la création de demande plante. La Caisse Centrale échoue aussi mais n'a pas besoin de <code>user_profile</code> pour traiter.<br>
+<b>Correctif</b> : un script Flyway (numéro calculé automatiquement par le script git) qui passe <code>profile_type</code> à 50 caractères et rend <code>uid</code> unique. La contrainte n'est posée que s'il n'y a aucun doublon : le démarrage ne peut pas échouer à cause des données. Aucun code Java ne change (sauf la longueur déclarée sur l'entité, section 2).</div><h2 id="git">1. Commandes git (tout le déroulé)</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Branche, script Flyway, build, commit, push</b><br><span class="path">Git Bash (racine du dépôt)</span></div><p class="note">Le script SQL est créé par la commande cat : rien à copier à part. Si ton dépôt n'est pas dans C:\dev, adapte seulement les 2 lignes cd.</p><pre><button class="copy">Copier</button><code># ===== Git Bash, à la racine du dépôt fund-management =====
+cd /c/dev/fund-management-microservice
+
+# 0. Partir de la version stable (release/v1.3.0, cf. Saad) sur une nouvelle branche
+git status                                   # doit être propre (sinon : git stash)
+git fetch origin
+git ls-remote <span class="c">--exit-code --heads origin release/v1.3.0 || { echo &quot;release/v1.3.0 absente sur fund-management : STOP, me prévenir&quot;; exit 1; }</span>
+git checkout -B release/v1.3.0 origin/release/v1.3.0
+git checkout -b bugfix/AER_LM-353-user-profile-<span class="k">type</span>
+
+# 1. Créer le script Flyway au numéro suivant (calculé automatiquement)
+cd fund-management-container/src/main/resources/db/migration
+N=$(ls V*__*.sql | sed -E <span class="s">&#x27;s/^V([0-9]+)__.*/\1/&#x27;</span> | sort -n | tail -1)
+FICHIER=<span class="s">&quot;V$((N+1))__user_profile_profile_type_uid_unique.sql&quot;</span>
+echo <span class="s">&quot;Nouveau script : $FICHIER&quot;</span>
+cat &gt; <span class="s">&quot;$FICHIER&quot;</span> &lt;&lt;<span class="s">&#x27;SQL&#x27;</span>
+<span class="c">-- AER_LM-353 : synchronisation des profils utilisateurs</span>
+<span class="c">-- 1) profile_type passe de 10 à 50 caractères : utilisateurs-ci envoie STANDARD_USER, PROFILE_ADMIN, SUPER_ADMIN (&gt; 10)</span>
+<span class="c">--    -&gt; la synchronisation échouait (&quot;valeur trop longue pour le type character varying(10)&quot;) et le DA n&#x27;était jamais créé.</span>
+<span class="k">ALTER</span> <span class="k">TABLE</span> user_profile <span class="k">ALTER</span> <span class="k">COLUMN</span> profile_type TYPE <span class="k">VARCHAR</span>(50);
+
+<span class="c">-- 2) uid unique. Ajoutée seulement si aucun doublon n&#x27;existe (le déploiement ne peut pas échouer à cause des données) ;</span>
+<span class="c">--    sinon un WARNING est écrit dans le log de démarrage et les doublons sont à traiter avant un nouveau script.</span>
+DO $$
+BEGIN
+    <span class="k">IF</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> pg_constraint <span class="k">WHERE</span> conname = <span class="s">&#x27;uk_user_profile_uid&#x27;</span>) THEN
+        RAISE NOTICE <span class="s">&#x27;uk_user_profile_uid existe déjà&#x27;</span>;
+    ELSIF <span class="k">EXISTS</span> (<span class="k">SELECT</span> uid <span class="k">FROM</span> user_profile <span class="k">WHERE</span> uid <span class="k">IS</span> <span class="k">NOT</span> <span class="k">NULL</span> GROUP BY uid HAVING count(*) &gt; 1) THEN
+        RAISE WARNING <span class="s">&#x27;user_profile : uid en doublon, contrainte uk_user_profile_uid non créée&#x27;</span>;
+    ELSE
+        <span class="k">ALTER</span> <span class="k">TABLE</span> user_profile <span class="k">ADD</span> CONSTRAINT uk_user_profile_uid UNIQUE (uid);
+    END <span class="k">IF</span>;
+END $$;
+SQL
+cd /c/dev/fund-management-microservice
+
+# 2. Entité : longueur déclarée sur profile_type (voir section 2 du doc)
+git grep -n <span class="s">&quot;profile_type&quot;</span> <span class="c">-- &quot;*UserProfileEntity.java&quot;</span>
+
+# 3. Build complet + tests
+mvn clean install
+
+# 4. Commit + push
+git add fund-management-container/src/main/resources/db/migration/
+git add -u
+git status                                   # attendu : le nouveau script (+ UserProfileEntity si modifiée)
+git commit -m <span class="s">&quot;AER_LM-353 : user_profile.profile_type en varchar(50) + uid unique (synchronisation des profils)&quot;</span>
+git push -u origin bugfix/AER_LM-353-user-profile-<span class="k">type</span>
+# -&gt; GitLab : Merge Request bugfix/AER_LM-353-user-profile-<span class="k">type</span> -&gt; release/v1.3.0</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contenu du script Flyway créé (pour relecture)</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\db\migration\V&lt;n+1&gt;__user_profile_profile_type_uid_unique.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- AER_LM-353 : synchronisation des profils utilisateurs</span>
+<span class="c">-- 1) profile_type passe de 10 à 50 caractères : utilisateurs-ci envoie STANDARD_USER, PROFILE_ADMIN, SUPER_ADMIN (&gt; 10)</span>
+<span class="c">--    -&gt; la synchronisation échouait (&quot;valeur trop longue pour le type character varying(10)&quot;) et le DA n&#x27;était jamais créé.</span>
+<span class="k">ALTER</span> <span class="k">TABLE</span> user_profile <span class="k">ALTER</span> <span class="k">COLUMN</span> profile_type TYPE <span class="k">VARCHAR</span>(50);
+
+<span class="c">-- 2) uid unique. Ajoutée seulement si aucun doublon n&#x27;existe (le déploiement ne peut pas échouer à cause des données) ;</span>
+<span class="c">--    sinon un WARNING est écrit dans le log de démarrage et les doublons sont à traiter avant un nouveau script.</span>
+DO $$
+BEGIN
+    <span class="k">IF</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> pg_constraint <span class="k">WHERE</span> conname = <span class="s">&#x27;uk_user_profile_uid&#x27;</span>) THEN
+        RAISE NOTICE <span class="s">&#x27;uk_user_profile_uid existe déjà&#x27;</span>;
+    ELSIF <span class="k">EXISTS</span> (<span class="k">SELECT</span> uid <span class="k">FROM</span> user_profile <span class="k">WHERE</span> uid <span class="k">IS</span> <span class="k">NOT</span> <span class="k">NULL</span> GROUP BY uid HAVING count(*) &gt; 1) THEN
+        RAISE WARNING <span class="s">&#x27;user_profile : uid en doublon, contrainte uk_user_profile_uid non créée&#x27;</span>;
+    ELSE
+        <span class="k">ALTER</span> <span class="k">TABLE</span> user_profile <span class="k">ADD</span> CONSTRAINT uk_user_profile_uid UNIQUE (uid);
+    END <span class="k">IF</span>;
+END $$;</code></pre></div><h2 id="entite">2. UserProfileEntity</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Seulement si git grep (étape 2) affiche length = 10</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\…\dataaccess\retail\entity\UserProfileEntity.java</span></div><p class="note">Si la ligne n'a pas de length : rien à changer (ddl-auto validate ne contrôle pas la longueur).</p><pre><button class="copy">Copier</button><code><span class="c">// AVANT (si la ligne affichée par git grep contient length = 10)</span>
+    @Column(name = <span class="s">&quot;profile_type&quot;</span>, length = 10)
+<span class="c">// APRÈS</span>
+    @Column(name = <span class="s">&quot;profile_type&quot;</span>, length = 50)</code></pre></div><h2 id="release">3. Report sur develop</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Une fois la MR vers release/v1.3.0 mergée</b><br><span class="path">Git Bash</span></div><p class="note">Consigne de Saad : release/v1.3.0 = version stabilisée (tests de perf), develop = version suivante (1.4.0-SNAPSHOT). Le fix part donc de la release puis est reporté sur develop.</p><pre><button class="copy">Copier</button><code># Après le merge dans release/v1.3.0 : reporter le fix sur develop (next version 1.4.0-SNAPSHOT)
+git checkout develop
+git pull origin develop
+git checkout -b bugfix/AER_LM-353-user-profile-<span class="k">type</span>-develop
+git cherry-pick &lt;sha du commit AER_LM-353&gt;      # sha affiché par : git log -1 bugfix/AER_LM-353-user-profile-<span class="k">type</span>
+git push -u origin bugfix/AER_LM-353-user-profile-<span class="k">type</span>-develop
+# -&gt; GitLab : Merge Request bugfix/AER_LM-353-user-profile-<span class="k">type</span>-develop -&gt; develop</code></pre></div><h2 id="verif">4. Vérification</h2><div class="card"><b>En local</b> : au démarrage de fund-management, log Flyway <code>Migrating schema … to version n+1 - user profile profile type uid unique</code> → créer un nouveau DA dans la console → connexion → plus de <code>synchronisation impossible</code> dans le log → la ligne apparaît dans <code>user_profile</code> avec <code>STANDARD_USER</code> → Nouvelle demande OK.<br>
+Les utilisateurs injectés à la main (profile_type <code>DA</code>) sont remis à jour tout seuls à leur prochaine connexion. Une fois ce fix déployé, l'injection SQL de Mamadou n'est plus nécessaire.</div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contrôles SQL (qualif)</b><br><span class="path">pgAdmin · base fund-management</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Avant le déploiement en qualif : doit renvoyer 0 ligne (sinon la contrainte uid ne sera pas créée)</span>
+<span class="k">SELECT</span> uid, count(*) <span class="k">FROM</span> user_profile GROUP BY uid HAVING count(*) &gt; 1;
+
+<span class="c">-- Après le déploiement</span>
+<span class="k">SELECT</span> version, description, success <span class="k">FROM</span> flyway_schema_history ORDER BY installed_rank DESC LIMIT 1;
+<span class="k">SELECT</span> character_maximum_length <span class="k">FROM</span> information_schema.columns
+ <span class="k">WHERE</span> table_name = <span class="s">&#x27;user_profile&#x27;</span> <span class="k">AND</span> column_name = <span class="s">&#x27;profile_type&#x27;</span>;             <span class="c">-- attendu : 50</span>
+<span class="k">SELECT</span> conname <span class="k">FROM</span> pg_constraint <span class="k">WHERE</span> conname = <span class="s">&#x27;uk_user_profile_uid&#x27;</span>;          <span class="c">-- attendu : 1 ligne</span></code></pre></div><h2 id="vidage">5. Évolution PO : colonne « Vidage seul » (export GAB)</h2><div class="card"><b>Demande PO</b> : nouvelle colonne juste après <b>Statut</b> (L) → colonne <b>M « Vidage seul »</b> : <code>Oui</code> si le vidage est activé sur le GAB, sinon <code>Non</code>. Les cassettes passent de M-P à <b>N-Q</b>, le Total Alim. GAB de Q à <b>R</b>.<br>
+<code>remplirGab</code> / <code>ecrireLigneGab</code> servent aux deux exports (GAB hors site et onglet GAB de l'extraction Caisse Centrale, même structure par conception) : <b>les deux templates</b> reçoivent la colonne, sinon les cassettes de l'export Caisse Centrale seraient décalées.</div><h3>5.1 Templates Excel (les deux, même manipulation)</h3><div class="card">Fichiers : <code>Template_QlickFlow_GesFond_GAB-Hors-Site.xlsx</code> et le template de l'extraction Caisse Centrale (onglet GAB Hors Sites), dans les ressources <code>export/</code> de fund-management-application.<ol>
+<li>Clic droit sur l'en-tête de colonne <b>M</b> → <b>Insérer</b>. Excel décale cassettes et Total, met à jour la formule du Total (ligne 4) et la fusion « Alimentation GAB (MAD) ».</li>
+<li>Pinceau (Reproduire la mise en forme) depuis <b>L3</b> → clic sur <b>M3</b> → saisir <b>Vidage seul</b>. Même pinceau L4 → M4 pour la ligne modèle.</li>
+<li>Contrôle : la formule en <b>R4</b> référence <code>N4…Q4</code> et <code>$N$3…$Q$3</code>.</li>
+<li>Enregistrer au format .xlsx (même nom).</li></ol></div><h3>5.2 ExportExcelDemandes</h3><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Constantes</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><pre><button class="copy">Copier</button><code>Ctrl+F : GAB_PREMIERE_CASSETTE =
+AVANT  : … GAB_PREMIERE_CASSETTE = 12;
+APRÈS  : … GAB_PREMIERE_CASSETTE = 13;                    (mêmes modificateurs, seule la valeur change)
+         … GAB_COLONNE_VIDAGE = 12;                       (nouvelle ligne juste en dessous, mêmes modificateurs)</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>ecrireLigneGab — javadoc l. 226 (AVANT)</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><pre><button class="copy">Copier</button><code>    <span class="c">/** Une ligne de l&#x27;onglet GAB : colonnes 0 à 11 puis une colonne par cassette. */</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>ecrireLigneGab — javadoc (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><pre><button class="copy">Copier</button><code>    <span class="c">/** Une ligne de l&#x27;onglet GAB : colonnes 0 à 11, « Vidage seul » (Oui / Non) puis une colonne par cassette. */</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>ecrireLigneGab l. 240 (AVANT) — Ctrl+F : texte(r, 11, x.libelleStatut());</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><pre><button class="copy">Copier</button><code>        texte(r, 11, x.libelleStatut());</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>ecrireLigneGab (APRÈS)</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandes.java</span></div><p class="note">La boucle des cassettes ne bouge pas : elle part de GAB_PREMIERE_CASSETTE (13).</p><pre><button class="copy">Copier</button><code>        texte(r, 11, x.libelleStatut());
+        texte(r, GAB_COLONNE_VIDAGE, Boolean.TRUE.equals(gab.getVidage()) ? <span class="s">&quot;Oui&quot;</span> : <span class="s">&quot;Non&quot;</span>);</code></pre></div><h3>5.3 ExportExcelDemandesTest</h3><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Méthode feuilleGab entière (remplace l&#x27;existante)</b><br><span class="path">fund-management-microservice\fund-management-application\src\test\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandesTest.java</span></div><p class="note">Le GAB Drive a le vidage activé → « Oui », l'autre → « Non » ; colonnes cassettes / formule décalées de +1. Aucun import ajouté.</p><pre><button class="copy">Copier</button><code>    @Test
+    @DisplayName(<span class="s">&quot;Feuille GAB Hors Sites : demandes MONETIQUE seulement, une ligne par GAB, Vidage seul en M, cassettes N-Q, formule R, absentes des feuilles MAD / Devise&quot;</span>)
+    <span class="k">void</span> feuilleGab() <span class="k">throws</span> Exception {
+        CashOperationDTO drive = operationGab(<span class="s">&quot;130092026&quot;</span>, <span class="s">&quot;CASA OASIS DRIVE&quot;</span>, TypeGab.DRIVE, cassette(1, <span class="s">&quot;BILLET_100&quot;</span>, 50));
+        drive.getGab().setVidage(<span class="k">true</span>);
+        CashRequestDTO gab = demandeGab(<span class="s">&quot;20261028-9000-01&quot;</span>,
+                operationGab(<span class="s">&quot;130120017&quot;</span>, <span class="s">&quot;CASA VAL D&#x27;ANFA&quot;</span>, TypeGab.HORS_SITE,
+                        cassette(1, <span class="s">&quot;BILLET_100&quot;</span>, 500), cassette(2, <span class="s">&quot;BILLET_200&quot;</span>, 300), cassette(4, <span class="s">&quot;BILLET_100&quot;</span>, 100)),
+                drive);
+        CashRequestDTO agence = demande(<span class="s">&quot;20261028-1001-01&quot;</span>, operation(OperationType.CASH_DESK, RequestType.SUPPLY, detail(<span class="s">&quot;MAD&quot;</span>, <span class="s">&quot;200&quot;</span>, coupure(<span class="s">&quot;BILLET_200&quot;</span>, 1))));
+
+        Workbook classeur = lire(<span class="k">export</span>.generer(<span class="k">new</span> ExportDemandesDTO(List.of(gab, agence), FACE_VALUES)));
+
+        Sheet feuilleGab = classeur.getSheetAt(ExportExcelDemandes.ONGLET_GAB);
+        Row r1 = feuilleGab.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE), r2 = feuilleGab.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE + 1);
+        assertThat(texte(r1, 0)).isEqualTo(<span class="s">&quot;20261028-9000-01&quot;</span>);
+        assertThat(texte(r1, 7)).isEqualTo(<span class="s">&quot;130092026&quot;</span>);                  <span class="c">// tri par ID GAB</span>
+        assertThat(texte(r1, 10)).isEqualTo(<span class="s">&quot;Drive&quot;</span>);
+        assertThat(texte(r1, 12)).isEqualTo(<span class="s">&quot;Oui&quot;</span>);                        <span class="c">// M = Vidage seul</span>
+        assertThat(nombre(r1, 13)).isEqualTo(50);                          <span class="c">// N = cassette 1</span>
+        assertThat(texte(r2, 7)).isEqualTo(<span class="s">&quot;130120017&quot;</span>);
+        assertThat(texte(r2, 10)).isEqualTo(<span class="s">&quot;Hors site&quot;</span>);
+        assertThat(texte(r2, 12)).isEqualTo(<span class="s">&quot;Non&quot;</span>);                        <span class="c">// vidage non renseigné</span>
+        assertThat(nombre(r2, 6)).isEqualTo(450);                          <span class="c">// PU = tarif transporteur du GAB</span>
+        assertThat(nombre(r2, 13)).isEqualTo(500);
+        assertThat(nombre(r2, 14)).isEqualTo(300);
+        assertThat(r2.getCell(15) == <span class="k">null</span> || r2.getCell(15).getCellType() == CellType.BLANK).isTrue();   <span class="c">// cassette 3 absente</span>
+        assertThat(nombre(r2, 16)).isEqualTo(100);
+        assertThat(r2.getCell(17).getCellType()).isEqualTo(CellType.FORMULA);
+        assertThat(r2.getCell(17).getCellFormula()).contains(<span class="s">&quot;N5&quot;</span>).contains(<span class="s">&quot;$N$3&quot;</span>);
+
+        Sheet mad = classeur.getSheetAt(ExportExcelDemandes.ONGLET_MAD);
+        assertThat(texte(mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE), 0)).isEqualTo(<span class="s">&quot;20261028-1001-01&quot;</span>);
+        Row madSuivante = mad.getRow(ExportExcelDemandes.PREMIERE_LIGNE + 1);
+        assertThat(madSuivante == <span class="k">null</span> || madSuivante.getCell(0) == <span class="k">null</span> || madSuivante.getCell(0).getCellType() == CellType.BLANK).isTrue();
+    }</code></pre></div><h3>5.4 Git</h3><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Commit de l&#x27;évolution</b><br><span class="path">Git Bash</span></div><pre><button class="copy">Copier</button><code># Même branche, commit séparé (après le commit AER_LM-353)
+git add fund-management-application/
+git status            # attendu : ExportExcelDemandes.java, ExportExcelDemandesTest.java, les 2 templates .xlsx
+git commit -m <span class="s">&quot;AER_LM-335 : export GAB - colonne Vidage seul (Oui/Non) après Statut&quot;</span>
+git push</code></pre></div><div class="card"><b>Vérification</b> : ExportExcelDemandesTest → 4 tests verts ; en local, export GAB hors site depuis le listing Monétique → colonne « Vidage seul » en M (Oui/Non), cassettes N-Q, total R correct ; export Caisse Centrale → onglet GAB identique.</div><h2 id="chefcaisse">6. Console : création d&#x27;un chef de caisse (portail-ci)</h2><div class="card"><b>Cause</b> : <code>isOrganisationSelectable()</code> n'affiche le select Organisation que pour une liste de profils en dur (CONSEILLER, DA, DIE, DZ). Pour CHEF_CAISSE, pas de select → pas d'<code>orgaUnit</code> dans le POST <code>/api/v1/public/users</code> → <b>400</b>. Le chef de caisse étant rattaché à une agence (comme le DA), il doit avoir le select.<br>
+<b>Fix (fait par Youssef, validé)</b> : ajout de <code>'CHEF_CAISSE'</code> à la liste. Les profils transverses (Caisse Centrale, Support, Pôle monétique) restent sans agence.</div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>isOrganisationSelectable (AVANT)</b><br><span class="path">portail-ci\src\app\…\console-user\console-user.component.ts</span></div><pre><button class="copy">Copier</button><code>    <span class="k">return</span> selectedProfile ? [<span class="s">&#x27;CONSEILLER&#x27;</span>, <span class="s">&#x27;DA&#x27;</span>, <span class="s">&#x27;DIE&#x27;</span>, <span class="s">&#x27;DZ&#x27;</span>].includes(selectedProfile.code) : <span class="k">false</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>isOrganisationSelectable (APRÈS)</b><br><span class="path">portail-ci\src\app\…\console-user\console-user.component.ts</span></div><pre><button class="copy">Copier</button><code>    <span class="k">return</span> selectedProfile ? [<span class="s">&#x27;CONSEILLER&#x27;</span>, <span class="s">&#x27;DA&#x27;</span>, <span class="s">&#x27;DIE&#x27;</span>, <span class="s">&#x27;DZ&#x27;</span>, <span class="s">&#x27;CHEF_CAISSE&#x27;</span>].includes(selectedProfile.code) : <span class="k">false</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contrôle + commit</b><br><span class="path">Git Bash (portail-ci)</span></div><p class="note">Recette : créer un CHEF DE CAISSE avec une agence → 201 ; connexion → il apparaît dans user_profile (avec le fix section 1) → Nouvelle demande OK.</p><pre><button class="copy">Copier</button><code># ===== Git Bash, dépôt portail-ci (branche déjà créée : bugfix/gesfond_admin_access) =====
+git grep -n <span class="s">&quot;&#x27;DIE&#x27;, &#x27;DZ&#x27;&quot;</span> <span class="c">-- src/          # autre liste de profils en dur (ex. modale d&#x27;édition) ? -&gt; même ajout de &#x27;CHEF_CAISSE&#x27;</span>
+git add src/app/
+git status                                  # attendu : console-user.component.ts (+ autre fichier trouvé par git grep)
+git commit -m <span class="s">&quot;Console utilisateurs : sélection de l&#x27;agence pour le profil CHEF_CAISSE (création en 400 sans orgaUnit)&quot;</span>
+git push -u origin bugfix/gesfond_admin_access
+# -&gt; GitLab : MR vers la branche de la version des tests de perf (release/v1.3.0 si elle existe sur portail-ci), puis report sur develop</code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
