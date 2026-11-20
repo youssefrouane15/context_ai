@@ -1,0 +1,105 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-353 — Synchronisation user_profile : profile_type trop court (fix + déroulé git)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-353 — Synchronisation user_profile : profile_type trop court (fix + déroulé git)</h1><p>fund-management · Flyway varchar(50) + uid unique · branche bugfix · 20/11/2026</p></header><nav><a href="#cause">Cause et correctif</a><a href="#git">Commandes git (tout le déroulé)</a><a href="#entite">UserProfileEntity</a><a href="#release">Report sur la branche release</a><a href="#verif">Vérification</a></nav><main><h2 id="cause">0. Cause et correctif</h2><div class="card"><b>Cause</b> (log local) : <code>[user-profile] synchronisation impossible pour g10008 : valeur trop longue pour le type character varying(10)</code>. utilisateurs-ci envoie <code>profile_type = STANDARD_USER</code> (13 car.), la colonne en accepte 10 → la synchronisation AER_LM-353 échoue en silence, le DA n'existe pas dans <code>user_profile</code>, la création de demande plante. La Caisse Centrale échoue aussi mais n'a pas besoin de <code>user_profile</code> pour traiter.<br>
+<b>Correctif</b> : un script Flyway (numéro calculé automatiquement par le script git) qui passe <code>profile_type</code> à 50 caractères et rend <code>uid</code> unique. La contrainte n'est posée que s'il n'y a aucun doublon : le démarrage ne peut pas échouer à cause des données. Aucun code Java ne change (sauf la longueur déclarée sur l'entité, section 2).</div><h2 id="git">1. Commandes git (tout le déroulé)</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Branche, script Flyway, build, commit, push</b><br><span class="path">Git Bash (racine du dépôt)</span></div><p class="note">Le script SQL est créé par la commande cat : rien à copier à part. Si ton dépôt n'est pas dans C:\dev, adapte seulement les 2 lignes cd.</p><pre><button class="copy">Copier</button><code># ===== Git Bash, à la racine du dépôt fund-management =====
+cd /c/dev/fund-management-microservice
+
+# 0. Partir d&#x27;un develop à jour, sur une nouvelle branche
+git status                                   # doit être propre (sinon : git stash)
+git checkout develop
+git pull origin develop
+git checkout -b bugfix/AER_LM-353-user-profile-<span class="k">type</span>
+
+# 1. Créer le script Flyway au numéro suivant (calculé automatiquement)
+cd fund-management-container/src/main/resources/db/migration
+N=$(ls V*__*.sql | sed -E <span class="s">&#x27;s/^V([0-9]+)__.*/\1/&#x27;</span> | sort -n | tail -1)
+FICHIER=<span class="s">&quot;V$((N+1))__user_profile_profile_type_uid_unique.sql&quot;</span>
+echo <span class="s">&quot;Nouveau script : $FICHIER&quot;</span>
+cat &gt; <span class="s">&quot;$FICHIER&quot;</span> &lt;&lt;<span class="s">&#x27;SQL&#x27;</span>
+<span class="c">-- AER_LM-353 : synchronisation des profils utilisateurs</span>
+<span class="c">-- 1) profile_type passe de 10 à 50 caractères : utilisateurs-ci envoie STANDARD_USER, PROFILE_ADMIN, SUPER_ADMIN (&gt; 10)</span>
+<span class="c">--    -&gt; la synchronisation échouait (&quot;valeur trop longue pour le type character varying(10)&quot;) et le DA n&#x27;était jamais créé.</span>
+<span class="k">ALTER</span> <span class="k">TABLE</span> user_profile <span class="k">ALTER</span> <span class="k">COLUMN</span> profile_type TYPE <span class="k">VARCHAR</span>(50);
+
+<span class="c">-- 2) uid unique. Ajoutée seulement si aucun doublon n&#x27;existe (le déploiement ne peut pas échouer à cause des données) ;</span>
+<span class="c">--    sinon un WARNING est écrit dans le log de démarrage et les doublons sont à traiter avant un nouveau script.</span>
+DO $$
+BEGIN
+    <span class="k">IF</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> pg_constraint <span class="k">WHERE</span> conname = <span class="s">&#x27;uk_user_profile_uid&#x27;</span>) THEN
+        RAISE NOTICE <span class="s">&#x27;uk_user_profile_uid existe déjà&#x27;</span>;
+    ELSIF <span class="k">EXISTS</span> (<span class="k">SELECT</span> uid <span class="k">FROM</span> user_profile <span class="k">WHERE</span> uid <span class="k">IS</span> <span class="k">NOT</span> <span class="k">NULL</span> GROUP BY uid HAVING count(*) &gt; 1) THEN
+        RAISE WARNING <span class="s">&#x27;user_profile : uid en doublon, contrainte uk_user_profile_uid non créée&#x27;</span>;
+    ELSE
+        <span class="k">ALTER</span> <span class="k">TABLE</span> user_profile <span class="k">ADD</span> CONSTRAINT uk_user_profile_uid UNIQUE (uid);
+    END <span class="k">IF</span>;
+END $$;
+SQL
+cd /c/dev/fund-management-microservice
+
+# 2. Entité : longueur déclarée sur profile_type (voir section 2 du doc)
+git grep -n <span class="s">&quot;profile_type&quot;</span> <span class="c">-- &quot;*UserProfileEntity.java&quot;</span>
+
+# 3. Build complet + tests
+mvn clean install
+
+# 4. Commit + push
+git add fund-management-container/src/main/resources/db/migration/
+git add -u
+git status                                   # attendu : le nouveau script (+ UserProfileEntity si modifiée)
+git commit -m <span class="s">&quot;AER_LM-353 : user_profile.profile_type en varchar(50) + uid unique (synchronisation des profils)&quot;</span>
+git push -u origin bugfix/AER_LM-353-user-profile-<span class="k">type</span>
+# -&gt; GitLab : Merge Request bugfix/AER_LM-353-user-profile-<span class="k">type</span> -&gt; develop</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contenu du script Flyway créé (pour relecture)</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\db\migration\V&lt;n+1&gt;__user_profile_profile_type_uid_unique.sql</span></div><pre><button class="copy">Copier</button><code><span class="c">-- AER_LM-353 : synchronisation des profils utilisateurs</span>
+<span class="c">-- 1) profile_type passe de 10 à 50 caractères : utilisateurs-ci envoie STANDARD_USER, PROFILE_ADMIN, SUPER_ADMIN (&gt; 10)</span>
+<span class="c">--    -&gt; la synchronisation échouait (&quot;valeur trop longue pour le type character varying(10)&quot;) et le DA n&#x27;était jamais créé.</span>
+<span class="k">ALTER</span> <span class="k">TABLE</span> user_profile <span class="k">ALTER</span> <span class="k">COLUMN</span> profile_type TYPE <span class="k">VARCHAR</span>(50);
+
+<span class="c">-- 2) uid unique. Ajoutée seulement si aucun doublon n&#x27;existe (le déploiement ne peut pas échouer à cause des données) ;</span>
+<span class="c">--    sinon un WARNING est écrit dans le log de démarrage et les doublons sont à traiter avant un nouveau script.</span>
+DO $$
+BEGIN
+    <span class="k">IF</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> pg_constraint <span class="k">WHERE</span> conname = <span class="s">&#x27;uk_user_profile_uid&#x27;</span>) THEN
+        RAISE NOTICE <span class="s">&#x27;uk_user_profile_uid existe déjà&#x27;</span>;
+    ELSIF <span class="k">EXISTS</span> (<span class="k">SELECT</span> uid <span class="k">FROM</span> user_profile <span class="k">WHERE</span> uid <span class="k">IS</span> <span class="k">NOT</span> <span class="k">NULL</span> GROUP BY uid HAVING count(*) &gt; 1) THEN
+        RAISE WARNING <span class="s">&#x27;user_profile : uid en doublon, contrainte uk_user_profile_uid non créée&#x27;</span>;
+    ELSE
+        <span class="k">ALTER</span> <span class="k">TABLE</span> user_profile <span class="k">ADD</span> CONSTRAINT uk_user_profile_uid UNIQUE (uid);
+    END <span class="k">IF</span>;
+END $$;</code></pre></div><h2 id="entite">2. UserProfileEntity</h2><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Seulement si git grep (étape 2) affiche length = 10</b><br><span class="path">fund-management-microservice\fund-management-data-access\src\main\java\…\dataaccess\retail\entity\UserProfileEntity.java</span></div><p class="note">Si la ligne n'a pas de length : rien à changer (ddl-auto validate ne contrôle pas la longueur).</p><pre><button class="copy">Copier</button><code><span class="c">// AVANT (si la ligne affichée par git grep contient length = 10)</span>
+    @Column(name = <span class="s">&quot;profile_type&quot;</span>, length = 10)
+<span class="c">// APRÈS</span>
+    @Column(name = <span class="s">&quot;profile_type&quot;</span>, length = 50)</code></pre></div><h2 id="release">3. Report sur la branche release</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Si fund-management part aussi en release/v1.3.0 pour les tests de perf</b><br><span class="path">Git Bash</span></div><pre><button class="copy">Copier</button><code># Seulement si la version des tests de perf de fund-management part d&#x27;une branche release
+git ls-remote <span class="c">--heads origin release/v1.3.0      # une ligne = la branche existe</span>
+git checkout release/v1.3.0
+git pull origin release/v1.3.0
+git cherry-pick &lt;sha du commit AER_LM-353&gt;      # sha affiché par : git log -1 bugfix/AER_LM-353-user-profile-<span class="k">type</span>
+git push origin release/v1.3.0</code></pre></div><h2 id="verif">4. Vérification</h2><div class="card"><b>En local</b> : au démarrage de fund-management, log Flyway <code>Migrating schema … to version n+1 - user profile profile type uid unique</code> → créer un nouveau DA dans la console → connexion → plus de <code>synchronisation impossible</code> dans le log → la ligne apparaît dans <code>user_profile</code> avec <code>STANDARD_USER</code> → Nouvelle demande OK.<br>
+Les utilisateurs injectés à la main (profile_type <code>DA</code>) sont remis à jour tout seuls à leur prochaine connexion. Une fois ce fix déployé, l'injection SQL de Mamadou n'est plus nécessaire.</div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>Contrôles SQL (qualif)</b><br><span class="path">pgAdmin · base fund-management</span></div><pre><button class="copy">Copier</button><code><span class="c">-- Avant le déploiement en qualif : doit renvoyer 0 ligne (sinon la contrainte uid ne sera pas créée)</span>
+<span class="k">SELECT</span> uid, count(*) <span class="k">FROM</span> user_profile GROUP BY uid HAVING count(*) &gt; 1;
+
+<span class="c">-- Après le déploiement</span>
+<span class="k">SELECT</span> version, description, success <span class="k">FROM</span> flyway_schema_history ORDER BY installed_rank DESC LIMIT 1;
+<span class="k">SELECT</span> character_maximum_length <span class="k">FROM</span> information_schema.columns
+ <span class="k">WHERE</span> table_name = <span class="s">&#x27;user_profile&#x27;</span> <span class="k">AND</span> column_name = <span class="s">&#x27;profile_type&#x27;</span>;             <span class="c">-- attendu : 50</span>
+<span class="k">SELECT</span> conname <span class="k">FROM</span> pg_constraint <span class="k">WHERE</span> conname = <span class="s">&#x27;uk_user_profile_uid&#x27;</span>;          <span class="c">-- attendu : 1 ligne</span></code></pre></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
