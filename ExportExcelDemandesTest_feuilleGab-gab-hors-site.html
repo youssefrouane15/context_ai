@@ -1,0 +1,57 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ExportExcelDemandesTest — feuilleGab sur l&#x27;extraction GAB hors site</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>ExportExcelDemandesTest — feuilleGab sur l&#x27;extraction GAB hors site</h1><p>Colonne Vidage seul · 20/11/2026</p></header><nav><a href="#test">feuilleGab — extraction GAB hors site</a></nav><main><h2 id="test">feuilleGab — extraction GAB hors site</h2><div class="card">Le test appelle désormais <code>genererGabHorsSite</code> (feuille 0) au lieu de <code>generer</code> (extraction Caisse Centrale). Vérifie : Vidage seul en M (Oui / Non), cassettes N-Q, formule R, demande agence absente. Aucun import ajouté.</div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>Méthode feuilleGab entière (remplace l&#x27;existante)</b><br><span class="path">fund-management-microservice\fund-management-application\src\test\java\com\bmci\workflow\fund\management\application\rest\retail\export\ExportExcelDemandesTest.java</span></div><p class="note">Puis Build > Rebuild Project et relancer le test.</p><pre><button class="copy">Copier</button><code>    @Test
+    @DisplayName(<span class="s">&quot;Extraction GAB Hors Site : demandes MONETIQUE seulement, une ligne par GAB, Vidage seul en M, cassettes N-Q, formule R&quot;</span>)
+    <span class="k">void</span> feuilleGab() <span class="k">throws</span> Exception {
+        CashOperationDTO drive = operationGab(<span class="s">&quot;130092026&quot;</span>, <span class="s">&quot;CASA OASIS DRIVE&quot;</span>, TypeGab.DRIVE, cassette(1, <span class="s">&quot;BILLET_100&quot;</span>, 50));
+        drive.getGab().setVidage(<span class="k">true</span>);
+        CashRequestDTO gab = demandeGab(<span class="s">&quot;20261028-9000-01&quot;</span>,
+                operationGab(<span class="s">&quot;130120017&quot;</span>, <span class="s">&quot;CASA VAL D&#x27;ANFA&quot;</span>, TypeGab.HORS_SITE,
+                        cassette(1, <span class="s">&quot;BILLET_100&quot;</span>, 500), cassette(2, <span class="s">&quot;BILLET_200&quot;</span>, 300), cassette(4, <span class="s">&quot;BILLET_100&quot;</span>, 100)),
+                drive);
+        CashRequestDTO agence = demande(<span class="s">&quot;20261028-1001-01&quot;</span>, operation(OperationType.CASH_DESK, RequestType.SUPPLY, detail(<span class="s">&quot;MAD&quot;</span>, <span class="s">&quot;200&quot;</span>, coupure(<span class="s">&quot;BILLET_200&quot;</span>, 1))));
+
+        Sheet feuilleGab = lire(<span class="k">export</span>.genererGabHorsSite(List.of(gab, agence))).getSheetAt(0);
+
+        Row r1 = feuilleGab.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE), r2 = feuilleGab.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE + 1);
+        assertThat(texte(r1, 0)).isEqualTo(<span class="s">&quot;20261028-9000-01&quot;</span>);
+        assertThat(texte(r1, 7)).isEqualTo(<span class="s">&quot;130092026&quot;</span>);                  <span class="c">// tri par ID GAB</span>
+        assertThat(texte(r1, 10)).isEqualTo(<span class="s">&quot;Drive&quot;</span>);
+        assertThat(texte(r1, 12)).isEqualTo(<span class="s">&quot;Oui&quot;</span>);                        <span class="c">// M = Vidage seul</span>
+        assertThat(nombre(r1, 13)).isEqualTo(50);                          <span class="c">// N = cassette 1</span>
+        assertThat(texte(r2, 7)).isEqualTo(<span class="s">&quot;130120017&quot;</span>);
+        assertThat(texte(r2, 10)).isEqualTo(<span class="s">&quot;Hors site&quot;</span>);
+        assertThat(texte(r2, 12)).isEqualTo(<span class="s">&quot;Non&quot;</span>);                        <span class="c">// vidage non renseigné</span>
+        assertThat(nombre(r2, 6)).isEqualTo(450);                          <span class="c">// PU = tarif transporteur du GAB</span>
+        assertThat(nombre(r2, 13)).isEqualTo(500);
+        assertThat(nombre(r2, 14)).isEqualTo(300);
+        assertThat(r2.getCell(15) == <span class="k">null</span> || r2.getCell(15).getCellType() == CellType.BLANK).isTrue();   <span class="c">// cassette 3 absente</span>
+        assertThat(nombre(r2, 16)).isEqualTo(100);
+        assertThat(r2.getCell(17).getCellType()).isEqualTo(CellType.FORMULA);
+        assertThat(r2.getCell(17).getCellFormula()).contains(<span class="s">&quot;N5&quot;</span>).contains(<span class="s">&quot;$N$3&quot;</span>);
+
+        Row suivante = feuilleGab.getRow(ExportExcelDemandes.GAB_PREMIERE_LIGNE + 2);   <span class="c">// la demande agence n&#x27;apparaît pas</span>
+        assertThat(suivante == <span class="k">null</span> || suivante.getCell(0) == <span class="k">null</span> || suivante.getCell(0).getCellType() == CellType.BLANK).isTrue();
+    }</code></pre></div><div class="card"><b>Avant le merge</b> : l'onglet GAB de l'extraction Caisse Centrale partage <code>ecrireLigneGab</code> → ajouter la colonne M dans son template, ou séparer le code des deux exports.</div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
