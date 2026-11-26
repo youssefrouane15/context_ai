@@ -1,0 +1,485 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-357 — Extraction Excel des GAB hors site dans la console</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-357 — Extraction Excel des GAB hors site dans la console</h1><p>utilisateurs-ci (endpoint /export, Apache POI) · portail-ci (bouton Exporter) · 25/11/2026</p></header><nav><a href="#resume">Ce qui change</a><a href="#pom">utilisateurs-ci — pom.xml</a><a href="#service">utilisateurs-ci — service d&#x27;extraction</a><a href="#facade">utilisateurs-ci — facade</a><a href="#controleur">utilisateurs-ci — contrôleur</a><a href="#tests-back">utilisateurs-ci — tests</a><a href="#front-service">portail-ci — service</a><a href="#front-ecran">portail-ci — écran</a><a href="#front-tests">portail-ci — tests de l&#x27;écran</a><a href="#verif">Vérification</a><a href="#savoir">À savoir</a></nav><main><h2 id="resume">0. Ce qui change</h2><div class="card">Bouton <b>« Exporter (Excel) »</b> sur l'écran <i>Gestion des fonds - GAB hors site</i> de la console, à gauche de « Ajouter un GAB ». Visible par tout profil qui consulte l'écran (<code>GDF_CONSULTER_GAB</code> ou <code>GDF_GERER_GAB</code>).
+<ul>
+<li>Fichier <code>QlickFlow_GAB-Hors-Site_extraction_aaaammjj-hhmmss.xlsx</code>, une feuille « GAB Hors Site ».</li>
+<li><b>Tous les GAB</b>, dans l'ordre de l'écran, quelle que soit la recherche saisie.</li>
+<li>Colonnes : ID GAB, Nom du GAB, Numéro de compte, Code agence, Agence, Ville, Transporteur, Prix unitaire (MAD), Type, État.</li>
+</ul>
+Le fichier est généré par utilisateurs-ci (<code>GET /api/v1/public/users/gab/hors-site/export</code>), avec Apache POI comme dans fund-management. La route gateway <code>/api/v1/public/users/**</code> existe déjà. Pas de Flyway, pas de nouvelle permission.</div><h2 id="pom">1. utilisateurs-ci — pom.xml</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>pom.xml — propriétés (l. 43-44) — AVANT</b><br><span class="path">utilisateurs-ci\pom.xml (Ctrl+F : flyway.version&gt;10)</span></div><pre><button class="copy">Copier</button><code>        &lt;flyway.version&gt;10.20.1&lt;/flyway.version&gt;
+    &lt;/properties&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>pom.xml — propriétés (l. 43-44) — APRÈS</b><br><span class="path">utilisateurs-ci\pom.xml (Ctrl+F : flyway.version&gt;10)</span></div><pre><button class="copy">Copier</button><code>        &lt;flyway.version&gt;10.20.1&lt;/flyway.version&gt;
+        &lt;poi.version&gt;5.2.5&lt;/poi.version&gt;
+    &lt;/properties&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>pom.xml — dépendance (l. 109-112) — AVANT</b><br><span class="path">utilisateurs-ci\pom.xml (Ctrl+F : spring-boot-starter-actuator)</span></div><pre><button class="copy">Copier</button><code>        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-actuator&lt;/artifactId&gt;
+        &lt;/dependency&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>pom.xml — dépendance (l. 109-112) — APRÈS</b><br><span class="path">utilisateurs-ci\pom.xml (Ctrl+F : spring-boot-starter-actuator)</span></div><p class="note">POI 5.2.5 = version déjà utilisée par fund-management. Puis recharger Maven.</p><pre><button class="copy">Copier</button><code>        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-actuator&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+        <span class="c">&lt;!-- AER_LM-357 : extraction Excel des GAB hors site (même version que fund-management) --&gt;</span>
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.apache.poi&lt;/groupId&gt;
+            &lt;artifactId&gt;poi-ooxml&lt;/artifactId&gt;
+            &lt;version&gt;${poi.version}&lt;/version&gt;
+        &lt;/dependency&gt;</code></pre></div><h2 id="service">2. utilisateurs-ci — service d&#x27;extraction</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>GabHorsSiteExportService.java</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\service\gab\GabHorsSiteExportService.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bnpp.irb.qlickflow.admin.service.gab;
+
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.dto.gab.GabHorsSiteDTO;
+
+<span class="k">import</span> java.util.List;
+
+<span class="c">/**
+ * AER_LM-357 — extraction Excel du référentiel GAB hors site (console).
+ */</span>
+<span class="k">public</span> <span class="k">interface</span> GabHorsSiteExportService {
+
+    <span class="c">/** Classeur .xlsx : une ligne d&#x27;en-têtes puis une ligne par GAB, dans l&#x27;ordre reçu. */</span>
+    byte[] exporter(List&lt;GabHorsSiteDTO&gt; gabs);
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>GabHorsSiteExportServiceImpl.java</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\service\gab\impl\GabHorsSiteExportServiceImpl.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bnpp.irb.qlickflow.admin.service.gab.impl;
+
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.dto.gab.GabHorsSiteDTO;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.gab.EtatGab;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.service.gab.GabHorsSiteExportService;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Cell;
+<span class="k">import</span> org.apache.poi.ss.usermodel.CellStyle;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Font;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Row;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Sheet;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Workbook;
+<span class="k">import</span> org.apache.poi.xssf.usermodel.XSSFWorkbook;
+<span class="k">import</span> org.springframework.stereotype.Service;
+
+<span class="k">import</span> java.io.ByteArrayOutputStream;
+<span class="k">import</span> java.io.IOException;
+<span class="k">import</span> java.util.List;
+
+<span class="c">/**
+ * AER_LM-357 — génère le fichier Excel des GAB hors site : mêmes informations que l&#x27;écran de la console,
+ * plus le numéro de compte.
+ */</span>
+@Service
+<span class="k">public</span> <span class="k">class</span> GabHorsSiteExportServiceImpl <span class="k">implements</span> GabHorsSiteExportService {
+
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> FEUILLE = <span class="s">&quot;GAB Hors Site&quot;</span>;
+    <span class="k">static</span> <span class="k">final</span> List&lt;<span class="k">String</span>&gt; EN_TETES = List.of(<span class="s">&quot;ID GAB&quot;</span>, <span class="s">&quot;Nom du GAB&quot;</span>, <span class="s">&quot;Numéro de compte&quot;</span>, <span class="s">&quot;Code agence&quot;</span>, <span class="s">&quot;Agence&quot;</span>,
+            <span class="s">&quot;Ville&quot;</span>, <span class="s">&quot;Transporteur&quot;</span>, <span class="s">&quot;Prix unitaire (MAD)&quot;</span>, <span class="s">&quot;Type&quot;</span>, <span class="s">&quot;État&quot;</span>);
+
+    <span class="c">/** Largeur fixe (en 1/256 de caractère) : pas d&#x27;autoSizeColumn, qui exige des polices sur le serveur. */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">int</span> LARGEUR_COLONNE = 24 * 256;
+
+    @Override
+    <span class="k">public</span> byte[] exporter(List&lt;GabHorsSiteDTO&gt; gabs) {
+        <span class="k">try</span> (Workbook classeur = <span class="k">new</span> XSSFWorkbook(); ByteArrayOutputStream sortie = <span class="k">new</span> ByteArrayOutputStream()) {
+            Sheet feuille = classeur.createSheet(FEUILLE);
+            ecrireEnTetes(classeur, feuille);
+            <span class="k">int</span> numeroLigne = 1;
+            <span class="k">for</span> (GabHorsSiteDTO gab : gabs) {
+                ecrireLigne(feuille.createRow(numeroLigne++), gab);
+            }
+            classeur.write(sortie);
+            <span class="k">return</span> sortie.toByteArray();
+        } <span class="k">catch</span> (IOException e) {
+            <span class="k">throw</span> <span class="k">new</span> IllegalStateException(<span class="s">&quot;L&#x27;extraction Excel des GAB hors site a échoué&quot;</span>, e);
+        }
+    }
+
+    <span class="k">private</span> <span class="k">void</span> ecrireEnTetes(Workbook classeur, Sheet feuille) {
+        Font gras = classeur.createFont();
+        gras.setBold(<span class="k">true</span>);
+        CellStyle style = classeur.createCellStyle();
+        style.setFont(gras);
+
+        Row ligne = feuille.createRow(0);
+        <span class="k">for</span> (<span class="k">int</span> colonne = 0; colonne &lt; EN_TETES.size(); colonne++) {
+            Cell cellule = ligne.createCell(colonne);
+            cellule.setCellValue(EN_TETES.<span class="k">get</span>(colonne));
+            cellule.setCellStyle(style);
+            feuille.setColumnWidth(colonne, LARGEUR_COLONNE);
+        }
+    }
+
+    <span class="k">private</span> <span class="k">void</span> ecrireLigne(Row ligne, GabHorsSiteDTO gab) {
+        ligne.createCell(0).setCellValue(texte(gab.getIdGab()));
+        ligne.createCell(1).setCellValue(texte(gab.getNom()));
+        ligne.createCell(2).setCellValue(texte(gab.getNumeroCompte()));
+        ligne.createCell(3).setCellValue(gab.getAgence() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : texte(gab.getAgence().getCode()));
+        ligne.createCell(4).setCellValue(gab.getAgence() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : texte(gab.getAgence().getNom()));
+        ligne.createCell(5).setCellValue(gab.getVille() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : texte(gab.getVille().getNom()));
+        ligne.createCell(6).setCellValue(gab.getTransporteur() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : texte(gab.getTransporteur().getNom()));
+        <span class="k">if</span> (gab.getPrixUnitaire() != <span class="k">null</span>) {
+            ligne.createCell(7).setCellValue(gab.getPrixUnitaire().doubleValue());
+        }
+        ligne.createCell(8).setCellValue(gab.getType() == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : gab.getType().name());
+        ligne.createCell(9).setCellValue(libelleEtat(gab.getEtat()));
+    }
+
+    <span class="c">/** Mêmes libellés que la colonne « État » de l&#x27;écran. */</span>
+    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> libelleEtat(EtatGab etat) {
+        <span class="k">if</span> (etat == <span class="k">null</span>) {
+            <span class="k">return</span> <span class="s">&quot;&quot;</span>;
+        }
+        <span class="k">return</span> etat == EtatGab.EN_LIGNE ? <span class="s">&quot;En ligne&quot;</span> : <span class="s">&quot;Hors ligne&quot;</span>;
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> texte(<span class="k">String</span> valeur) {
+        <span class="k">return</span> valeur == <span class="k">null</span> ? <span class="s">&quot;&quot;</span> : valeur;
+    }
+}</code></pre></div><h2 id="facade">3. utilisateurs-ci — facade</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>GabHorsSiteFacade.java (l. 27-28) — AVANT</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\facade\GabHorsSiteFacade.java (Ctrl+F : void updateGabHorsSite)</span></div><pre><button class="copy">Copier</button><code>    <span class="k">void</span> updateGabHorsSite(UpdateGabHorsSiteDTO dto);
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>GabHorsSiteFacade.java (l. 27-28) — APRÈS</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\facade\GabHorsSiteFacade.java (Ctrl+F : void updateGabHorsSite)</span></div><pre><button class="copy">Copier</button><code>    <span class="k">void</span> updateGabHorsSite(UpdateGabHorsSiteDTO dto);
+
+    <span class="c">/** AER_LM-357 : fichier Excel (.xlsx) de tous les GAB hors site. */</span>
+    byte[] exporterGabsHorsSite();
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>GabHorsSiteFacadeImpl.java — import</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\facade\impl\GabHorsSiteFacadeImpl.java (avec les autres imports, sous celui de GabHorsSiteService)</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> com.bnpp.irb.qlickflow.admin.service.gab.GabHorsSiteExportService;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>GabHorsSiteFacadeImpl.java — champs (l. 29) — AVANT</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\facade\impl\GabHorsSiteFacadeImpl.java (Ctrl+F : private final VilleMapper)</span></div><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">final</span> VilleMapper villeMapper;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>GabHorsSiteFacadeImpl.java — champs (l. 29) — APRÈS</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\facade\impl\GabHorsSiteFacadeImpl.java (Ctrl+F : private final VilleMapper)</span></div><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">final</span> VilleMapper villeMapper;
+    <span class="k">private</span> <span class="k">final</span> GabHorsSiteExportService gabHorsSiteExportService;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>GabHorsSiteFacadeImpl.java — fin de classe (l. 80-83) — AVANT</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\facade\impl\GabHorsSiteFacadeImpl.java (Ctrl+F : gabHorsSiteService.save(gab))</span></div><pre><button class="copy">Copier</button><code>        gabHorsSiteMapper.toEntity(gab, dto);
+        gabHorsSiteService.save(gab);
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>GabHorsSiteFacadeImpl.java — fin de classe (l. 80-83) — APRÈS</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\facade\impl\GabHorsSiteFacadeImpl.java (Ctrl+F : gabHorsSiteService.save(gab))</span></div><pre><button class="copy">Copier</button><code>        gabHorsSiteMapper.toEntity(gab, dto);
+        gabHorsSiteService.save(gab);
+    }
+
+    <span class="c">/** AER_LM-357 : même liste et même ordre que l&#x27;écran (findAll). */</span>
+    @Override
+    <span class="k">public</span> byte[] exporterGabsHorsSite() {
+        <span class="k">return</span> gabHorsSiteExportService.exporter(findAll());
+    }
+}</code></pre></div><h2 id="controleur">4. utilisateurs-ci — contrôleur</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>GabHorsSiteController.java — imports (l. 15-16) — AVANT</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\controller\publicapi\gab\GabHorsSiteController.java (Ctrl+F : import org.springframework.http.HttpStatus)</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> org.springframework.http.HttpStatus;
+<span class="k">import</span> org.springframework.http.ResponseEntity;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>GabHorsSiteController.java — imports (l. 15-16) — APRÈS</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\controller\publicapi\gab\GabHorsSiteController.java (Ctrl+F : import org.springframework.http.HttpStatus)</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> org.springframework.http.HttpHeaders;
+<span class="k">import</span> org.springframework.http.HttpStatus;
+<span class="k">import</span> org.springframework.http.MediaType;
+<span class="k">import</span> org.springframework.http.ResponseEntity;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>GabHorsSiteController.java — imports (l. 27-28) — AVANT</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\controller\publicapi\gab\GabHorsSiteController.java (Ctrl+F : import java.util.List)</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>GabHorsSiteController.java — imports (l. 27-28) — APRÈS</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\controller\publicapi\gab\GabHorsSiteController.java (Ctrl+F : import java.util.List)</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> java.time.LocalDateTime;
+<span class="k">import</span> java.time.format.DateTimeFormatter;
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Optional;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>GabHorsSiteController.java — endpoint (l. 38-42) — AVANT</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\controller\publicapi\gab\GabHorsSiteController.java (Ctrl+F : private static final String GERER)</span></div><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> GERER = <span class="s">&quot;hasAuthority(&#x27;GDF_GERER_GAB&#x27;)&quot;</span>;
+
+    <span class="k">private</span> <span class="k">final</span> GabHorsSiteFacade gabHorsSiteFacade;
+
+    <span class="c">/** Liste fermée des villes de rattachement : alimente la liste déroulante de l&#x27;écran GAB. */</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>GabHorsSiteController.java — endpoint (l. 38-42) — APRÈS</b><br><span class="path">utilisateurs-ci\src\main\java\com\bnpp\irb\qlickflow\admin\controller\publicapi\gab\GabHorsSiteController.java (Ctrl+F : private static final String GERER)</span></div><p class="note"><code>/export</code> est un chemin littéral : il passe avant <code>/{id}</code>, comme <code>/villes</code> et <code>/pages</code>.</p><pre><button class="copy">Copier</button><code>    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> GERER = <span class="s">&quot;hasAuthority(&#x27;GDF_GERER_GAB&#x27;)&quot;</span>;
+
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> CONTENT_TYPE_XLSX = <span class="s">&quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;</span>;
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> DateTimeFormatter HORODATAGE = DateTimeFormatter.ofPattern(<span class="s">&quot;yyyyMMdd-HHmmss&quot;</span>);
+
+    <span class="k">private</span> <span class="k">final</span> GabHorsSiteFacade gabHorsSiteFacade;
+
+    <span class="c">/** AER_LM-357 : extraction Excel de tous les GAB hors site (mêmes droits que la consultation). */</span>
+    @GetMapping(value = <span class="s">&quot;/export&quot;</span>, produces = CONTENT_TYPE_XLSX)
+    @PreAuthorize(CONSULTER)
+    <span class="k">public</span> ResponseEntity&lt;byte[]&gt; exportGabsHorsSite() {
+        byte[] fichier = gabHorsSiteFacade.exporterGabsHorsSite();
+        <span class="k">String</span> nom = <span class="s">&quot;QlickFlow_GAB-Hors-Site_extraction_&quot;</span> + LocalDateTime.now().format(HORODATAGE) + <span class="s">&quot;.xlsx&quot;</span>;
+        <span class="k">return</span> ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, <span class="s">&quot;attachment; filename=\&quot;&quot;</span> + nom + <span class="s">&quot;\&quot;&quot;</span>)
+                .contentType(MediaType.parseMediaType(CONTENT_TYPE_XLSX))
+                .body(fichier);
+    }
+
+    <span class="c">/** Liste fermée des villes de rattachement : alimente la liste déroulante de l&#x27;écran GAB. */</span></code></pre></div><h2 id="tests-back">5. utilisateurs-ci — tests</h2><div class="card">Trois classes nouvelles : les tests existants ne sont pas modifiés et restent verts (<code>GabHorsSiteFacadeImplTest</code> reçoit <code>null</code> pour le nouveau champ, qu'il n'utilise pas).</div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>GabHorsSiteExportServiceImplTest.java (3 tests)</b><br><span class="path">utilisateurs-ci\src\test\java\com\bnpp\irb\qlickflow\admin\service\gab\impl\GabHorsSiteExportServiceImplTest.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bnpp.irb.qlickflow.admin.service.gab.impl;
+
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.dto.funddistributor.FundProviderDTO;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.dto.gab.GabHorsSiteDTO;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.dto.gab.SimpleAgenceDTO;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.dto.gab.VilleDTO;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.gab.EtatGab;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Row;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Sheet;
+<span class="k">import</span> org.apache.poi.ss.usermodel.Workbook;
+<span class="k">import</span> org.apache.poi.xssf.usermodel.XSSFWorkbook;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+
+<span class="k">import</span> java.io.ByteArrayInputStream;
+<span class="k">import</span> java.io.IOException;
+<span class="k">import</span> java.math.BigDecimal;
+<span class="k">import</span> java.util.List;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertNull;
+
+<span class="k">class</span> GabHorsSiteExportServiceImplTest {
+
+    <span class="k">private</span> <span class="k">final</span> GabHorsSiteExportServiceImpl service = <span class="k">new</span> GabHorsSiteExportServiceImpl();
+
+    <span class="k">private</span> <span class="k">static</span> GabHorsSiteDTO gabComplet() {
+        <span class="k">return</span> GabHorsSiteDTO.builder()
+                .id(1L).idGab(<span class="s">&quot;130120017&quot;</span>).nom(<span class="s">&quot;CASA VAL D&#x27;ANFA&quot;</span>).numeroCompte(<span class="s">&quot;0112081010030370&quot;</span>)
+                .agence(SimpleAgenceDTO.builder().id(42L).code(<span class="s">&quot;1120&quot;</span>).nom(<span class="s">&quot;CASA VAL D&#x27;ANFA&quot;</span>).build())
+                .ville(VilleDTO.builder().id(<span class="s">&quot;CASABLANCA&quot;</span>).nom(<span class="s">&quot;Casablanca&quot;</span>).build())
+                .transporteur(FundProviderDTO.builder().id(<span class="s">&quot;BRINKS&quot;</span>).nom(<span class="s">&quot;Brink&#x27;s&quot;</span>).build())
+                .prixUnitaire(<span class="k">new</span> BigDecimal(<span class="s">&quot;350.50&quot;</span>))
+                .etat(EtatGab.HORS_LIGNE)
+                .build();
+    }
+
+    <span class="k">private</span> Workbook lire(List&lt;GabHorsSiteDTO&gt; gabs) <span class="k">throws</span> IOException {
+        <span class="k">return</span> <span class="k">new</span> XSSFWorkbook(<span class="k">new</span> ByteArrayInputStream(service.exporter(gabs)));
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;liste vide : une seule feuille, qui ne porte que la ligne d&#x27;en-têtes&quot;</span>)
+    <span class="k">void</span> exporter_listeVide_enTetesSeulement() <span class="k">throws</span> IOException {
+        <span class="k">try</span> (Workbook classeur = lire(List.of())) {
+            Sheet feuille = classeur.getSheet(GabHorsSiteExportServiceImpl.FEUILLE);
+            Row enTetes = feuille.getRow(0);
+
+            assertEquals(1, classeur.getNumberOfSheets());
+            assertEquals(0, feuille.getLastRowNum());
+            assertEquals(GabHorsSiteExportServiceImpl.EN_TETES.size(), enTetes.getLastCellNum());
+            assertEquals(<span class="s">&quot;ID GAB&quot;</span>, enTetes.getCell(0).getStringCellValue());
+            assertEquals(<span class="s">&quot;État&quot;</span>, enTetes.getCell(9).getStringCellValue());
+        }
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;un GAB : une ligne, mêmes informations que l&#x27;écran + numéro de compte&quot;</span>)
+    <span class="k">void</span> exporter_unGab_uneLigneRenseignee() <span class="k">throws</span> IOException {
+        <span class="k">try</span> (Workbook classeur = lire(List.of(gabComplet()))) {
+            Row ligne = classeur.getSheet(GabHorsSiteExportServiceImpl.FEUILLE).getRow(1);
+
+            assertEquals(<span class="s">&quot;130120017&quot;</span>, ligne.getCell(0).getStringCellValue());
+            assertEquals(<span class="s">&quot;CASA VAL D&#x27;ANFA&quot;</span>, ligne.getCell(1).getStringCellValue());
+            assertEquals(<span class="s">&quot;0112081010030370&quot;</span>, ligne.getCell(2).getStringCellValue());
+            assertEquals(<span class="s">&quot;1120&quot;</span>, ligne.getCell(3).getStringCellValue());
+            assertEquals(<span class="s">&quot;CASA VAL D&#x27;ANFA&quot;</span>, ligne.getCell(4).getStringCellValue());
+            assertEquals(<span class="s">&quot;Casablanca&quot;</span>, ligne.getCell(5).getStringCellValue());
+            assertEquals(<span class="s">&quot;Brink&#x27;s&quot;</span>, ligne.getCell(6).getStringCellValue());
+            assertEquals(350.50, ligne.getCell(7).getNumericCellValue());
+            assertEquals(<span class="s">&quot;&quot;</span>, ligne.getCell(8).getStringCellValue());
+            assertEquals(<span class="s">&quot;Hors ligne&quot;</span>, ligne.getCell(9).getStringCellValue());
+        }
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;champs absents : cellules vides, état En ligne&quot;</span>)
+    <span class="k">void</span> exporter_champsAbsents_cellulesVides() <span class="k">throws</span> IOException {
+        GabHorsSiteDTO minimal = GabHorsSiteDTO.builder().idGab(<span class="s">&quot;130092026&quot;</span>).etat(EtatGab.EN_LIGNE).build();
+
+        <span class="k">try</span> (Workbook classeur = lire(List.of(gabComplet(), minimal))) {
+            Sheet feuille = classeur.getSheet(GabHorsSiteExportServiceImpl.FEUILLE);
+            Row ligne = feuille.getRow(2);
+
+            assertEquals(2, feuille.getLastRowNum());
+            assertEquals(<span class="s">&quot;130092026&quot;</span>, ligne.getCell(0).getStringCellValue());
+            assertEquals(<span class="s">&quot;&quot;</span>, ligne.getCell(3).getStringCellValue());
+            assertEquals(<span class="s">&quot;&quot;</span>, ligne.getCell(6).getStringCellValue());
+            assertNull(ligne.getCell(7));
+            assertEquals(<span class="s">&quot;En ligne&quot;</span>, ligne.getCell(9).getStringCellValue());
+        }
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>GabHorsSiteFacadeImplExportTest.java (1 test)</b><br><span class="path">utilisateurs-ci\src\test\java\com\bnpp\irb\qlickflow\admin\facade\impl\GabHorsSiteFacadeImplExportTest.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bnpp.irb.qlickflow.admin.facade.impl;
+
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.dto.gab.GabHorsSiteDTO;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.entities.gab.GabHorsSiteEntity;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.mapper.GabHorsSiteMapper;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.mapper.VilleMapper;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.service.gab.GabHorsSiteExportService;
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.service.gab.GabHorsSiteService;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.InjectMocks;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+
+<span class="k">import</span> java.util.List;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertSame;
+
+@ExtendWith(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> GabHorsSiteFacadeImplExportTest {
+
+    @Mock GabHorsSiteService gabHorsSiteService;
+    @Mock GabHorsSiteMapper gabHorsSiteMapper;
+    @Mock VilleMapper villeMapper;
+    @Mock GabHorsSiteExportService gabHorsSiteExportService;
+
+    @InjectMocks GabHorsSiteFacadeImpl facade;
+
+    @Test
+    @DisplayName(<span class="s">&quot;exporterGabsHorsSite : la liste de l&#x27;écran (findAll) part telle quelle à l&#x27;extraction&quot;</span>)
+    <span class="k">void</span> exporter_transmetLaListeComplete() {
+        List&lt;GabHorsSiteEntity&gt; entites = List.of(GabHorsSiteEntity.builder().id(1L).idGab(<span class="s">&quot;130120017&quot;</span>).build());
+        List&lt;GabHorsSiteDTO&gt; dtos = List.of(GabHorsSiteDTO.builder().id(1L).idGab(<span class="s">&quot;130120017&quot;</span>).build());
+        byte[] fichier = {1, 2, 3};
+        Mockito.when(gabHorsSiteService.findAll()).thenReturn(entites);
+        Mockito.when(gabHorsSiteMapper.toDtoList(entites)).thenReturn(dtos);
+        Mockito.when(gabHorsSiteExportService.exporter(dtos)).thenReturn(fichier);
+
+        assertSame(fichier, facade.exporterGabsHorsSite());
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>GabHorsSiteControllerExportTest.java (1 test)</b><br><span class="path">utilisateurs-ci\src\test\java\com\bnpp\irb\qlickflow\admin\controller\publicapi\gab\GabHorsSiteControllerExportTest.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bnpp.irb.qlickflow.admin.controller.publicapi.gab;
+
+<span class="k">import</span> com.bnpp.irb.qlickflow.admin.facade.GabHorsSiteFacade;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.junit.jupiter.api.extension.ExtendWith;
+<span class="k">import</span> org.mockito.InjectMocks;
+<span class="k">import</span> org.mockito.Mock;
+<span class="k">import</span> org.mockito.Mockito;
+<span class="k">import</span> org.mockito.junit.jupiter.MockitoExtension;
+<span class="k">import</span> org.springframework.http.HttpHeaders;
+<span class="k">import</span> org.springframework.http.HttpStatus;
+<span class="k">import</span> org.springframework.http.ResponseEntity;
+
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertArrayEquals;
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertEquals;
+<span class="k">import</span> <span class="k">static</span> org.junit.jupiter.api.Assertions.assertTrue;
+
+@ExtendWith(MockitoExtension.<span class="k">class</span>)
+<span class="k">class</span> GabHorsSiteControllerExportTest {
+
+    @Mock GabHorsSiteFacade gabHorsSiteFacade;
+
+    @InjectMocks GabHorsSiteController controller;
+
+    @Test
+    @DisplayName(<span class="s">&quot;GET /export : 200, fichier xlsx en pièce jointe horodatée&quot;</span>)
+    <span class="k">void</span> export_renvoieLeFichierEnPieceJointe() {
+        byte[] fichier = {1, 2, 3};
+        Mockito.when(gabHorsSiteFacade.exporterGabsHorsSite()).thenReturn(fichier);
+
+        ResponseEntity&lt;byte[]&gt; reponse = controller.exportGabsHorsSite();
+
+        assertEquals(HttpStatus.OK, reponse.getStatusCode());
+        assertArrayEquals(fichier, reponse.getBody());
+        assertEquals(GabHorsSiteController.CONTENT_TYPE_XLSX, <span class="k">String</span>.valueOf(reponse.getHeaders().getContentType()));
+        <span class="k">String</span> disposition = reponse.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION);
+        assertTrue(disposition.matches(<span class="s">&quot;attachment; filename=\&quot;QlickFlow_GAB-Hors-Site_extraction_\\d{8}-\\d{6}\\.xlsx\&quot;&quot;</span>));
+    }
+}</code></pre></div><h2 id="front-service">6. portail-ci — service</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>gab-hors-site.service.ts (l. 56) — AVANT</b><br><span class="path">portail-ci\src\app\core\services\console\gab\gab-hors-site.service.ts (Ctrl+F : Liste fermée des villes)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">/** Liste fermée des villes (enum Ville). */</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>gab-hors-site.service.ts (l. 56) — APRÈS</b><br><span class="path">portail-ci\src\app\core\services\console\gab\gab-hors-site.service.ts (Ctrl+F : Liste fermée des villes)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">/** AER_LM-357 : extraction Excel de tous les GAB hors site (réponse binaire .xlsx). */</span>
+  exporterGabs(): Observable&lt;Blob&gt; {
+    <span class="k">return</span> <span class="k">this</span>.http.<span class="k">get</span>(<span class="s">`${this.baseUrl}/export`</span>, { responseType: <span class="s">&#x27;blob&#x27;</span> })
+      .pipe(catchError(<span class="k">this</span>.handleError));
+  }
+
+  <span class="c">/** Liste fermée des villes (enum Ville). */</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>gab-hors-site.service.spec.ts</b><br><span class="path">portail-ci\src\app\core\services\console\gab\gab-hors-site.service.spec.ts (juste au-dessus du dernier }); du fichier)</span></div><pre><button class="copy">Copier</button><code>  it(<span class="s">&#x27;exporterGabs : GET /export en blob (AER_LM-357)&#x27;</span>, () =&gt; {
+    <span class="k">let</span> fichier: Blob | undefined;
+    service.exporterGabs().subscribe(r =&gt; (fichier = r));
+    <span class="k">const</span> req = http.expectOne(<span class="s">`${URL}/export`</span>);
+    expect(req.request.method).toBe(<span class="s">&#x27;GET&#x27;</span>);
+    expect(req.request.responseType).toBe(<span class="s">&#x27;blob&#x27;</span>);
+    req.flush(<span class="k">new</span> Blob([<span class="s">&#x27;xlsx&#x27;</span>]));
+    expect(fichier?.size).toBe(4);
+  });</code></pre></div><h2 id="front-ecran">7. portail-ci — écran</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>console-gab-hors-site.component.ts — nom du fichier (l. 21) — AVANT</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.ts (Ctrl+F : DUREE_MESSAGE_SUCCES_MS = 4000)</span></div><pre><button class="copy">Copier</button><code><span class="k">const</span> DUREE_MESSAGE_SUCCES_MS = 4000;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>console-gab-hors-site.component.ts — nom du fichier (l. 21) — APRÈS</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.ts (Ctrl+F : DUREE_MESSAGE_SUCCES_MS = 4000)</span></div><pre><button class="copy">Copier</button><code><span class="k">const</span> DUREE_MESSAGE_SUCCES_MS = 4000;
+
+<span class="c">/** AER_LM-357 : QlickFlow_GAB-Hors-Site_extraction_aaaammjj-hhmmss.xlsx (même gabarit que l&#x27;extraction Gestion des fonds). */</span>
+<span class="k">export</span> <span class="k">function</span> nomFichierExtractionGab(date: Date): string {
+  <span class="k">const</span> deuxChiffres = (n: number): string =&gt; <span class="k">String</span>(n).padStart(2, <span class="s">&#x27;0&#x27;</span>);
+  <span class="k">const</span> jour = <span class="s">`${date.getFullYear()}${deuxChiffres(date.getMonth() + 1)}${deuxChiffres(date.getDate())}`</span>;
+  <span class="k">const</span> heure = <span class="s">`${deuxChiffres(date.getHours())}${deuxChiffres(date.getMinutes())}${deuxChiffres(date.getSeconds())}`</span>;
+  <span class="k">return</span> <span class="s">`QlickFlow_GAB-Hors-Site_extraction_${jour}-${heure}.xlsx`</span>;
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>console-gab-hors-site.component.ts — champ (l. 71) — AVANT</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.ts (Ctrl+F : enregistrementEnCours = false)</span></div><pre><button class="copy">Copier</button><code>  enregistrementEnCours = <span class="k">false</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>console-gab-hors-site.component.ts — champ (l. 71) — APRÈS</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.ts (Ctrl+F : enregistrementEnCours = false)</span></div><pre><button class="copy">Copier</button><code>  enregistrementEnCours = <span class="k">false</span>;
+  exportEnCours = <span class="k">false</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>console-gab-hors-site.component.ts — méthodes (l. 175) — AVANT</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.ts (Ctrl+F : // ----- Modale)</span></div><pre><button class="copy">Copier</button><code>  <span class="c">// ----- Modale</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>console-gab-hors-site.component.ts — méthodes (l. 175) — APRÈS</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.ts (Ctrl+F : // ----- Modale)</span></div><p class="note"><code>finalize</code> est déjà importé (l. 4).</p><pre><button class="copy">Copier</button><code>  <span class="c">// ----- Extraction Excel (AER_LM-357) : tous les GAB, quelle que soit la recherche saisie</span>
+
+  exporter(): <span class="k">void</span> {
+    <span class="k">if</span> (<span class="k">this</span>.exportEnCours) {
+      <span class="k">return</span>;
+    }
+    <span class="k">this</span>.exportEnCours = <span class="k">true</span>;
+    <span class="k">this</span>.errorMessage = <span class="s">&#x27;&#x27;</span>;
+
+    <span class="k">this</span>.gabService.exporterGabs()
+      .pipe(finalize(() =&gt; (<span class="k">this</span>.exportEnCours = <span class="k">false</span>)))
+      .subscribe({
+        next: (fichier: Blob) =&gt; <span class="k">this</span>.telecharger(fichier, nomFichierExtractionGab(<span class="k">new</span> Date())),
+        error: (error: Error) =&gt; {
+          <span class="k">this</span>.errorMessage = error.message || <span class="s">&quot;L&#x27;extraction Excel a échoué.&quot;</span>;
+        }
+      });
+  }
+
+  <span class="k">private</span> telecharger(fichier: Blob, nom: string): <span class="k">void</span> {
+    <span class="k">const</span> url = URL.createObjectURL(fichier);
+    <span class="k">const</span> lien = document.createElement(<span class="s">&#x27;a&#x27;</span>);
+    lien.href = url;
+    lien.download = nom;
+    lien.click();
+    URL.revokeObjectURL(url);
+  }
+
+  <span class="c">// ----- Modale</span></code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>console-gab-hors-site.component.html — bouton (l. 36-38) — AVANT</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.html (Ctrl+F : btn-ajouter)</span></div><pre><button class="copy">Copier</button><code>          &lt;button <span class="k">class</span>=<span class="s">&quot;btn-ajouter&quot;</span> *ngIf=<span class="s">&quot;peutGerer&quot;</span> (click)=<span class="s">&quot;ouvrirAjout()&quot;</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">&quot;btn-icon&quot;</span>&gt;&amp;#43;&lt;/span&gt; Ajouter un GAB
+          &lt;/button&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>console-gab-hors-site.component.html — bouton (l. 36-38) — APRÈS</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.html (Ctrl+F : btn-ajouter)</span></div><pre><button class="copy">Copier</button><code>          &lt;button <span class="k">class</span>=<span class="s">&quot;btn-exporter&quot;</span> (click)=<span class="s">&quot;exporter()&quot;</span> [disabled]=<span class="s">&quot;exportEnCours || loading || !gabs.length&quot;</span>
+                  title=<span class="s">&quot;Extraction Excel de tous les GAB hors site&quot;</span>&gt;
+            {{ exportEnCours ? <span class="s">&#x27;Extraction…&#x27;</span> : <span class="s">&#x27;Exporter (Excel)&#x27;</span> }}
+          &lt;/button&gt;
+          &lt;button <span class="k">class</span>=<span class="s">&quot;btn-ajouter&quot;</span> *ngIf=<span class="s">&quot;peutGerer&quot;</span> (click)=<span class="s">&quot;ouvrirAjout()&quot;</span>&gt;
+            &lt;span <span class="k">class</span>=<span class="s">&quot;btn-icon&quot;</span>&gt;&amp;#43;&lt;/span&gt; Ajouter un GAB
+          &lt;/button&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>console-gab-hors-site.component.scss — style du bouton — AVANT</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.scss (Ctrl+F : .btn-editer {)</span></div><pre><button class="copy">Copier</button><code>.btn-editer {
+  @extend %pilule;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>console-gab-hors-site.component.scss — style du bouton — APRÈS</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.scss (Ctrl+F : .btn-editer {)</span></div><pre><button class="copy">Copier</button><code><span class="c">// AER_LM-357 : extraction Excel</span>
+.btn-exporter {
+  @extend %pilule;
+  background: $vert;
+
+  &amp;:hover:not(:disabled) {
+    background: $vert-fonce;
+  }
+}
+
+.btn-editer {
+  @extend %pilule;</code></pre></div><h2 id="front-tests">8. portail-ci — tests de l&#x27;écran</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>console-gab-hors-site.component.spec.ts — import (l. 5) — AVANT</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { ConsoleGabHorsSiteComponent } <span class="k">from</span> <span class="s">&#x27;./console-gab-hors-site.component&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>console-gab-hors-site.component.spec.ts — import (l. 5) — APRÈS</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.spec.ts</span></div><pre><button class="copy">Copier</button><code><span class="k">import</span> { ConsoleGabHorsSiteComponent, nomFichierExtractionGab } <span class="k">from</span> <span class="s">&#x27;./console-gab-hors-site.component&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>console-gab-hors-site.component.spec.ts — espion (l. 26) — AVANT</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.spec.ts (Ctrl+F : createSpyObj(&#x27;GabHorsSiteService&#x27;)</span></div><pre><button class="copy">Copier</button><code>    gabService = jasmine.createSpyObj(<span class="s">&#x27;GabHorsSiteService&#x27;</span>, [<span class="s">&#x27;getGabs&#x27;</span>, <span class="s">&#x27;getVilles&#x27;</span>, <span class="s">&#x27;getTransporteurs&#x27;</span>, <span class="s">&#x27;getAgences&#x27;</span>, <span class="s">&#x27;createGab&#x27;</span>, <span class="s">&#x27;updateGab&#x27;</span>]);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>console-gab-hors-site.component.spec.ts — espion (l. 26) — APRÈS</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.spec.ts (Ctrl+F : createSpyObj(&#x27;GabHorsSiteService&#x27;)</span></div><pre><button class="copy">Copier</button><code>    gabService = jasmine.createSpyObj(<span class="s">&#x27;GabHorsSiteService&#x27;</span>, [<span class="s">&#x27;getGabs&#x27;</span>, <span class="s">&#x27;getVilles&#x27;</span>, <span class="s">&#x27;getTransporteurs&#x27;</span>, <span class="s">&#x27;getAgences&#x27;</span>, <span class="s">&#x27;createGab&#x27;</span>, <span class="s">&#x27;updateGab&#x27;</span>, <span class="s">&#x27;exporterGabs&#x27;</span>]);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>console-gab-hors-site.component.spec.ts — 3 tests</b><br><span class="path">portail-ci\src\app\console\components\console-gab-hors-site\console-gab-hors-site.component.spec.ts (juste au-dessus du dernier }); du fichier)</span></div><pre><button class="copy">Copier</button><code>  describe(<span class="s">&#x27;extraction Excel (AER_LM-357)&#x27;</span>, () =&gt; {
+    it(<span class="s">&#x27;nomme le fichier QlickFlow_GAB-Hors-Site_extraction_aaaammjj-hhmmss.xlsx&#x27;</span>, () =&gt; {
+      expect(nomFichierExtractionGab(<span class="k">new</span> Date(2026, 10, 25, 9, 5, 7)))
+        .toBe(<span class="s">&#x27;QlickFlow_GAB-Hors-Site_extraction_20261125-090507.xlsx&#x27;</span>);
+    });
+
+    it(<span class="s">&#x27;télécharge le fichier renvoyé par le service&#x27;</span>, () =&gt; {
+      fixture.detectChanges();
+      gabService.exporterGabs.and.returnValue(of(<span class="k">new</span> Blob([<span class="s">&#x27;xlsx&#x27;</span>])));
+      <span class="k">const</span> lien = document.createElement(<span class="s">&#x27;a&#x27;</span>);
+      <span class="k">const</span> clic = spyOn(lien, <span class="s">&#x27;click&#x27;</span>);
+      spyOn(document, <span class="s">&#x27;createElement&#x27;</span>).and.returnValue(lien);
+      spyOn(URL, <span class="s">&#x27;createObjectURL&#x27;</span>).and.returnValue(<span class="s">&#x27;blob:extraction&#x27;</span>);
+      spyOn(URL, <span class="s">&#x27;revokeObjectURL&#x27;</span>);
+
+      component.exporter();
+
+      expect(clic).toHaveBeenCalled();
+      expect(lien.download).toMatch(/^QlickFlow_GAB-Hors-Site_extraction_\d{8}-\d{6}\.xlsx$/);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith(<span class="s">&#x27;blob:extraction&#x27;</span>);
+      expect(component.exportEnCours).toBeFalse();
+    });
+
+    it(<span class="s">&#x27;affiche le message du service si l\&#x27;extraction échoue&#x27;</span>, () =&gt; {
+      fixture.detectChanges();
+      gabService.exporterGabs.and.returnValue(throwError(() =&gt; <span class="k">new</span> Error(<span class="s">&#x27;Le serveur est injoignable. Veuillez réessayer plus tard.&#x27;</span>)));
+
+      component.exporter();
+
+      expect(component.errorMessage).toContain(<span class="s">&#x27;injoignable&#x27;</span>);
+      expect(component.exportEnCours).toBeFalse();
+    });
+  });</code></pre></div><h2 id="verif">9. Vérification</h2><div class="card"><ol>
+<li>utilisateurs-ci : recharger Maven, Rebuild, puis les 3 nouvelles classes de test (5 verts) et <code>GabHorsSiteFacadeImplTest</code> / <code>GabHorsSiteControllerTest</code> toujours verts.</li>
+<li>portail-ci : <code>ng test --watch=false</code> — specs du service et de l'écran vertes.</li>
+<li>Console → Paramètres et configuration → GAB hors site : bouton vert « Exporter (Excel) » à gauche de « Ajouter un GAB ».</li>
+<li>Clic : téléchargement de <code>QlickFlow_GAB-Hors-Site_extraction_…xlsx</code> ; autant de lignes que de GAB dans le référentiel, même avec un texte dans RECHERCHER.</li>
+<li>Profil consultation seule (sans « Ajouter un GAB ») : le bouton Exporter est présent et fonctionne.</li>
+<li>Postman, <code>GET {{gateway}}/api/v1/public/users/gab/hors-site/export</code> : 200, en-tête <code>Content-Disposition: attachment; filename="QlickFlow_GAB-Hors-Site_extraction_….xlsx"</code>.</li>
+</ol></div><h2 id="savoir">10. À savoir</h2><div class="card"><ul>
+<li><b>Base des blocs AVANT</b> : côté back, tes captures du 25/11 ; côté front, mes livraisons 313 + retours QA (le HTML ainsi obtenu est bien celui de ta capture du jour ; le TS, le SCSS et les specs sont pris tels que livrés). Chaque AVANT a été retrouvé une seule fois dans ces fichiers.</li>
+<li><b>Non compilé de mon côté</b> (ni Spring ni POI dans mon environnement) : l'étape 1 et l'étape 2 de la vérification font foi.</li>
+<li><b>Une hypothèse</b> : <code>FundProviderDTO</code> a un builder et <code>getNom()</code>, comme <code>VilleDTO</code> qui a été calqué dessus. Je n'ai pas revu ce fichier aujourd'hui.</li>
+<li>La colonne Type porte le code (<code>H</code> / <code>D</code>), comme l'écran.</li>
+</ul></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>

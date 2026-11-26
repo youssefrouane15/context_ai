@@ -1,0 +1,63 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-356 — Améliorations suite recette (Historique des demandes, Caisse Centrale)</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-356 — Améliorations suite recette (Historique des demandes, Caisse Centrale)</h1><p>fund-management-front · date de fin, filtre Zones, reporting mensuel à partir de novembre 2026 · 26/11/2026</p></header><nav><a href="#resume">Ce qui change</a><a href="#date-zone">Date de fin et chargement des zones</a><a href="#zone">Filtre « Zones » sur l&#x27;Historique</a><a href="#reporting">Reporting mensuel à partir de novembre 2026</a><a href="#verif">Vérification</a><a href="#savoir">À savoir</a></nav><main><h2 id="resume">0. Ce qui change</h2><div class="card">Écran <b>Historique des Demandes</b>, ouvert par un profil Caisse Centrale (admin ou non) :
+<ol>
+<li><b>Date de fin</b> = date du jour à l'ouverture.</li>
+<li><b>Filtre « Zones »</b> affiché, sur « Toutes les zones » par défaut. Il s'applique à la liste, au compteur d'urgentes et à l'extraction Excel.</li>
+<li><b>Reporting mensuel</b> : la liste des périodes commence à novembre 2026.</li>
+</ol>
+Le profil Caisse Centrale est reconnu par <code>peutExporter()</code> : c'est déjà lui qui affiche « Exporter (Excel) » et l'encart Reporting sur cet écran. Les profils agence (DA, chef de caisse) ne voient aucun changement.<br>
+3 fichiers touchés, 4 éditions. Rien côté back : la zone est déjà un critère de <code>GET /cash</code> et de <code>GET /cash/export</code>.</div><h2 id="date-zone">1. Date de fin et chargement des zones</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>demandes-list.component.ts — ngOnInit (l. 159-164) — AVANT</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts (Ctrl+F : ngOnInit(): void)</span></div><pre><button class="copy">Copier</button><code>  ngOnInit(): <span class="k">void</span> {
+    <span class="k">this</span>.contexteUtilisateur.charger();
+    <span class="k">if</span> (<span class="k">this</span>.estCaisseCentrale) {
+      <span class="k">this</span>.referentiel.charger();
+      <span class="k">this</span>.kpi.charger();
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.ts — ngOnInit (l. 159-164) — APRÈS</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts (Ctrl+F : ngOnInit(): void)</span></div><p class="note">Placé avant la construction de <code>filtres$</code> : la première recherche part déjà avec la date du jour, un seul appel.</p><pre><button class="copy">Copier</button><code>  ngOnInit(): <span class="k">void</span> {
+    <span class="k">this</span>.contexteUtilisateur.charger();
+    <span class="k">if</span> (<span class="k">this</span>.estCaisseCentrale) {
+      <span class="k">this</span>.referentiel.charger();
+      <span class="k">this</span>.kpi.charger();
+    } <span class="k">else</span> <span class="k">if</span> (<span class="k">this</span>.peutExporter()) {
+      <span class="c">// AER_LM-356 : Historique ouvert par un profil Caisse Centrale (admin ou non)</span>
+      <span class="k">this</span>.referentiel.charger();                        <span class="c">// alimente le filtre « Zones »</span>
+      <span class="k">this</span>.dateFinControl.setValue(dateIsoDuJour());     <span class="c">// date de fin = date du jour à l&#x27;ouverture</span>
+    }</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>demandes-list.component.ts — reinitialiserFiltres (l. 265) — AVANT</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts (Ctrl+F : reinitialiserFiltres)</span></div><pre><button class="copy">Copier</button><code>    <span class="k">this</span>.dateFinControl.setValue(<span class="k">this</span>.estCaisseCentrale ? dateIsoDuJour() : <span class="s">&#x27;&#x27;</span>);</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.ts — reinitialiserFiltres (l. 265) — APRÈS</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.ts (Ctrl+F : reinitialiserFiltres)</span></div><p class="note">Méthode sans appelant aujourd'hui ; alignée pour rester cohérente.</p><pre><button class="copy">Copier</button><code>    <span class="k">this</span>.dateFinControl.setValue(<span class="k">this</span>.estCaisseCentrale || <span class="k">this</span>.peutExporter() ? dateIsoDuJour() : <span class="s">&#x27;&#x27;</span>);</code></pre></div><h2 id="zone">2. Filtre « Zones » sur l&#x27;Historique</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>demandes-list.component.html — select Zones (l. 64-65) — AVANT</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html (Ctrl+F : champ__libelle&quot;&gt;Zones)</span></div><pre><button class="copy">Copier</button><code>        &lt;label <span class="k">class</span>=<span class="s">&quot;champ&quot;</span> *ngIf=<span class="s">&quot;estCaisseCentrale&quot;</span>&gt;
+          &lt;span <span class="k">class</span>=<span class="s">&quot;champ__libelle&quot;</span>&gt;Zones&lt;/span&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>demandes-list.component.html — select Zones (l. 64-65) — APRÈS</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\demandes-list.component.html (Ctrl+F : champ__libelle&quot;&gt;Zones)</span></div><p class="note">Seule la ligne 64 change. Le <code>label</code> de la ligne 71 (Transporteur) reste tel quel.</p><pre><button class="copy">Copier</button><code>        &lt;label <span class="k">class</span>=<span class="s">&quot;champ&quot;</span> *ngIf=<span class="s">&quot;estCaisseCentrale || peutExporter()&quot;</span>&gt;
+          &lt;span <span class="k">class</span>=<span class="s">&quot;champ__libelle&quot;</span>&gt;Zones&lt;/span&gt;</code></pre></div><h2 id="reporting">3. Reporting mensuel à partir de novembre 2026</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>reporting-mensuel.regles.ts — mois de départ (l. 7) — AVANT</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\reporting-mensuel.regles.ts (Ctrl+F : MOIS_MEP_REPORTING =)</span></div><pre><button class="copy">Copier</button><code><span class="k">export</span> <span class="k">const</span> MOIS_MEP_REPORTING = <span class="s">&#x27;2026-01&#x27;</span>;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-edit">ÉDITION</span><b>reporting-mensuel.regles.ts — mois de départ (l. 7) — APRÈS</b><br><span class="path">fund-management-front\src\app\features\fund-management\presenter\pages\demandes-list\reporting-mensuel.regles.ts (Ctrl+F : MOIS_MEP_REPORTING =)</span></div><p class="note">Résultat de <code>moisDisponibles</code> exécuté avec ta fonction : aujourd'hui → « novembre-2026 » seul ; le 15/01/2027 → janvier-2027, décembre-2026, novembre-2026.</p><pre><button class="copy">Copier</button><code><span class="c">/** AER_LM-356 : le reporting mensuel ne propose que les mois à partir de novembre 2026. */</span>
+<span class="k">export</span> <span class="k">const</span> MOIS_MEP_REPORTING = <span class="s">&#x27;2026-11&#x27;</span>;</code></pre></div><h2 id="verif">4. Vérification</h2><div class="card"><ol>
+<li><code>ng test --watch=false</code> : rien ne doit casser. Si une spec de <code>reporting-mensuel.regles</code> attend « janvier-2026 » dans la liste par défaut, c'est elle qui est à aligner : envoie-la-moi.</li>
+<li>Profil Caisse Centrale → menu Historique des demandes : « Date fin » = aujourd'hui, select « Zones » visible sur « Toutes les zones (n) ».</li>
+<li>Choisir une zone : la liste se réduit ; « Exporter (Excel) » ne sort que cette zone.</li>
+<li>Choisir « GAB-Hors-Site » dans Zones : seules les demandes monétique restent.</li>
+<li>Encart Reporting mensuel : une seule période, « novembre-2026 ».</li>
+<li>Profil Caisse Centrale Admin : mêmes constats.</li>
+<li>Profil DA ou chef de caisse → Historique : « Date fin » vide, pas de select Zones (inchangé).</li>
+<li>Écran Caisse Centrale « Demandes de Fonds &amp; Ramassages » : inchangé.</li>
+</ol></div><h2 id="savoir">5. À savoir</h2><div class="card"><ul>
+<li>Les blocs AVANT viennent de tes captures (composant du 25/11, règles reporting du 26/11). Non compilé de mon côté.</li>
+<li>Pas de nouveau test : aucune règle n'est ajoutée, seulement une constante, une condition d'affichage et 4 lignes dans <code>ngOnInit</code>. Je n'ai pas vu les specs existantes de l'écran.</li>
+<li>Tout profil qui a l'habilitation « exporter » sur l'Historique est concerné, pas seulement la Caisse Centrale au sens strict.</li>
+<li>Ligne 116 : je lis <code>!this.estCaisseCentrale &amp;&amp; …exporter</code>. Tout repose sur ce <code>!</code>.</li>
+</ul></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>

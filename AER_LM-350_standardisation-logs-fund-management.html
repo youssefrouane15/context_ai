@@ -1,0 +1,543 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AER_LM-350 — Standardisation des logs fund-management</title><style>
+:root{--v:#0B6B4F;--vf:#07402F;--or:#B8892C;--bg:#f6f8f7;--txt:#1d2b27;--pre:#0f1a17}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);background:var(--bg)}
+header{background:linear-gradient(120deg,var(--vf),var(--v));color:#fff;padding:26px 32px}header h1{margin:0 0 6px;font-size:23px}header p{margin:0;opacity:.9}
+nav{position:sticky;top:0;z-index:5;background:var(--vf);padding:8px 24px;display:flex;flex-wrap:wrap;gap:6px}
+nav a{color:#fff;text-decoration:none;font-size:13px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,.1)}nav a:hover{background:var(--or)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+h2{color:var(--vf);border-left:5px solid var(--or);padding-left:12px;margin:36px 0 12px;font-size:20px;scroll-margin-top:50px}
+h3{color:var(--v);margin:26px 0 8px;font-size:16px}
+.card{background:#fff;border:1px solid #dfe7e3;border-radius:8px;padding:16px 20px;margin:12px 0}
+.fic{background:#fff;border:1px solid #dfe7e3;border-radius:8px;margin:14px 0;overflow:hidden}
+.fic-h{padding:10px 16px;background:#eef3f0;border-bottom:1px solid #dfe7e3}
+.path{font-family:Consolas,monospace;font-size:12px;color:#4d6673;word-break:break-all}
+.note{margin:8px 16px 0;font-size:14px;color:#333}
+code{background:#eef3f0;padding:1px 5px;border-radius:4px;font-family:Consolas,"Fira Code",monospace;font-size:13px}
+pre{position:relative;margin:10px 12px 12px;background:var(--pre)!important;color:#e6efe9;padding:16px;padding-top:34px;border-radius:8px;overflow-x:auto;font:13px/1.5 Consolas,"Fira Code",monospace;border-left:4px solid var(--or)}
+pre code{background:none;padding:0;color:inherit;font-size:13px}
+.copy{position:absolute;top:6px;right:8px;background:var(--or);color:#fff;border:0;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-right:8px}
+.t-new{background:#dff3e8;color:#0B6B4F}.t-add{background:#dbe9ff;color:#1a3a6b}.t-edit{background:#fff1d6;color:#8a5f00}.t-del{background:#fde3e3;color:#a11f1f}
+.k{color:#ffb454}.s{color:#9ece6a}.c{color:#7f8f88;font-style:italic}.a{color:#e0af68}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe7e3;padding:8px 10px;vertical-align:top;text-align:left}th{background:#eef3f0;color:var(--vf)}
+ol,ul{padding-left:22px}li{margin:4px 0}
+.warn{border-left:4px solid #B13E19;background:#FDF3F0;padding:10px 14px;border-radius:6px;margin:10px 0}
+</style></head><body><header><h1>AER_LM-350 — Standardisation des logs fund-management</h1><p>Format ECS identique à api-gateway-ci · journal d&#x27;accès HTTP · uid de l&#x27;appelant · 25/11/2026</p></header><nav><a href="#resume">Ce qui change</a><a href="#logback">logback-spring.xml</a><a href="#yaml">application.yaml</a><a href="#filtres">Journal d&#x27;accès et uid de l&#x27;appelant</a><a href="#tests">Tests</a><a href="#deploiement">Déploiement</a><a href="#verif">Vérification</a><a href="#savoir">À savoir</a></nav><main><h2 id="resume">0. Ce qui change</h2><div class="card"><ul>
+<li><b>Format</b> : chaque ligne sort au format ECS de l'api-gateway — mêmes clés, même ordre, même horodatage UTC.</li>
+<li><b>Journal d'accès</b> : une ligne <code>HTTP_ACCESS</code> par requête reçue, mêmes champs que la gateway, 401 / 403 compris.</li>
+<li><b>Qui</b> : <code>user.name</code> (uid) sur toutes les lignes d'une requête authentifiée.</li>
+<li><b>Erreurs</b> : <code>error.type</code>, <code>error.message</code>, <code>error.stack_trace</code>.</li>
+</ul>
+4 fichiers nouveaux, 1 fichier remplacé (<code>logback-spring.xml</code>), 1 bloc ajouté au yaml. <b>Aucune dépendance ajoutée, aucune classe existante modifiée.</b></div><div class="fic"><div class="fic-h"><b>AVANT — une ligne actuelle (noter « application » écrit deux fois)</b></div><pre><code>{&quot;timestamp&quot;:&quot;2026-11-25T17:13:34.729528521Z&quot;,&quot;message&quot;:&quot;Demande 20261125-1104-03 soumise&quot;,&quot;logger_name&quot;:&quot;c.b.w.f.m.s.d.r.CashDemandUseCaseImpl&quot;,&quot;thread_name&quot;:&quot;main&quot;,&quot;level&quot;:&quot;INFO&quot;,&quot;application&quot;:&quot;fund-management&quot;,&quot;traceId&quot;:&quot;6b070999b01a7c7b6ae8cc508e0cd964&quot;,&quot;spanId&quot;:&quot;55e1fd8714ed72f2&quot;,&quot;application&quot;:&quot;fund-management&quot;}</code></pre></div><div class="fic"><div class="fic-h"><b>APRÈS — un log métier, sa ligne d'accès, puis un appel sans session (401)</b></div><pre><code>{&quot;@timestamp&quot;:&quot;2026-11-25T17:13:33.682842119Z&quot;,&quot;ecs.version&quot;:&quot;8.17.0&quot;,&quot;service&quot;:{&quot;name&quot;:&quot;fund-management&quot;,&quot;version&quot;:&quot;1.4.0-SNAPSHOT&quot;,&quot;environment&quot;:&quot;LOCAL&quot;,&quot;node&quot;:{&quot;name&quot;:&quot;CASM00145979&quot;}},&quot;app&quot;:{&quot;code&quot;:&quot;A104304&quot;},&quot;log.level&quot;:&quot;INFO&quot;,&quot;process.thread.name&quot;:&quot;http-nio-8300-exec-3&quot;,&quot;log.logger&quot;:&quot;com.bmci.workflow.fund.management.service.domain.retail.CashDemandUseCaseImpl&quot;,&quot;message&quot;:&quot;Demande 20261125-1104-03 soumise&quot;,&quot;trace&quot;:{&quot;id&quot;:&quot;6b070999b01a7c7b6ae8cc508e0cd964&quot;},&quot;span&quot;:{&quot;id&quot;:&quot;9c1f0f6a2b7d4e11&quot;},&quot;user.name&quot;:&quot;j43709&quot;}
+{&quot;@timestamp&quot;:&quot;2026-11-25T17:13:33.697300947Z&quot;,&quot;ecs.version&quot;:&quot;8.17.0&quot;,&quot;service&quot;:{&quot;name&quot;:&quot;fund-management&quot;,&quot;version&quot;:&quot;1.4.0-SNAPSHOT&quot;,&quot;environment&quot;:&quot;LOCAL&quot;,&quot;node&quot;:{&quot;name&quot;:&quot;CASM00145979&quot;}},&quot;app&quot;:{&quot;code&quot;:&quot;A104304&quot;},&quot;log.level&quot;:&quot;INFO&quot;,&quot;process.thread.name&quot;:&quot;http-nio-8300-exec-3&quot;,&quot;log.logger&quot;:&quot;HTTP_ACCESS&quot;,&quot;message&quot;:&quot;HTTP request completed&quot;,&quot;trace&quot;:{&quot;id&quot;:&quot;6b070999b01a7c7b6ae8cc508e0cd964&quot;},&quot;span&quot;:{&quot;id&quot;:&quot;9c1f0f6a2b7d4e11&quot;},&quot;event.category&quot;:&quot;web&quot;,&quot;event.type&quot;:&quot;access&quot;,&quot;event.action&quot;:&quot;http-server-request&quot;,&quot;event.outcome&quot;:&quot;success&quot;,&quot;event.duration&quot;:15649906,&quot;http.request.method&quot;:&quot;PATCH&quot;,&quot;http.response.status_code&quot;:200,&quot;url.path&quot;:&quot;/cash/5b0e7c1e-2f7a-4d0b-9d5e-6a1c1f0c2a11/submit&quot;,&quot;client.address&quot;:&quot;127.0.0.1&quot;,&quot;user.name&quot;:&quot;j43709&quot;}
+{&quot;@timestamp&quot;:&quot;2026-11-25T17:13:33.699150146Z&quot;,&quot;ecs.version&quot;:&quot;8.17.0&quot;,&quot;service&quot;:{&quot;name&quot;:&quot;fund-management&quot;,&quot;version&quot;:&quot;1.4.0-SNAPSHOT&quot;,&quot;environment&quot;:&quot;LOCAL&quot;,&quot;node&quot;:{&quot;name&quot;:&quot;CASM00145979&quot;}},&quot;app&quot;:{&quot;code&quot;:&quot;A104304&quot;},&quot;log.level&quot;:&quot;WARN&quot;,&quot;process.thread.name&quot;:&quot;http-nio-8300-exec-3&quot;,&quot;log.logger&quot;:&quot;HTTP_ACCESS&quot;,&quot;message&quot;:&quot;HTTP request completed&quot;,&quot;trace&quot;:{&quot;id&quot;:&quot;0af7651916cd43dd8448eb211c80319c&quot;},&quot;span&quot;:{&quot;id&quot;:&quot;b7ad6b7169203331&quot;},&quot;event.category&quot;:&quot;web&quot;,&quot;event.type&quot;:&quot;access&quot;,&quot;event.action&quot;:&quot;http-server-request&quot;,&quot;event.outcome&quot;:&quot;failure&quot;,&quot;event.duration&quot;:19919,&quot;http.request.method&quot;:&quot;GET&quot;,&quot;http.response.status_code&quot;:401,&quot;url.path&quot;:&quot;/cash&quot;,&quot;client.address&quot;:&quot;127.0.0.1&quot;}</code></pre></div><div class="card"><table>
+<tr><th>Avant</th><th>Après</th></tr>
+<tr><td><code>timestamp</code></td><td><code>@timestamp</code></td></tr>
+<tr><td><code>level</code></td><td><code>log.level</code></td></tr>
+<tr><td><code>logger_name</code> (abrégé)</td><td><code>log.logger</code> (nom complet)</td></tr>
+<tr><td><code>thread_name</code></td><td><code>process.thread.name</code></td></tr>
+<tr><td><code>application</code> (en double)</td><td><code>service.name</code> + <code>service.version</code>, <code>service.environment</code>, <code>service.node.name</code>, <code>app.code</code>, <code>ecs.version</code></td></tr>
+<tr><td><code>traceId</code> / <code>spanId</code></td><td><code>trace.id</code> / <code>span.id</code></td></tr>
+<tr><td><code>uid</code></td><td><code>user.name</code></td></tr>
+<tr><td><code>stack_trace</code></td><td><code>error.stack_trace</code> + <code>error.type</code>, <code>error.message</code></td></tr>
+<tr><td>—</td><td>ligne <code>HTTP_ACCESS</code> : <code>event.*</code>, <code>http.request.method</code>, <code>http.response.status_code</code>, <code>url.path</code>, <code>client.address</code></td></tr>
+</table></div><h2 id="logback">1. logback-spring.xml</h2><div class="fic"><div class="fic-h"><span class="tag t-del">SUPPRIMER</span><b>AVANT — fichier actuel (l. 1-33)</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\logback-spring.xml</span></div><pre><button class="copy">Copier</button><code>&lt;?xml version=<span class="s">&quot;1.0&quot;</span> encoding=<span class="s">&quot;UTF-8&quot;</span>?&gt;
+&lt;configuration&gt;
+    &lt;springProperty scope=<span class="s">&quot;context&quot;</span> name=<span class="s">&quot;application&quot;</span> source=<span class="s">&quot;spring.application.name&quot;</span> defaultValue=<span class="s">&quot;fund-management&quot;</span>/&gt;
+
+    &lt;appender name=<span class="s">&quot;JSON&quot;</span> <span class="k">class</span>=<span class="s">&quot;ch.qos.logback.core.ConsoleAppender&quot;</span>&gt;
+        &lt;encoder <span class="k">class</span>=<span class="s">&quot;net.logstash.logback.encoder.LogstashEncoder&quot;</span>&gt;
+            &lt;customFields&gt;{<span class="s">&quot;application&quot;</span>:<span class="s">&quot;${application}&quot;</span>}&lt;/customFields&gt;
+            <span class="c">&lt;!-- clés identiques à utilisateurs-ci : horodatage, niveau, logger, thread, message, MDC (traceId / spanId du tracing, correlationId…) --&gt;</span>
+            &lt;fieldNames&gt;
+                &lt;timestamp&gt;timestamp&lt;/timestamp&gt;
+                &lt;version&gt;[ignore]&lt;/version&gt;
+                &lt;levelValue&gt;[ignore]&lt;/levelValue&gt;
+            &lt;/fieldNames&gt;
+            &lt;includeMdcKeyName&gt;traceId&lt;/includeMdcKeyName&gt;
+            &lt;includeMdcKeyName&gt;spanId&lt;/includeMdcKeyName&gt;
+            &lt;includeMdcKeyName&gt;correlationId&lt;/includeMdcKeyName&gt;
+            &lt;includeMdcKeyName&gt;uid&lt;/includeMdcKeyName&gt;
+            &lt;includeMdcKeyName&gt;branchCode&lt;/includeMdcKeyName&gt;
+            &lt;shortenedLoggerNameLength&gt;40&lt;/shortenedLoggerNameLength&gt;
+            &lt;throwableConverter <span class="k">class</span>=<span class="s">&quot;net.logstash.logback.stacktrace.ShortenedThrowableConverter&quot;</span>&gt;
+                &lt;maxDepthPerThrowable&gt;30&lt;/maxDepthPerThrowable&gt;
+                &lt;rootCauseFirst&gt;<span class="k">true</span>&lt;/rootCauseFirst&gt;
+            &lt;/throwableConverter&gt;
+        &lt;/encoder&gt;
+    &lt;/appender&gt;
+
+    &lt;logger name=<span class="s">&quot;org.camunda&quot;</span> level=<span class="s">&quot;WARN&quot;</span>/&gt;
+    &lt;logger name=<span class="s">&quot;org.hibernate.SQL&quot;</span> level=<span class="s">&quot;WARN&quot;</span>/&gt;
+
+    &lt;root level=<span class="s">&quot;INFO&quot;</span>&gt;
+        &lt;appender-ref ref=<span class="s">&quot;JSON&quot;</span>/&gt;
+    &lt;/root&gt;
+&lt;/configuration&gt;</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER COMPLET</span><b>APRÈS — remplace tout le fichier</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\logback-spring.xml</span></div><p class="note">Même appender, mêmes niveaux (<code>org.camunda</code>, <code>org.hibernate.SQL</code>, root INFO). <code>LoggingEventCompositeJsonEncoder</code> est dans le <code>logstash-logback-encoder</code> 8.1 déjà présent : pom inchangé.</p><pre><button class="copy">Copier</button><code>&lt;?xml version=<span class="s">&quot;1.0&quot;</span> encoding=<span class="s">&quot;UTF-8&quot;</span>?&gt;
+&lt;configuration&gt;
+    <span class="c">&lt;!-- AER_LM-350 : format ECS, mêmes clés et même ordre que api-gateway-ci --&gt;</span>
+    &lt;springProperty name=<span class="s">&quot;serviceName&quot;</span> source=<span class="s">&quot;spring.application.name&quot;</span> defaultValue=<span class="s">&quot;fund-management&quot;</span>/&gt;
+    &lt;springProperty name=<span class="s">&quot;serviceVersion&quot;</span> source=<span class="s">&quot;logging.service-version&quot;</span> defaultValue=<span class="s">&quot;unknown&quot;</span>/&gt;
+    &lt;springProperty name=<span class="s">&quot;serviceEnvironment&quot;</span> source=<span class="s">&quot;logging.environment&quot;</span> defaultValue=<span class="s">&quot;LOCAL&quot;</span>/&gt;
+    &lt;springProperty name=<span class="s">&quot;nodeName&quot;</span> source=<span class="s">&quot;logging.node-name&quot;</span> defaultValue=<span class="s">&quot;local&quot;</span>/&gt;
+    &lt;springProperty name=<span class="s">&quot;appCode&quot;</span> source=<span class="s">&quot;logging.app-code&quot;</span> defaultValue=<span class="s">&quot;A104304&quot;</span>/&gt;
+
+    &lt;appender name=<span class="s">&quot;JSON&quot;</span> <span class="k">class</span>=<span class="s">&quot;ch.qos.logback.core.ConsoleAppender&quot;</span>&gt;
+        &lt;encoder <span class="k">class</span>=<span class="s">&quot;net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder&quot;</span>&gt;
+            &lt;providers&gt;
+                &lt;timestamp&gt;
+                    &lt;fieldName&gt;@timestamp&lt;/fieldName&gt;
+                    &lt;pattern&gt;[ISO_OFFSET_DATE_TIME]&lt;/pattern&gt;
+                    &lt;timeZone&gt;UTC&lt;/timeZone&gt;
+                &lt;/timestamp&gt;
+                <span class="c">&lt;!-- socle commun à toutes les lignes ; un champ vide (pas de trace en cours…) n&#x27;est pas écrit --&gt;</span>
+                &lt;pattern&gt;
+                    &lt;omitEmptyFields&gt;<span class="k">true</span>&lt;/omitEmptyFields&gt;
+                    &lt;pattern&gt;
+                        {
+                          <span class="s">&quot;ecs.version&quot;</span>: <span class="s">&quot;8.17.0&quot;</span>,
+                          <span class="s">&quot;service&quot;</span>: {
+                            <span class="s">&quot;name&quot;</span>: <span class="s">&quot;${serviceName}&quot;</span>,
+                            <span class="s">&quot;version&quot;</span>: <span class="s">&quot;${serviceVersion}&quot;</span>,
+                            <span class="s">&quot;environment&quot;</span>: <span class="s">&quot;${serviceEnvironment}&quot;</span>,
+                            <span class="s">&quot;node&quot;</span>: { <span class="s">&quot;name&quot;</span>: <span class="s">&quot;${nodeName}&quot;</span> }
+                          },
+                          <span class="s">&quot;app&quot;</span>: { <span class="s">&quot;code&quot;</span>: <span class="s">&quot;${appCode}&quot;</span> },
+                          <span class="s">&quot;log.level&quot;</span>: <span class="s">&quot;%level&quot;</span>,
+                          <span class="s">&quot;process.thread.name&quot;</span>: <span class="s">&quot;%thread&quot;</span>,
+                          <span class="s">&quot;log.logger&quot;</span>: <span class="s">&quot;%logger&quot;</span>,
+                          <span class="s">&quot;message&quot;</span>: <span class="s">&quot;%message&quot;</span>,
+                          <span class="s">&quot;trace&quot;</span>: { <span class="s">&quot;id&quot;</span>: <span class="s">&quot;%mdc{traceId}&quot;</span> },
+                          <span class="s">&quot;span&quot;</span>: { <span class="s">&quot;id&quot;</span>: <span class="s">&quot;%mdc{spanId}&quot;</span> }
+                        }
+                    &lt;/pattern&gt;
+                &lt;/pattern&gt;
+                <span class="c">&lt;!-- contexte de l&#x27;appelant : uid posé par UserLogContextFilter, écrit sous le nom ECS user.name --&gt;</span>
+                &lt;mdc&gt;
+                    &lt;includeMdcKeyName&gt;uid&lt;/includeMdcKeyName&gt;
+                    &lt;includeMdcKeyName&gt;branchCode&lt;/includeMdcKeyName&gt;
+                    &lt;includeMdcKeyName&gt;correlationId&lt;/includeMdcKeyName&gt;
+                    &lt;mdcKeyFieldName&gt;uid=user.name&lt;/mdcKeyFieldName&gt;
+                &lt;/mdc&gt;
+                <span class="c">&lt;!-- champs typés d&#x27;un évènement : log.atInfo().addKeyValue(&quot;event.duration&quot;, 12L)… --&gt;</span>
+                &lt;keyValuePairs/&gt;
+                &lt;arguments/&gt;
+                &lt;logstashMarkers/&gt;
+                <span class="c">&lt;!-- exception : error.type, error.message, error.stack_trace --&gt;</span>
+                &lt;throwableClassName&gt;
+                    &lt;fieldName&gt;error.<span class="k">type</span>&lt;/fieldName&gt;
+                    &lt;useSimpleClassName&gt;<span class="k">false</span>&lt;/useSimpleClassName&gt;
+                &lt;/throwableClassName&gt;
+                &lt;throwableMessage&gt;
+                    &lt;fieldName&gt;error.message&lt;/fieldName&gt;
+                &lt;/throwableMessage&gt;
+                &lt;stackTrace&gt;
+                    &lt;fieldName&gt;error.stack_trace&lt;/fieldName&gt;
+                    &lt;throwableConverter <span class="k">class</span>=<span class="s">&quot;net.logstash.logback.stacktrace.ShortenedThrowableConverter&quot;</span>&gt;
+                        &lt;maxDepthPerThrowable&gt;30&lt;/maxDepthPerThrowable&gt;
+                        &lt;rootCauseFirst&gt;<span class="k">true</span>&lt;/rootCauseFirst&gt;
+                    &lt;/throwableConverter&gt;
+                &lt;/stackTrace&gt;
+            &lt;/providers&gt;
+        &lt;/encoder&gt;
+    &lt;/appender&gt;
+
+    &lt;logger name=<span class="s">&quot;org.camunda&quot;</span> level=<span class="s">&quot;WARN&quot;</span>/&gt;
+    &lt;logger name=<span class="s">&quot;org.hibernate.SQL&quot;</span> level=<span class="s">&quot;WARN&quot;</span>/&gt;
+
+    &lt;root level=<span class="s">&quot;INFO&quot;</span>&gt;
+        &lt;appender-ref ref=<span class="s">&quot;JSON&quot;</span>/&gt;
+    &lt;/root&gt;
+&lt;/configuration&gt;</code></pre></div><h2 id="yaml">2. application.yaml</h2><div class="fic"><div class="fic-h"><span class="tag t-add">À AJOUTER</span><b>À coller tout à la fin du fichier (ligne vide comprise)</b><br><span class="path">fund-management-microservice\fund-management-container\src\main\resources\application.yaml</span></div><p class="note">Le <code>---</code> ouvre un nouveau document YAML : pas de clé <code>logging:</code> en double possible, rien d'autre à toucher dans le fichier. Mêmes 4 clés que la gateway.<br><b>Même bloc à la fin de</b> <code>fund-management-container\src\test\resources\application.yaml</code> (copie du yaml principal). <code>application-local.yaml</code> : rien.</p><pre><button class="copy">Copier</button><code>
+<span class="c">---</span>
+# AER_LM-350 — métadonnées des logs, mêmes clés que api-gateway-ci
+logging:
+  app-code: A104304
+  environment: LOCAL          # INT / STAGING / PROD : variable LOGGING_ENVIRONMENT posée par le CD
+  service-version: <span class="s">&quot;${APP_VERSION:@project.version@}&quot;</span>
+  node-name: ${HOSTNAME:${COMPUTERNAME:local}}</code></pre></div><h2 id="filtres">3. Journal d&#x27;accès et uid de l&#x27;appelant</h2><div class="card">Nouveau package <code>application.rest.logging</code>, à côté de <code>security</code> et <code>config</code>. Les deux classes sont des <code>@Component</code> pris par le scan existant : <b>rien à déclarer</b>, <code>SecurityConfig</code> n'est pas touché.
+<table style="margin-top:10px">
+<tr><th>Statut HTTP</th><th><code>log.level</code></th><th><code>event.outcome</code></th></tr>
+<tr><td>2xx / 3xx</td><td>INFO</td><td>success</td></tr>
+<tr><td>4xx</td><td>WARN</td><td>failure</td></tr>
+<tr><td>5xx, exception non gérée</td><td>ERROR</td><td>failure</td></tr>
+</table>
+<code>/actuator/**</code> (sondes de santé) n'est pas tracé.</div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>HttpAccessLogFilter.java</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\logging\HttpAccessLogFilter.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.logging;
+
+<span class="k">import</span> jakarta.servlet.FilterChain;
+<span class="k">import</span> jakarta.servlet.ServletException;
+<span class="k">import</span> jakarta.servlet.http.HttpServletRequest;
+<span class="k">import</span> jakarta.servlet.http.HttpServletResponse;
+<span class="k">import</span> org.slf4j.Logger;
+<span class="k">import</span> org.slf4j.LoggerFactory;
+<span class="k">import</span> org.slf4j.event.Level;
+<span class="k">import</span> org.slf4j.spi.LoggingEventBuilder;
+<span class="k">import</span> org.springframework.core.Ordered;
+<span class="k">import</span> org.springframework.core.annotation.Order;
+<span class="k">import</span> org.springframework.stereotype.Component;
+<span class="k">import</span> org.springframework.web.filter.OncePerRequestFilter;
+
+<span class="k">import</span> java.io.IOException;
+
+<span class="c">/**
+ * AER_LM-350 — journal d&#x27;accès HTTP au format ECS, identique à celui d&#x27;api-gateway-ci :
+ * une ligne par requête, logger HTTP_ACCESS, message « HTTP request completed ».
+ * Placé après le filtre d&#x27;observation (trace.id / span.id présents) et avant Spring Security
+ * (les 401 / 403 sont tracés aussi).
+ */</span>
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE + 10)
+<span class="k">public</span> <span class="k">class</span> HttpAccessLogFilter <span class="k">extends</span> OncePerRequestFilter {
+
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> LOGGER_NAME = <span class="s">&quot;HTTP_ACCESS&quot;</span>;
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> MESSAGE = <span class="s">&quot;HTTP request completed&quot;</span>;
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> CHEMIN_ACTUATOR = <span class="s">&quot;/actuator&quot;</span>;
+
+    <span class="c">/** Attribut de requête posé par UserLogContextFilter une fois l&#x27;appelant authentifié. */</span>
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> ATTRIBUT_UTILISATEUR = HttpAccessLogFilter.<span class="k">class</span>.getName() + <span class="s">&quot;.utilisateur&quot;</span>;
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">int</span> ERREUR_CLIENT = 400;
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> <span class="k">int</span> ERREUR_SERVEUR = 500;
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">final</span> Logger ACCESS_LOG = LoggerFactory.getLogger(LOGGER_NAME);
+
+    <span class="c">/** Les sondes de santé (toutes les quelques secondes) ne sont pas tracées. */</span>
+    @Override
+    <span class="k">protected</span> <span class="k">boolean</span> shouldNotFilter(HttpServletRequest request) {
+        <span class="k">String</span> chemin = request.getRequestURI().substring(request.getContextPath().length());
+        <span class="k">return</span> chemin.startsWith(CHEMIN_ACTUATOR);
+    }
+
+    @Override
+    <span class="k">protected</span> <span class="k">void</span> doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            <span class="k">throws</span> ServletException, IOException {
+        <span class="k">long</span> debut = System.nanoTime();
+        <span class="k">boolean</span> termine = <span class="k">false</span>;
+        <span class="k">try</span> {
+            filterChain.doFilter(request, response);
+            termine = <span class="k">true</span>;
+        } <span class="k">finally</span> {
+            <span class="c">// exception non gérée : le conteneur répondra 500, le statut n&#x27;est pas encore posé sur la réponse</span>
+            <span class="k">int</span> statut = termine ? response.getStatus() : Math.max(response.getStatus(), ERREUR_SERVEUR);
+            tracer(request, statut, System.nanoTime() - debut);
+        }
+    }
+
+    <span class="k">private</span> <span class="k">void</span> tracer(HttpServletRequest request, <span class="k">int</span> statut, <span class="k">long</span> dureeNanos) {
+        LoggingEventBuilder evenement = ACCESS_LOG.atLevel(niveau(statut))
+                .setMessage(MESSAGE)
+                .addKeyValue(<span class="s">&quot;event.category&quot;</span>, <span class="s">&quot;web&quot;</span>)
+                .addKeyValue(<span class="s">&quot;event.type&quot;</span>, <span class="s">&quot;access&quot;</span>)
+                .addKeyValue(<span class="s">&quot;event.action&quot;</span>, <span class="s">&quot;http-server-request&quot;</span>)
+                .addKeyValue(<span class="s">&quot;event.outcome&quot;</span>, statut &lt; ERREUR_CLIENT ? <span class="s">&quot;success&quot;</span> : <span class="s">&quot;failure&quot;</span>)
+                .addKeyValue(<span class="s">&quot;event.duration&quot;</span>, dureeNanos)
+                .addKeyValue(<span class="s">&quot;http.request.method&quot;</span>, request.getMethod())
+                .addKeyValue(<span class="s">&quot;http.response.status_code&quot;</span>, statut)
+                .addKeyValue(<span class="s">&quot;url.path&quot;</span>, request.getRequestURI())
+                .addKeyValue(<span class="s">&quot;client.address&quot;</span>, request.getRemoteAddr());
+        Object utilisateur = request.getAttribute(ATTRIBUT_UTILISATEUR);
+        <span class="k">if</span> (utilisateur != <span class="k">null</span>) {
+            evenement = evenement.addKeyValue(<span class="s">&quot;user.name&quot;</span>, utilisateur);
+        }
+        evenement.log();
+    }
+
+    <span class="c">/** 2xx / 3xx : INFO — 4xx : WARN — 5xx : ERROR. */</span>
+    <span class="k">private</span> <span class="k">static</span> Level niveau(<span class="k">int</span> statut) {
+        <span class="k">if</span> (statut &gt;= ERREUR_SERVEUR) {
+            <span class="k">return</span> Level.ERROR;
+        }
+        <span class="k">if</span> (statut &gt;= ERREUR_CLIENT) {
+            <span class="k">return</span> Level.WARN;
+        }
+        <span class="k">return</span> Level.INFO;
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>UserLogContextFilter.java</b><br><span class="path">fund-management-microservice\fund-management-application\src\main\java\com\bmci\workflow\fund\management\application\rest\logging\UserLogContextFilter.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.logging;
+
+<span class="k">import</span> jakarta.servlet.FilterChain;
+<span class="k">import</span> jakarta.servlet.ServletException;
+<span class="k">import</span> jakarta.servlet.http.HttpServletRequest;
+<span class="k">import</span> jakarta.servlet.http.HttpServletResponse;
+<span class="k">import</span> org.slf4j.MDC;
+<span class="k">import</span> org.springframework.core.Ordered;
+<span class="k">import</span> org.springframework.core.annotation.Order;
+<span class="k">import</span> org.springframework.security.authentication.AnonymousAuthenticationToken;
+<span class="k">import</span> org.springframework.security.core.Authentication;
+<span class="k">import</span> org.springframework.security.core.context.SecurityContextHolder;
+<span class="k">import</span> org.springframework.stereotype.Component;
+<span class="k">import</span> org.springframework.web.filter.OncePerRequestFilter;
+
+<span class="k">import</span> java.io.IOException;
+
+<span class="c">/**
+ * AER_LM-350 — pose l&#x27;uid de l&#x27;appelant authentifié dans le contexte de log (MDC « uid », écrit « user.name »
+ * par logback-spring.xml) : chaque ligne émise pendant la requête dit qui agit.
+ * Placé après Spring Security (dernier filtre) : l&#x27;authentification est déjà faite.
+ */</span>
+@Component
+@Order(Ordered.LOWEST_PRECEDENCE)
+<span class="k">public</span> <span class="k">class</span> UserLogContextFilter <span class="k">extends</span> OncePerRequestFilter {
+
+    <span class="k">static</span> <span class="k">final</span> <span class="k">String</span> MDC_UID = <span class="s">&quot;uid&quot;</span>;
+
+    @Override
+    <span class="k">protected</span> <span class="k">void</span> doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            <span class="k">throws</span> ServletException, IOException {
+        <span class="k">String</span> uid = uidAuthentifie();
+        <span class="k">if</span> (uid == <span class="k">null</span>) {
+            filterChain.doFilter(request, response);
+            <span class="k">return</span>;
+        }
+        request.setAttribute(HttpAccessLogFilter.ATTRIBUT_UTILISATEUR, uid);
+        MDC.put(MDC_UID, uid);
+        <span class="k">try</span> {
+            filterChain.doFilter(request, response);
+        } <span class="k">finally</span> {
+            MDC.remove(MDC_UID);
+        }
+    }
+
+    <span class="k">private</span> <span class="k">static</span> <span class="k">String</span> uidAuthentifie() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        <span class="k">if</span> (authentication == <span class="k">null</span> || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            <span class="k">return</span> <span class="k">null</span>;
+        }
+        <span class="k">return</span> authentication.getName();
+    }
+}</code></pre></div><h2 id="tests">4. Tests</h2><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>HttpAccessLogFilterTest.java (6 tests)</b><br><span class="path">fund-management-microservice\fund-management-application\src\test\java\com\bmci\workflow\fund\management\application\rest\logging\HttpAccessLogFilterTest.java</span></div><p class="note">JUnit 5 + AssertJ comme <code>ExportExcelDemandesTest</code> ; <code>MockHttpServletRequest</code> vient de <code>spring-boot-starter-test</code>. Pas de Mockito.</p><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.logging;
+
+<span class="k">import</span> ch.qos.logback.classic.Level;
+<span class="k">import</span> ch.qos.logback.classic.Logger;
+<span class="k">import</span> ch.qos.logback.classic.spi.ILoggingEvent;
+<span class="k">import</span> ch.qos.logback.core.read.ListAppender;
+<span class="k">import</span> jakarta.servlet.FilterChain;
+<span class="k">import</span> jakarta.servlet.http.HttpServletResponse;
+<span class="k">import</span> org.junit.jupiter.api.AfterEach;
+<span class="k">import</span> org.junit.jupiter.api.BeforeEach;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.slf4j.LoggerFactory;
+<span class="k">import</span> org.springframework.mock.web.MockHttpServletRequest;
+<span class="k">import</span> org.springframework.mock.web.MockHttpServletResponse;
+
+<span class="k">import</span> java.util.List;
+<span class="k">import</span> java.util.Map;
+<span class="k">import</span> java.util.concurrent.atomic.AtomicBoolean;
+<span class="k">import</span> java.util.stream.Collectors;
+
+<span class="k">import</span> <span class="k">static</span> org.assertj.core.api.Assertions.assertThat;
+<span class="k">import</span> <span class="k">static</span> org.assertj.core.api.Assertions.assertThatThrownBy;
+
+<span class="k">class</span> HttpAccessLogFilterTest {
+
+    <span class="k">private</span> <span class="k">final</span> HttpAccessLogFilter filtre = <span class="k">new</span> HttpAccessLogFilter();
+    <span class="k">private</span> <span class="k">final</span> Logger journal = (Logger) LoggerFactory.getLogger(HttpAccessLogFilter.LOGGER_NAME);
+    <span class="k">private</span> <span class="k">final</span> ListAppender&lt;ILoggingEvent&gt; lignes = <span class="k">new</span> ListAppender&lt;&gt;();
+
+    @BeforeEach
+    <span class="k">void</span> brancherLeJournal() {
+        journal.setLevel(Level.INFO);
+        lignes.start();
+        journal.addAppender(lignes);
+    }
+
+    @AfterEach
+    <span class="k">void</span> debrancherLeJournal() {
+        journal.detachAppender(lignes);
+        journal.setLevel(<span class="k">null</span>);
+    }
+
+    <span class="c">// ---- fixtures</span>
+    <span class="k">private</span> <span class="k">static</span> FilterChain chaineQuiRepond(<span class="k">int</span> statut) {
+        <span class="k">return</span> (requete, reponse) -&gt; ((HttpServletResponse) reponse).setStatus(statut);
+    }
+
+    <span class="k">private</span> ILoggingEvent ligneUnique() {
+        assertThat(lignes.list).hasSize(1);
+        <span class="k">return</span> lignes.list.<span class="k">get</span>(0);
+    }
+
+    <span class="k">private</span> <span class="k">static</span> Map&lt;<span class="k">String</span>, Object&gt; champs(ILoggingEvent ligne) {
+        <span class="k">return</span> ligne.getKeyValuePairs().stream().collect(Collectors.toMap(kv -&gt; kv.key, kv -&gt; kv.value));
+    }
+
+    <span class="c">// ---- requête aboutie</span>
+    @Test
+    @DisplayName(<span class="s">&quot;200 : une ligne INFO, mêmes champs et même ordre que la gateway&quot;</span>)
+    <span class="k">void</span> requeteReussie() <span class="k">throws</span> Exception {
+        MockHttpServletRequest requete = <span class="k">new</span> MockHttpServletRequest(<span class="s">&quot;GET&quot;</span>, <span class="s">&quot;/cash/kpi&quot;</span>);
+        requete.setRemoteAddr(<span class="s">&quot;10.0.0.7&quot;</span>);
+
+        filtre.doFilter(requete, <span class="k">new</span> MockHttpServletResponse(), chaineQuiRepond(200));
+
+        ILoggingEvent ligne = ligneUnique();
+        assertThat(ligne.getLevel()).isEqualTo(Level.INFO);
+        assertThat(ligne.getFormattedMessage()).isEqualTo(<span class="s">&quot;HTTP request completed&quot;</span>);
+        List&lt;<span class="k">String</span>&gt; cles = ligne.getKeyValuePairs().stream().map(kv -&gt; kv.key).toList();
+        assertThat(cles).containsExactly(<span class="s">&quot;event.category&quot;</span>, <span class="s">&quot;event.type&quot;</span>, <span class="s">&quot;event.action&quot;</span>, <span class="s">&quot;event.outcome&quot;</span>, <span class="s">&quot;event.duration&quot;</span>,
+                <span class="s">&quot;http.request.method&quot;</span>, <span class="s">&quot;http.response.status_code&quot;</span>, <span class="s">&quot;url.path&quot;</span>, <span class="s">&quot;client.address&quot;</span>);
+        Map&lt;<span class="k">String</span>, Object&gt; champs = champs(ligne);
+        assertThat(champs).containsEntry(<span class="s">&quot;event.category&quot;</span>, <span class="s">&quot;web&quot;</span>);
+        assertThat(champs).containsEntry(<span class="s">&quot;event.type&quot;</span>, <span class="s">&quot;access&quot;</span>);
+        assertThat(champs).containsEntry(<span class="s">&quot;event.action&quot;</span>, <span class="s">&quot;http-server-request&quot;</span>);
+        assertThat(champs).containsEntry(<span class="s">&quot;event.outcome&quot;</span>, <span class="s">&quot;success&quot;</span>);
+        assertThat(champs).containsEntry(<span class="s">&quot;http.request.method&quot;</span>, <span class="s">&quot;GET&quot;</span>);
+        assertThat(champs).containsEntry(<span class="s">&quot;http.response.status_code&quot;</span>, 200);
+        assertThat(champs).containsEntry(<span class="s">&quot;url.path&quot;</span>, <span class="s">&quot;/cash/kpi&quot;</span>);
+        assertThat(champs).containsEntry(<span class="s">&quot;client.address&quot;</span>, <span class="s">&quot;10.0.0.7&quot;</span>);
+        assertThat(champs.<span class="k">get</span>(<span class="s">&quot;event.duration&quot;</span>)).isInstanceOf(Long.<span class="k">class</span>);
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;appelant authentifié : user.name ajouté à la ligne&quot;</span>)
+    <span class="k">void</span> appelantAuthentifie() <span class="k">throws</span> Exception {
+        MockHttpServletRequest requete = <span class="k">new</span> MockHttpServletRequest(<span class="s">&quot;GET&quot;</span>, <span class="s">&quot;/cash&quot;</span>);
+        requete.setAttribute(HttpAccessLogFilter.ATTRIBUT_UTILISATEUR, <span class="s">&quot;j43709&quot;</span>);
+
+        filtre.doFilter(requete, <span class="k">new</span> MockHttpServletResponse(), chaineQuiRepond(200));
+
+        assertThat(champs(ligneUnique())).containsEntry(<span class="s">&quot;user.name&quot;</span>, <span class="s">&quot;j43709&quot;</span>);
+    }
+
+    <span class="c">// ---- requête en échec</span>
+    @Test
+    @DisplayName(<span class="s">&quot;4xx : ligne WARN, event.outcome = failure&quot;</span>)
+    <span class="k">void</span> erreurClient() <span class="k">throws</span> Exception {
+        filtre.doFilter(<span class="k">new</span> MockHttpServletRequest(<span class="s">&quot;PATCH&quot;</span>, <span class="s">&quot;/cash/1/submit&quot;</span>), <span class="k">new</span> MockHttpServletResponse(), chaineQuiRepond(403));
+
+        ILoggingEvent ligne = ligneUnique();
+        assertThat(ligne.getLevel()).isEqualTo(Level.WARN);
+        assertThat(champs(ligne)).containsEntry(<span class="s">&quot;event.outcome&quot;</span>, <span class="s">&quot;failure&quot;</span>);
+        assertThat(champs(ligne)).containsEntry(<span class="s">&quot;http.response.status_code&quot;</span>, 403);
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;5xx : ligne ERROR, event.outcome = failure&quot;</span>)
+    <span class="k">void</span> erreurServeur() <span class="k">throws</span> Exception {
+        filtre.doFilter(<span class="k">new</span> MockHttpServletRequest(<span class="s">&quot;POST&quot;</span>, <span class="s">&quot;/cash/init&quot;</span>), <span class="k">new</span> MockHttpServletResponse(), chaineQuiRepond(502));
+
+        ILoggingEvent ligne = ligneUnique();
+        assertThat(ligne.getLevel()).isEqualTo(Level.ERROR);
+        assertThat(champs(ligne)).containsEntry(<span class="s">&quot;event.outcome&quot;</span>, <span class="s">&quot;failure&quot;</span>);
+        assertThat(champs(ligne)).containsEntry(<span class="s">&quot;http.response.status_code&quot;</span>, 502);
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;exception non gérée : relancée, tracée en 500&quot;</span>)
+    <span class="k">void</span> exceptionNonGeree() {
+        FilterChain chaine = (requete, reponse) -&gt; {
+            <span class="k">throw</span> <span class="k">new</span> IllegalStateException(<span class="s">&quot;boom&quot;</span>);
+        };
+
+        assertThatThrownBy(() -&gt; filtre.doFilter(<span class="k">new</span> MockHttpServletRequest(<span class="s">&quot;GET&quot;</span>, <span class="s">&quot;/cash&quot;</span>), <span class="k">new</span> MockHttpServletResponse(), chaine))
+                .isInstanceOf(IllegalStateException.<span class="k">class</span>);
+
+        ILoggingEvent ligne = ligneUnique();
+        assertThat(ligne.getLevel()).isEqualTo(Level.ERROR);
+        assertThat(champs(ligne)).containsEntry(<span class="s">&quot;http.response.status_code&quot;</span>, 500);
+    }
+
+    <span class="c">// ---- sondes de santé</span>
+    @Test
+    @DisplayName(<span class="s">&quot;/actuator : aucune ligne, la requête poursuit son chemin&quot;</span>)
+    <span class="k">void</span> sondeDeSante() <span class="k">throws</span> Exception {
+        AtomicBoolean poursuivie = <span class="k">new</span> AtomicBoolean(<span class="k">false</span>);
+
+        filtre.doFilter(<span class="k">new</span> MockHttpServletRequest(<span class="s">&quot;GET&quot;</span>, <span class="s">&quot;/actuator/health&quot;</span>), <span class="k">new</span> MockHttpServletResponse(),
+                (requete, reponse) -&gt; poursuivie.<span class="k">set</span>(<span class="k">true</span>));
+
+        assertThat(poursuivie.<span class="k">get</span>()).isTrue();
+        assertThat(lignes.list).isEmpty();
+    }
+}</code></pre></div><div class="fic"><div class="fic-h"><span class="tag t-new">FICHIER NOUVEAU</span><b>UserLogContextFilterTest.java (3 tests)</b><br><span class="path">fund-management-microservice\fund-management-application\src\test\java\com\bmci\workflow\fund\management\application\rest\logging\UserLogContextFilterTest.java</span></div><pre><button class="copy">Copier</button><code><span class="k">package</span> com.bmci.workflow.fund.management.application.rest.logging;
+
+<span class="k">import</span> jakarta.servlet.FilterChain;
+<span class="k">import</span> org.junit.jupiter.api.AfterEach;
+<span class="k">import</span> org.junit.jupiter.api.DisplayName;
+<span class="k">import</span> org.junit.jupiter.api.Test;
+<span class="k">import</span> org.slf4j.MDC;
+<span class="k">import</span> org.springframework.mock.web.MockHttpServletRequest;
+<span class="k">import</span> org.springframework.mock.web.MockHttpServletResponse;
+<span class="k">import</span> org.springframework.security.authentication.AnonymousAuthenticationToken;
+<span class="k">import</span> org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+<span class="k">import</span> org.springframework.security.core.authority.AuthorityUtils;
+<span class="k">import</span> org.springframework.security.core.context.SecurityContextHolder;
+
+<span class="k">import</span> java.util.concurrent.atomic.AtomicInteger;
+<span class="k">import</span> java.util.concurrent.atomic.AtomicReference;
+
+<span class="k">import</span> <span class="k">static</span> org.assertj.core.api.Assertions.assertThat;
+
+<span class="k">class</span> UserLogContextFilterTest {
+
+    <span class="k">private</span> <span class="k">final</span> UserLogContextFilter filtre = <span class="k">new</span> UserLogContextFilter();
+    <span class="k">private</span> <span class="k">final</span> MockHttpServletRequest requete = <span class="k">new</span> MockHttpServletRequest(<span class="s">&quot;GET&quot;</span>, <span class="s">&quot;/cash&quot;</span>);
+    <span class="k">private</span> <span class="k">final</span> AtomicInteger passages = <span class="k">new</span> AtomicInteger();
+    <span class="k">private</span> <span class="k">final</span> AtomicReference&lt;<span class="k">String</span>&gt; uidPendantLaRequete = <span class="k">new</span> AtomicReference&lt;&gt;();
+    <span class="k">private</span> <span class="k">final</span> FilterChain chaine = (rq, rs) -&gt; {
+        passages.incrementAndGet();
+        uidPendantLaRequete.<span class="k">set</span>(MDC.<span class="k">get</span>(UserLogContextFilter.MDC_UID));
+    };
+
+    @AfterEach
+    <span class="k">void</span> nettoyer() {
+        SecurityContextHolder.clearContext();
+        MDC.clear();
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;appelant authentifié : uid présent pendant la requête, retiré ensuite&quot;</span>)
+    <span class="k">void</span> appelantAuthentifie() <span class="k">throws</span> Exception {
+        SecurityContextHolder.getContext().setAuthentication(
+                <span class="k">new</span> UsernamePasswordAuthenticationToken(<span class="s">&quot;j43709&quot;</span>, <span class="k">null</span>, AuthorityUtils.NO_AUTHORITIES));
+
+        filtre.doFilter(requete, <span class="k">new</span> MockHttpServletResponse(), chaine);
+
+        assertThat(passages.<span class="k">get</span>()).isEqualTo(1);
+        assertThat(uidPendantLaRequete.<span class="k">get</span>()).isEqualTo(<span class="s">&quot;j43709&quot;</span>);
+        assertThat(MDC.<span class="k">get</span>(UserLogContextFilter.MDC_UID)).isNull();
+        assertThat(requete.getAttribute(HttpAccessLogFilter.ATTRIBUT_UTILISATEUR)).isEqualTo(<span class="s">&quot;j43709&quot;</span>);
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;appelant anonyme : rien n&#x27;est posé&quot;</span>)
+    <span class="k">void</span> appelantAnonyme() <span class="k">throws</span> Exception {
+        SecurityContextHolder.getContext().setAuthentication(
+                <span class="k">new</span> AnonymousAuthenticationToken(<span class="s">&quot;cle&quot;</span>, <span class="s">&quot;anonymousUser&quot;</span>, AuthorityUtils.createAuthorityList(<span class="s">&quot;ROLE_ANONYMOUS&quot;</span>)));
+
+        filtre.doFilter(requete, <span class="k">new</span> MockHttpServletResponse(), chaine);
+
+        assertThat(passages.<span class="k">get</span>()).isEqualTo(1);
+        assertThat(uidPendantLaRequete.<span class="k">get</span>()).isNull();
+        assertThat(requete.getAttribute(HttpAccessLogFilter.ATTRIBUT_UTILISATEUR)).isNull();
+    }
+
+    @Test
+    @DisplayName(<span class="s">&quot;aucune authentification : rien n&#x27;est posé&quot;</span>)
+    <span class="k">void</span> sansAuthentification() <span class="k">throws</span> Exception {
+        filtre.doFilter(requete, <span class="k">new</span> MockHttpServletResponse(), chaine);
+
+        assertThat(passages.<span class="k">get</span>()).isEqualTo(1);
+        assertThat(uidPendantLaRequete.<span class="k">get</span>()).isNull();
+        assertThat(requete.getAttribute(HttpAccessLogFilter.ATTRIBUT_UTILISATEUR)).isNull();
+    }
+}</code></pre></div><h2 id="deploiement">5. Déploiement</h2><div class="card">À transmettre à l'intégrateur CD (variables d'environnement du déploiement fund-management) :
+<table style="margin-top:10px">
+<tr><th>Variable</th><th>Valeur</th><th>Champ du log</th></tr>
+<tr><td><code>LOGGING_ENVIRONMENT</code></td><td><code>INT</code> / <code>STAGING</code> / <code>PROD</code></td><td><code>service.environment</code> (sans elle : <code>LOCAL</code>)</td></tr>
+<tr><td><code>APP_VERSION</code></td><td>facultative, comme la gateway</td><td><code>service.version</code> (sans elle : version du pom)</td></tr>
+<tr><td><code>HOSTNAME</code></td><td>déjà posée par le pod</td><td><code>service.node.name</code></td></tr>
+</table></div><h2 id="verif">6. Vérification</h2><div class="card"><ol>
+<li>Build &gt; Rebuild Project, puis <code>HttpAccessLogFilterTest</code> (6 verts) et <code>UserLogContextFilterTest</code> (3 verts).</li>
+<li>Démarrer fund-management : les lignes de démarrage commencent par <code>"@timestamp"</code>, avec <code>"service":{"name":"fund-management","version":"1.4.0-SNAPSHOT","environment":"LOCAL","node":{"name":"CASM…"}}</code>.</li>
+<li>Portail → Gestion des fonds → ouvrir l'historique : une ligne <code>"log.logger":"HTTP_ACCESS"</code> par appel, avec <code>"user.name"</code> = ton uid et un <code>trace.id</code>.</li>
+<li>Même requête dans la console de la gateway : <b>même <code>trace.id</code></b> attendu des deux côtés. S'il diffère, la gateway ne propage pas la trace : me le dire.</li>
+<li>Postman, <code>GET http://localhost:8300/cash</code> sans jeton : ligne <code>HTTP_ACCESS</code> en WARN, statut 401, sans <code>user.name</code>.</li>
+<li><code>GET http://localhost:8300/actuator/health</code> : aucune ligne <code>HTTP_ACCESS</code>.</li>
+</ol></div><h2 id="savoir">7. À savoir</h2><div class="card"><ul>
+<li><b><code>app.code</code> = A104304</b> : repris de la gateway (même application QlickFlow). Si Gestion des fonds a son propre code applicatif, c'est la seule valeur à changer (section 2).</li>
+<li><b>Kibana</b> : les champs sont renommés (tableau section 0). Une recherche enregistrée sur <code>level</code>, <code>logger_name</code> ou <code>traceId</code> est à refaire sur les nouveaux noms — les mêmes que ceux de la gateway.</li>
+<li><b>Ce que j'ai exécuté</b> : le nouveau <code>logback-spring.xml</code> et les deux filtres contre le vrai <code>logstash-logback-encoder</code> 8.1 — les lignes de la section 0 sont des sorties réelles. Les deux classes JUnit n'ont pas pu tourner de mon côté (pas de bibliothèques Spring dans mon environnement) : c'est l'étape 1 de la vérification.</li>
+<li><b>Lot 2, non inclus</b> : tracer les appels sortants (Camunda / Apigee, utilisateurs-ci, notifications-ci) et le contexte des workers. Il faut modifier des classes existantes, donc j'ai besoin de leur version actuelle : <code>CamundaRestClientConfig</code>, <code>NotificationHttpAdapter</code>, <code>UtilisateursGestionDemandesAdapter</code>, <code>UtilisateursAgenceAdapter</code>, <code>IdentiteAppelantResolver</code>, <code>GdfWorkerConfig</code>.</li>
+</ul></div></main><script>document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.parentElement.querySelector('code').innerText).then(()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1200)})});</script></body></html>
